@@ -63,7 +63,11 @@ function plateAnchor(e) {
   const [sx, sy] = w2s(e.px, e.py);
   // altura útil = dos pés até o primeiro pixel opaco, não até o topo do canvas
   const alto = (spr.feet - spriteTop(spr)) * K;
-  return paraCss([sx, sy + tpx() * (CHAO - .5) - alto - 3]);
+  // o mesmo `t * CHAO` do desenho (linha do drawImage): com (CHAO - .5) o termo
+  // zerava e a placa subia meio tile acima da cabeça. A folga acompanha o zoom,
+  // senão em tile grande a barra encosta no capacete
+  const t = tpx();
+  return paraCss([sx, sy + t * CHAO - alto - 3 - t * .22]);
 }
 const evToCanvas = (ev, canvas) => {
   const r = canvas.getBoundingClientRect();

@@ -408,7 +408,44 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
 .character-del:hover{border-color:#8c3b34;background:#2a1614;color:#e0705f}
 .character-empty{padding:24px;text-align:center;color:#716b5e;border:1px dashed #443e33;border-radius:6px;background:#0e0d0b}
 .menu-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
-.menu-btn{width:100%;background:linear-gradient(#332d22,#1d1a15);color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:11px 14px;font:700 12px var(--serif);letter-spacing:.06em;cursor:pointer;box-shadow:inset 0 1px 0 #ffffff12,0 4px 12px #0008}
+.menu-actions.one{grid-template-columns:1fr}
+.menu-actions.tres{grid-template-columns:1fr 1fr 1fr}
+/* volume da trilha do menu: fica acima das telas de entrada e some no jogo,
+   onde o botão de som da barra do HUD assume */
+#home-audio{position:fixed;top:16px;right:18px;z-index:96;display:flex;align-items:center;gap:9px;
+  padding:7px 11px;border:1px solid var(--line);border-radius:6px;background:#12100db8;
+  box-shadow:inset 0 1px 0 #ffffff10,0 6px 18px #0008}
+#home-audio button{display:flex;padding:0;background:none;border:0;cursor:pointer;opacity:.85}
+#home-audio button:hover{opacity:1}
+#home-audio img{width:18px;height:18px}
+#home-audio.mudo img{opacity:.4}
+#home-vol{width:96px;accent-color:var(--gold)}
+/* carregamento: fica por cima de tudo e some com fade quando o mundo está pronto */
+/* o inset de 100vmax é a mesma camada escura do menu: sem ela o texto some no wallpaper */
+#loading-screen{z-index:95;transition:opacity .55s ease;box-shadow:inset 0 0 0 100vmax #05060ad9}
+#loading-screen.fade{opacity:0;pointer-events:none}
+.loading{display:flex;flex-direction:column;align-items:center;gap:16px;width:min(340px,76vw);text-align:center}
+.loading .menu-sigil{width:100%;margin:0}
+.loading p{margin:0;color:var(--gold2);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  text-shadow:0 2px 12px #000,0 0 24px #000}
+.loading-bar{width:100%;height:4px;border-radius:2px;background:#0d0c0a;border:1px solid #3a3428;overflow:hidden;
+  box-shadow:inset 0 1px 3px #000,0 1px 0 #ffffff08}
+.loading-bar i{display:block;width:38%;height:100%;border-radius:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:loading-slide 1.1s ease-in-out infinite}
+@keyframes loading-slide{from{transform:translateX(-110%)}to{transform:translateX(370%)}}
+/* tela inicial: o título já está no wallpaper, aqui ficam só as portas de entrada */
+.home{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;padding:0 20px;text-align:center;
+  margin-top:26vh}
+/* clarão escuro atrás do bloco: dá leitura sem virar caixa por cima do wallpaper */
+.home::before{content:"";position:absolute;inset:-48px -90px;z-index:-1;
+  background:radial-gradient(ellipse at center,#05060ae6 0,#05060ab0 48%,#05060800 74%)}
+.home .menu-sigil{width:min(420px,72vw);margin:0}
+.home p{margin:0;color:var(--gold2);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  text-shadow:0 2px 12px #000,0 0 24px #000,0 0 44px #000}
+.home-actions{display:flex;flex-direction:column;gap:10px;width:min(320px,80vw);margin-top:16px}
+.menu-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(#332d22,#1d1a15);color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:13px 14px;font:700 13px var(--serif);letter-spacing:.06em;cursor:pointer;box-shadow:inset 0 1px 0 #ffffff12,0 4px 12px #0008}
+/* line-height:1 no ícone pra ele não esticar a caixa e deixar o botão mais alto que os sem ícone */
+.menu-btn i{font-style:normal;font-size:15px;line-height:1;opacity:.75}
 .menu-btn:hover{border-color:var(--gold);color:var(--gold2);background:linear-gradient(#453a26,#242018)}
 .menu-btn.primary{color:var(--gold2);border-color:var(--gold);background:linear-gradient(#453a26,#26200f)}
 .menu-btn.primary:hover{box-shadow:0 0 18px #d9a44144}
@@ -494,8 +531,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
 .voc-stat b{color:#e1d7c2;font-size:14px}
 .voc-stat em{font-style:normal;font-size:8px;color:#6c665a}
 .create-actions{display:flex;gap:12px;margin-top:10px}
-.create-actions .menu-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 14px;font-size:13px}
-.create-actions .menu-btn i{font-style:normal;font-size:15px;opacity:.75}
+.create-actions .menu-btn{flex:1}
 #continue-btn{display:none}
 .card{background-image:
     linear-gradient(90deg,transparent 0,transparent 49.6%,#d9a4410c 50%,transparent 50.4%),
@@ -510,6 +546,8 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
 #stance button.on .im,#follow-btn.on .im{opacity:1}
 #toolbar button{padding:6px}
 #toolbar button .im{width:24px;height:24px;vertical-align:middle}
+/* sem PNG para "sair": o glifo ocupa a mesma caixa de 24px dos ícones */
+#toolbar .gl{display:inline-flex;align-items:center;justify-content:center;font-size:17px;line-height:1}
 #stance button .im{width:22px;height:22px;vertical-align:middle}
 #shop-btn .im{width:17px;height:17px}
 #mute-btn .im{opacity:.55}
@@ -566,6 +604,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
           <button id="map-btn" title="Mapa (M)"><img class="im" src="assets/icons/ui_map.png" alt=""></button>
           <button id="ui-btn" title="Interface"><img class="im" src="assets/icons/ui_settings.png" alt=""></button>
           <button id="mute-btn" class="on" title="som"><img class="im" src="assets/icons/ui_sound_on.png" alt=""></button>
+          <button id="logout-btn" title="Sair para a tela inicial"><span class="im gl">⏻</span></button>
         </div>
       </div>
     </div>
@@ -682,16 +721,42 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
   </div>
 </dialog>
 
-<div class="screen" id="menu-screen">
+<div id="home-audio">
+  <button id="home-mute" title="Ligar/desligar a música"><img class="im" src="assets/icons/ui_sound_on.png" alt=""></button>
+  <input id="home-vol" type="range" min="0" max="100" title="Volume da música">
+</div>
+
+<div class="screen" id="loading-screen" style="display:none">
+  <div class="loading">
+    <div class="menu-sigil"><i></i></div>
+    <p id="loading-msg">Levantando o terreno…</p>
+    <div class="loading-bar"><i></i></div>
+  </div>
+</div>
+
+<div class="screen" id="home-screen">
+  <div class="home">
+    <div class="menu-sigil"><i></i></div>
+    <p>Do Pico da Montanha ao Abismo — e de volta, se as poções durarem</p>
+    <div class="home-actions">
+      <button class="menu-btn primary" id="home-select-btn">Escolher personagem</button>
+      <button class="menu-btn" id="home-create-btn">Criar novo personagem</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="menu-screen" style="display:none">
   <div class="menu-card">
     <div class="menu-sigil"><i></i></div>
     <div class="menu-section-title">Seus personagens</div>
     <div class="character-scroll"><div id="character-list"></div></div>
-    <div class="menu-actions">
-      <button class="menu-btn primary" id="play-character-btn" disabled>Entrar no mundo</button>
-      <button class="menu-btn" id="new-character-btn">Criar novo personagem</button>
+    <div class="menu-actions tres">
+      <button class="menu-btn" id="menu-back"><i>‹</i>Voltar</button>
+      <button class="menu-btn" id="import-btn"><i>↑</i>Importar</button>
+      <button class="menu-btn" id="export-btn"><i>↓</i>Exportar</button>
     </div>
-    <div class="menu-foot">Selecione um personagem existente ou crie um novo para começar sua aventura.</div>
+    <input type="file" id="import-file" accept=".json,application/json" hidden>
+    <div class="menu-foot">Clique em um personagem para entrar no mundo.</div>
   </div>
 </div>
 
@@ -699,7 +764,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
   <div class="create-card">
     <div class="create-top">
       <h1>Novo personagem</h1>
-      <p>Escolha um nome e uma vocação. A decisão define como você joga.</p>
+      <p>O nome fica pra sempre. A vocação decide se você bate, atira ou conjura.</p>
     </div>
     <div class="name-field">
       <label class="create-label esq" for="name-input">Nome do personagem</label>

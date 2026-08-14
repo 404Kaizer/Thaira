@@ -1081,6 +1081,28 @@ A(S.textoAoErrar === 0, 'e não vira mais texto empilhado sobre a cabeça');
     '`res` na ficha sobrescreve a classe (esqueleto demoníaco aguenta fogo)');
   A(R(M.rat, 'physical') === 1 && R(M.orc) === 1, 'golpe sem elemento conta como físico');
 
+  /* Golpe físico em quem RESISTE a físico: o log montava ELEM[undefined] e
+     estourava no meio do dealDamage — a vida já tinha sido descontada, mas
+     killMob nunca rodava. O bicho ficava com hp<=0 vivo na lista, sumia da tela
+     e nunca largava loot. Varre espécie x elemento porque o defeito estava na
+     travessia, não numa ficha. */
+  vm.runInContext(`
+    G.mobs.length = 0; G.now += 1e5; G.dead = false;
+    P.eq = {}; recalc(); P.hp = P.st.maxhp = 1e6;
+    globalThis.falhas = [];
+    for (const id in MONSTERS) for (const el of [null, ...Object.keys(ELEM)]) {
+      const m = mkMob(id, 1, 0); m.hp = m.maxhp = 1e6;
+      try { dealDamage(m, 40, el); } catch (e) { falhas.push(id + '/' + el + ': ' + e.message); }
+      G.mobs.length = 0;
+    }
+    const gig = mkMob('cyclops', 1, 0);
+    dealDamage(gig, 1e6);
+    globalThis.gigMorreu = gig.hp <= 0 && !G.mobs.includes(gig);
+    G.mobs.length = 0;
+  `, ctx);
+  A(!S.falhas.length, `dano de qualquer elemento em qualquer criatura não quebra (${S.falhas[0] || 'ok'})`);
+  A(S.gigMorreu, 'quem resiste a físico ainda morre e sai da lista (ciclope)');
+
   // regra 1: nada barra o cavaleiro
   const barraFisico = Object.keys(M).filter(k => R(M[k], 'physical') < .5);
   A(barraFisico.length === 0, `nenhum monstro resiste a físico abaixo de .5 (${barraFisico.join(', ') || 'nenhum'})`);

@@ -1,16 +1,16 @@
 # Graph Report - Jogo  (2026-08-14)
 
 ## Corpus Check
-- 38 files · ~3,412,836 words
+- 38 files · ~3,414,420 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 934 nodes · 1608 edges · 78 communities (76 shown, 2 thin omitted)
-- Extraction: 87% EXTRACTED · 12% INFERRED · 1% AMBIGUOUS · INFERRED: 193 edges (avg confidence: 0.86)
+- 943 nodes · 1632 edges · 77 communities (75 shown, 2 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 1% AMBIGUOUS · INFERRED: 193 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d022eca4`
+- Built from commit: `c469c07c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -34,7 +34,7 @@
 - Weapon Equipment Slot
 - Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems)
 - bindInput
-- migrateLegacySave
+- itemStats
 - Snow Druid Reference Sprite Sheet
 - Flat Monochrome Glyph Icon Style
 - Knight Veteran Skin (voc_knight_veteran)
@@ -89,10 +89,9 @@
 - unequip
 - UI Sound On Icon (speaker with sound waves)
 - laco (render loop do visualizador 3D)
-- renderHotbar
 - build_skins.py
 - build_folhas.py
-- itemStats
+- habilidade
 
 ## God Nodes (most connected - your core abstractions)
 1. `log()` - 31 edges
@@ -102,9 +101,9 @@
 5. `recalc()` - 17 edges
 6. `renderBars()` - 15 edges
 7. `killMob()` - 14 edges
-8. `Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems)` - 14 edges
-9. `useRune()` - 13 edges
-10. `updateMobs()` - 13 edges
+8. `finishStart()` - 14 edges
+9. `Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems)` - 14 edges
+10. `useRune()` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Vitrine KayKit (visualizador 3D de personagens)` --references--> `tileTexture()`  [EXTRACTED]
@@ -159,7 +158,7 @@
 - **Class Archetype Roster Covered by the Reference Sheets** — tools_amostra_knight_frames_knight_archetype, tools_amostra_black_knight_frames_black_knight_archetype, tools_amostra_ranger_frames_ranger_archetype, tools_amostra_snow_druid_frames_snow_druid_archetype, tools_amostra_energy_sorcerer_front_walk_and_idle_energy_sorcerer_archetype [INFERRED 0.85]
 - **Sprite Sheet Layout Conventions** — tools_amostra_knight_frames_four_row_directional_grid, tools_amostra_ranger_frames_attack_action_row, tools_amostra_energy_sorcerer_front_walk_and_idle_magenta_chroma_key_background, tools_amostra_knight_frames_hd_pixel_art_style [INFERRED 0.85]
 
-## Communities (78 total, 2 thin omitted)
+## Communities (77 total, 2 thin omitted)
 
 ### Community 0 - "Tela de ajuda / comandos (#help)"
 Cohesion: 0.06
@@ -178,24 +177,24 @@ Cohesion: 0.05
 Nodes (46): aplicaPreset (carrega modelo do preset), carrega (baixa GLB com cache), Conjunto mínimo de animações: idle, walk, attack, hit, death, Comparação com o boneco procedural e a grade de 1 tile, HEROIS (catálogo de aventureiros KayKit), montaAnims (botões por clipe do GLB), montaPecas (lista de peças com swatches), PALETA_3D (paleta de cores para pintar peças) (+38 more)
 
 ### Community 4 - "audio.js"
-Cohesion: 0.09
-Nodes (31): ambience(), ambNodes, arp(), audioInit(), audioToggle(), audioVol(), audioVolReset(), _avisarSemSom() (+23 more)
+Cohesion: 0.08
+Nodes (33): ambience(), ambNodes, arp(), audioInit(), audioToggle(), audioVol(), audioVolReset(), _avisarSemSom() (+25 more)
 
 ### Community 5 - "game.js"
-Cohesion: 0.08
-Nodes (31): bloodSpray(), BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, _corTexto(), cssCol() (+23 more)
+Cohesion: 0.07
+Nodes (38): BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, _corTexto(), cycleVoc(), dropItem() (+30 more)
 
 ### Community 6 - "data.js"
 Cohesion: 0.05
-Nodes (39): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, boss(), conjunto(), defModificada() (+31 more)
+Nodes (38): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, boss(), conjunto(), defModificada() (+30 more)
 
 ### Community 7 - "render2d.js"
 Cohesion: 0.12
 Nodes (36): bloomPass(), CAM, camadaNuvem(), cloudPass(), creatureSpriteFor(), _criaturaCrua(), dprInt(), drawBlood() (+28 more)
 
 ### Community 8 - "log"
-Cohesion: 0.17
-Nodes (35): addExp(), addMagic(), addSkillTry(), canEquip(), castSpell(), clickTile(), comer(), curar() (+27 more)
+Cohesion: 0.15
+Nodes (35): SHOP_STOCK, addMagic(), addSkillTry(), canEquip(), castSpell(), comer(), curar(), damageFormula() (+27 more)
 
 ### Community 9 - "world.js"
 Cohesion: 0.14
@@ -214,8 +213,8 @@ Cohesion: 0.12
 Nodes (17): atk_club, mix, n, v, atk_fist, mix, n, v (+9 more)
 
 ### Community 13 - "killMob"
-Cohesion: 0.16
-Nodes (16): abalo(), bindMiniMap(), congelar(), finishStart(), killMob(), mkItem(), newPlayer(), refreshSpawns() (+8 more)
+Cohesion: 0.27
+Nodes (11): abalo(), addExp(), bloodSpray(), congelar(), cssCol(), dealDamage(), fxBurst(), impacto() (+3 more)
 
 ### Community 14 - "Ancestral Hunter Set Sheet (4x4 icon atlas on magenta key)"
 Cohesion: 0.33
@@ -234,12 +233,12 @@ Cohesion: 0.38
 Nodes (15): Golden Guardian Halberd (two-handed polearm skin: dark shaft, gold-filigreed steel axe head with heraldic crest), Golden Guardian Amulet (neck slot skin: braided gold chain, lion-face shield pendant with red gems), Red Gem Accent (ruby inlay used across the set), Golden Guardian Armor (chest slot skin: dark steel cuirass, gold lion breastplate, red tabard), Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems), Lion Head Crest Motif (shared golden guardian emblem), Golden Guardian Backpack (back slot skin: brown leather rucksack with gold lion faceplate and bedroll), Golden Guardian Greaves (feet slot skin: dark plated boots with gold lion knee guards) (+7 more)
 
 ### Community 18 - "bindInput"
-Cohesion: 0.20
-Nodes (16): afterStep(), bagAdd(), bindInput(), changeFloor(), corpseAt(), drinkBest(), lootAll(), lootTile() (+8 more)
+Cohesion: 0.16
+Nodes (20): SPELLS, abrirPicker(), bagAdd(), bindInput(), clickTile(), corpseAt(), HOT_KEYS_DEFAULT, hotDefault() (+12 more)
 
-### Community 19 - "migrateLegacySave"
-Cohesion: 0.23
-Nodes (13): askConfirm(), charId(), deleteCharacter(), listCharacters(), load(), loadCharacter(), migrateLegacySave(), playSelectedCharacter() (+5 more)
+### Community 19 - "itemStats"
+Cohesion: 0.19
+Nodes (19): PREFIXES, SUFFIXES, askConfirm(), charId(), deleteCharacter(), descLoot(), exportarPersonagens(), fixSave() (+11 more)
 
 ### Community 20 - "Snow Druid Reference Sprite Sheet"
 Cohesion: 0.31
@@ -258,8 +257,8 @@ Cohesion: 0.33
 Nodes (13): LOOT_RARITY, bestDiff(), bestiaryKill(), bestKills(), bestStage(), bindBigMap(), drawBigMap(), lootRarity() (+5 more)
 
 ### Community 24 - "frame"
-Cohesion: 0.15
-Nodes (18): chuvaOuvida(), clamp(), drawMinimap(), empurrar(), frame(), lerpEntity(), lineClear(), noTemplo() (+10 more)
+Cohesion: 0.10
+Nodes (31): afterStep(), bindMiniMap(), changeFloor(), chuvaOuvida(), clamp(), drawMinimap(), empurrar(), finishStart() (+23 more)
 
 ### Community 25 - "GG Boots Icon (Golden Lion Greaves)"
 Cohesion: 0.23
@@ -449,10 +448,6 @@ Nodes (3): step_stone, n, v
 Cohesion: 0.67
 Nodes (3): unequip, n, v
 
-### Community 74 - "renderHotbar"
-Cohesion: 0.27
-Nodes (10): SPELLS, abrirPicker(), HOT_KEYS_DEFAULT, hotDefault(), hotEntry(), hotKeyLabel(), hotUse(), knownSpells() (+2 more)
-
 ### Community 75 - "build_skins.py"
 Cohesion: 0.20
 Nodes (15): conjuntos(), disponiveis(), encaixa(), escreve_lista(), id_do_arquivo(), main(), Transforma a arte de assets/skins/ nos ícones que o jogo usa, sozinho. python…, Todo ícone que existe em assets/icons, e se ele tem par @2x. (+7 more)
@@ -461,9 +456,9 @@ Nodes (15): conjuntos(), disponiveis(), encaixa(), escreve_lista(), id_do_arquiv
 Cohesion: 0.50
 Nodes (4): main(), Corta as folhas de arte (vários itens numa imagem só) em PNGs separados. python…, Devolve [(x, y, w, h, imagem_rgba)] na ordem de leitura., separa()
 
-### Community 78 - "itemStats"
-Cohesion: 0.21
-Nodes (13): PREFIXES, SUFFIXES, descLoot(), dropItem(), fixSave(), fmtBon(), itemCell(), itemStats() (+5 more)
+### Community 78 - "habilidade"
+Cohesion: 0.50
+Nodes (4): habilidade(), lineClear(), say(), tapaVista()
 
 ## Ambiguous Edges - Review These
 - `graphify` → `Thaira — RPG isométrico (shell da aplicação)`  [AMBIGUOUS]

@@ -18,7 +18,7 @@
   "16": "Weapon Equipment Slot",
   "17": "Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems)",
   "18": "bindInput",
-  "19": "migrateLegacySave",
+  "19": "itemStats",
   "20": "Snow Druid Reference Sprite Sheet",
   "21": "Flat Monochrome Glyph Icon Style",
   "22": "Knight Veteran Skin (voc_knight_veteran)",
@@ -73,8 +73,7 @@
   "71": "unequip",
   "72": "UI Sound On Icon (speaker with sound waves)",
   "73": "laco (render loop do visualizador 3D)",
-  "74": "renderHotbar",
   "75": "build_skins.py",
   "76": "build_folhas.py",
-  "78": "itemStats"
+  "78": "habilidade"
 }

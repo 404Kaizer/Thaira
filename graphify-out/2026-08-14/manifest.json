@@ -25,9 +25,9 @@
     "semantic_hash": "57055d30e70a18affd4537e787af7b8d"
   },
   "assets/music/manifest.json": {
-    "mtime": 1786335248.0,
+    "mtime": 1786682697.9505103,
     "ast_hash": "621bffd48c7ec1b4010de0899d1d8a66",
-    "semantic_hash": "621bffd48c7ec1b4010de0899d1d8a66"
+    "semantic_hash": ""
   },
   "assets/sfx/manifest.example.json": {
     "mtime": 1786335814.0,
@@ -45,18 +45,18 @@
     "semantic_hash": ""
   },
   "src/audio.js": {
-    "mtime": 1786403754.0,
-    "ast_hash": "792d480a30e6c28acf8075c772f5508d",
-    "semantic_hash": "792d480a30e6c28acf8075c772f5508d"
+    "mtime": 1786682887.72198,
+    "ast_hash": "ae796d19d9509a6bc5c345d8beb1907f",
+    "semantic_hash": ""
   },
   "src/data.js": {
-    "mtime": 1786673875.1956613,
-    "ast_hash": "2877cc56b9bce891e1931f7092748f00",
+    "mtime": 1786680810.9907315,
+    "ast_hash": "d2af22d7636b5fdfc5644630d97d4349",
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1786678722.9005682,
-    "ast_hash": "9f3d23a9b5b6885685a6ff947a68edb1",
+    "mtime": 1786684293.4260228,
+    "ast_hash": "bb28644fce7576035dfab9cb6c151342",
     "semantic_hash": ""
   },
   "src/hud.js": {
@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1786596475.8931181,
-    "ast_hash": "2f4c539a6e847878c49d30f5b86efda3",
+    "mtime": 1786681415.2874815,
+    "ast_hash": "22c08e08243d688d7035a0eb73f7570b",
     "semantic_hash": ""
   },
   "src/ui.js": {
@@ -95,8 +95,8 @@
     "semantic_hash": "7843bd603a1f7edb4d361c7cbc173949"
   },
   "index.html": {
-    "mtime": 1786678729.4261456,
-    "ast_hash": "85cb4e5c0b75e2ffe016f5f8b2dd974c",
+    "mtime": 1786684202.5217056,
+    "ast_hash": "46aa7a33ed5a92dcd2f9b8455b66c993",
     "semantic_hash": ""
   },
   "tools/amostra/kaykit.html": {
@@ -3007,6 +3007,11 @@
   "assets/vocations/sorcerer_symbol.png": {
     "mtime": 1786673257.2132275,
     "ast_hash": "a0e505e82431086848982be8057d385c",
+    "semantic_hash": ""
+  },
+  "assets/music/Scape Main.mp3": {
+    "mtime": 1786680480.2220168,
+    "ast_hash": "90ba52edf750219740f30561e80de417",
     "semantic_hash": ""
   }
 }

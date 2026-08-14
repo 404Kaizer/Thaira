@@ -7,7 +7,7 @@
   "5": "game.js",
   "6": "data.js",
   "7": "render2d.js",
-  "8": "castSpell",
+  "8": "log",
   "9": "world.js",
   "10": "superficie-dia",
   "11": "Orc Animation Sprite Sheet",
@@ -18,7 +18,7 @@
   "16": "Weapon Equipment Slot",
   "17": "Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems)",
   "18": "bindInput",
-  "19": "migrateLegacySave",
+  "19": "itemStats",
   "20": "Snow Druid Reference Sprite Sheet",
   "21": "Flat Monochrome Glyph Icon Style",
   "22": "Knight Veteran Skin (voc_knight_veteran)",
@@ -76,7 +76,6 @@
   "74": "renderHotbar",
   "75": "build_skins.py",
   "76": "build_folhas.py",
-  "77": "log",
-  "78": "itemStats",
-  "79": "finishStart"
+  "77": "finishStart",
+  "78": "habilidade"
 }

@@ -353,6 +353,37 @@ async function musica(amb, base = 'assets/music') {
   await _tocarFila(base, amb);
   return true;
 }
+/* A trilha do menu toca por <audio>, não por decodeAudioData: são ~7 MB e
+   decodificar o arquivo inteiro atrasava o início em vários segundos. O elemento
+   entra no mesmo bus de música, então o slider de volume continua mandando. */
+const MENU_TRACK = 'assets/music/Scape Main.mp3';
+let MENU = null, MENU_EL = null;
+/* O arquivo tem 6,8 MB (as faixas do jogo têm ~1,3 MB), então o download começa
+   no carregamento da página e não no clique: quando o gesto chega já há buffer. */
+function prepararMusicaMenu() {
+  if (MENU_EL) return MENU_EL;
+  MENU_EL = new Audio(MENU_TRACK);
+  MENU_EL.loop = true;
+  MENU_EL.preload = 'auto';
+  return MENU_EL;
+}
+function musicaMenu() {
+  if (MENU || !audioInit() || !SFX_ON) return false;
+  const el = prepararMusicaMenu();
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0.0001, AC.currentTime);
+  g.gain.linearRampToValueAtTime(.32, AC.currentTime + .8);
+  AC.createMediaElementSource(el).connect(g); g.connect(BUS.musica || master);
+  el.play().catch(() => { });
+  MENU = { el, g };
+  return true;
+}
+function fadeMusicaMenu(seg = 1.2) {
+  if (!MENU) return;
+  const { el, g } = MENU; MENU = null;
+  g.gain.setTargetAtTime(0, AC.currentTime, seg / 3);
+  setTimeout(() => el.pause(), seg * 1000 + 200);
+}
 function pararMusica() {
   clearTimeout(MUS.timer);
   try { if (MUS.node) MUS.node.stop(); } catch (e) { }

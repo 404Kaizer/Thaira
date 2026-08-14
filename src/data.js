@@ -16,29 +16,29 @@ const VOCATIONS = {
     name: 'Knight', emoji: '🛡️', color: '#d8a04a', art: '#d25555',
     hp: 15, mana: 5, hpReg: 5, mpReg: 2, spd: 0.65,
     sk: { fist: 1.1, sword: 1.1, axe: 1.1, club: 1.1, distance: 1.4, shielding: 1.1 }, magic: 3.0,
-    desc: 'Muito HP e dano corpo a corpo. Aguenta pancada e vive na linha de frente.',
-    tags: ['Linha de frente', 'Corpo a corpo', 'Resistência', 'Escudo']
+    desc: 'Ganha três vezes mais vida que um mago e não conjura quase nada. Fica na frente, apanha e devolve com espada, machado ou maça.',
+    tags: ['Segura a linha', 'Espada e escudo', 'Magia quase nula']
   },
   ranger: {
     name: 'Ranger', emoji: '🏹', color: '#66c48a', art: '#5587d2',
     hp: 10, mana: 15, hpReg: 4, mpReg: 4, spd: 0.85,
     sk: { fist: 1.2, sword: 1.2, axe: 1.2, club: 1.2, distance: 1.1, shielding: 1.1 }, magic: 1.4,
-    desc: 'Ataque à distância, bom equilíbrio entre vida e mana.',
-    tags: ['Distância', 'Equilíbrio', 'Mobilidade', 'Precisão']
+    desc: 'A melhor mão do jogo para arco e besta, e vida suficiente para errar um passo. Atira, recua e atira de novo.',
+    tags: ['Arco e besta', 'Bate e recua', 'Mana para runas']
   },
   sorcerer: {
     name: 'Sorcerer', emoji: '🔥', color: '#e05a5a', art: '#ae55d2',
     hp: 5, mana: 30, hpReg: 2, mpReg: 8, spd: 1.25,
     sk: { fist: 1.5, sword: 2.0, axe: 2.0, club: 2.0, distance: 2.0, shielding: 1.5 }, magic: 1.1,
-    desc: 'Dano mágico pesado em área. Frágil, mas devastador.',
-    tags: ['Dano em área', 'Magia', 'Frágil', 'Ofensivo']
+    desc: 'Seis vezes mais mana que vida por nível. Um exevo flam hur limpa o corredor; dois golpes de volta limpam você.',
+    tags: ['Fogo e energia', 'Mana de sobra', 'Casca de vidro']
   },
   druid: {
     name: 'Druid', emoji: '❄️', color: '#5aa9ff', art: '#98d255',
     hp: 5, mana: 30, hpReg: 2, mpReg: 8, spd: 1.05,
     sk: { fist: 1.5, sword: 2.0, axe: 2.0, club: 2.0, distance: 2.0, shielding: 1.5 }, magic: 1.1,
-    desc: 'Magia de gelo/terra e as melhores curas do jogo.',
-    tags: ['Suporte', 'Cura', 'Natureza', 'Controle']
+    desc: 'A mesma mana do sorcerer, gasta em gelo, terra e no exura vita que te mantém de pé quando a caçada vira.',
+    tags: ['Gelo e terra', 'Cura pesada', 'Aguenta a caçada']
   }
 };
 /* símbolo da vocação — o arquivo é assets/vocations/<chave>_symbol.png.

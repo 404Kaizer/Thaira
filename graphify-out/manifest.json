@@ -25,9 +25,9 @@
     "semantic_hash": "57055d30e70a18affd4537e787af7b8d"
   },
   "assets/music/manifest.json": {
-    "mtime": 1786335248.0,
+    "mtime": 1786682697.9505103,
     "ast_hash": "621bffd48c7ec1b4010de0899d1d8a66",
-    "semantic_hash": "621bffd48c7ec1b4010de0899d1d8a66"
+    "semantic_hash": ""
   },
   "assets/sfx/manifest.example.json": {
     "mtime": 1786335814.0,
@@ -45,18 +45,18 @@
     "semantic_hash": ""
   },
   "src/audio.js": {
-    "mtime": 1786403754.0,
-    "ast_hash": "792d480a30e6c28acf8075c772f5508d",
-    "semantic_hash": "792d480a30e6c28acf8075c772f5508d"
+    "mtime": 1786682887.72198,
+    "ast_hash": "ae796d19d9509a6bc5c345d8beb1907f",
+    "semantic_hash": ""
   },
   "src/data.js": {
-    "mtime": 1786673875.1956613,
-    "ast_hash": "2877cc56b9bce891e1931f7092748f00",
+    "mtime": 1786680810.9907315,
+    "ast_hash": "d2af22d7636b5fdfc5644630d97d4349",
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1786679009.2320852,
-    "ast_hash": "a1b78ff026039f26442ff91ae6515acd",
+    "mtime": 1786685069.8962083,
+    "ast_hash": "338d3fc471551c77da8d382b1b656ebb",
     "semantic_hash": ""
   },
   "src/hud.js": {
@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1786596475.8931181,
-    "ast_hash": "2f4c539a6e847878c49d30f5b86efda3",
+    "mtime": 1786684443.1445136,
+    "ast_hash": "85bc04b05dec03cb4efd2e7cc0824c3c",
     "semantic_hash": ""
   },
   "src/ui.js": {
@@ -80,8 +80,8 @@
     "semantic_hash": ""
   },
   "tests/test.js": {
-    "mtime": 1786597010.1074288,
-    "ast_hash": "32d82b9105c84dd2f1ab2878fa0ef782",
+    "mtime": 1786684971.7139657,
+    "ast_hash": "52ee1541e22a3cc4e15c176fb06662ed",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -95,8 +95,8 @@
     "semantic_hash": "7843bd603a1f7edb4d361c7cbc173949"
   },
   "index.html": {
-    "mtime": 1786679006.8035305,
-    "ast_hash": "84c1df48358e67d79ef6d234fea0be08",
+    "mtime": 1786684202.5217056,
+    "ast_hash": "46aa7a33ed5a92dcd2f9b8455b66c993",
     "semantic_hash": ""
   },
   "tools/amostra/kaykit.html": {
@@ -3007,6 +3007,11 @@
   "assets/vocations/sorcerer_symbol.png": {
     "mtime": 1786673257.2132275,
     "ast_hash": "a0e505e82431086848982be8057d385c",
+    "semantic_hash": ""
+  },
+  "assets/music/Scape Main.mp3": {
+    "mtime": 1786680480.2220168,
+    "ast_hash": "90ba52edf750219740f30561e80de417",
     "semantic_hash": ""
   }
 }

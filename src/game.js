@@ -302,6 +302,8 @@ function useItem(it) {
     if (b.use.hp) curar(b.use.hp, b.n);
     if (b.use.mp) curar(b.use.mp, b.n, true);
     if (b.food) comer(b);
+    // mesma placa da fala das magias: dá pra ver de longe quem bebeu ou comeu
+    say(P, b.food ? 'Hmm...' : 'Gulp gulp...');
     if (--it.count <= 0) P.bag.splice(P.bag.indexOf(it), 1);
     sfx('potion');
     renderInv(); renderBars(); return;
@@ -708,7 +710,7 @@ function dealDamage(m, raw, el, color) {
     impacto(m.x, m.y, 'erro');
     float(m.x, m.y, 'imune', '#9aa0a8');
     sfx('block', m.x, m.y);
-    log(`${m.n} é imune a ${ELEM[el].n}.`, 'cbt mana');
+    log(`${m.n} é imune a ${ELEM[el || 'physical'].n}.`, 'cbt mana');
     return;
   }
   let dmg = Math.max(1, Math.round(raw * rm - rnd(m.def.arm / 2, m.def.arm)));
@@ -726,7 +728,12 @@ function dealDamage(m, raw, el, color) {
      não é mecânica, é dano que varia sozinho — o jogador nunca descobre que
      trocar de magia resolve. */
   const marca = rm > 1.05 ? '▲' : rm < .95 ? '▼' : '';
-  log(`${crit ? 'CRÍTICO! ' : ''}Você causa ${dmg} de dano em ${m.n}${marca ? (rm > 1 ? ' (fraco a ' : ' (resiste a ') + ELEM[el].n + ')' : ''}${m.hp > 0 ? ` (${Math.max(0, m.hp)}/${m.maxhp})` : ''}.`, 'cbt dano');
+  /* golpe sem `el` é físico — e `resistOf` já lê a linha 'physical'. Sem este
+     fallback, bater num Gigante (resiste a físico) estourava em ELEM[undefined]
+     e o resto do golpe não rodava: o bicho ficava com hp<=0 sem morrer, some da
+     tela e nunca larga o loot. */
+  const nomeEl = ELEM[el || 'physical'].n;
+  log(`${crit ? 'CRÍTICO! ' : ''}Você causa ${dmg} de dano em ${m.n}${marca ? (rm > 1 ? ' (fraco a ' : ' (resiste a ') + nomeEl + ')' : ''}${m.hp > 0 ? ` (${Math.max(0, m.hp)}/${m.maxhp})` : ''}.`, 'cbt dano');
   float(m.x, m.y, (crit ? '★' : '') + marca + dmg, color || '#ff6a6a');
   fxBurst(m.x, m.y, color || 0xff5555, 0.7, el);
   if (P.st.lifesteal) curar(dmg * P.st.lifesteal, 'roubo de vida');
@@ -1665,6 +1672,9 @@ function bindInput(canvas) {
     }
   });
   addEventListener('resize', () => resizeCam(canvas));
+  /* o canvas nasce com o tamanho de antes das sidebars do HUD entrarem, e ficava
+     esticado até o primeiro zoom; o observer casa o buffer com a caixa real. */
+  new ResizeObserver(() => resizeCam(canvas)).observe($('#stage'));
   $('#chat').addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
     const txt = e.target.value.trim().toLowerCase(); e.target.value = '';
@@ -1975,13 +1985,36 @@ function frame(t) {
 }
 
 /* ---------------------------------------------------------------- início */
+/* genWorld trava a thread, então a tela de carregamento precisa ser pintada antes:
+   dois rAF garantem um quadro na tela; o fade sai quando o mundo já está de pé. */
+const LOADING_FADE = 550; // igual à transition do #loading-screen
+const LOADING_MIN = 1200; // genWorld é rápido: sem um piso a tela só piscaria
 function startGame(name, voc, saved, charIdArg) {
-  if (charIdArg) { ACTIVE_CHARACTER_ID = charIdArg; localStorage.setItem(ACTIVE_CHARACTER_KEY, charIdArg); }
-  const canvas = $('#c');
-  const seed = saved ? saved.seed : (Math.random() * 1e9) | 0;
-  genWorld(seed);
-  resizeCam(canvas);
-  finishStart(canvas, saved, name, voc);
+  const tela = $('#loading-screen');
+  tela.classList.remove('fade');
+  tela.style.display = 'flex';
+  $('#loading-msg').textContent = saved
+    ? 'Acordando os bichos onde você parou…'
+    : 'Cavando as cavernas e povoando o abismo…';
+  fadeMusicaMenu();                   // a trilha do menu sai enquanto o mundo sobe
+  const t0 = performance.now();
+  let feito = false;
+  const construir = () => {
+    if (feito) return;
+    feito = true;
+    if (charIdArg) { ACTIVE_CHARACTER_ID = charIdArg; localStorage.setItem(ACTIVE_CHARACTER_KEY, charIdArg); }
+    const canvas = $('#c');
+    const seed = saved ? saved.seed : (Math.random() * 1e9) | 0;
+    genWorld(seed);
+    resizeCam(canvas);
+    finishStart(canvas, saved, name, voc);
+    setTimeout(() => {
+      tela.classList.add('fade');
+      setTimeout(() => tela.style.display = 'none', LOADING_FADE);
+    }, Math.max(0, LOADING_MIN - (performance.now() - t0)));
+  };
+  requestAnimationFrame(() => requestAnimationFrame(construir));
+  setTimeout(construir, 120); // rAF não roda em aba sem renderização; o timer garante a partida
 }
 /* Devolve o mundo vivo do save. A ordem importa: primeiro os mortos, senão o
    refreshSpawns lá embaixo repovoaria justamente o que você limpou antes de sair;
@@ -2006,8 +2039,7 @@ function restaurarBichos(saved) {
 }
 function finishStart(canvas, saved, name, voc) {
   buildMinimaps();
-  $('#menu-screen').style.display = 'none';
-  $('#create-screen').style.display = 'none';
+  showScreen(null);
 
   if (saved) {
     P = saved.p; P.buffs = {}; P.cd = {}; P.nextStep = P.nextAtk = 0;
@@ -2039,15 +2071,30 @@ function finishStart(canvas, saved, name, voc) {
 }
 
 /* ---------------------------------------------------------------- menus */
+/* as três telas de entrada se revezam; passar null esconde todas (o jogo começou).
+   A lista fica de fora do seletor .screen porque #death-screen também é .screen. */
+const ENTRY_SCREENS = ['home-screen', 'menu-screen', 'create-screen'];
+function showScreen(id) {
+  ENTRY_SCREENS.forEach(s => $('#' + s).style.display = s === id ? 'flex' : 'none');
+  $('#home-audio').style.display = id ? 'flex' : 'none';
+}
+
+/* a trilha do menu só pode começar depois de um gesto do usuário (política de
+   autoplay), então quem chama é o primeiro clique/tecla da página */
+function tocarMusicaMenu() {
+  // `style.display` é vazio antes do primeiro showScreen: no boot a home vem só do CSS
+  if (!G.started) musicaMenu();
+}
+
+function showHome() { showScreen('home-screen'); }
+
 function showMenu() {
-  $('#create-screen').style.display = 'none';
-  $('#menu-screen').style.display = 'flex';
+  showScreen('menu-screen');
   renderCharacterSelection();
 }
 
 function showCreate() {
-  $('#menu-screen').style.display = 'none';
-  $('#create-screen').style.display = 'flex';
+  showScreen('create-screen');
   $('#name-input').value = '';
   vocIndex = 0;
   renderVoc();
@@ -2059,11 +2106,13 @@ let vocKeys = Object.keys(VOCATIONS);
 let vocIndex = 0;
 
 /* confirmação no lugar do confirm() do navegador; Esc/backdrop = cancelar */
-function askConfirm(titulo, msg, okLabel = 'Confirmar') {
+function askConfirm(titulo, msg, okLabel = 'Confirmar', soOk = false) {
   const d = $('#confirm-dlg');
   $('#confirm-title').textContent = titulo;
   $('#confirm-msg').textContent = msg;
   $('#confirm-ok').textContent = okLabel;
+  $('#confirm-cancel').style.display = soOk ? 'none' : '';   // soOk = só avisar
+  $('#confirm-ok').classList.toggle('danger', !soOk);        // aviso não é ação de risco
   d.showModal();
   return new Promise(r => {
     const fim = v => { d.oncancel = null; d.close(); r(v); };
@@ -2083,7 +2132,7 @@ function renderCharacterSelection() {
   if (!chars.length) {
     const empty = document.createElement('div');
     empty.className = 'character-empty';
-    empty.textContent = 'Nenhum personagem criado. Comece uma nova aventura.';
+    empty.textContent = 'Nenhum personagem por aqui. O nível 8 chega rápido; o 50, nem tanto.';
     box.appendChild(empty);
   } else {
     chars.forEach(({ id, d }) => {
@@ -2103,14 +2152,7 @@ function renderCharacterSelection() {
       card.querySelector('.character-lvl').textContent = p.level || 1;
       card.querySelector('span').textContent = v.name;
       card.querySelector('small').textContent = `${p.kills || 0} criaturas derrotadas`;
-      card.onclick = () => {
-        selectedCharacterId = id;
-        localStorage.setItem(ACTIVE_CHARACTER_KEY, id);
-        box.querySelectorAll('.character-card').forEach(x => x.classList.remove('sel'));
-        card.classList.add('sel');
-        $('#play-character-btn').disabled = false;
-      };
-      card.ondblclick = () => playSelectedCharacter();
+      card.onclick = () => { selectedCharacterId = id; playSelectedCharacter(); };
       card.querySelector('.character-del').onclick = async e => {
         e.stopPropagation();
         const ok = await askConfirm('Excluir personagem',
@@ -2122,7 +2164,37 @@ function renderCharacterSelection() {
       box.appendChild(card);
     });
   }
-  $('#play-character-btn').disabled = !selectedCharacterId;
+}
+
+/* Export/import do baú inteiro: o localStorage é por origem, então trocar de
+   endereço (file://, localhost, site, app) deixa os saves para trás sem isto. */
+function exportarPersonagens() {
+  const chars = readCharacters();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(chars)], { type: 'application/json' }));
+  a.download = `thaira-personagens-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+/* Arquivo é entrada não confiável: só entra quem passa pelo fixSave e tem nome.
+   Id repetido não sobrescreve o personagem de casa — o de fora ganha id novo. */
+async function importarPersonagens(file) {
+  let vindo = null;
+  try { vindo = JSON.parse(await file.text()); } catch (e) { /* json torto */ }
+  if (!vindo || typeof vindo !== 'object' || Array.isArray(vindo))
+    return askConfirm('Arquivo inválido', 'Esse arquivo não é um backup de personagens do Thaira.', 'Entendi', true);
+  const chars = readCharacters();
+  let n = 0;
+  for (const [id, d] of Object.entries(vindo)) {
+    const ok = fixSave(d);
+    if (!ok || !ok.p || !ok.p.name) continue;
+    chars[chars[id] ? charId() : id] = d;
+    n++;
+  }
+  writeCharacters(chars);
+  renderCharacterSelection();
+  askConfirm('Importação', n ? `${n} personagem(ns) adicionado(s).` : 'Nenhum personagem válido no arquivo.', 'Fechar', true);
 }
 
 function playSelectedCharacter() {
@@ -2178,6 +2250,22 @@ addEventListener('DOMContentLoaded', () => {
   $('#pick-close').onclick = () => $('#pick-win').style.display = 'none';
   document.querySelectorAll('#stance button').forEach(b => b.onclick = () => setStance(b.dataset.s));
   $('#follow-btn').onclick = () => { P.follow = !P.follow; if (!P.follow) G.path = []; renderStance(); };
+  /* recarregar é a saída honesta: P, G, WORLD e os listeners do jogo são globais,
+     desmontar tudo à mão daria muito mais código do que um boot limpo */
+  $('#logout-btn').onclick = async () => {
+    if (!await askConfirm('Sair para a tela inicial',
+      'Seu personagem é salvo agora e você volta para o menu.', 'Sair')) return;
+    save();
+    // mesma tela da entrada, só que entrando em fade: começa transparente, o
+    // reflow deixa a transição valer e o reload acontece com ela já cheia
+    const tela = $('#loading-screen');
+    $('#loading-msg').textContent = 'Guardando sua jornada…';
+    tela.style.display = 'flex';
+    tela.classList.add('fade');
+    void tela.offsetWidth;
+    tela.classList.remove('fade');
+    setTimeout(() => location.reload(), LOADING_FADE + 450);
+  };
   $('#mute-btn').onclick = () => {
     const ligado = audioToggle();
     $('#mute-btn').innerHTML = `<img class="im" src="assets/icons/ui_sound_${ligado ? 'on' : 'off'}.png" alt="">`;
@@ -2189,9 +2277,28 @@ addEventListener('DOMContentLoaded', () => {
     c.onmouseleave = hideTip;
   });
 
-  $('#play-character-btn').onclick = playSelectedCharacter;
-  $('#new-character-btn').onclick = showCreate;
-  $('#create-cancel').onclick = showMenu;
+  /* mudo = volume da música em 0; o valor anterior volta ao desmutar */
+  const vol = $('#home-vol'), semSom = () => +vol.value === 0;
+  let ultimoVol = Math.round((audioVols().musica || .6) * 100) || 60;
+  const syncVol = () => {
+    $('#home-audio').classList.toggle('mudo', semSom());
+    $('#home-mute img').src = `assets/icons/ui_sound_${semSom() ? 'off' : 'on'}.png`;
+  };
+  vol.value = ultimoVol; syncVol();
+  vol.oninput = () => { audioVol('musica', +vol.value / 100); if (!semSom()) ultimoVol = +vol.value; syncVol(); };
+  $('#home-mute').onclick = () => { vol.value = semSom() ? ultimoVol : 0; vol.oninput(); };
+
+  $('#home-select-btn').onclick = showMenu;
+  $('#home-create-btn').onclick = showCreate;
+  $('#menu-back').onclick = showHome;
+  $('#export-btn').onclick = exportarPersonagens;
+  $('#import-btn').onclick = () => $('#import-file').click();
+  $('#import-file').onchange = e => {
+    const f = e.target.files[0];
+    e.target.value = '';                 // escolher o mesmo arquivo de novo dispara change
+    if (f) importarPersonagens(f);
+  };
+  $('#create-cancel').onclick = showHome;
   $('#create-character-btn').onclick = () => {
     const name = $('#name-input').value.trim();
     if (!name) { $('#name-input').focus(); return; }
@@ -2202,18 +2309,18 @@ addEventListener('DOMContentLoaded', () => {
   };
   $('#name-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') $('#create-character-btn').click();
-    if (e.key === 'Escape') showMenu();
+    if (e.key === 'Escape') showHome();
   });
   addEventListener('keydown', e => {
     if ($('#create-screen').style.display === 'flex') {
       if (e.key === 'ArrowLeft') cycleVoc(-1);
       else if (e.key === 'ArrowRight') cycleVoc(1);
-      else if (e.key === 'Escape') showMenu();  // a seta de voltar saiu; Esc é a saída pelo teclado
-    }
+      else if (e.key === 'Escape') showHome();  // a seta de voltar saiu; Esc é a saída pelo teclado
+    } else if ($('#menu-screen').style.display === 'flex' && e.key === 'Escape') showHome();
   });
 
-  renderCharacterSelection();
   renderVocGrid();
-  addEventListener('pointerdown', audioInit, { once: true });
-  addEventListener('keydown', audioInit, { once: true });
+  prepararMusicaMenu();               // baixa a trilha do menu enquanto a home aparece
+  addEventListener('pointerdown', tocarMusicaMenu, { once: true });
+  addEventListener('keydown', tocarMusicaMenu, { once: true });
 });
