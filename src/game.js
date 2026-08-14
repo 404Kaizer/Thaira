@@ -1860,6 +1860,16 @@ function listCharacters() {
     .sort((a, b) => (b.d.p.level || 1) - (a.d.p.level || 1));
 }
 
+/* apaga o save legado junto quando some o último: migrateLegacySave o ressuscitaria */
+function deleteCharacter(id) {
+  const chars = readCharacters();
+  delete chars[id];
+  writeCharacters(chars);
+  if (localStorage.getItem(ACTIVE_CHARACTER_KEY) === id) localStorage.removeItem(ACTIVE_CHARACTER_KEY);
+  if (!Object.keys(chars).length) localStorage.removeItem(SAVE_KEY);
+  if (ACTIVE_CHARACTER_ID === id) ACTIVE_CHARACTER_ID = null;
+}
+
 function loadCharacter(id) {
   const chars = migrateLegacySave();
   const d = fixSave(chars[id]);
@@ -2048,6 +2058,21 @@ let selectedCharacterId = null;
 let vocKeys = Object.keys(VOCATIONS);
 let vocIndex = 0;
 
+/* confirmação no lugar do confirm() do navegador; Esc/backdrop = cancelar */
+function askConfirm(titulo, msg, okLabel = 'Confirmar') {
+  const d = $('#confirm-dlg');
+  $('#confirm-title').textContent = titulo;
+  $('#confirm-msg').textContent = msg;
+  $('#confirm-ok').textContent = okLabel;
+  d.showModal();
+  return new Promise(r => {
+    const fim = v => { d.oncancel = null; d.close(); r(v); };
+    $('#confirm-ok').onclick = () => fim(true);
+    $('#confirm-cancel').onclick = () => fim(false);
+    d.oncancel = () => fim(false); // Esc
+  });
+}
+
 function renderCharacterSelection() {
   const box = $('#character-list');
   box.innerHTML = '';
@@ -2072,7 +2097,8 @@ function renderCharacterSelection() {
           <b class="character-lvl"></b>
         </div>
         <div class="character-info"><strong></strong><span></span><small></small></div>
-        <div class="character-enter">JOGAR ›</div>`;
+        <div class="character-enter">JOGAR ›</div>
+        <button class="character-del" title="Excluir personagem">✕</button>`;
       card.querySelector('strong').textContent = p.name;
       card.querySelector('.character-lvl').textContent = p.level || 1;
       card.querySelector('span').textContent = v.name;
@@ -2085,6 +2111,14 @@ function renderCharacterSelection() {
         $('#play-character-btn').disabled = false;
       };
       card.ondblclick = () => playSelectedCharacter();
+      card.querySelector('.character-del').onclick = async e => {
+        e.stopPropagation();
+        const ok = await askConfirm('Excluir personagem',
+          `${p.name}, nível ${p.level || 1}. O save some para sempre — não dá para desfazer.`, 'Excluir');
+        if (!ok) return;
+        deleteCharacter(id);
+        renderCharacterSelection();
+      };
       box.appendChild(card);
     });
   }
@@ -2118,7 +2152,7 @@ function renderVocGrid() {
 function renderVoc() {
   const v = VOCATIONS[vocKeys[vocIndex]];
   $('#voc-grid').querySelectorAll('.voc-card').forEach((c, i) => c.classList.toggle('sel', i === vocIndex));
-  $('#voc-emblem').textContent = vocKeys[vocIndex][0].toUpperCase();
+  $('#voc-emblem').innerHTML = v.emoji;
   $('#voc-current-name').textContent = v.name;
   $('#voc-current-desc').textContent = v.desc;
   $('#voc-tags').innerHTML = v.tags.map(t => `<span>${t}</span>`).join('');

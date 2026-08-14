@@ -41,9 +41,9 @@ const VOCATIONS = {
     tags: ['Suporte', 'Cura', 'Natureza', 'Controle']
   }
 };
-/* ícone de imagem por vocação — o arquivo é assets/icons/voc_<chave>.png.
+/* símbolo da vocação — o arquivo é assets/vocations/<chave>_symbol.png.
    Mesmo caminho dos itens: quem desenha usa innerHTML, então basta a tag. */
-for (const k in VOCATIONS) VOCATIONS[k].emoji = `<img class="ii" src="assets/icons/voc_${k}.png" alt="">`;
+for (const k in VOCATIONS) VOCATIONS[k].emoji = `<img class="ii" src="assets/vocations/${k}_symbol.png" alt="">`;
 
 const SKILL_NAMES = {
   fist: 'Punho', sword: 'Espada', axe: 'Machado', club: 'Clava',
