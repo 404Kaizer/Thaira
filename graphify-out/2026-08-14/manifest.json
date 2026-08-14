@@ -55,8 +55,8 @@
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1786679009.2320852,
-    "ast_hash": "a1b78ff026039f26442ff91ae6515acd",
+    "mtime": 1786678722.9005682,
+    "ast_hash": "9f3d23a9b5b6885685a6ff947a68edb1",
     "semantic_hash": ""
   },
   "src/hud.js": {
@@ -95,8 +95,8 @@
     "semantic_hash": "7843bd603a1f7edb4d361c7cbc173949"
   },
   "index.html": {
-    "mtime": 1786679006.8035305,
-    "ast_hash": "84c1df48358e67d79ef6d234fea0be08",
+    "mtime": 1786678729.4261456,
+    "ast_hash": "85cb4e5c0b75e2ffe016f5f8b2dd974c",
     "semantic_hash": ""
   },
   "tools/amostra/kaykit.html": {

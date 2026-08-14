@@ -4020,8 +4020,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "src_data_prefixes",
-      "community": 78,
-      "community_name": "itemStats",
+      "community": 19,
+      "community_name": "migrateLegacySave",
       "norm_label": "prefixes"
     },
     {
@@ -4031,8 +4031,8 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_data_suffixes",
-      "community": 78,
-      "community_name": "itemStats",
+      "community": 19,
+      "community_name": "migrateLegacySave",
       "norm_label": "suffixes"
     },
     {
@@ -4483,7 +4483,7 @@
       "_origin": "ast",
       "id": "src_game_rnd",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "rnd()"
     },
     {
@@ -4530,8 +4530,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_mkitem",
-      "community": 13,
-      "community_name": "killMob",
+      "community": 78,
+      "community_name": "itemStats",
       "norm_label": "mkitem()"
     },
     {
@@ -4644,8 +4644,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_newplayer",
-      "community": 13,
-      "community_name": "killMob",
+      "community": 77,
+      "community_name": "log",
       "norm_label": "newplayer()"
     },
     {
@@ -4656,7 +4656,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_recalc",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "recalc()"
     },
@@ -4669,7 +4669,7 @@
       "_origin": "ast",
       "id": "src_game_skillof",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "skillof()"
     },
     {
@@ -4681,7 +4681,7 @@
       "_origin": "ast",
       "id": "src_game_weaponinfo",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "weaponinfo()"
     },
     {
@@ -4692,7 +4692,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_addexp",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "addexp()"
     },
@@ -4705,7 +4705,7 @@
       "_origin": "ast",
       "id": "src_game_addskilltry",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "addskilltry()"
     },
     {
@@ -4717,7 +4717,7 @@
       "_origin": "ast",
       "id": "src_game_addmagic",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "addmagic()"
     },
     {
@@ -4752,7 +4752,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_canequip",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "canequip()"
     },
@@ -4764,7 +4764,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_equipitem",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "equipitem()"
     },
@@ -4776,7 +4776,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_unequip",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "unequip()"
     },
@@ -4789,7 +4789,7 @@
       "_origin": "ast",
       "id": "src_game_userune",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "userune()"
     },
     {
@@ -4800,7 +4800,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_useitem",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "useitem()"
     },
@@ -4812,7 +4812,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_comer",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "comer()"
     },
@@ -4825,7 +4825,7 @@
       "_origin": "ast",
       "id": "src_game_curar",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "curar()"
     },
     {
@@ -4909,7 +4909,7 @@
       "_origin": "ast",
       "id": "src_game_fxburst",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "fxburst()"
     },
     {
@@ -4945,7 +4945,7 @@
       "_origin": "ast",
       "id": "src_game_shoot",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "shoot()"
     },
     {
@@ -4956,8 +4956,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_spawnmob",
-      "community": 13,
-      "community_name": "killMob",
+      "community": 79,
+      "community_name": "finishStart",
       "norm_label": "spawnmob()"
     },
     {
@@ -5017,7 +5017,7 @@
       "_origin": "ast",
       "id": "src_game_emzonasegura",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "emzonasegura()"
     },
     {
@@ -5111,7 +5111,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_habilidade",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "habilidade()"
     },
@@ -5160,7 +5160,7 @@
       "_origin": "ast",
       "id": "src_game_damageformula",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "damageformula()"
     },
     {
@@ -5172,7 +5172,7 @@
       "_origin": "ast",
       "id": "src_game_dealdamage",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "dealdamage()"
     },
     {
@@ -5195,8 +5195,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_descloot",
-      "community": 78,
-      "community_name": "itemStats",
+      "community": 13,
+      "community_name": "killMob",
       "norm_label": "descloot()"
     },
     {
@@ -5208,7 +5208,7 @@
       "_origin": "ast",
       "id": "src_game_playerattack",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "playerattack()"
     },
     {
@@ -5219,7 +5219,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_hitplayer",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "hitplayer()"
     },
@@ -5231,7 +5231,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_playerdeath",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "playerdeath()"
     },
@@ -5243,8 +5243,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_respawn",
-      "community": 13,
-      "community_name": "killMob",
+      "community": 79,
+      "community_name": "finishStart",
       "norm_label": "respawn()"
     },
     {
@@ -5268,7 +5268,7 @@
       "_origin": "ast",
       "id": "src_game_castspell",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "castspell()"
     },
     {
@@ -5279,8 +5279,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_spelltiles",
-      "community": 5,
-      "community_name": "game.js",
+      "community": 8,
+      "community_name": "castSpell",
       "norm_label": "spelltiles()"
     },
     {
@@ -5351,8 +5351,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_refreshspawns",
-      "community": 13,
-      "community_name": "killMob",
+      "community": 79,
+      "community_name": "finishStart",
       "norm_label": "refreshspawns()"
     },
     {
@@ -5363,7 +5363,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_log",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "log()"
     },
@@ -5375,7 +5375,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_setstance",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "setstance()"
     },
@@ -5387,8 +5387,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderstance",
-      "community": 8,
-      "community_name": "log",
+      "community": 79,
+      "community_name": "finishStart",
       "norm_label": "renderstance()"
     },
     {
@@ -5412,7 +5412,7 @@
       "_origin": "ast",
       "id": "src_game_rendercombatstats",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "rendercombatstats()"
     },
     {
@@ -5447,7 +5447,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderbars",
-      "community": 8,
+      "community": 77,
       "community_name": "log",
       "norm_label": "renderbars()"
     },
@@ -5541,8 +5541,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderinv",
-      "community": 8,
-      "community_name": "log",
+      "community": 78,
+      "community_name": "itemStats",
       "norm_label": "renderinv()"
     },
     {
@@ -5554,7 +5554,7 @@
       "_origin": "ast",
       "id": "src_game_renderskills",
       "community": 8,
-      "community_name": "log",
+      "community_name": "castSpell",
       "norm_label": "renderskills()"
     },
     {
@@ -5565,8 +5565,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderspells",
-      "community": 8,
-      "community_name": "log",
+      "community": 79,
+      "community_name": "finishStart",
       "norm_label": "renderspells()"
     },
     {
@@ -5684,8 +5684,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderbattle",
-      "community": 8,
-      "community_name": "log",
+      "community": 18,
+      "community_name": "bindInput",
       "norm_label": "renderbattle()"
     },
     {
@@ -5696,8 +5696,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderall",
-      "community": 8,
-      "community_name": "log",
+      "community": 79,
+      "community_name": "finishStart",
       "norm_label": "renderall()"
     },
     {
@@ -5804,8 +5804,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_clicktile",
-      "community": 8,
-      "community_name": "log",
+      "community": 18,
+      "community_name": "bindInput",
       "norm_label": "clicktile()"
     },
     {
@@ -5852,8 +5852,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_stepplayer",
-      "community": 18,
-      "community_name": "bindInput",
+      "community": 24,
+      "community_name": "frame",
       "norm_label": "stepplayer()"
     },
     {
@@ -5864,8 +5864,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_drinkbest",
-      "community": 18,
-      "community_name": "bindInput",
+      "community": 77,
+      "community_name": "log",
       "norm_label": "drinkbest()"
     },
     {
@@ -5876,8 +5876,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_chuvaouvida",
-      "community": 24,
-      "community_name": "frame",
+      "community": 18,
+      "community_name": "bindInput",
       "norm_label": "chuvaouvida()"
     },
     {
@@ -5994,8 +5994,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_bindminimap",
-      "community": 13,
-      "community_name": "killMob",
+      "community": 79,
+      "community_name": "finishStart",
       "norm_label": "bindminimap()"
     },
     {
@@ -6018,8 +6018,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_fixsave",
-      "community": 78,
-      "community_name": "itemStats",
+      "community": 19,
+      "community_name": "migrateLegacySave",
       "norm_label": "fixsave()"
     },
     {
@@ -6138,8 +6138,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_startgame",
-      "community": 13,
-      "community_name": "killMob",
+      "community": 79,
+      "community_name": "finishStart",
       "norm_label": "startgame()"
     },
     {
@@ -6150,8 +6150,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_restaurarbichos",
-      "community": 13,
-      "community_name": "killMob",
+      "community": 79,
+      "community_name": "finishStart",
       "norm_label": "restaurarbichos()"
     },
     {
@@ -6162,8 +6162,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_finishstart",
-      "community": 13,
-      "community_name": "killMob",
+      "community": 79,
+      "community_name": "finishStart",
       "norm_label": "finishstart()"
     },
     {
@@ -6202,22 +6202,10 @@
       "norm_label": "vockeys"
     },
     {
-      "label": "askConfirm()",
-      "file_type": "code",
-      "source_file": "src/game.js",
-      "source_location": "L2062",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_game_askconfirm",
-      "community": 19,
-      "community_name": "migrateLegacySave",
-      "norm_label": "askconfirm()"
-    },
-    {
       "label": "renderCharacterSelection()",
       "file_type": "code",
       "source_file": "src/game.js",
-      "source_location": "L2076",
+      "source_location": "L2061",
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_rendercharacterselection",
@@ -6229,7 +6217,7 @@
       "label": "playSelectedCharacter()",
       "file_type": "code",
       "source_file": "src/game.js",
-      "source_location": "L2128",
+      "source_location": "L2111",
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_playselectedcharacter",
@@ -6241,7 +6229,7 @@
       "label": "renderVocGrid()",
       "file_type": "code",
       "source_file": "src/game.js",
-      "source_location": "L2135",
+      "source_location": "L2118",
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_rendervocgrid",
@@ -6253,7 +6241,7 @@
       "label": "renderVoc()",
       "file_type": "code",
       "source_file": "src/game.js",
-      "source_location": "L2152",
+      "source_location": "L2135",
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_rendervoc",
@@ -6265,7 +6253,7 @@
       "label": "cycleVoc()",
       "file_type": "code",
       "source_file": "src/game.js",
-      "source_location": "L2166",
+      "source_location": "L2149",
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_cyclevoc",
@@ -17339,17 +17327,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2062",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_game",
-      "target": "src_game_askconfirm",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/game.js",
       "source_location": "L692",
       "weight": 1.0,
       "_origin": "ast",
@@ -17603,7 +17580,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2166",
+      "source_location": "L2149",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game",
@@ -18197,7 +18174,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2128",
+      "source_location": "L2111",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game",
@@ -18296,7 +18273,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2076",
+      "source_location": "L2061",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game",
@@ -18417,7 +18394,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2152",
+      "source_location": "L2135",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game",
@@ -18428,7 +18405,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2135",
+      "source_location": "L2118",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game",
@@ -22750,7 +22727,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2079",
+      "source_location": "L2064",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game_rendercharacterselection",
@@ -22762,7 +22739,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2119",
+      "source_location": "L2102",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game_rendercharacterselection",
@@ -22786,7 +22763,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2130",
+      "source_location": "L2113",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game_playselectedcharacter",
@@ -22834,7 +22811,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2131",
+      "source_location": "L2114",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game_playselectedcharacter",
@@ -22894,19 +22871,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2116",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_game_rendercharacterselection",
-      "target": "src_game_askconfirm",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "src/game.js",
-      "source_location": "L2113",
+      "source_location": "L2098",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game_rendercharacterselection",
@@ -22918,7 +22883,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2145",
+      "source_location": "L2128",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game_rendervocgrid",
@@ -22930,7 +22895,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/game.js",
-      "source_location": "L2168",
+      "source_location": "L2151",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_game_cyclevoc",
