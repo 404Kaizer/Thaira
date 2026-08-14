@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprite Animation Tester</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        background: #202020;
+        color: white;
+        font-family: Arial, sans-serif;
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    h1 {
+        margin: 25px 0 15px;
+        font-size: 22px;
+    }
+
+    .controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+
+    button,
+    select,
+    input {
+        background: #333;
+        color: white;
+        border: 1px solid #555;
+        padding: 9px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #444;
+    }
+
+    .viewer {
+        width: 500px;
+        height: 500px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        background:
+            linear-gradient(45deg, #333 25%, transparent 25%),
+            linear-gradient(-45deg, #333 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, #333 75%),
+            linear-gradient(-45deg, transparent 75%, #333 75%);
+
+        background-size: 40px 40px;
+        background-position: 0 0, 0 20px, 20px -20px, -20px 0;
+
+        border: 2px solid #555;
+        overflow: hidden;
+    }
+
+    canvas {
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+    }
+
+    .info {
+        margin-top: 15px;
+        font-size: 14px;
+        color: #aaa;
+        text-align: center;
+    }
+
+    .slider {
+        width: 250px;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>Sprite Animation Tester</h1>
+
+<div class="controls">
+
+    <input
+        type="file"
+        id="fileInput"
+        accept="image/png,image/webp,image/jpeg"
+    >
+
+    <select id="animation">
+        <option value="0">WALK</option>
+        <option value="1">IDLE</option>
+        <option value="2">ATTACK</option>
+    </select>
+
+    <select id="direction">
+        <option value="0">ESQUERDA</option>
+        <option value="1">FRENTE</option>
+        <option value="2">TRÁS</option>
+        <option value="3">DIREITA</option>
+    </select>
+
+    <button id="play">▶ Play</button>
+    <button id="pause">⏸ Pause</button>
+    <button id="reset">↻ Reset</button>
+
+</div>
+
+<div class="controls">
+
+    <label>
+        Velocidade:
+        <input
+            class="slider"
+            type="range"
+            id="speed"
+            min="50"
+            max="1000"
+            value="150"
+        >
+    </label>
+
+</div>
+
+<div class="viewer">
+    <canvas id="canvas"></canvas>
+</div>
+
+<div class="info">
+    Frame: <span id="frameInfo">1 / 4</span>
+    <br>
+    Animação: <span id="animationInfo">WALK</span>
+    <br>
+    Direção: <span id="directionInfo">ESQUERDA</span>
+</div>
+
+<script>
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+ctx.imageSmoothingEnabled = false;
+
+const fileInput = document.getElementById("fileInput");
+const animationSelect = document.getElementById("animation");
+const directionSelect = document.getElementById("direction");
+
+const playButton = document.getElementById("play");
+const pauseButton = document.getElementById("pause");
+const resetButton = document.getElementById("reset");
+
+const speedSlider = document.getElementById("speed");
+
+const frameInfo = document.getElementById("frameInfo");
+const animationInfo = document.getElementById("animationInfo");
+const directionInfo = document.getElementById("directionInfo");
+
+
+// =====================================================
+// CONFIGURAÇÃO DA SPRITE SHEET
+// =====================================================
+
+// Formato esperado:
+//
+//          FRAME 1   FRAME 2   FRAME 3   FRAME 4
+//
+// WALK     [   ]     [   ]     [   ]     [   ]
+// IDLE     [   ]     [   ]     [   ]     [   ]
+// ATTACK   [   ]     [   ]     [   ]     [   ]
+
+
+const COLUMNS = 4;
+const ROWS = 3;
+
+const ANIMATIONS = {
+    0: "WALK",
+    1: "IDLE",
+    2: "ATTACK"
+};
+
+const DIRECTIONS = {
+    0: "ESQUERDA",
+    1: "FRENTE",
+    2: "TRÁS",
+    3: "DIREITA"
+};
+
+
+// =====================================================
+// ESTADO
+// =====================================================
+
+let image = new Image();
+
+let currentFrame = 0;
+
+let animation = 0;
+let direction = 0;
+
+let playing = true;
+
+let lastFrameTime = 0;
+
+
+// =====================================================
+// CARREGAR SPRITE SHEET
+// =====================================================
+
+fileInput.addEventListener("change", function(event) {
+
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+
+    image = new Image();
+
+    image.onload = function() {
+
+        console.log(
+            "Sprite sheet carregada:",
+            image.width,
+            "x",
+            image.height
+        );
+
+        draw();
+
+        URL.revokeObjectURL(url);
+    };
+
+    image.src = url;
+});
+
+
+// =====================================================
+// DESENHAR FRAME
+// =====================================================
+
+function draw() {
+
+    if (!image.complete || !image.naturalWidth) {
+        return;
+    }
+
+    const frameWidth = image.width / COLUMNS;
+    const frameHeight = image.height / ROWS;
+
+    const sourceX = currentFrame * frameWidth;
+    const sourceY = animation * frameHeight;
+
+    canvas.width = frameWidth;
+    canvas.height = frameHeight;
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    /*
+        IMPORTANTE:
+
+        Aqui usamos apenas a linha da animação.
+
+        A direção é tratada como o frame:
+
+        0 = esquerda
+        1 = frente
+        2 = trás
+        3 = direita
+    */
+
+    ctx.drawImage(
+        image,
+
+        sourceX,
+        sourceY,
+        frameWidth,
+        frameHeight,
+
+        0,
+        0,
+        frameWidth,
+        frameHeight
+    );
+
+    updateInfo();
+}
+
+
+// =====================================================
+// ATUALIZAR INFORMAÇÕES
+// =====================================================
+
+function updateInfo() {
+
+    frameInfo.textContent =
+        `${currentFrame + 1} / ${COLUMNS}`;
+
+    animationInfo.textContent =
+        ANIMATIONS[animation];
+
+    directionInfo.textContent =
+        DIRECTIONS[direction];
+}
+
+
+// =====================================================
+// PLAY / PAUSE
+// =====================================================
+
+playButton.addEventListener("click", function() {
+
+    playing = true;
+
+});
+
+pauseButton.addEventListener("click", function() {
+
+    playing = false;
+
+});
+
+
+// =====================================================
+// RESET
+// =====================================================
+
+resetButton.addEventListener("click", function() {
+
+    currentFrame = 0;
+
+    draw();
+
+});
+
+
+// =====================================================
+// TROCAR ANIMAÇÃO
+// =====================================================
+
+animationSelect.addEventListener("change", function() {
+
+    animation = Number(this.value);
+
+    currentFrame = 0;
+
+    draw();
+
+});
+
+
+// =====================================================
+// TROCAR DIREÇÃO
+// =====================================================
+
+directionSelect.addEventListener("change", function() {
+
+    direction = Number(this.value);
+
+    currentFrame = direction;
+
+    draw();
+
+});
+
+
+// =====================================================
+// VELOCIDADE
+// =====================================================
+
+function getFrameDuration() {
+
+    return Number(speedSlider.value);
+
+}
+
+
+// =====================================================
+// LOOP DE ANIMAÇÃO
+// =====================================================
+
+function animate(timestamp) {
+
+    if (playing && image.complete && image.naturalWidth) {
+
+        const elapsed =
+            timestamp - lastFrameTime;
+
+        if (elapsed >= getFrameDuration()) {
+
+            currentFrame++;
+
+            if (currentFrame >= COLUMNS) {
+                currentFrame = 0;
+            }
+
+            lastFrameTime = timestamp;
+
+            draw();
+        }
+    }
+
+    requestAnimationFrame(animate);
+}
+
+
+// =====================================================
+// INICIAR
+// =====================================================
+
+requestAnimationFrame(animate);
+
+</script>
+
+</body>
+</html>

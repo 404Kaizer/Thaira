@@ -1,0 +1,196 @@
+{
+  "_corpo_medio": {
+    "n": 4,
+    "v": 0.3
+  },
+  "_corpo_forte": {
+    "n": 3,
+    "v": 0.3
+  },
+  "hit": {
+    "n": 4,
+    "v": 0.65,
+    "mix": [
+      "_corpo_medio"
+    ]
+  },
+  "crit": {
+    "n": 4,
+    "v": 0.75,
+    "mix": [
+      "_corpo_forte"
+    ]
+  },
+  "hurt": {
+    "n": 2,
+    "v": 0.6
+  },
+  "block": {
+    "n": 4,
+    "v": 0.5,
+    "mix": [
+      "_corpo_medio"
+    ]
+  },
+  "atk_sword": {
+    "n": 3,
+    "v": 0.5
+  },
+  "atk_axe": {
+    "n": 2,
+    "v": 0.55,
+    "mix": [
+      "_corpo_medio"
+    ]
+  },
+  "atk_club": {
+    "n": 3,
+    "v": 0.55,
+    "mix": [
+      "_corpo_medio"
+    ]
+  },
+  "atk_fist": {
+    "n": 3,
+    "v": 0.5,
+    "mix": [
+      "_corpo_medio"
+    ]
+  },
+  "atk_distance": {
+    "n": 2,
+    "v": 0.4
+  },
+  "atk_wand": {
+    "n": 2,
+    "v": 0.45
+  },
+  "shoot": {
+    "n": 2,
+    "v": 0.4
+  },
+  "spell_fire": {
+    "n": 4,
+    "v": 0.5
+  },
+  "spell_ice": {
+    "n": 3,
+    "v": 0.5
+  },
+  "spell_energy": {
+    "n": 2,
+    "v": 0.5
+  },
+  "spell_earth": {
+    "n": 4,
+    "v": 0.5
+  },
+  "spell_holy": {
+    "n": 3,
+    "v": 0.4,
+    "ext": "wav"
+  },
+  "spell_death": {
+    "n": 2,
+    "v": 0.5
+  },
+  "fire": {
+    "n": 3,
+    "v": 0.5
+  },
+  "ice": {
+    "n": 3,
+    "v": 0.5
+  },
+  "energy": {
+    "n": 2,
+    "v": 0.5
+  },
+  "rune": {
+    "n": 4,
+    "v": 0.5
+  },
+  "heal": {
+    "n": 4,
+    "v": 0.4,
+    "ext": "wav"
+  },
+  "buff": {
+    "n": 2,
+    "v": 0.45
+  },
+  "die": {
+    "n": 3,
+    "v": 0.55,
+    "mix": [
+      "_corpo_forte"
+    ]
+  },
+  "death": {
+    "n": 1,
+    "v": 0.5
+  },
+  "levelup": {
+    "n": 1,
+    "v": 0.45
+  },
+  "skillup": {
+    "n": 2,
+    "v": 0.3
+  },
+  "loot": {
+    "n": 2,
+    "v": 0.6
+  },
+  "coin": {
+    "n": 4,
+    "v": 0.5
+  },
+  "equip": {
+    "n": 3,
+    "v": 0.6
+  },
+  "unequip": {
+    "n": 2,
+    "v": 0.5
+  },
+  "potion": {
+    "n": 4,
+    "v": 0.6,
+    "ext": "wav"
+  },
+  "stairs": {
+    "n": 3,
+    "v": 0.5
+  },
+  "error": {
+    "n": 2,
+    "v": 0.4
+  },
+  "step_grass": {
+    "n": 5,
+    "v": 0.35
+  },
+  "step_dirt": {
+    "n": 5,
+    "v": 0.35
+  },
+  "step_sand": {
+    "n": 5,
+    "v": 0.35
+  },
+  "step_stone": {
+    "n": 5,
+    "v": 0.3
+  },
+  "step_rock": {
+    "n": 5,
+    "v": 0.3
+  },
+  "step_cave": {
+    "n": 5,
+    "v": 0.3
+  },
+  "ext": "ogg",
+  "rev": "1786335816"
+}

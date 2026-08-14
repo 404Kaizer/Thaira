@@ -1,0 +1,8 @@
+{
+  "_nota": "conjunto de ranger. 4x4: 1 mochila 2 amuleto 3 anel 4 capuz | 5 gibao 6 calcas 7 botas 8 escudo | 9 arco 10 aljava 11 adagas 12 faca | 13 machadinha 14 corda 15 capa 16 bolsa",
+  "ids": {
+    "forest_stalker_amulet": 2, "forest_stalker_ring": 3, "forest_stalker_hood": 4,
+    "forest_stalker_armor": 5, "forest_stalker_legs": 6, "forest_stalker_boots": 7,
+    "forest_stalker_shield": 8, "forest_stalker_bow": 9
+  }
+}

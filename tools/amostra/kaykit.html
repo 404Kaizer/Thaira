@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Thaira — vitrine KayKit</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap');
+:root{--line:#4a4335;--gold:#d9a441;--gold2:#f0cd7a;--txt:#ddd5c2;--dim:#8f8874;
+  --stone:linear-gradient(#2b2823,#1a1815);--serif:"Cinzel",Georgia,serif}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0c0f;color:var(--txt);font:13px/1.5 "Segoe UI",system-ui,sans-serif;padding:16px 20px 40px}
+h1{font:700 24px var(--serif);color:var(--gold2);letter-spacing:.1em;margin:0 0 2px}
+h2{font:400 13px/1.5 "Segoe UI";color:var(--dim);margin:0 0 14px;font-style:italic}
+h3{font:700 11.5px var(--serif);letter-spacing:.08em;color:var(--gold2);text-transform:uppercase;
+  margin:0 0 8px;border-bottom:1px solid var(--line);padding-bottom:5px}
+#wrap{max-width:1500px;margin:0 auto;display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
+#full{grid-column:1/-1}
+#pal{background:#000;border:2px solid var(--line);border-radius:6px;overflow:hidden;line-height:0;
+  box-shadow:inset 0 0 0 1px #000,0 10px 40px #000a}
+canvas{display:block;width:100%;height:620px}
+.painel{background:linear-gradient(#232019,#181614);border:1px solid var(--line);border-radius:6px;
+  padding:12px 14px;margin-bottom:12px;box-shadow:inset 0 1px 0 #ffffff10,0 3px 10px #0007}
+.linha{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:5px 0}
+button{background:var(--stone);color:var(--txt);border:1px solid var(--line);border-radius:5px;
+  padding:6px 11px;cursor:pointer;font:600 11px var(--serif);letter-spacing:.03em}
+button:hover{border-color:var(--gold);color:var(--gold2)}
+button.on{background:linear-gradient(#4a3f28,#2a2318);color:var(--gold2);border-color:var(--gold);
+  box-shadow:inset 0 0 10px #d9a44155}
+button:disabled{opacity:.4;cursor:wait}
+.nota{color:var(--dim);font-size:11.5px;line-height:1.7}
+.nota b{color:var(--gold2)}
+#anims{max-height:200px;overflow-y:auto}
+#pecas{max-height:230px;overflow-y:auto}
+.peca{display:flex;align-items:center;gap:5px;padding:3px 4px;border-radius:4px}
+.peca:hover{background:#2a251c}
+.peca span{flex:1;font-size:10.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw{width:15px;height:15px;border-radius:3px;border:1px solid #0006;cursor:pointer;padding:0}
+.sw.on{outline:2px solid var(--gold);outline-offset:1px}
+#anims button{width:100%;text-align:left;margin-bottom:3px}
+#info{font-size:11px;color:var(--dim);line-height:1.8}
+#info b{color:var(--txt)}
+.barra{height:5px;background:#0a0908;border:1px solid #000;border-radius:3px;overflow:hidden;margin-top:6px}
+.barra i{display:block;height:100%;background:linear-gradient(#f0cd7a,#b8860b);width:0;transition:width .2s}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="full">
+    <h1>KAYKIT — VITRINE</h1>
+    <h2>CC0, sem exigir crédito. Arraste para girar, roda para aproximar.
+      Compare lado a lado com o boneco procedural que já está no jogo.</h2>
+  </div>
+
+  <div>
+    <div id="pal"><canvas id="c"></canvas></div>
+    <div class="painel" style="margin-top:12px">
+      <div id="info">carregando…</div>
+      <div class="barra"><i id="prog"></i></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="painel">
+      <h3>Aventureiros</h3>
+      <div class="linha" id="herois"></div>
+      <h3 style="margin-top:12px">Esqueletos</h3>
+      <div class="linha" id="undead"></div>
+      <h3 style="margin-top:12px">Local</h3>
+      <div class="linha">
+        <input type="file" id="f-local" accept=".glb">
+      </div>
+    </div>
+    <div class="painel">
+      <h3>Comparar</h3>
+      <div class="linha">
+        <button id="b-proc" class="on">Boneco procedural ao lado</button>
+        <button id="b-grid" class="on">Grade de 1 tile</button>
+      </div>
+      <div class="nota">A grade é do tamanho de um tile do jogo. Serve para ver se a escala do
+        modelo bate com o mundo que já existe.</div>
+    </div>
+    <div class="painel">
+      <h3>Skin — cor por peça</h3>
+      <div class="linha" id="presets"></div>
+      <div id="pecas"></div>
+      <div class="nota" style="margin-top:8px">Passe o mouse numa peça para ela piscar no modelo.
+        Clique numa cor para pintar só aquela peça. É assim que uma skin nova custa
+        <b>uma linha de tabela</b> e zero arquivo.</div>
+    </div>
+    <div class="painel">
+      <h3>Animações</h3>
+      <div id="anims" class="linha"></div>
+    </div>
+    <div class="painel">
+      <h3>O que observar</h3>
+      <div class="nota">
+        Se o estilo conversa com o cenário CC0 da Kenney que já está no jogo.<br>
+        Se a silhueta lê bem de cima, no ângulo isométrico.<br>
+        Se as animações servem: <b>idle, walk, attack, hit, death</b> é o que o jogo usa.<br>
+        Cada arquivo tem ~4 MB porque carrega ~30 animações. No jogo eu corto para as 5 que
+        importam, o que derruba isso para uma fração.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="../../src/art.js"></script>
+<script>
+'use strict';
+const RAW = 'https://raw.githubusercontent.com/KayKit-Game-Assets/';
+const HEROIS = ['Knight', 'Barbarian', 'Mage', 'Rogue', 'Rogue_Hooded'].map(n => ({
+  n, url: RAW + 'KayKit-Character-Pack-Adventures-1.0/main/addons/kaykit_character_pack_adventures/Characters/gltf/' + n + '.glb'
+}));
+const UNDEAD = ['Skeleton_Warrior', 'Skeleton_Minion', 'Skeleton_Rogue', 'Skeleton_Mage'].map(n => ({
+  n, url: RAW + 'KayKit-Character-Pack-Skeletons-1.0/main/addons/kaykit_character_pack_skeletons/Characters/gltf/' + n + '.glb'
+}));
+
+const cv = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x16201a);
+scene.fog = new THREE.Fog(0x16201a, 14, 30);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+let camAng = 0.7, camAlt = 0.72, camDist = 6.2;
+
+scene.add(new THREE.HemisphereLight(0xa8c8ff, 0x3a3226, 0.85));
+const sol = new THREE.DirectionalLight(0xfff2d0, 1.1);
+sol.position.set(4, 8, 5); sol.castShadow = true;
+sol.shadow.mapSize.set(2048, 2048);
+Object.assign(sol.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: .5, far: 30 });
+sol.shadow.camera.updateProjectionMatrix();
+scene.add(sol);
+
+/* chão com a mesma textura procedural do jogo, para julgar no contexto certo */
+const chaoMat = new THREE.MeshLambertMaterial({ map: tileTexture('grass', 0x4a7a3a) });
+chaoMat.map.repeat.set(24, 24); chaoMat.map.wrapS = chaoMat.map.wrapT = THREE.RepeatWrapping;
+const chao = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), chaoMat);
+chao.rotation.x = -Math.PI / 2; chao.receiveShadow = true;
+scene.add(chao);
+const grade = new THREE.GridHelper(24, 24, 0xd9a441, 0x3a4a35);
+grade.position.y = 0.02; scene.add(grade);
+
+/* boneco procedural do jogo, para comparação direta */
+const proc = buildCreature('biped', 0xd8a04a, 1, { skin: 0xe8c39e, weapon: 0xcfc9ba, shield: 0x8a7a4a });
+proc.position.set(-1.3, 0, 0);
+proc.traverse(o => { if (o.isMesh) o.castShadow = true; });
+scene.add(proc);
+
+let atual = null, mixer = null, acao = null, clipes = [];
+const cache = {};
+const loader = new THREE.GLTFLoader();
+const $ = s => document.querySelector(s);
+
+function info(txt) { $('#info').innerHTML = txt; }
+function carrega(item) {
+  if (cache[item.n]) return usa(item, cache[item.n]);
+  info('baixando <b>' + item.n + '</b>…');
+  document.querySelectorAll('#herois button,#undead button').forEach(b => b.disabled = true);
+  loader.load(item.url, g => {
+    cache[item.n] = g;
+    document.querySelectorAll('#herois button,#undead button').forEach(b => b.disabled = false);
+    usa(item, g);
+  }, ev => {
+    if (ev.total) $('#prog').style.width = (ev.loaded / ev.total * 100) + '%';
+  }, err => { info('<span style="color:#e0705f">falhou: ' + item.n + '</span>'); console.error(err); });
+}
+function usa(item, g) {
+  if (atual) scene.remove(atual);
+  atual = THREE.SkeletonUtils ? THREE.SkeletonUtils.clone(g.scene) : g.scene;
+  atual.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  const cx = new THREE.Box3().setFromObject(atual);
+  atual.position.set(1.1, -cx.min.y, 0);
+  scene.add(atual);
+  atualNome = item.n;
+  preparaPecas();
+  if (presetPendente && presetPendente.modelo === item.n) { pintaPreset(presetPendente); presetPendente = null; }
+  mixer = new THREE.AnimationMixer(atual);
+  clipes = g.animations.slice().sort((a, b) => a.name.localeCompare(b.name));
+  montaAnims();
+  const preferida = clipes.find(c => /idle/i.test(c.name)) || clipes[0];
+  if (preferida) toca(preferida);
+
+  let tris = 0;
+  atual.traverse(o => { if (o.isMesh && o.geometry.index) tris += o.geometry.index.count / 3; });
+  const alt = cx.max.y - cx.min.y;
+  info('<b>' + item.n + '</b> — ' + Math.round(tris) + ' triângulos · ' +
+    clipes.length + ' animações · altura ' + alt.toFixed(2) + ' (tile do jogo = 1,0)');
+  $('#prog').style.width = '100%';
+  document.querySelectorAll('#herois button,#undead button').forEach(b =>
+    b.classList.toggle('on', b.textContent === item.n));
+}
+/* Cada malha ganha material próprio (o pack compartilha um só) para poder
+   pintar peça por peça. A cor multiplica a textura, então o sombreado se mantém. */
+const PALETA_3D = ['#ffffff', '#c9c4bb', '#8a8a8a', '#4a4a4a', '#241f1c',
+  '#8f3b2a', '#c0392b', '#e0704a', '#b8862b', '#e0b84a',
+  '#4a7a3a', '#6faa4a', '#2f6fc0', '#5aa9ff', '#6a3d9a', '#a06ad0', '#7a5230'];
+let pecas = [];
+function preparaPecas() {
+  pecas = [];
+  atual.traverse(o => {
+    if (!o.isMesh) return;
+    o.material = o.material.clone();          // sem clonar, pintar uma pinta todas
+    o.userData.corBase = o.material.color.clone();
+    pecas.push(o);
+  });
+  pecas.sort((a, b) => {
+    const ba = new THREE.Box3().setFromObject(a), bb = new THREE.Box3().setFromObject(b);
+    return (bb.max.y) - (ba.max.y);           // de cima para baixo: cabeça primeiro
+  });
+  montaPecas();
+}
+function rotuloPeca(o, i) {
+  const b = new THREE.Box3().setFromObject(o), alt = b.max.y;
+  const zona = alt > 1.55 ? 'cabeça/elmo' : alt > 1.15 ? 'tronco/ombro' : alt > .7 ? 'quadril/mão' : 'perna/pé';
+  return (i + 1) + '. ' + zona;
+}
+function montaPecas() {
+  const box = $('#pecas'); box.innerHTML = '';
+  pecas.forEach((o, i) => {
+    const d = document.createElement('div'); d.className = 'peca';
+    const s = document.createElement('span'); s.textContent = rotuloPeca(o, i);
+    d.appendChild(s);
+    for (const c of PALETA_3D) {
+      const b = document.createElement('button');
+      b.className = 'sw'; b.style.background = c;
+      b.onclick = () => { o.material.color.set(c); };
+      d.appendChild(b);
+    }
+    d.onmouseenter = () => { o.material.emissive = new THREE.Color(0x554400); };
+    d.onmouseleave = () => { o.material.emissive = new THREE.Color(0x000000); };
+    box.appendChild(d);
+  });
+}
+/* preset = modelo + escala + cor por faixa de altura. Vira uma linha na tabela do jogo. */
+const PRESETS = [
+  { n: 'Cavaleiro', modelo: 'Knight', escala: 1 },
+  { n: 'Cavaleiro Negro', modelo: 'Knight', escala: 1, cores: { alto: '#241f1c', meio: '#4a4a4a', baixo: '#241f1c' } },
+  { n: 'Guarda Real', modelo: 'Knight', escala: 1, cores: { alto: '#e0b84a', meio: '#b8862b', baixo: '#8a8a8a' } },
+  { n: 'Orc', modelo: 'Barbarian', escala: 1.12, cores: { alto: '#6faa4a', meio: '#4a7a3a', baixo: '#7a5230' } },
+  { n: 'Ciclope', modelo: 'Barbarian', escala: 1.5, cores: { alto: '#c9c4bb', meio: '#8f3b2a', baixo: '#7a5230' } },
+  { n: 'Anão', modelo: 'Knight', escala: .72, cores: { alto: '#b8862b', meio: '#8a8a8a', baixo: '#7a5230' } },
+  { n: 'Carniçal', modelo: 'Skeleton_Minion', escala: 1, cores: { alto: '#6faa4a', meio: '#4a7a3a', baixo: '#4a4a4a' } },
+  { n: 'Esq. Demoníaco', modelo: 'Skeleton_Warrior', escala: 1.1, cores: { alto: '#c0392b', meio: '#8f3b2a', baixo: '#241f1c' } }
+];
+function aplicaPreset(pr) {
+  const alvo = [...HEROIS, ...UNDEAD].find(x => x.n === pr.modelo);
+  presetPendente = pr;
+  if (atual && atualNome === pr.modelo) return pintaPreset(pr);
+  carrega(alvo);
+}
+function pintaPreset(pr) {
+  atual.scale.setScalar(pr.escala || 1);
+  if (!pr.cores) { pecas.forEach(o => o.material.color.copy(o.userData.corBase)); return; }
+  pecas.forEach(o => {
+    const b = new THREE.Box3().setFromObject(o), alt = b.max.y / (pr.escala || 1);
+    const c = alt > 1.4 ? pr.cores.alto : alt > .85 ? pr.cores.meio : pr.cores.baixo;
+    o.material.color.set(c);
+  });
+  document.querySelectorAll('#presets button').forEach(b => b.classList.toggle('on', b.textContent === pr.n));
+}
+let presetPendente = null, atualNome = '';
+
+function toca(clip) {
+  if (acao) acao.fadeOut(0.2);
+  acao = mixer.clipAction(clip); acao.reset().fadeIn(0.2).play();
+  document.querySelectorAll('#anims button').forEach(b => b.classList.toggle('on', b.textContent === clip.name));
+}
+function montaAnims() {
+  const box = $('#anims'); box.innerHTML = '';
+  for (const c of clipes) {
+    const b = document.createElement('button');
+    b.textContent = c.name;
+    b.onclick = () => toca(c);
+    box.appendChild(b);
+  }
+}
+$('#f-local').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  info('lendo <b>' + f.name + '</b>…');
+  const r = new FileReader();
+  r.onload = () => loader.parse(r.result, '', g => usa({ n: f.name.replace(/\.glb$/i, '') }, g),
+    err => { info('<span style="color:#e0705f">falhou: ' + f.name + '</span>'); console.error(err); });
+  r.readAsArrayBuffer(f);
+};
+for (const [id, lista] of [['#herois', HEROIS], ['#undead', UNDEAD]]) {
+  const box = $(id);
+  for (const item of lista) {
+    const b = document.createElement('button');
+    b.textContent = item.n;
+    b.onclick = () => carrega(item);
+    box.appendChild(b);
+  }
+}
+const bp = $('#presets');
+for (const pr of PRESETS) {
+  const b = document.createElement('button');
+  b.textContent = pr.n;
+  b.onclick = () => aplicaPreset(pr);
+  bp.appendChild(b);
+}
+$('#b-proc').onclick = e => { proc.visible = !proc.visible; e.target.classList.toggle('on', proc.visible); };
+$('#b-grid').onclick = e => { grade.visible = !grade.visible; e.target.classList.toggle('on', grade.visible); };
+
+/* órbita simples */
+let arrastando = false, ux = 0, uy = 0;
+cv.addEventListener('mousedown', e => { arrastando = true; ux = e.clientX; uy = e.clientY; });
+addEventListener('mouseup', () => arrastando = false);
+addEventListener('mousemove', e => {
+  if (!arrastando) return;
+  camAng -= (e.clientX - ux) * .008;
+  camAlt = Math.max(.15, Math.min(1.45, camAlt + (e.clientY - uy) * .006));
+  ux = e.clientX; uy = e.clientY;
+});
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  camDist = Math.max(2.2, Math.min(16, camDist * (e.deltaY > 0 ? 1.1 : .9)));
+}, { passive: false });
+
+let ultimo = 0;
+function laco(t) {
+  requestAnimationFrame(laco);
+  const dt = (t - ultimo) / 1000; ultimo = t;
+  if (mixer) mixer.update(Math.min(.05, dt));
+  if (proc.visible) animateCreature(proc, t, true, 0, dt * 1000);   // andando, p/ comparar
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== w || cv.height !== h) {
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  camera.position.set(Math.cos(camAng) * camDist * Math.cos(camAlt), camDist * Math.sin(camAlt),
+    Math.sin(camAng) * camDist * Math.cos(camAlt));
+  camera.lookAt(0, .8, 0);
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(laco);
+carrega(HEROIS[0]);
+</script>
+</body>
+</html>

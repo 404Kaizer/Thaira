@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Thaira — audição</title>
+<style>
+:root{--line:#4a4335;--gold:#d9a441;--gold2:#f0cd7a;--txt:#ddd5c2;--dim:#8f8874}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0c0f;color:var(--txt);font:14px/1.5 "Segoe UI",system-ui,sans-serif;padding:20px 24px 60px}
+h1{font:700 22px Georgia,serif;color:var(--gold2);letter-spacing:.06em;margin:0 0 4px}
+h2{font:700 13px Georgia,serif;color:var(--gold2);text-transform:uppercase;letter-spacing:.08em;
+   margin:26px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+p.nota{color:var(--dim);margin:0 0 16px;max-width:70ch}
+table{border-collapse:collapse;width:100%;max-width:1000px}
+td,th{padding:6px 8px;border-bottom:1px solid #241f18;text-align:left;vertical-align:middle}
+th{color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+button{background:linear-gradient(#2b2823,#1a1815);color:var(--txt);border:1px solid var(--line);
+  border-radius:5px;padding:5px 12px;cursor:pointer;font:600 12px Georgia,serif}
+button:hover{border-color:var(--gold);color:var(--gold2)}
+button.on{background:linear-gradient(#4a3f28,#2a2318);color:var(--gold2);border-color:var(--gold)}
+select{background:#1a1815;color:var(--txt);border:1px solid var(--line);border-radius:4px;padding:4px 6px}
+.tags{color:var(--dim);font-size:12px}
+.arq{font-family:ui-monospace,monospace;font-size:12px}
+textarea{width:100%;max-width:1000px;height:220px;background:#111;color:#cfc9ba;border:1px solid var(--line);
+  border-radius:6px;padding:10px;font-family:ui-monospace,monospace;font-size:12px}
+input[type=range]{width:110px;vertical-align:middle}
+.barra{position:sticky;top:0;background:#0b0c0fee;padding:10px 0;border-bottom:1px solid var(--line);z-index:5}
+</style></head><body>
+<h1>Audição</h1>
+<p class="nota">Ouça, decida e cole o resultado. Quem montou o pacote não escuta nada — as escolhas
+saíram de medição e das tags do autor, o que evita som chapado ou chiptune fora de lugar, mas não
+acerta gosto. Aqui você acerta.</p>
+
+<div class="barra"><button id="parar">■ parar tudo</button>
+<span class="tags" id="tocando" style="margin-left:12px"></span></div>
+
+<h2>Trilha — para onde vai cada faixa</h2>
+<table id="tmus"><thead><tr><th></th><th>arquivo</th><th>tags da fonte</th><th>ambiente</th></tr></thead><tbody></tbody></table>
+<h2>Manifesto da trilha</h2>
+<p class="nota">Cole em <span class="arq">assets/music/manifest.json</span>.</p>
+<textarea id="outmus" readonly></textarea>
+<div><button id="copmus">copiar</button></div>
+
+<h2>Efeitos — volume de cada um</h2>
+<p class="nota">O botão toca uma variação sorteada, como no jogo. O controle ajusta o ganho
+(<span class="arq">v</span>) sem precisar recortar o arquivo.</p>
+<table id="tsfx"><thead><tr><th></th><th>som</th><th>var.</th><th>ganho</th></tr></thead><tbody></tbody></table>
+<h2>Manifesto dos efeitos</h2>
+<p class="nota">Cole em <span class="arq">assets/sfx/manifest.json</span>.</p>
+<textarea id="outsfx" readonly></textarea>
+<div><button id="copsfx">copiar</button></div>
+
+<script>
+const D = {"faixas": [{"arq": "abismo-caverna.ogg", "tags": "dark, cavern, ambient", "amb": "abismo"}, {"arq": "caverna-eco.ogg", "tags": "fantasy, cave", "amb": "caverna"}, {"arq": "caverna-masmorra.ogg", "tags": "dungeon, ambience", "amb": "caverna"}, {"arq": "caverna-templo.mp3", "tags": "dark, ruins, temple", "amb": "abismo"}, {"arq": "dia-banquete.mp3", "tags": "DnD, inn, folk, king, feast, calm", "amb": "superficie-dia"}, {"arq": "dia-bardo.mp3", "tags": "medieval, fantasy, RPG — The Bards Tale", "amb": "superficie-dia"}, {"arq": "dia-campina.mp3", "tags": "classical, bells, horn, medieval, overworld, strings", "amb": "superficie-dia"}, {"arq": "dia-celta.mp3", "tags": "knights, celtic, folk, irish, medieval, strings", "amb": "superficie-dia"}, {"arq": "dia-colheita.mp3", "tags": "medieval, fantasy — Medieval: Harvest Season", "amb": "superficie-dia"}, {"arq": "dia-exploracao.mp3", "tags": "medieval, fantasy — Medieval: Exploration", "amb": "superficie-dia"}, {"arq": "dia-menestrel.mp3", "tags": "DnD, inn, lute, dance, feast, medieval", "amb": "superficie-dia"}, {"arq": "dia-mercado.mp3", "tags": "medieval, fantasy — Medieval: Market Day", "amb": "superficie-dia"}, {"arq": "dia-taverna.mp3", "tags": "medieval, inn, lute, calm — The Old Tower Inn", "amb": "superficie-dia"}, {"arq": "dia-vila.mp3", "tags": "fantasy, RPG, calm, HOME, town — Town Theme", "amb": "superficie-dia"}, {"arq": "noite-campos.mp3", "tags": "fantasy, RPG, cinematic, instrumental", "amb": "superficie-noite"}, {"arq": "noite-espadas.mp3", "tags": "ambient, fantasy", "amb": "superficie-noite"}, {"arq": "noite-lamento.mp3", "tags": "DnD, fantasy, castle, ancient, arcane, calm", "amb": "superficie-noite"}], "ambientes": ["superficie-dia", "superficie-noite", "caverna", "abismo"], "sfx": {"_corpo_medio": {"n": 4, "v": 0.3}, "_corpo_forte": {"n": 3, "v": 0.3}, "hit": {"n": 4, "v": 0.65, "mix": ["_corpo_medio"]}, "crit": {"n": 4, "v": 0.75, "mix": ["_corpo_forte"]}, "hurt": {"n": 2, "v": 0.6}, "block": {"n": 4, "v": 0.5, "mix": ["_corpo_medio"]}, "atk_sword": {"n": 3, "v": 0.5}, "atk_axe": {"n": 2, "v": 0.55, "mix": ["_corpo_medio"]}, "atk_club": {"n": 3, "v": 0.55, "mix": ["_corpo_medio"]}, "atk_fist": {"n": 3, "v": 0.5, "mix": ["_corpo_medio"]}, "atk_distance": {"n": 2, "v": 0.4}, "atk_wand": {"n": 2, "v": 0.45}, "shoot": {"n": 2, "v": 0.4}, "spell_fire": {"n": 4, "v": 0.5}, "spell_ice": {"n": 3, "v": 0.5}, "spell_energy": {"n": 2, "v": 0.5}, "spell_earth": {"n": 4, "v": 0.5}, "spell_holy": {"n": 3, "v": 0.4, "ext": "wav"}, "spell_death": {"n": 2, "v": 0.5}, "fire": {"n": 3, "v": 0.5}, "ice": {"n": 3, "v": 0.5}, "energy": {"n": 2, "v": 0.5}, "rune": {"n": 4, "v": 0.5}, "heal": {"n": 4, "v": 0.4, "ext": "wav"}, "buff": {"n": 2, "v": 0.45}, "die": {"n": 3, "v": 0.55, "mix": ["_corpo_forte"]}, "death": {"n": 1, "v": 0.5}, "levelup": {"n": 1, "v": 0.45}, "skillup": {"n": 2, "v": 0.3}, "loot": {"n": 2, "v": 0.6}, "coin": {"n": 4, "v": 0.5}, "equip": {"n": 3, "v": 0.6}, "unequip": {"n": 2, "v": 0.5}, "potion": {"n": 4, "v": 0.6, "ext": "wav"}, "stairs": {"n": 3, "v": 0.5}, "error": {"n": 2, "v": 0.4}, "step_grass": {"n": 5, "v": 0.35}, "step_dirt": {"n": 5, "v": 0.35}, "step_sand": {"n": 5, "v": 0.35}, "step_stone": {"n": 5, "v": 0.3}, "step_rock": {"n": 5, "v": 0.3}, "step_cave": {"n": 5, "v": 0.3}, "ext": "ogg"}};
+const $ = s => document.querySelector(s);
+let atual = null;
+function tocar(url, rot){
+  if(atual){ atual.pause(); atual = null; }
+  const a = new Audio(url); a.volume = .8; a.play();
+  atual = a; $('#tocando').textContent = '♪ ' + rot;
+  a.onended = () => { if(atual===a){ atual=null; $('#tocando').textContent=''; } };
+}
+$('#parar').onclick = () => { if(atual){atual.pause();atual=null;} $('#tocando').textContent=''; };
+
+/* ---- trilha */
+const tb = $('#tmus tbody');
+D.faixas.forEach(f => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><button>▶</button></td><td class="arq">${f.arq}</td>
+    <td class="tags">${f.tags}</td>
+    <td><select><option value="">— descartar —</option>${
+      D.ambientes.map(a=>`<option value="${a}"${a===f.amb?' selected':''}>${a}</option>`).join('')}</select></td>`;
+  tr.querySelector('button').onclick = e => { tocar('../assets/music/'+f.arq, f.arq);
+    document.querySelectorAll('#tmus button').forEach(b=>b.classList.remove('on'));
+    e.target.classList.add('on'); };
+  tr.querySelector('select').onchange = e => { f.amb = e.target.value; saidaMus(); };
+  tb.appendChild(tr);
+});
+function saidaMus(){
+  const m = {};
+  D.ambientes.forEach(a => { const l = D.faixas.filter(f=>f.amb===a).map(f=>f.arq); if(l.length) m[a]=l; });
+  $('#outmus').value = JSON.stringify(m, null, 2);
+}
+saidaMus();
+$('#copmus').onclick = () => navigator.clipboard.writeText($('#outmus').value);
+
+/* ---- efeitos */
+const sb = $('#tsfx tbody');
+const extGeral = D.sfx.ext || 'ogg';
+Object.keys(D.sfx).filter(k=>k!=='ext').sort().forEach(nome => {
+  const cfg = D.sfx[nome], ext = cfg.ext || extGeral;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><button>▶</button></td><td class="arq">${nome}${cfg.mix?' <span class="tags">+'+cfg.mix.join(',')+'</span>':''}</td>
+    <td class="tags">${cfg.n}</td>
+    <td><input type="range" min="0" max="1.5" step="0.05" value="${cfg.v}"> <span class="tags">${cfg.v}</span></td>`;
+  tr.querySelector('button').onclick = () => {
+    const i = 1 + Math.floor(Math.random()*cfg.n);
+    tocar(`../assets/sfx/${nome}${i>1?'-'+i:''}.${ext}`, nome);
+    // camada junto, como o jogo faz
+    (cfg.mix||[]).forEach(c => { const cc=D.sfx[c]; if(!cc) return;
+      const j = 1 + Math.floor(Math.random()*cc.n);
+      const a = new Audio(`../assets/sfx/${c}${j>1?'-'+j:''}.${cc.ext||extGeral}`); a.volume=.8; a.play(); });
+  };
+  const r = tr.querySelector('input');
+  r.oninput = e => { cfg.v = +e.target.value; e.target.nextElementSibling.textContent = cfg.v; saidaSfx(); };
+  sb.appendChild(tr);
+});
+function saidaSfx(){ $('#outsfx').value = JSON.stringify(D.sfx, null, 2); }
+saidaSfx();
+$('#copsfx').onclick = () => navigator.clipboard.writeText($('#outsfx').value);
+</script></body></html>

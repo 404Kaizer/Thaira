@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Thaira — ranger animado</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap');
+:root{--line:#4a4335;--gold:#d9a441;--gold2:#f0cd7a;--txt:#ddd5c2;--dim:#8f8874;
+  --stone:linear-gradient(#2b2823,#1a1815);--serif:"Cinzel",Georgia,serif}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0c0f;color:var(--txt);font:13px/1.5 "Segoe UI",system-ui,sans-serif;padding:16px 20px 40px}
+h1{font:700 24px var(--serif);color:var(--gold2);letter-spacing:.1em;margin:0 0 2px}
+h2{font:400 13px/1.5 "Segoe UI";color:var(--dim);margin:0 0 14px;font-style:italic}
+h3{font:700 11.5px var(--serif);letter-spacing:.08em;color:var(--gold2);text-transform:uppercase;
+  margin:0 0 8px;border-bottom:1px solid var(--line);padding-bottom:5px}
+#wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr 330px;gap:16px;align-items:start}
+#full{grid-column:1/-1}
+.painel{background:linear-gradient(#232019,#181614);border:1px solid var(--line);border-radius:6px;
+  padding:12px 14px;margin-bottom:12px;box-shadow:inset 0 1px 0 #ffffff10,0 3px 10px #0007}
+button{background:var(--stone);color:var(--txt);border:1px solid var(--line);border-radius:5px;
+  padding:6px 11px;cursor:pointer;font:600 11px var(--serif);letter-spacing:.03em}
+button:hover{border-color:var(--gold);color:var(--gold2)}
+button.on{background:linear-gradient(#4a3f28,#2a2318);color:var(--gold2);border-color:var(--gold)}
+.linha{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.nota{color:var(--dim);font-size:11.5px;line-height:1.7}
+.nota b{color:var(--gold2)}
+/* palco: fundo de grama parecido com o do jogo, para julgar a silhueta */
+#palco{background:
+    repeating-linear-gradient(0deg,#0000 0 22px,#ffffff08 22px 23px),
+    repeating-linear-gradient(90deg,#0000 0 22px,#ffffff08 22px 23px),
+    radial-gradient(ellipse at 50% 62%,#3c5a30,#22351d 70%);
+  border:2px solid var(--line);border-radius:6px;min-height:540px;
+  display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:center;gap:34px;padding:26px 20px 34px}
+.spr{background-image:url(ranger_frames.png);background-repeat:no-repeat;
+  image-rendering:pixelated;flex:none;filter:drop-shadow(0 6px 6px #0007)}
+.rot{text-align:center;color:var(--dim);font-size:10.5px;margin-top:6px}
+#tira{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.qd{position:relative;background:#12100e;border:1px solid #2f2a22;border-radius:4px;cursor:pointer;
+  height:60px;background-repeat:no-repeat;image-rendering:pixelated}
+.qd:hover{border-color:var(--gold)}
+.qd.sel{border-color:var(--gold);box-shadow:inset 0 0 10px #d9a44155,0 0 6px #d9a44144}
+.qd.vazio{visibility:hidden}
+.qd i{position:absolute;top:1px;left:3px;font-style:normal;font-size:9px;color:#8f8874}
+.qd.sel i{color:var(--gold2)}
+input[type=range]{width:100%}
+label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-top:8px}
+label b{color:var(--gold2)}
+/* em tela estreita a coluna lateral desce, senão a página rola de lado */
+@media (max-width:1120px){#wrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="full">
+    <h1>RANGER — PRÉVIA ANIMADA</h1>
+    <h2>24 quadros recortados da folha, fundo removido e alinhados pelos pés.
+      Clique nos quadros para montar a sequência; os atalhos abaixo já trazem as mais óbvias.</h2>
+  </div>
+
+  <div>
+    <div id="palco">
+      <div><div class="spr" id="a1"></div><div class="rot">≈ tamanho no jogo</div></div>
+      <div><div class="spr" id="a2"></div><div class="rot">1×</div></div>
+      <div><div class="spr" id="a3"></div><div class="rot">2×</div></div>
+    </div>
+    <div class="painel" style="margin-top:12px">
+      <div class="linha">
+        <button id="b-play" class="on">▮▮ pausar</button>
+        <button id="b-pp">ida e volta</button>
+        <button id="b-sombra" class="on">sombra do chão</button>
+        <span class="nota" id="info" style="margin-left:8px"></span>
+      </div>
+      <label>velocidade <b><span id="v-fps">8</span> quadros/s</b></label>
+      <input type="range" id="fps" min="1" max="24" value="8">
+    </div>
+  </div>
+
+  <div>
+    <div class="painel">
+      <h3>Sequências prontas</h3>
+      <div class="linha" id="presets"></div>
+      <div class="nota" style="margin-top:6px">A folha não é uma tira limpa: as linhas
+        misturam frente, costas e lado. Estes recortes são a leitura que fiz de cada bloco.</div>
+    </div>
+    <div class="painel">
+      <h3>Quadros — clique para incluir</h3>
+      <div id="tira"></div>
+      <div class="linha" style="margin-top:8px">
+        <button id="b-todos">todos</button><button id="b-nenhum">limpar</button>
+      </div>
+    </div>
+    <div class="painel">
+      <h3>O que observar</h3>
+      <div class="nota">
+        Se os pés ficam plantados — alinhei pela base, não pelo centro, senão o boneco pula.<br>
+        Se a silhueta lê no <b>1×</b>, que é perto do tamanho real em tela.<br>
+        Se o par de quadros forma ciclo: com 3 quadros, <b>ida e volta</b> costuma fechar melhor que repetir.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const CW = 184, CH = 236, LINHAS = [7, 6, 6, 5];
+const QUADROS = [];
+LINHAS.forEach((n, r) => { for (let c = 0; c < n; c++) QUADROS.push({ r, c }); });
+
+const PRESETS = [
+  { n: 'Frente A', q: [0, 1, 2, 3] },
+  { n: 'Costas A', q: [4, 5, 6] },
+  { n: 'Lado ←', q: [7, 8, 9] },
+  { n: 'Lado →', q: [10, 11, 12] },
+  { n: 'Frente B', q: [13, 14, 15] },
+  { n: 'Costas B', q: [16, 17, 18] },
+  { n: 'Ataque de arco', q: [19, 20, 21, 22, 23] }
+];
+
+const $ = s => document.querySelector(s);
+let sel = PRESETS[0].q.slice(), i = 0, tocando = true, pingpong = false, dir = 1, fps = 8, ultimo = 0;
+
+// 0.4 é a escala em que o boneco fica com a altura que teria em tela no jogo
+// (~1,5 tile). Aí o pixelado atrapalha, então só os ampliados usam nearest.
+const alvos = [['#a1', 0.4], ['#a2', 1], ['#a3', 2]].map(([s, z]) => {
+  const el = $(s);
+  el.style.width = CW * z + 'px'; el.style.height = CH * z + 'px';
+  el.style.backgroundSize = (CW * 7 * z) + 'px ' + (CH * 4 * z) + 'px';
+  if (z < 1) el.style.imageRendering = 'auto';
+  return { el, z };
+});
+function desenha(k) {
+  const q = QUADROS[k];
+  for (const { el, z } of alvos)
+    el.style.backgroundPosition = `${-q.c * CW * z}px ${-q.r * CH * z}px`;
+  $('#info').textContent = `quadro ${k} · ${sel.length} na sequência`;
+}
+function laco(t) {
+  requestAnimationFrame(laco);
+  if (!tocando || !sel.length) return;
+  if (t - ultimo < 1000 / fps) return;
+  ultimo = t;
+  i += dir;
+  if (pingpong) {                       // 3 quadros repetidos dão passo travado
+    if (i >= sel.length) { i = Math.max(0, sel.length - 2); dir = -1; }
+    else if (i < 0) { i = Math.min(1, sel.length - 1); dir = 1; }
+  } else if (i >= sel.length) i = 0;
+  desenha(sel[i]);
+}
+requestAnimationFrame(laco);
+
+/* tira de quadros */
+const tira = $('#tira');
+LINHAS.forEach((n, r) => {
+  for (let c = 0; c < 7; c++) {
+    const d = document.createElement('div');
+    d.className = 'qd';
+    if (c >= n) { d.classList.add('vazio'); tira.appendChild(d); continue; }
+    const k = QUADROS.findIndex(q => q.r === r && q.c === c);
+    const z = 60 / CH;
+    d.style.backgroundImage = 'url(ranger_frames.png)';
+    d.style.backgroundSize = (CW * 7 * z) + 'px ' + (CH * 4 * z) + 'px';
+    d.style.backgroundPosition = `${-c * CW * z}px ${-r * CH * z}px`;
+    d.innerHTML = '<i>' + k + '</i>';
+    d.onclick = () => {
+      const p = sel.indexOf(k);
+      if (p >= 0) sel.splice(p, 1); else { sel.push(k); sel.sort((a, b) => a - b); }
+      i = 0; marca();
+    };
+    d.dataset.k = k;
+    tira.appendChild(d);
+  }
+});
+function marca() {
+  document.querySelectorAll('.qd[data-k]').forEach(d =>
+    d.classList.toggle('sel', sel.includes(+d.dataset.k)));
+  document.querySelectorAll('#presets button').forEach(b =>
+    b.classList.toggle('on', b.dataset.q === sel.join(',')));
+  if (sel.length) desenha(sel[0]);
+}
+for (const p of PRESETS) {
+  const b = document.createElement('button');
+  b.textContent = p.n; b.dataset.q = p.q.join(',');
+  b.onclick = () => { sel = p.q.slice(); i = 0; marca(); };
+  $('#presets').appendChild(b);
+}
+$('#b-todos').onclick = () => { sel = QUADROS.map((_, k) => k); i = 0; marca(); };
+$('#b-nenhum').onclick = () => { sel = []; marca(); };
+$('#b-play').onclick = e => { tocando = !tocando; e.target.classList.toggle('on', tocando);
+  e.target.textContent = tocando ? '▮▮ pausar' : '▶ tocar'; };
+$('#b-pp').onclick = e => { pingpong = !pingpong; dir = 1; e.target.classList.toggle('on', pingpong); };
+$('#b-sombra').onclick = e => { const on = e.target.classList.toggle('on');
+  alvos.forEach(a => a.el.style.filter = on ? 'drop-shadow(0 6px 6px #0007)' : 'none'); };
+$('#fps').oninput = e => { fps = +e.target.value; $('#v-fps').textContent = fps; };
+marca();
+</script>
+</body>
+</html>

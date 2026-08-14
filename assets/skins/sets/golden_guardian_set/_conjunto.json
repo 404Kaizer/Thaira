@@ -1,0 +1,13 @@
+{
+  "id": "gg",
+  "lado": 54,
+  "apelidos": {
+    "ohsword": "sword",
+    "thsword": "greatsword",
+    "ohaxe": "axe",
+    "thaxe": "greataxe",
+    "alabard": "halberd",
+    "graves": "boots"
+  },
+  "ignorar": ["golden_guardian_set", "golden_guardian_backpack"]
+}

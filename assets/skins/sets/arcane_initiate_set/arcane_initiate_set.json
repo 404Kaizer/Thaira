@@ -1,0 +1,8 @@
+{
+  "_nota": "conjunto de mago. 4x3: 1 mochila 2 amuleto 3 anel 4 capuz | 5 tunica 6 calcas 7 botas 8 grimorio | 9 cajado cristal 10 cajado caveira 11 cajado lanca 12 bolsa",
+  "ids": {
+    "arcane_initiate_amulet": 2, "arcane_initiate_ring": 3, "arcane_initiate_hood": 4,
+    "arcane_initiate_armor": 5, "arcane_initiate_legs": 6, "arcane_initiate_boots": 7,
+    "arcane_initiate_tome": 8, "arcane_initiate_staff": 9
+  }
+}

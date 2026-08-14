@@ -1,0 +1,2595 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprite Sheet Animator — Normalizador</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#151515;color:#eee;font-family:Arial,sans-serif}
+.app{display:grid;grid-template-columns:350px 1fr;min-height:100vh}
+.sidebar{padding:18px;background:#202020;border-right:1px solid #3a3a3a;overflow-y:auto}
+h1{font-size:20px;margin:0 0 16px}
+h2{font-size:14px;margin:20px 0 8px;color:#bbb}
+label{display:block;font-size:12px;color:#bbb;margin:10px 0 5px}
+input[type=number],input[type=file],button,select{width:100%;border:1px solid #444;background:#2b2b2b;color:#eee;border-radius:6px;padding:9px}
+input[type=file]{padding:7px}
+input[type=checkbox]{accent-color:#ff00ff}
+.row,.controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{cursor:pointer;font-weight:bold;margin-top:8px}
+button:hover{background:#3a3a3a}
+.primary{background:#4a174a;border-color:#ff00ff}
+.checkrow{display:flex;align-items:center;gap:7px;font-size:12px;color:#ccc;margin-top:9px}
+.checkrow input{width:auto}
+.hint{font-size:11px;line-height:1.45;color:#999;margin-top:12px}
+.value{color:#fff;font-weight:bold}
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{padding:12px 16px;border-bottom:1px solid #333;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.status{color:#aaa;font-size:13px}
+.viewer{flex:1;min-height:420px;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto;
+background:linear-gradient(45deg,#252525 25%,transparent 25%),linear-gradient(-45deg,#252525 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#252525 75%),linear-gradient(-45deg,transparent 75%,#252525 75%);
+background-size:32px 32px;background-position:0 0,0 16px,16px -16px,-16px 0;background-color:#1c1c1c}
+.animation-tiles{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:14px;align-items:center;justify-items:center;overflow:auto}
+.anim-tile{width:min(30vw,420px);height:min(30vw,420px);min-width:220px;min-height:220px;max-width:420px;max-height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #4a4a4a;border-radius:8px;background:#202020;box-shadow:0 4px 18px rgba(0,0,0,.25);overflow:hidden}
+.anim-tile.active-tile{border-color:#ff00ff;box-shadow:0 0 0 1px #ff00ff55 inset,0 4px 18px rgba(0,0,0,.25)}
+.tile-title{font-size:12px;font-weight:bold;color:#ddd;letter-spacing:.3px;flex:0 0 auto;padding:8px 8px 5px;text-align:center}
+.tile-viewport{position:relative;flex:1 1 auto;width:100%;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background-color:#111;
+background-image:linear-gradient(45deg,#242424 25%,transparent 25%),linear-gradient(-45deg,#242424 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#242424 75%),linear-gradient(-45deg,transparent 75%,#242424 75%);
+background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+.tile-viewport canvas{display:block;flex:0 0 auto;image-rendering:pixelated;image-rendering:crisp-edges;max-width:none;max-height:none;touch-action:none}
+.tile-meta{font-size:10px;color:#888;padding:4px 8px 7px;flex:0 0 auto}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+#preview{max-width:none;max-height:none}
+.sheet-area{border-top:1px solid #333;padding:12px 16px 16px;max-height:42vh;overflow:auto}
+.frame-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:7px;margin-top:10px}
+.frame-item{border:1px solid #444;border-radius:5px;padding:5px;background:#292929;cursor:pointer}
+.frame-item.active{border-color:#ff00ff;box-shadow:0 0 0 1px #ff00ff inset}
+.frame-item.disabled{opacity:.35}
+.frame-item.dragging{opacity:.45;border-style:dashed}
+.frame-item.drop-target{border-color:#fff;box-shadow:0 0 0 2px #ff00ff inset}
+.frame-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-top:4px}
+.frame-actions button{margin:0;padding:4px 2px;font-size:10px}
+.frame-item canvas{width:100%;height:72px;object-fit:contain;background:#ff00ff}
+.frame-item small{display:block;margin-top:4px;color:#ccc;font-size:11px}
+.frame-name{width:100%;box-sizing:border-box;margin-top:4px;padding:4px 5px;border:1px solid #444;border-radius:4px;background:#181818;color:#fff;font-size:11px;outline:none}
+.frame-name:focus{border-color:#ff00ff;box-shadow:0 0 0 1px #ff00ff55}
+.quality-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.quality-grid select,.quality-grid input{width:100%;box-sizing:border-box}
+.quality-preview{margin-top:7px;padding:8px;border:1px solid #444;border-radius:5px;background:#181818;color:#ccc;font-size:11px;line-height:1.35}
+.note{padding:8px 10px;border:1px solid #444;border-radius:6px;background:#252525;font-size:11px;line-height:1.4;color:#bbb;margin-top:8px}
+
+/* Menu lateral em acordeão */
+.sidebar-section > h2,
+.sidebar-section > .section-title {
+  cursor:pointer;
+  user-select:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.sidebar-section > h2::after,
+.sidebar-section > .section-title::after {
+  content:"▾";
+  font-size:12px;
+  opacity:.75;
+  transition:transform .15s ease;
+}
+.sidebar-section.collapsed > h2::after,
+.sidebar-section.collapsed > .section-title::after {
+  transform:rotate(-90deg);
+}
+.sidebar-section.collapsed > :not(h2):not(.section-title) {
+  display:none !important;
+}
+.sidebar-section.collapsed > h2,
+.sidebar-section.collapsed > .section-title {
+  margin-bottom:0;
+}
+
+/* Editor de recorte manual */
+.crop-modal{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:none;align-items:center;justify-content:center;padding:18px}
+.crop-modal.open{display:flex}
+.crop-dialog{width:min(1100px,96vw);height:min(850px,94vh);background:#171717;border:1px solid #555;border-radius:12px;box-shadow:0 20px 70px rgba(0,0,0,.55);display:flex;flex-direction:column;overflow:hidden}
+.crop-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#222;border-bottom:1px solid #444;gap:10px}
+.crop-head strong{font-size:16px}
+.crop-body{display:grid;grid-template-columns:minmax(0,1fr) 250px;min-height:0;flex:1}
+.crop-stage{position:relative;overflow:auto;display:flex;align-items:center;justify-content:center;background:#101010;padding:16px}
+#cropEditor{display:block;max-width:100%;max-height:100%;image-rendering:pixelated;touch-action:none;cursor:grab}
+#cropEditor.dragging{cursor:grabbing}
+.crop-controls{padding:14px;background:#1d1d1d;border-left:1px solid #444;overflow:auto}
+.crop-controls .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.crop-controls input[type=number]{width:100%;box-sizing:border-box}
+.crop-controls button{width:100%;margin-top:8px}
+.crop-size-hint{font-size:11px;line-height:1.35;color:#aaa;margin-top:6px}
+.crop-note{font-size:12px;line-height:1.4;color:#bbb;margin-top:10px}
+.crop-actions{display:flex;gap:8px;justify-content:flex-end;padding:10px 14px;background:#222;border-top:1px solid #444}
+.crop-actions button{min-width:110px}
+
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+<h1>Sprite Sheet Animator</h1>
+
+<label>Sprite sheet</label>
+<input id="fileInput" type="file" accept="image/*">
+
+<h2>Divisão da folha</h2>
+<div class="row">
+<div><label>Colunas / frames</label><input id="cols" type="number" min="1" value="4"></div>
+<div><label>Linhas</label><input id="rows" type="number" min="1" value="4"></div>
+</div>
+<button id="applyGrid" class="primary">Aplicar divisão</button>
+
+<h2>Normalização do recorte</h2>
+<div class="checkrow">
+<input id="normalize" type="checkbox">
+<span>Normalizar posição dos personagens</span>
+</div>
+
+<label>Âncora</label>
+<select id="anchorMode">
+<option value="feet">Base / pés — recomendado para personagens em pé</option>
+<option value="body">Centro do corpo</option>
+<option value="bbox">Centro do bounding box</option>
+</select>
+
+<button id="normalizeBtn">↔ Recalcular recortes</button>
+
+<div class="note">
+O recorte continua com exatamente o mesmo tamanho em todos os frames.
+O script detecta o personagem dentro de cada célula e desloca o recorte
+para manter a âncora na mesma posição. Não redimensiona a arte.
+</div>
+
+<h2>Recorte manual</h2>
+<button id="editCropBtn" class="primary">✂ EDITAR RECORTE DO QUADRO</button>
+<div class="controls">
+  <button id="copyCropSelected">Copiar recorte aos selecionados</button>
+  <button id="resetCropCurrent">Resetar recorte atual</button>
+</div>
+<p class="hint">Depois de importar, você pode decidir manualmente onde começa o recorte de cada quadro. O tamanho do quadro permanece fixo; apenas X/Y do recorte são alterados. O botão abre o editor do quadro atual.</p>
+
+<h2>Animação</h2>
+<label>Velocidade (FPS): <span id="fpsValue" class="value">8</span></label>
+<input id="fps" type="range" min="1" max="30" value="8">
+
+<label>Escala de visualização</label>
+<input id="scale" type="number" min="1" max="12" value="1">
+
+<label>Tamanho aproximado no jogo</label>
+<input id="gameScale" type="number" min="0.1" max="1" step="0.1" value="0.5">
+
+<div class="checkrow"><input id="loop" type="checkbox" checked><span>Repetir animação</span></div>
+<div class="checkrow"><input id="magentaKey" type="checkbox" checked><span>Remover fundo magenta #FF00FF</span></div>
+
+<h2>Quadros</h2>
+<div class="controls">
+<button id="selectAll">Todos</button><button id="clearAll">Nenhum</button>
+</div>
+<div class="controls">
+<button id="prev">◀ Anterior</button><button id="next">Próximo ▶</button>
+</div>
+<button id="play" class="primary">▶ PLAY</button>
+<button id="stop">■ PARAR</button>
+
+<h2>RIG 2D</h2>
+<div class="checkrow"><input id="rigMode" type="checkbox"><span>Mostrar / editar esqueleto</span></div>
+<div class="controls">
+  <button id="generateHumanRig" class="primary">GERAR CORPO HUMANO</button>
+  <button id="bindSpriteRig" class="primary">VINCULAR ESQUELETO</button>
+</div>
+<div class="checkrow"><input id="rigSkinning" type="checkbox" checked><span>Deformar imagem ao mover os ossos</span></div>
+<div class="controls">
+  <button id="addBone">+ Osso</button>
+  <button id="deleteBone">Excluir</button>
+</div>
+<div class="controls">
+  <button id="resetRigPose">Resetar pose</button>
+  <button id="saveRig">Salvar RIG</button>
+  <button id="loadRig">Carregar RIG</button>
+</div>
+<input id="rigFile" type="file" accept=".json,application/json" hidden>
+<div id="rigInfo" class="hint">Nenhum osso selecionado.</div>
+<p class="hint">O esqueleto só é criado quando você clicar em <b>GERAR CORPO HUMANO</b> ou carregar um RIG. Depois clique em <b>VINCULAR ESQUELETO</b> para associar o sprite ao RIG. Ative o RIG para editar. Clique em um osso para selecioná-lo. Arraste joints ou pontas para movimentar a estrutura.</p>
+
+<h2>ANIMAÇÃO DO RIG</h2>
+<div class="controls">
+  <label>Nome <input id="animName" type="text" value="Animação 1" style="width:130px"></label>
+  <label>FPS <input id="animFps" type="number" min="1" max="60" value="8" style="width:55px"></label>
+  <label>Frames <input id="animLength" type="number" min="2" max="120" value="8" style="width:55px"></label>
+  <label><input id="animLoop" type="checkbox" checked> Loop</label>
+</div>
+<div class="controls">
+  <button id="animPrev">◀</button>
+  <button id="animPlay">▶ Play</button>
+  <button id="animStop">■ Parar</button>
+  <button id="animNext">▶</button>
+</div>
+<div class="controls">
+  <button id="addKeyframe">◆ Adicionar pose</button>
+  <button id="deleteKeyframe">Excluir pose</button>
+  <button id="copyPose">Copiar pose</button>
+  <button id="pastePose">Colar pose</button>
+  <button id="mirrorPose">Espelhar pose</button>
+</div>
+<div id="animTimeline" style="overflow-x:auto;margin:8px 0;padding:4px;border:1px solid #444;border-radius:6px"></div>
+<div id="animInfo" class="hint">Tempo: 0 | Nenhuma pose.</div>
+<div class="hint">A timeline salva a pose de cada osso. Entre duas poses, o editor interpola posição, rotação e comprimento. O RIG atual movimenta o esqueleto sobre o sprite; o skinning das partes do PNG é uma etapa posterior.</div>
+
+<h2>Melhoria de qualidade</h2>
+<div class="checkrow">
+  <input id="qualityEnabled" type="checkbox">
+  <span>Aplicar upscale na exportação</span>
+</div>
+<div class="checkrow">
+  <input id="qualityPreview" type="checkbox">
+  <span>Visualizar upscale no preview</span>
+</div>
+<div class="quality-grid">
+  <div>
+    <label>Escala</label>
+    <select id="qualityScale">
+      <option value="1" selected>1× — original</option>
+      <option value="2">2×</option>
+      <option value="3">3×</option>
+      <option value="4">4× — recomendado</option>
+      <option value="6">6×</option>
+      <option value="8">8×</option>
+    </select>
+  </div>
+  <div>
+    <label>Método</label>
+    <select id="qualityMode">
+      <option value="nearest" selected>Pixel Perfect (Nearest)</option>
+      <option value="smooth">Suave (não recomendado para pixel art)</option>
+    </select>
+  </div>
+</div>
+<div class="quality-preview">
+  O modo <b>Pixel Perfect</b> amplia cada pixel sem misturar cores.
+  <span id="qualityPreviewInfo">Saída: tamanho original</span>
+  <br>O frame original nunca é alterado. O upscale é aplicado na visualização
+  e na exportação quando as opções correspondentes estão ativadas.
+</div>
+
+<h2>Exportar PNG</h2>
+<div class="checkrow">
+  <input id="exportTransparent" type="checkbox" checked>
+  <span>Fundo transparente</span>
+</div>
+<div class="controls">
+  <button id="exportCurrent">PNG atual</button>
+  <button id="exportSelected">PNG selecionados</button>
+</div>
+<div class="controls">
+  <button id="exportAll">PNG todos</button>
+</div>
+<h2>Enquadramento manual</h2>
+<div class="checkrow">
+  <input id="manualPosition" type="checkbox">
+  <span>Posicionar manualmente</span>
+</div>
+<div class="controls">
+  <button id="resetPosition">↺ Resetar frame</button>
+  <button id="applyPositionSelected">Aplicar enquadramento aos selecionados</button>
+</div>
+<p class="hint">
+O enquadramento do frame atual será copiado somente para os quadros marcados como selecionados (✓).
+</p>
+<button id="rekeyFrames">🪄 Reaplicar remoção de magenta</button>
+<p class="hint">
+Ative "Posicionar manualmente" e arraste o personagem diretamente no preview.
+O recorte continua com exatamente o mesmo tamanho; somente X/Y do conteúdo é alterado.
+</p>
+
+<p class="hint">
+Por padrão, cada PNG usa exatamente o tamanho real do frame. Se "Aplicar upscale"
+estiver ativo, a exportação será ampliada pela escala escolhida. "Pixel Perfect"
+mantém cada pixel sem interpolação.
+</p>
+
+<p class="hint">
+Digite o nome de cada quadro no campo abaixo da miniatura. O nome será usado no PNG exportado.
+Arraste um quadro sobre outro para reordenar. ◀/▶ também movem.
+✓/✕ ativa ou desativa o quadro. A animação usa apenas os quadros ativos.
+</p>
+</aside>
+
+<main class="main">
+<div class="topbar">
+<strong id="frameStatus">Nenhuma imagem carregada</strong>
+<span class="status" id="dimensionStatus"></span>
+</div>
+<div class="viewer animation-viewer">
+  <div class="animation-tiles" id="animationTiles">
+    <div class="anim-tile">
+      <div class="tile-title">≈ TAMANHO NO JOGO</div>
+      <div class="tile-viewport"><canvas id="previewGame"></canvas></div>
+      <div class="tile-meta" id="gameTileMeta">0.5×</div>
+    </div>
+    <div class="anim-tile active-tile">
+      <div class="tile-title">1× — ORIGINAL</div>
+      <div class="tile-viewport"><canvas id="preview"></canvas></div>
+      <div class="tile-meta" id="oneTileMeta">0 × 0 px</div>
+    </div>
+    <div class="anim-tile">
+      <div class="tile-title">2× — UPSCALE</div>
+      <div class="tile-viewport"><canvas id="preview2x"></canvas></div>
+      <div class="tile-meta" id="twoTileMeta">0 × 0 px</div>
+    </div>
+  </div>
+</div>
+<section class="sheet-area">
+<strong>Quadros da sprite sheet</strong>
+<div id="frameList" class="frame-list"></div>
+</section>
+</main>
+</div>
+
+
+<div id="cropModal" class="crop-modal" aria-hidden="true">
+  <div class="crop-dialog">
+    <div class="crop-head">
+      <strong id="cropTitle">Recorte manual</strong>
+      <span id="cropMeta" class="hint"></span>
+    </div>
+    <div class="crop-body">
+      <div class="crop-stage">
+        <canvas id="cropEditor"></canvas>
+      </div>
+      <div class="crop-controls">
+        <div class="hint">Arraste o retângulo para escolher exatamente onde o quadro será cortado. O recorte não redimensiona a arte.</div>
+        <div class="row" style="margin-top:12px">
+          <label>X <input id="cropXInput" type="number" step="1"></label>
+          <label>Y <input id="cropYInput" type="number" step="1"></label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label>Largura <input id="cropWInput" type="number" min="1" step="1"></label>
+          <label>Altura <input id="cropHInput" type="number" min="1" step="1"></label>
+        </div>
+        <div class="crop-size-hint">Defina a largura e a altura do retângulo em pixels. O conteúdo não é esticado: apenas a área de recorte muda.</div>
+        <button id="cropApplySizeSelected">Copiar tamanho aos selecionados</button>
+        <button id="cropCenterCell">Centralizar na célula original</button>
+        <button id="cropPrevFrame">◀ Quadro anterior</button>
+        <button id="cropNextFrame">Quadro seguinte ▶</button>
+        <button id="cropCopySelected">Copiar posição aos selecionados</button>
+        <p class="crop-note">X/Y definem a posição em pixels. Largura/Altura definem o tamanho do retângulo. Você pode arrastar o interior para mover e os cantos para redimensionar. “Copiar posição” e “Copiar tamanho” podem ser aplicados aos quadros selecionados.</p>
+      </div>
+    </div>
+    <div class="crop-actions">
+      <button id="cropCancel">Cancelar</button>
+      <button id="cropApply" class="primary">Aplicar e fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fileInput=$('fileInput'), colsInput=$('cols'), rowsInput=$('rows');
+const fpsInput=$('fps'), fpsValue=$('fpsValue'), scaleInput=$('scale'), gameScaleInput=$('gameScale');
+const normalizeInput=$('normalize'), anchorModeInput=$('anchorMode');
+const cropModal=$('cropModal'), cropEditor=$('cropEditor'), cropXInput=$('cropXInput'), cropYInput=$('cropYInput'), cropWInput=$('cropWInput'), cropHInput=$('cropHInput');
+let cropEditorScale=1, cropDrag=null;
+const magentaKeyInput=$('magentaKey');
+const qualityEnabledInput=$('qualityEnabled');
+const qualityPreviewInput=$('qualityPreview');
+const qualityScaleInput=$('qualityScale');
+const qualityModeInput=$('qualityMode');
+const preview=$('preview'), previewGame=$('previewGame'), preview2x=$('preview2x'), frameList=$('frameList');
+const frameStatus=$('frameStatus'), dimensionStatus=$('dimensionStatus');
+const ctx=preview.getContext('2d');
+let image=new Image(), loaded=false, frames=[], selectedFrames=[];
+let projectImageBlob=null;
+let persistenceReady=false;
+let restoreInProgress=false;
+let currentFrameIndex=0, playing=false, timer=null;
+
+// RIG 2D básico: ossos hierárquicos sobre o frame atual.
+let rigBones=[];
+let selectedBoneId=null;
+let rigDrag=null;
+// Vinculação do sprite ao esqueleto (skinning 2D).
+let rigBinding={enabled:false,frameIndex:-1,source:null,restBones:[],vertices:[],weights:[],gx:0,gy:0};
+
+let rigAnimation={
+  name:'Animação 1', fps:8, length:8, loop:true, current:0, playing:false,
+  keyframes:{}
+};
+let copiedPose=null;
+let animTimer=null;
+
+function clonePose(){
+  return rigBones.map(b=>({
+    id:b.id,name:b.name,parent:b.parent,
+    x:b.x,y:b.y,angle:b.angle,length:b.length
+  }));
+}
+function applyPose(pose){
+  if(!pose)return;
+  pose.forEach(p=>{
+    const b=getBone(p.id);
+    if(b){b.x=p.x;b.y=p.y;b.angle=p.angle;b.length=p.length;}
+  });
+}
+function poseAt(t){
+  const keys=Object.keys(rigAnimation.keyframes).map(Number).sort((a,b)=>a-b);
+  if(!keys.length)return null;
+  if(rigAnimation.keyframes[t])return rigAnimation.keyframes[t];
+  let a=keys[0],b=keys[keys.length-1];
+  if(t<=a)return rigAnimation.keyframes[a];
+  if(t>=b)return rigAnimation.keyframes[b];
+  for(let i=0;i<keys.length-1;i++){
+    if(t>=keys[i]&&t<=keys[i+1]){a=keys[i];b=keys[i+1];break;}
+  }
+  const u=(t-a)/(b-a);
+  const pa=rigAnimation.keyframes[a], pb=rigAnimation.keyframes[b];
+  return pa.map(x=>{
+    const y=pb.find(q=>q.id===x.id)||x;
+    return {...x,
+      x:x.x+(y.x-x.x)*u,
+      y:x.y+(y.y-x.y)*u,
+      angle:x.angle+shortAngle(y.angle-x.angle)*u,
+      length:x.length+(y.length-x.length)*u
+    };
+  });
+}
+function shortAngle(a){
+  while(a>Math.PI)a-=Math.PI*2;
+  while(a<-Math.PI)a+=Math.PI*2;
+  return a;
+}
+function addKeyframeAtCurrent(){
+  if(!rigBones.length){ alert('Gere o corpo humano ou carregue um RIG antes de criar poses.'); return; }
+  rigAnimation.keyframes[rigAnimation.current]=clonePose();
+  renderAnimTimeline(); renderPreview();
+}
+function deleteKeyframeAtCurrent(){
+  delete rigAnimation.keyframes[rigAnimation.current];
+  renderAnimTimeline(); renderPreview();
+}
+function setAnimTime(t,saveCurrent=false){
+  const max=Math.max(1,rigAnimation.length-1);
+  rigAnimation.current=Math.max(0,Math.min(max,Math.round(t)));
+  const pose=poseAt(rigAnimation.current);
+  if(pose)applyPose(pose);
+  renderAnimTimeline();renderPreview();
+}
+function renderAnimTimeline(){
+  const el=$('animTimeline'); if(!el)return;
+  const n=Math.max(2,rigAnimation.length);
+  el.innerHTML='';
+  const row=document.createElement('div');
+  row.style.display='flex';row.style.gap='3px';row.style.minWidth=(n*42)+'px';
+  for(let i=0;i<n;i++){
+    const b=document.createElement('button');
+    b.textContent=(rigAnimation.keyframes[i]?'◆ ':'')+i;
+    b.style.minWidth='38px';
+    b.style.padding='5px 2px';
+    if(i===rigAnimation.current)b.style.outline='2px solid #ffff00';
+    b.title=rigAnimation.keyframes[i]?'Pose salva':'Quadro vazio';
+    b.onclick=()=>setAnimTime(i);
+    row.appendChild(b);
+  }
+  el.appendChild(row);
+  const keys=Object.keys(rigAnimation.keyframes).map(Number).sort((a,b)=>a-b);
+  $('animInfo').textContent=`Tempo: ${rigAnimation.current} / ${n-1} | ${keys.length} pose(s) salva(s)`;
+}
+function playAnimation(){
+  if(!rigBones.length){ alert('Gere o corpo humano ou carregue um RIG antes de animar.'); return; }
+  if(rigAnimation.playing)return;
+  rigAnimation.playing=true;
+  const step=()=>{ 
+    if(!rigAnimation.playing)return;
+    setAnimTime(rigAnimation.current+1);
+    if(rigAnimation.current>=rigAnimation.length-1){
+      if(rigAnimation.loop)rigAnimation.current=0;
+      else {stopAnimation();return;}
+    }
+    animTimer=setTimeout(step,1000/Math.max(1,rigAnimation.fps));
+  };
+  animTimer=setTimeout(step,1000/Math.max(1,rigAnimation.fps));
+  $('animPlay').textContent='❚❚ Pausar';
+}
+function stopAnimation(){
+  rigAnimation.playing=false;
+  clearTimeout(animTimer);animTimer=null;
+  $('animPlay').textContent='▶ Play';
+}
+function copyCurrentPose(){copiedPose=clonePose();}
+function pasteCurrentPose(){if(copiedPose){applyPose(copiedPose);renderPreview();}}
+function mirrorCurrentPose(){
+  if(!rigBones.length)return;
+  const pairs=[
+    ['armL','armR'],['forearmL','forearmR'],
+    ['thighL','thighR'],['shinL','shinR'],['footL','footR']
+  ];
+  const by=new Map(rigBones.map(b=>[b.id,b]));
+  pairs.forEach(([a,b])=>{
+    const A=by.get(a),B=by.get(b);if(!A||!B)return;
+    [A.x,B.x]=[2*(frames[currentFrameIndex].fw/2)-B.x,2*(frames[currentFrameIndex].fw/2)-A.x];
+    [A.y,B.y]=[B.y,A.y];
+    [A.angle,B.angle]=[Math.PI-A.angle,Math.PI-B.angle];
+    [A.length,B.length]=[B.length,A.length];
+  });
+  renderPreview();
+}
+function saveAnimationFile(){
+  const data={version:1,name:rigAnimation.name,fps:rigAnimation.fps,length:rigAnimation.length,loop:rigAnimation.loop,keyframes:rigAnimation.keyframes,bones:rigBones};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=(rigAnimation.name||'animacao').replace(/[^\wÀ-ÿ -]/g,'_')+'.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),500);
+}
+
+
+function boneEnd(b){
+  return {x:b.x+Math.cos(b.angle)*b.length,y:b.y+Math.sin(b.angle)*b.length};
+}
+function getBone(id){return rigBones.find(b=>b.id===id);}
+
+// ---------------- SKINNING 2D DO SPRITE ----------------
+function boneSegmentDistance(px,py,b){
+  const ex=b.x+Math.cos(b.angle)*b.length, ey=b.y+Math.sin(b.angle)*b.length;
+  const vx=ex-b.x, vy=ey-b.y, l2=vx*vx+vy*vy||1;
+  const t=Math.max(0,Math.min(1,((px-b.x)*vx+(py-b.y)*vy)/l2));
+  const qx=b.x+t*vx, qy=b.y+t*vy;
+  return {d:Math.hypot(px-qx,py-qy),t,qx,qy};
+}
+function restBonesForSkin(){
+  return rigBones.filter(b=>b.id!=='root' && b.length>2).map(b=>({...b}));
+}
+function makeRigBinding(frameIndex=currentFrameIndex){
+  const f=frames[frameIndex];
+  if(!f || !f.baseCanvas){alert('Importe uma sprite sheet antes de vincular a imagem.');return false;}
+  if(!rigBones.length){alert('Gere ou carregue um RIG antes de vincular a imagem.');return false;}
+  const source=f.canvas||f.baseCanvas;
+  const gx=Math.min(32,Math.max(12,Math.round(f.fw/16)));
+  const gy=Math.min(32,Math.max(12,Math.round(f.fh/16)));
+  const bones=restBonesForSkin();
+  if(!bones.length){alert('O RIG não possui ossos deformáveis.');return false;}
+  const vertices=[];
+  const weights=[];
+  for(let y=0;y<=gy;y++){
+    const py=y*f.fh/gy;
+    for(let x=0;x<=gx;x++){
+      const px=x*f.fw/gx;
+      const ranked=bones.map((b,i)=>({i,...boneSegmentDistance(px,py,b)})).sort((a,b)=>a.d-b.d).slice(0,3);
+      const raw=ranked.map(r=>1/Math.pow(r.d+6,1.35));
+      const sum=raw.reduce((a,v)=>a+v,0)||1;
+      vertices.push({x:px,y:py});
+      weights.push(ranked.map((r,j)=>{
+        const b=bones[r.i];
+        const dx=Math.cos(b.angle),dy=Math.sin(b.angle), pxp=-dy,pyp=dx;
+        const rx=px-b.x, ry=py-b.y;
+        return {boneId:b.id,w:raw[j]/sum,along:rx*dx+ry*dy,side:rx*pxp+ry*pyp};
+      }));
+    }
+  }
+  rigBinding={enabled:true,frameIndex,source,restBones:bones,vertices,weights,gx,gy};
+  if($('rigInfo'))$('rigInfo').textContent='Imagem vinculada ao RIG. Arraste os ossos para deformar o sprite.';
+  renderPreview();
+  return true;
+}
+function getCurrentSkinBones(){
+  const map=new Map(rigBones.map(b=>[b.id,b]));
+  return rigBinding.restBones.map(rb=>map.get(rb.id)).filter(Boolean);
+}
+function deformVertex(i){
+  const ws=rigBinding.weights[i], map=new Map(rigBones.map(b=>[b.id,b]));
+  let x=0,y=0,total=0;
+  ws.forEach(inf=>{
+    const rb=rigBinding.restBones.find(b=>b.id===inf.boneId), cb=map.get(inf.boneId);
+    if(!rb||!cb)return;
+    const c=Math.cos(cb.angle),s=Math.sin(cb.angle);
+    // Coordenadas do ponto em relação ao osso na pose de repouso.
+    const nx=cb.x+inf.along*c-inf.side*s;
+    const ny=cb.y+inf.along*s+inf.side*c;
+    x+=nx*inf.w;y+=ny*inf.w;total+=inf.w;
+  });
+  if(total<.001)return rigBinding.vertices[i];
+  return {x:x/total,y:y/total};
+}
+function drawTriangleImage(ctx,source,srcA,srcB,srcC,dstA,dstB,dstC){
+  const den=(srcB.y-srcC.y)*(srcA.x-srcC.x)+(srcC.x-srcB.x)*(srcA.y-srcC.y);
+  if(Math.abs(den)<.0001)return;
+  const a=((dstB.y-dstC.y)*(srcA.x-srcC.x)+(srcC.x-srcB.x)*(dstB.y-srcC.y))/den;
+  const b=((srcB.y-srcC.y)*(dstB.x-dstC.x)+(dstC.x-srcB.x)*(dstB.y-dstC.y))/den;
+  const c=((dstC.y-dstB.y)*(srcA.x-srcC.x)+(srcB.x-srcC.x)*(dstC.y-srcC.y))/den;
+  const d=((srcB.y-srcC.y)*(dstC.x-dstC.x)+(dstC.x-srcB.x)*(dstC.y-srcC.y))/den;
+  // Recalcular transformação diretamente por inversão da matriz de fonte.
+  const sx1=srcA.x,sy1=srcA.y,sx2=srcB.x,sy2=srcB.y,sx3=srcC.x,sy3=srcC.y;
+  const det=(sx1-sx3)*(sy2-sy3)-(sx2-sx3)*(sy1-sy3);
+  if(Math.abs(det)<.0001)return;
+  const m11=((dstA.x-dstC.x)*(sy2-sy3)-(dstB.x-dstC.x)*(sy1-sy3))/det;
+  const m12=((sx1-sx3)*(dstB.x-dstC.x)-(sx2-sx3)*(dstA.x-dstC.x))/det;
+  const m21=((dstA.y-dstC.y)*(sy2-sy3)-(dstB.y-dstC.y)*(sy1-sy3))/det;
+  const m22=((sx1-sx3)*(dstB.y-dstC.y)-(sx2-sx3)*(dstA.y-dstC.y))/det;
+  const tx=dstC.x-m11*sx3-m12*sy3;
+  const ty=dstC.y-m21*sx3-m22*sy3;
+  ctx.save();
+  ctx.beginPath();ctx.moveTo(dstA.x,dstA.y);ctx.lineTo(dstB.x,dstB.y);ctx.lineTo(dstC.x,dstC.y);ctx.closePath();ctx.clip();
+  ctx.setTransform(m11,m21,m12,m22,tx,ty);
+  ctx.drawImage(source,0,0);
+  ctx.restore();
+}
+function drawBoundSprite(ctx,frame,scale){
+  if(!rigBinding.enabled || rigBinding.frameIndex!==currentFrameIndex || !rigBinding.vertices.length)return false;
+  const src=magentaKeyInput.checked?(frame.canvas||frame.baseCanvas):(frame.baseCanvas||frame.canvas);
+  if(!src)return false;
+  const pts=rigBinding.vertices.map((_,i)=>deformVertex(i));
+  const gx=rigBinding.gx,gy=rigBinding.gy;
+  ctx.save();ctx.scale(scale,scale);ctx.imageSmoothingEnabled=false;
+  for(let y=0;y<gy;y++)for(let x=0;x<gx;x++){
+    const i=y*(gx+1)+x, ir=i+1, ib=i+(gx+1), ibr=ib+1;
+    const a=rigBinding.vertices[i],b=rigBinding.vertices[ir],c=rigBinding.vertices[ib],d=rigBinding.vertices[ibr];
+    const A=pts[i],B=pts[ir],C=pts[ib],D=pts[ibr];
+    drawTriangleImage(ctx,src,a,b,c,A,B,C);
+    drawTriangleImage(ctx,src,b,d,c,B,D,C);
+  }
+  ctx.restore();
+  return true;
+}
+
+// Gera um esqueleto humano anatômico padrão, independente da silhueta
+// ou da posição do personagem desenhado no frame. O esqueleto é calculado
+// apenas a partir do tamanho da célula para caber no editor.
+
+
+// Gera um esqueleto humano anatômico padrão, independente da silhueta
+// ou da posição do personagem desenhado no frame. O esqueleto é calculado
+// apenas a partir do tamanho da célula para caber no editor.
+function generateHumanRig(){
+  const f=frames[currentFrameIndex];
+  if(!f){
+    alert('Importe uma sprite sheet antes de gerar o corpo humano.');
+    return;
+  }
+
+  const w=f.fw, h=f.fh, cx=w/2;
+  // Caixa anatômica fixa: aproximadamente 86% da altura da célula.
+  // A anatomia não é inferida do personagem da imagem.
+  const top=h*.08, bottom=h*.94;
+  const H=bottom-top;
+  const headTop=top;
+  const headCenterY=top+H*.085;
+  const neckY=top+H*.155;
+  const shoulderY=top+H*.205;
+  const chestY=top+H*.29;
+  const waistY=top+H*.43;
+  const pelvisY=top+H*.50;
+  const elbowY=top+H*.36;
+  const wristY=top+H*.47;
+  const hipY=pelvisY;
+  const kneeY=top+H*.69;
+  const ankleY=top+H*.88;
+  const footY=bottom;
+  const shoulderX=Math.min(w*.18,H*.16);
+  const hipX=Math.min(w*.075,H*.075);
+  const armLen=H*.16, forearmLen=H*.13;
+  const thighLen=H*.19, shinLen=H*.19;
+  const headLen=H*.105;
+  const handLen=Math.max(6,H*.045);
+  const footLen=Math.max(8,w*.10);
+
+  rigBones=[
+    {id:'root',name:'Raiz / Pelve',parent:null,x:cx,y:pelvisY,angle:-Math.PI/2,length:1},
+
+    {id:'spine',name:'Coluna',parent:'root',x:cx,y:pelvisY,angle:-Math.PI/2,length:H*.17},
+    {id:'chest',name:'Tórax',parent:'spine',x:cx,y:chestY,angle:-Math.PI/2,length:H*.10},
+    {id:'neck',name:'Pescoço',parent:'chest',x:cx,y:neckY,angle:-Math.PI/2,length:H*.055},
+    {id:'head',name:'Cabeça',parent:'neck',x:cx,y:headCenterY,angle:-Math.PI/2,length:headLen},
+
+    {id:'clavicleL',name:'Clavícula Esquerda',parent:'chest',x:cx,y:shoulderY,angle:Math.PI,length:shoulderX*.48},
+    {id:'upperArmL',name:'Braço Superior Esquerdo',parent:'clavicleL',x:cx-shoulderX*.48,y:shoulderY,angle:Math.PI/2,length:armLen},
+    {id:'forearmL',name:'Antebraço Esquerdo',parent:'upperArmL',x:cx-shoulderX,y:elbowY,angle:Math.PI/2,length:forearmLen},
+    {id:'handL',name:'Mão Esquerda',parent:'forearmL',x:cx-shoulderX,y:wristY,angle:Math.PI/2,length:handLen},
+
+    {id:'clavicleR',name:'Clavícula Direita',parent:'chest',x:cx,y:shoulderY,angle:0,length:shoulderX*.48},
+    {id:'upperArmR',name:'Braço Superior Direito',parent:'clavicleR',x:cx+shoulderX*.48,y:shoulderY,angle:Math.PI/2,length:armLen},
+    {id:'forearmR',name:'Antebraço Direito',parent:'upperArmR',x:cx+shoulderX,y:elbowY,angle:Math.PI/2,length:forearmLen},
+    {id:'handR',name:'Mão Direita',parent:'forearmR',x:cx+shoulderX,y:wristY,angle:Math.PI/2,length:handLen},
+
+    {id:'thighL',name:'Coxa Esquerda',parent:'root',x:cx-hipX,y:hipY,angle:Math.PI/2,length:thighLen},
+    {id:'shinL',name:'Canela Esquerda',parent:'thighL',x:cx-hipX,y:kneeY,angle:Math.PI/2,length:shinLen},
+    {id:'footL',name:'Pé Esquerdo',parent:'shinL',x:cx-hipX,y:ankleY,angle:0,length:footLen},
+
+    {id:'thighR',name:'Coxa Direita',parent:'root',x:cx+hipX,y:hipY,angle:Math.PI/2,length:thighLen},
+    {id:'shinR',name:'Canela Direita',parent:'thighR',x:cx+hipX,y:kneeY,angle:Math.PI/2,length:shinLen},
+    {id:'footR',name:'Pé Direito',parent:'shinR',x:cx+hipX,y:ankleY,angle:0,length:footLen}
+  ];
+
+  rigBones.forEach(b=>{b.baseX=b.x;b.baseY=b.y;b.baseAngle=b.angle;b.baseLength=b.length;});
+  selectedBoneId=null;
+  // O corpo humano passa a ser a base atual do rig, sem tentar encaixar
+  // automaticamente nos pixels do personagem.
+  rigAnimation.keyframes={};
+  rigAnimation.current=0;
+  stopAnimation();
+  renderAnimTimeline();
+  renderPreview();
+  const info=$('rigInfo');
+  if(info)info.textContent='Corpo humano padrão gerado. Selecione e arraste os ossos para ajustar.';
+}
+
+function createDefaultRig(){
+  const f=frames[currentFrameIndex]; if(!f)return;
+
+  // Esqueleto humano convencional, simétrico e organizado por articulações.
+  // A posição inicial é proporcional ao frame para funcionar com criaturas de tamanhos diferentes.
+  const cx=f.fw/2;
+  const headY=f.fh*.17;
+  const neckY=f.fh*.30;
+  const shoulderY=f.fh*.34;
+  const chestY=f.fh*.45;
+  const hipY=f.fh*.58;
+  const armX=f.fw*.15;
+  const elbowY=f.fh*.46;
+  const handY=f.fh*.57;
+  const thighY=f.fh*.69;
+  const kneeY=f.fh*.82;
+  const ankleY=f.fh*.94;
+
+  const armLen=Math.max(10,f.fw*.14);
+  const forearmLen=Math.max(10,f.fw*.13);
+  const thighLen=Math.max(12,f.fh*.14);
+  const shinLen=Math.max(12,f.fh*.14);
+
+  rigBones=[
+    {id:'root',name:'Raiz / Pelve',parent:null,x:cx,y:hipY,angle:-Math.PI/2,length:1},
+
+    {id:'spine',name:'Coluna',parent:'root',x:cx,y:hipY,angle:-Math.PI/2,length:Math.max(12,f.fh*.25)},
+    {id:'chest',name:'Tórax',parent:'spine',x:cx,y:chestY,angle:-Math.PI/2,length:Math.max(8,f.fh*.12)},
+    {id:'neck',name:'Pescoço',parent:'chest',x:cx,y:neckY,angle:-Math.PI/2,length:Math.max(5,f.fh*.06)},
+    {id:'head',name:'Cabeça',parent:'neck',x:cx,y:headY+.04*f.fh,angle:-Math.PI/2,length:Math.max(8,f.fh*.10)},
+
+    {id:'clavicleL',name:'Clavícula Esquerda',parent:'chest',x:cx,y:shoulderY,angle:Math.PI,length:Math.max(5,f.fw*.09)},
+    {id:'upperArmL',name:'Braço Superior Esquerdo',parent:'clavicleL',x:cx-armX*.45,y:shoulderY,angle:Math.PI/2,length:armLen},
+    {id:'forearmL',name:'Antebraço Esquerdo',parent:'upperArmL',x:cx-armX,y:elbowY,angle:Math.PI/2,length:forearmLen},
+    {id:'handL',name:'Mão Esquerda',parent:'forearmL',x:cx-armX,y:handY,angle:Math.PI/2,length:Math.max(5,f.fh*.05)},
+
+    {id:'clavicleR',name:'Clavícula Direita',parent:'chest',x:cx,y:shoulderY,angle:0,length:Math.max(5,f.fw*.09)},
+    {id:'upperArmR',name:'Braço Superior Direito',parent:'clavicleR',x:cx+armX*.45,y:shoulderY,angle:Math.PI/2,length:armLen},
+    {id:'forearmR',name:'Antebraço Direito',parent:'upperArmR',x:cx+armX,y:elbowY,angle:Math.PI/2,length:forearmLen},
+    {id:'handR',name:'Mão Direita',parent:'forearmR',x:cx+armX,y:handY,angle:Math.PI/2,length:Math.max(5,f.fh*.05)},
+
+    {id:'thighL',name:'Coxa Esquerda',parent:'root',x:cx-f.fw*.065,y:hipY,angle:Math.PI/2,length:thighLen},
+    {id:'shinL',name:'Canela Esquerda',parent:'thighL',x:cx-f.fw*.065,y:kneeY,angle:Math.PI/2,length:shinLen},
+    {id:'footL',name:'Pé Esquerdo',parent:'shinL',x:cx-f.fw*.065,y:ankleY,angle:0,length:Math.max(8,f.fw*.10)},
+
+    {id:'thighR',name:'Coxa Direita',parent:'root',x:cx+f.fw*.065,y:hipY,angle:Math.PI/2,length:thighLen},
+    {id:'shinR',name:'Canela Direita',parent:'thighR',x:cx+f.fw*.065,y:kneeY,angle:Math.PI/2,length:shinLen},
+    {id:'footR',name:'Pé Direito',parent:'shinR',x:cx+f.fw*.065,y:ankleY,angle:0,length:Math.max(8,f.fw*.10)}
+  ];
+  selectedBoneId=null;
+}
+
+function rigPoint(e){
+  const r=preview.getBoundingClientRect();
+  const s=Math.max(1,Math.round(parseInt(scaleInput.value)||1));
+  const f=frames[currentFrameIndex];
+  return {x:(e.clientX-r.left)/s-(f?.posX||0),y:(e.clientY-r.top)/s-(f?.posY||0)};
+}
+function drawRigOverlay(){
+  if(!$('rigMode')?.checked || !frames.length || !rigBones.length)return;
+  const s=Math.max(1,Math.round(parseInt(scaleInput.value)||1));
+  const pc=preview.getContext('2d');
+  const f=frames[currentFrameIndex];
+  pc.save();
+  pc.translate((f.posX||0)*s,(f.posY||0)*s);
+  pc.lineCap='round';
+  pc.lineJoin='round';
+
+  // Desenha primeiro os ossos. As articulações são desenhadas depois e
+  // cada posição compartilhada recebe apenas UM joint visual. Isso evita
+  // a aparência de vários pontos grudados em ombros, cotovelos, quadris etc.
+  rigBones.forEach(b=>{
+    const e=boneEnd(b);
+    pc.strokeStyle=b.id===selectedBoneId?'#ffff00':'#00cfe8';
+    pc.lineWidth=Math.max(2,s*2);
+    pc.beginPath();
+    pc.moveTo(b.x*s,b.y*s);
+    pc.lineTo(e.x*s,e.y*s);
+    pc.stroke();
+  });
+
+  // Agrupa pontos coincidentes/adjacentes em uma única articulação.
+  const joints=[];
+  const findJoint=(x,y)=>{
+    const radius=Math.max(3,7/s);
+    let best=null,bestD=Infinity;
+    joints.forEach(j=>{const d=Math.hypot(j.x-x,j.y-y);if(d<radius&&d<bestD){best=j;bestD=d;}});
+    return best;
+  };
+  rigBones.forEach(b=>{
+    const pts=[{x:b.x,y:b.y,kind:'base'},{...boneEnd(b),kind:'end'}];
+    pts.forEach(pt=>{
+      let j=findJoint(pt.x,pt.y);
+      if(!j){j={x:pt.x,y:pt.y,bones:[]};joints.push(j);}
+      if(!j.bones.includes(b.id))j.bones.push(b.id);
+    });
+  });
+
+  joints.forEach(j=>{
+    const selected=j.bones.includes(selectedBoneId);
+    const r=Math.max(4,s*5);
+    pc.fillStyle=selected?'#ffff00':'#00e5ff';
+    pc.strokeStyle='#071316';
+    pc.lineWidth=Math.max(1,s);
+    pc.beginPath();pc.arc(j.x*s,j.y*s,r,0,Math.PI*2);pc.fill();pc.stroke();
+  });
+
+  // Para não transformar o editor em uma nuvem de texto, mostra o nome
+  // somente do osso selecionado.
+  const selected=getBone(selectedBoneId);
+  if(selected){
+    const ex=boneEnd(selected);
+    pc.font=`bold ${Math.max(10,s*11)}px sans-serif`;
+    pc.fillStyle='#ffffff';
+    pc.strokeStyle='rgba(0,0,0,.8)';
+    pc.lineWidth=Math.max(2,s);
+    const label=selected.name;
+    const lx=(selected.x+ex.x)/2*s+8*s, ly=(selected.y+ex.y)/2*s-8*s;
+    pc.strokeText(label,lx,ly);
+    pc.fillText(label,lx,ly);
+  }
+  pc.restore();
+}
+function refreshRigInfo(){
+  const el=$('rigInfo'); if(!el)return;
+  const b=getBone(selectedBoneId);
+  el.textContent=b?`${b.name} — X:${Math.round(b.x)} Y:${Math.round(b.y)} Ângulo:${Math.round(b.angle*180/Math.PI)}° Comprimento:${Math.round(b.length)}`:'Nenhum osso selecionado.';
+}
+
+
+
+// Importação da sprite sheet.
+// Esta rotina foi mantida independente do processamento de magenta para que
+// a imagem original sempre seja carregada antes de qualquer recorte.
+fileInput.addEventListener('change', e=>{
+  const file=e.target.files && e.target.files[0];
+  if(!file) return;
+
+  stopAnimation();
+  projectImageBlob=file;
+  frames=[];
+  selectedFrames=[];
+  rigAnimation.keyframes={};
+  rigAnimation.current=0;
+  currentFrameIndex=0;
+  loaded=false;
+  rigBones=[];
+  rigBinding={enabled:false,frameIndex:-1,source:null,restBones:[],vertices:[],weights:[],gx:0,gy:0};
+  selectedBoneId=null;
+  rigDrag=null;
+  rigMode.checked=false;
+  frameList.innerHTML='';
+  preview.width=1; preview.height=1;
+  previewGame.width=1; previewGame.height=1;
+  preview2x.width=1; preview2x.height=1;
+  ctx.clearRect(0,0,1,1);
+  previewGame.getContext('2d').clearRect(0,0,1,1);
+  preview2x.getContext('2d').clearRect(0,0,1,1);
+  dimensionStatus.textContent='Carregando imagem…';
+  frameStatus.textContent='Nenhum frame carregado';
+
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    image=img;
+    loaded=true;
+    dimensionStatus.textContent=`${img.naturalWidth} × ${img.naturalHeight}px`;
+    buildFrames();
+    schedulePersist();
+    URL.revokeObjectURL(url);
+  };
+  img.onerror=()=>{
+    loaded=false;
+    dimensionStatus.textContent='Erro ao carregar a imagem.';
+    URL.revokeObjectURL(url);
+  };
+  img.src=url;
+});
+
+function smoothing(c){c.imageSmoothingEnabled=false}
+
+/*
+  Chroma key robusto para o fundo #FF00FF.
+  A versão anterior dependia de três limites independentes (R/B/G), o que
+  deixava pixels de anti-aliasing e variações do magenta original.
+  Agora usamos distância de cor para #FF00FF e removemos também variações
+  próximas da cor-chave.
+*/
+function chromaDistance(r,g,b){
+  const dr=r-255, dg=g, db=b-255;
+  return Math.sqrt(dr*dr + dg*dg + db*db);
+}
+
+// Detecta magenta do fundo por distância + HSV. Não depende de o fragmento
+// estar conectado à borda: isso é importante para buracos entre braços,
+// pernas, espada etc.
+function isMagentaLike(r,g,b){
+  const dist=chromaDistance(r,g,b);
+  if(dist<=205) return true;
+
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b);
+  const d=mx-mn;
+  if(mx<70 || d<35) return false;
+
+  // Hue aproximado para magenta (0..360).
+  let hue=0;
+  if(d===0) hue=0;
+  else if(mx===r) hue=60*((g-b)/d)%360;
+  else if(mx===g) hue=60*((b-r)/d+2);
+  else hue=60*((r-g)/d+4);
+  if(hue<0) hue+=360;
+
+  const sat=d/mx;
+  const val=mx/255;
+  return sat>0.55 && val>0.45 && hue>=285 && hue<=330 && g<150;
+}
+
+function processMagenta(canvas, force=false){
+  if(!force && !magentaKeyInput.checked) return canvas;
+
+  const c=canvas.getContext('2d',{willReadFrequently:true});
+  const img=c.getImageData(0,0,canvas.width,canvas.height);
+  const data=img.data;
+  const w=canvas.width, h=canvas.height, n=w*h;
+
+  // Etapa 1: remove TODO pixel claramente pertencente ao magenta.
+  // Não usamos apenas flood-fill, porque o fundo pode ficar preso em áreas
+  // fechadas pelo personagem.
+  const remove=new Uint8Array(n);
+  for(let p=0;p<n;p++){
+    const i=p*4;
+    if(data[i+3] && isMagentaLike(data[i],data[i+1],data[i+2])) remove[p]=1;
+  }
+
+  // Etapa 2: elimina halos de anti-aliasing. Pixels próximos de uma área
+  // removida e ainda fortemente puxados para o magenta recebem transparência
+  // parcial ou total. Isso remove a borda rosa sem destruir o contorno escuro.
+  const alphaBefore=new Uint8Array(n);
+  for(let p=0;p<n;p++) alphaBefore[p]=data[p*4+3];
+
+  function nearRemoved(p){
+    const x=p%w, y=(p/w)|0;
+    for(let dy=-2;dy<=2;dy++){
+      for(let dx=-2;dx<=2;dx++){
+        if(dx===0 && dy===0) continue;
+        const xx=x+dx, yy=y+dy;
+        if(xx>=0 && xx<w && yy>=0 && yy<h && remove[yy*w+xx]) return true;
+      }
+    }
+    return false;
+  }
+
+  for(let p=0;p<n;p++){
+    const i=p*4;
+    if(remove[p]){
+      data[i+3]=0;
+      continue;
+    }
+
+    const a=data[i+3];
+    if(a===0) continue;
+
+    const r=data[i], g=data[i+1], b=data[i+2];
+    const dist=chromaDistance(r,g,b);
+
+    if(dist<=145){
+      data[i+3]=0;
+      continue;
+    }
+
+    if(nearRemoved(p)){
+      // Descontaminação de magenta na borda. Só atua quando o pixel ainda
+      // apresenta forte componente vermelho+azul em relação ao verde.
+      const spill=Math.max(0, Math.min(r,b)-g);
+      const strength=spill>35 ? Math.min(1,(spill-35)/120) : 0;
+
+      if(strength>0){
+        data[i]=Math.max(0,Math.round(r-(r-g)*strength*0.55));
+        data[i+2]=Math.max(0,Math.round(b-(b-g)*strength*0.55));
+      }
+
+      // Se, mesmo após a descontaminação, o pixel ainda é muito próximo do
+      // fundo, reduza sua opacidade para eliminar o halo residual.
+      const nd=chromaDistance(data[i],data[i+1],data[i+2]);
+      if(nd<185){
+        const fade=Math.max(0,Math.min(1,(nd-120)/65));
+        data[i+3]=Math.min(a,Math.round(a*fade));
+      }
+    }
+  }
+
+  c.putImageData(img,0,0);
+  return canvas;
+}
+function isChromaPixel(r,g,b,a=255){
+  if(a<20) return true;
+  return isMagentaLike(r,g,b);
+}
+
+function getCellPixels(data){
+  const w=data.width,h=data.height,d=data.data;
+  const mask=new Uint8Array(w*h);
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const i=(y*w+x)*4;
+      mask[y*w+x]=isChromaPixel(d[i],d[i+1],d[i+2],d[i+3])?0:1;
+    }
+  }
+  return mask;
+}
+
+/*
+  A sprite cell may contain a purple cast shadow, particles or effects.
+  Those are not part of the character anchor. We therefore find connected
+  foreground components and use the largest component as the character.
+  This is the key correction for the supplied 4x4 sheet.
+*/
+function largestComponent(mask,w,h){
+  const seen=new Uint8Array(mask.length);
+  let best=null;
+
+  for(let sy=0;sy<h;sy++){
+    for(let sx=0;sx<w;sx++){
+      const start=sy*w+sx;
+      if(!mask[start]||seen[start]) continue;
+
+      const queue=[start];
+      seen[start]=1;
+      const pixels=[];
+      let minX=sx,maxX=sx,minY=sy,maxY=sy;
+
+      for(let qi=0;qi<queue.length;qi++){
+        const idx=queue[qi];
+        const x=idx%w, y=Math.floor(idx/w);
+        pixels.push(idx);
+        if(x<minX)minX=x;if(x>maxX)maxX=x;
+        if(y<minY)minY=y;if(y>maxY)maxY=y;
+
+        for(let dy=-1;dy<=1;dy++){
+          for(let dx=-1;dx<=1;dx++){
+            if(dx===0&&dy===0)continue;
+            const nx=x+dx,ny=y+dy;
+            if(nx<0||ny<0||nx>=w||ny>=h)continue;
+            const ni=ny*w+nx;
+            if(mask[ni]&&!seen[ni]){
+              seen[ni]=1;
+              queue.push(ni);
+            }
+          }
+        }
+      }
+
+      if(!best || pixels.length>best.pixels.length){
+        best={pixels,minX,maxX,minY,maxY};
+      }
+    }
+  }
+  return best;
+}
+
+function getCellBounds(data,cx,cy,w,h){
+  /* Extract only this grid cell. */
+  const cellData=new ImageData(w,h);
+  const src=data.data,dst=cellData.data,W=data.width;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const si=((cy+y)*W+(cx+x))*4;
+      const di=(y*w+x)*4;
+      dst[di]=src[si];dst[di+1]=src[si+1];dst[di+2]=src[si+2];dst[di+3]=src[si+3];
+    }
+  }
+
+  const mask=getCellPixels(cellData);
+  const component=largestComponent(mask,w,h);
+  if(!component || component.pixels.length<20)return null;
+
+  return {
+    x:component.minX,
+    y:component.minY,
+    width:component.maxX-component.minX+1,
+    height:component.maxY-component.minY+1,
+    pixels:component.pixels.length
+  };
+}
+
+function getCellMask(sourceCanvas,sx,sy,w,h){
+  const sctx=sourceCanvas.getContext('2d',{willReadFrequently:true});
+  const data=sctx.getImageData(sx,sy,w,h);
+  const mask=getCellPixels(data);
+  const component=largestComponent(mask,w,h);
+  const clean=new Uint8Array(w*h);
+  if(component){
+    for(const idx of component.pixels)clean[idx]=1;
+  }
+  return clean;
+}
+
+function median(arr){
+  if(!arr.length)return 0;
+  const a=[...arr].sort((x,y)=>x-y);
+  return a[Math.floor(a.length/2)];
+}
+
+/*
+  Anchor:
+  - feet: median X of the lowest 18% of the CHARACTER component and
+    its bottom Y. This ignores the separate cast shadow.
+  - body: median of the central/lower character pixels.
+  - bbox: geometric center.
+*/
+function getAnchor(cell,mask,w,h,mode){
+  const b=cell.bounds;
+  if(mode==='bbox'){
+    return {x:b.x+b.width/2,y:b.y+b.height/2};
+  }
+
+  const xs=[],ys=[];
+
+  if(mode==='feet'){
+    const yStart=Math.max(b.y,Math.floor(b.y+b.height*0.82));
+    for(let y=yStart;y<=b.y+b.height-1;y++){
+      for(let x=b.x;x<=b.x+b.width-1;x++){
+        if(mask[y*w+x]){xs.push(x);ys.push(y)}
+      }
+    }
+    if(xs.length)return {x:median(xs),y:Math.max(...ys)};
+  }
+
+  const y0=Math.floor(b.y+b.height*0.28);
+  const y1=Math.floor(b.y+b.height*0.80);
+  for(let y=y0;y<=y1;y++){
+    for(let x=b.x;x<=b.x+b.width-1;x++){
+      if(mask[y*w+x]){xs.push(x);ys.push(y)}
+    }
+  }
+
+  return {
+    x:xs.length?median(xs):b.x+b.width/2,
+    y:ys.length?median(ys):b.y+b.height/2
+  };
+}
+
+function buildFrames(){
+  if(!loaded) return;
+  const cols=Math.max(1,parseInt(colsInput.value)||1);
+  const rows=Math.max(1,parseInt(rowsInput.value)||1);
+  const fw=Math.floor(image.naturalWidth/cols);
+  const fh=Math.floor(image.naturalHeight/rows);
+
+  const source=document.createElement('canvas');
+  source.width=image.naturalWidth; source.height=image.naturalHeight;
+  const sctx=source.getContext('2d',{willReadFrequently:true});
+  smoothing(sctx); sctx.drawImage(image,0,0);
+  const data=sctx.getImageData(0,0,source.width,source.height);
+
+  frames=[];
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const sx=c*fw, sy=r*fh;
+      const bounds=getCellBounds(data,sx,sy,fw,fh);
+      frames.push({row:r,col:c,sourceX:sx,sourceY:sy,fw,fh,bounds,source,cropX:sx,cropY:sy,posX:0,posY:0,name:`frame_${String(r*cols+c+1).padStart(2,'0')}`});
+    }
+  }
+  selectedFrames=frames.map(()=>true);
+  currentFrameIndex=0;
+  if(normalizeInput.checked) normalizeFrames(); else frames.forEach(rebuildFrameFromCrop);
+  renderFrameList(); renderPreview(); updateStatus();
+  dimensionStatus.textContent=`${image.naturalWidth} × ${image.naturalHeight}px · ${fw} × ${fh}px por frame · ${frames.length} frames`;
+}
+
+
+function rebuildFrameFromCrop(f){
+  if(!f || !f.source)return;
+  const fw=f.fw, fh=f.fh;
+  const maxX=Math.max(0,f.source.width-fw), maxY=Math.max(0,f.source.height-fh);
+  const srcX=Math.max(0,Math.min(maxX,Math.round(Number(f.cropX ?? f.sourceX) || 0)));
+  const srcY=Math.max(0,Math.min(maxY,Math.round(Number(f.cropY ?? f.sourceY) || 0)));
+  const out=document.createElement('canvas');
+  out.width=fw; out.height=fh;
+  const octx=out.getContext('2d');
+  smoothing(octx);
+  octx.clearRect(0,0,fw,fh);
+  octx.drawImage(f.source,srcX,srcY,fw,fh,0,0,fw,fh);
+  f.baseCanvas=out;
+  const display=document.createElement('canvas');
+  display.width=fw; display.height=fh;
+  const dctx=display.getContext('2d');
+  smoothing(dctx); dctx.drawImage(out,0,0);
+  if(magentaKeyInput.checked) processMagenta(display);
+  f.canvas=display;
+  f.cropX=srcX; f.cropY=srcY;
+}
+
+function rebuildAllFramesFromCrop(){
+  frames.forEach(rebuildFrameFromCrop);
+}
+
+function normalizeFrames(){
+  if(!frames.length)return;
+
+  const fw=frames[0].fw, fh=frames[0].fh;
+  const mode=anchorModeInput.value;
+
+  const valid=[];
+  for(const f of frames){
+    if(!f.bounds)continue;
+    const mask=getCellMask(f.source,f.sourceX,f.sourceY,fw,fh);
+    const anchor=getAnchor(f,mask,fw,fh,mode);
+    valid.push({frame:f,mask,anchor});
+  }
+  if(!valid.length)return;
+
+  /*
+    One target anchor for the entire sheet.
+    Median is deliberately used instead of the first/last frame so that a
+    large sword, arm swing or death pose cannot redefine the animation origin.
+  */
+  const targetX=median(valid.map(v=>v.anchor.x));
+  const targetY=median(valid.map(v=>v.anchor.y));
+
+  for(const f of frames){
+    const out=document.createElement('canvas');
+    out.width=fw;out.height=fh;
+    const octx=out.getContext('2d');
+    smoothing(octx);
+    octx.clearRect(0,0,fw,fh);
+
+    if(!f.bounds){
+      f.canvas=out;f.anchor=null;continue;
+    }
+
+    const v=valid.find(x=>x.frame===f);
+    let cropX=f.sourceX+Math.round(v.anchor.x-targetX);
+    let cropY=f.sourceY+Math.round(v.anchor.y-targetY);
+
+    if(!normalizeInput.checked){
+      cropX=f.sourceX;cropY=f.sourceY;
+    }
+
+    /*
+      Always output exactly fw x fh. If the calculated crop crosses the
+      source boundary, transparent padding is left on the missing side.
+      The character is never resized.
+    */
+    const srcX=Math.max(0,Math.min(f.source.width-fw,cropX));
+    const srcY=Math.max(0,Math.min(f.source.height-fh,cropY));
+
+    octx.drawImage(f.source,srcX,srcY,fw,fh,0,0,fw,fh);
+
+    /*
+      baseCanvas is the exact normalized crop with the original background.
+      It is never modified. This is what makes PNG export reliable:
+      transparent/original can be chosen later without rebuilding the crop.
+    */
+    f.baseCanvas=out;
+
+    const displayCanvas=document.createElement('canvas');
+    displayCanvas.width=fw; displayCanvas.height=fh;
+    const dctx=displayCanvas.getContext('2d');
+    smoothing(dctx);
+    dctx.drawImage(out,0,0);
+    processMagenta(displayCanvas);
+
+    f.canvas=displayCanvas;
+    f.anchor=v.anchor;
+    f.cropX=srcX;
+    f.cropY=srcY;
+    if(typeof f.posX!=="number")f.posX=0;
+    if(typeof f.posY!=="number")f.posY=0;
+  }
+}
+
+
+
+function upscaleCanvas(source, factor, mode='nearest'){
+  const f=Math.max(1,Math.round(Number(factor)||1));
+  if(f===1)return source;
+
+  const c=document.createElement('canvas');
+  c.width=source.width*f;
+  c.height=source.height*f;
+
+  const cctx=c.getContext('2d');
+  if(mode==='nearest'){
+    cctx.imageSmoothingEnabled=false;
+  }else{
+    cctx.imageSmoothingEnabled=true;
+    cctx.imageSmoothingQuality='high';
+  }
+
+  cctx.drawImage(source,0,0,c.width,c.height);
+  return c;
+}
+
+function prepareExportCanvas(canvas){
+  if(!qualityEnabledInput?.checked) return canvas;
+  const factor=Math.max(1,Math.round(Number(qualityScaleInput?.value)||1));
+  const mode=qualityModeInput?.value||'nearest';
+  return upscaleCanvas(canvas,factor,mode);
+}
+
+function makeExportCanvas(frame, transparent){
+  const c=document.createElement('canvas');
+  c.width=frame.fw; c.height=frame.fh;
+  const cctx=c.getContext('2d');
+  smoothing(cctx);
+  cctx.clearRect(0,0,c.width,c.height);
+  cctx.drawImage(frame.baseCanvas || frame.canvas,frame.posX||0,frame.posY||0);
+
+  if(transparent) processMagenta(c,true);
+  return prepareExportCanvas(c);
+}
+
+function downloadCanvasPNG(canvas, filename){
+  canvas.toBlob(blob=>{
+    if(!blob)return;
+    const a=document.createElement('a');
+    const url=URL.createObjectURL(blob);
+    a.href=url;
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  },'image/png');
+}
+
+function safeFilePart(s){
+  return String(s||'frame')
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g,'_')
+    .replace(/\s+/g,'_')
+    .slice(0,80);
+}
+
+function getFrameExportName(frame,index,used){
+  let base=safeFilePart(frame.name || `frame_${String(index+1).padStart(2,'0')}`);
+  if(!base) base=`frame_${String(index+1).padStart(2,'0')}`;
+  let name=`${base}.png`;
+  let n=2;
+  while(used.has(name.toLowerCase())){
+    name=`${base}_${n++}.png`;
+  }
+  used.add(name.toLowerCase());
+  return name;
+}
+
+/* CRC-32 used by the small ZIP writer below. */
+let crcTable=null;
+function getCRC32Table(){
+  if(crcTable)return crcTable;
+  crcTable=new Uint32Array(256);
+  for(let n=0;n<256;n++){
+    let c=n;
+    for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+    crcTable[n]=c>>>0;
+  }
+  return crcTable;
+}
+function crc32(bytes){
+  const table=getCRC32Table();
+  let c=0xFFFFFFFF;
+  for(const b of bytes)c=table[(c^b)&255]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function u16(v){return [v&255,(v>>>8)&255]}
+function u32(v){return [v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255]}
+
+function concatBytes(parts){
+  let total=0;
+  for(const p of parts)total+=p.length;
+  const out=new Uint8Array(total);
+  let off=0;
+  for(const p of parts){out.set(p,off);off+=p.length}
+  return out;
+}
+
+/*
+  Creates a ZIP containing the PNGs without recompressing the PNG data.
+  This avoids external libraries and preserves the PNG bytes exactly.
+*/
+async function downloadPNGZip(items, zipName){
+  const enc=new TextEncoder();
+  const local=[], central=[];
+  let offset=0;
+
+  for(const item of items){
+    const png=new Uint8Array(await new Promise(resolve=>{
+      item.canvas.toBlob(async blob=>{
+        resolve(await blob.arrayBuffer());
+      },'image/png');
+    }));
+    const nameBytes=enc.encode(item.filename);
+    const crc=crc32(png);
+
+    const localHeader=new Uint8Array([
+      ...u32(0x04034B50),
+      ...u16(20), ...u16(0), ...u16(0),
+      ...u16(0), ...u16(0),
+      ...u32(crc), ...u32(png.length), ...u32(png.length),
+      ...u16(nameBytes.length), ...u16(0),
+      ...nameBytes
+    ]);
+    local.push(localHeader,png);
+
+    const centralHeader=new Uint8Array([
+      ...u32(0x02014B50),
+      ...u16(20), ...u16(20),
+      ...u16(0), ...u16(0),
+      ...u16(0), ...u16(0),
+      ...u32(crc), ...u32(png.length), ...u32(png.length),
+      ...u16(nameBytes.length), ...u16(0), ...u16(0),
+      ...u16(0), ...u16(0), ...u32(0), ...u32(offset),
+      ...nameBytes
+    ]);
+    central.push(centralHeader);
+    offset+=localHeader.length+png.length;
+  }
+
+  const centralBytes=concatBytes(central);
+  const localBytes=concatBytes(local);
+  const end=new Uint8Array([
+    ...u32(0x06054B50),
+    ...u16(0), ...u16(0),
+    ...u16(items.length), ...u16(items.length),
+    ...u32(centralBytes.length), ...u32(localBytes.length),
+    ...u16(0)
+  ]);
+
+  const zip=concatBytes([localBytes,centralBytes,end]);
+  const blob=new Blob([zip],{type:'application/zip'});
+  const a=document.createElement('a');
+  const url=URL.createObjectURL(blob);
+  a.href=url;a.download=zipName;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function exportFrameAt(index){
+  const f=frames[index];
+  if(!f)return;
+  const transparent=$('exportTransparent').checked;
+  const c=makeExportCanvas(f,transparent);
+  const used=new Set();
+  const filename=getFrameExportName(f,index,used);
+  downloadCanvasPNG(c,filename);
+}
+
+async function exportFrames(indices){
+  if(!indices.length)return;
+  const transparent=$('exportTransparent').checked;
+  const used=new Set();
+  const items=indices.map(index=>{
+    const f=frames[index];
+    const c=makeExportCanvas(f,transparent);
+    return {
+      canvas:c,
+      filename:getFrameExportName(f,index,used)
+    };
+  });
+  await downloadPNGZip(items,transparent?'sprites_transparent.zip':'sprites_original.zip');
+}
+
+function clampCropPosition(f,x,y){
+  const maxX=Math.max(0,f.source.width-f.fw), maxY=Math.max(0,f.source.height-f.fh);
+  return {
+    x:Math.max(0,Math.min(maxX,Math.round(x))),
+    y:Math.max(0,Math.min(maxY,Math.round(y)))
+  };
+}
+
+function openCropEditor(index=currentFrameIndex){
+  if(!loaded || !frames.length)return;
+  currentFrameIndex=Math.max(0,Math.min(frames.length-1,index));
+  const f=frames[currentFrameIndex];
+  cropXInput.value=Math.round(f.cropX ?? f.sourceX);
+  cropYInput.value=Math.round(f.cropY ?? f.sourceY);
+  cropWInput.value=f.fw; cropHInput.value=f.fh;
+  cropModal.classList.add('open'); cropModal.setAttribute('aria-hidden','false');
+  renderCropEditor();
+}
+function closeCropEditor(){
+  cropModal.classList.remove('open'); cropModal.setAttribute('aria-hidden','true'); cropDrag=null;
+}
+function renderCropEditor(){
+  if(!cropModal.classList.contains('open') || !loaded || !frames.length)return;
+  const f=frames[currentFrameIndex]; if(!f)return;
+  const maxW=Math.max(500,Math.min(900,window.innerWidth*0.68));
+  const maxH=Math.max(350,Math.min(680,window.innerHeight*0.76));
+  cropEditorScale=Math.min(maxW/image.naturalWidth,maxH/image.naturalHeight);
+  cropEditorScale=Math.max(0.1,cropEditorScale);
+  cropEditor.width=Math.max(1,Math.round(image.naturalWidth*cropEditorScale));
+  cropEditor.height=Math.max(1,Math.round(image.naturalHeight*cropEditorScale));
+  const c=cropEditor.getContext('2d');
+  c.imageSmoothingEnabled=false;
+  c.clearRect(0,0,cropEditor.width,cropEditor.height);
+  c.drawImage(image,0,0,cropEditor.width,cropEditor.height);
+  // Grid da folha para deixar claro onde estavam as células originais.
+  const cols=Math.max(1,parseInt(colsInput.value)||1), rows=Math.max(1,parseInt(rowsInput.value)||1);
+  const cellW=Math.floor(image.naturalWidth/cols), cellH=Math.floor(image.naturalHeight/rows);
+  c.save(); c.strokeStyle='rgba(255,255,255,.22)'; c.lineWidth=1;
+  for(let x=0;x<=cols;x++){const px=x*cellW*cropEditorScale+.5;c.beginPath();c.moveTo(px,0);c.lineTo(px,cropEditor.height);c.stroke()}
+  for(let y=0;y<=rows;y++){const py=y*cellH*cropEditorScale+.5;c.beginPath();c.moveTo(0,py);c.lineTo(cropEditor.width,py);c.stroke()}
+  c.restore();
+  const x=Math.round(f.cropX ?? f.sourceX), y=Math.round(f.cropY ?? f.sourceY);
+  const w=f.fw*cropEditorScale, h=f.fh*cropEditorScale;
+  c.save();
+  c.fillStyle='rgba(0,0,0,.38)';
+  c.fillRect(0,0,cropEditor.width,cropEditor.height);
+  c.clearRect(x*cropEditorScale,y*cropEditorScale,w,h);
+  c.drawImage(image,x,y,f.fw,f.fh,x*cropEditorScale,y*cropEditorScale,w,h);
+  c.strokeStyle='#00ffff'; c.lineWidth=2; c.strokeRect(x*cropEditorScale+.5,y*cropEditorScale+.5,w-1,h-1);
+  // Alças de redimensionamento: arraste qualquer canto para definir manualmente
+  // o tamanho do retângulo sem redimensionar a arte.
+  const hs=Math.max(5,Math.min(10,7*cropEditorScale));
+  c.fillStyle='#00ffff'; c.strokeStyle='#071316'; c.lineWidth=1;
+  [[x,y],[x+f.fw,y],[x,y+f.fh],[x+f.fw,y+f.fh]].forEach(([hx,hy])=>{
+    c.fillRect(hx*cropEditorScale-hs/2,hy*cropEditorScale-hs/2,hs,hs);
+    c.strokeRect(hx*cropEditorScale-hs/2+.5,hy*cropEditorScale-hs/2+.5,hs-1,hs-1);
+  });
+  c.fillStyle='#00ffff'; c.font='bold 13px sans-serif';
+  c.fillText(`F${currentFrameIndex+1}  X:${x} Y:${y}  ${f.fw}×${f.fh}px`,x*cropEditorScale+6,Math.max(16,y*cropEditorScale+16));
+  c.restore();
+  cropXInput.value=x; cropYInput.value=y;
+  $('cropTitle').textContent=`Recorte manual — Frame ${currentFrameIndex+1}/${frames.length}`;
+  $('cropMeta').textContent=`${f.fw} × ${f.fh}px · linha ${f.row+1}, coluna ${f.col+1}`;
+}
+function clampCropSize(f,w,h){
+  if(!f || !f.source)return {w:1,h:1};
+  const iw=Math.max(1,f.source.width), ih=Math.max(1,f.source.height);
+  const nw=Math.max(1,Math.min(iw,Math.round(Number(w)||f.fw||1)));
+  const nh=Math.max(1,Math.min(ih,Math.round(Number(h)||f.fh||1)));
+  return {w:nw,h:nh};
+}
+
+function setCurrentCropSize(w,h,refresh=true){
+  const f=frames[currentFrameIndex]; if(!f)return;
+  const size=clampCropSize(f,w,h);
+  f.fw=size.w; f.fh=size.h;
+  const p=clampCropPosition(f,f.cropX??f.sourceX,f.cropY??f.sourceY);
+  f.cropX=p.x; f.cropY=p.y;
+  rebuildFrameFromCrop(f);
+  if(refresh){renderCropEditor();renderFrameList();renderPreview();updateStatus();schedulePersist();}
+}
+
+function copyCurrentCropSizeToSelected(){
+  const source=frames[currentFrameIndex]; if(!source)return;
+  const w=source.fw, h=source.fh;
+  selectedFrameIndexes().forEach(i=>{
+    const f=frames[i]; if(!f)return;
+    const size=clampCropSize(f,w,h);
+    f.fw=size.w; f.fh=size.h;
+    const p=clampCropPosition(f,f.cropX??f.sourceX,f.cropY??f.sourceY);
+    f.cropX=p.x; f.cropY=p.y;
+    rebuildFrameFromCrop(f);
+  });
+  renderCropEditor();renderFrameList();renderPreview();updateStatus();schedulePersist();
+}
+
+function setCurrentCrop(x,y,refresh=true){
+  const f=frames[currentFrameIndex]; if(!f)return;
+  const p=clampCropPosition(f,x,y); f.cropX=p.x; f.cropY=p.y;
+  rebuildFrameFromCrop(f);
+  if(refresh){renderCropEditor();renderFrameList();renderPreview();updateStatus();schedulePersist();}
+}
+function copyCurrentCropToSelected(){
+  const source=frames[currentFrameIndex]; if(!source)return;
+  const x=source.cropX ?? source.sourceX, y=source.cropY ?? source.sourceY;
+  selectedFrameIndexes().forEach(i=>{
+    const f=frames[i]; const p=clampCropPosition(f,x,y); f.cropX=p.x; f.cropY=p.y; rebuildFrameFromCrop(f);
+  });
+  renderFrameList();renderPreview();updateStatus();schedulePersist();
+}
+function resetCurrentCrop(){
+  const f=frames[currentFrameIndex]; if(!f)return;
+  setCurrentCrop(f.sourceX,f.sourceY,true);
+}
+function nudgeCrop(dx,dy){
+  const f=frames[currentFrameIndex]; if(!f)return;
+  setCurrentCrop((f.cropX??f.sourceX)+dx,(f.cropY??f.sourceY)+dy,true);
+}
+
+function renderFrameList(){
+  frameList.innerHTML='';
+  frames.forEach((frame,i)=>{
+    const item=document.createElement('div');
+    item.className='frame-item'+(selectedFrames[i]?'':' disabled')+(i===currentFrameIndex?' active':'');
+    const mini=document.createElement('canvas');
+    mini.width=frame.canvas?.width||frame.fw; mini.height=frame.canvas?.height||frame.fh;
+    const mc=mini.getContext('2d'); smoothing(mc);
+    mc.fillStyle='#ff00ff'; mc.fillRect(0,0,mini.width,mini.height);
+    if(frame.canvas) mc.drawImage(frame.canvas,frame.posX||0,frame.posY||0);
+    item.appendChild(mini);
+
+    const text=document.createElement('small');
+    text.textContent=`Frame ${i+1} · L${frame.row+1} C${frame.col+1}`;
+    item.appendChild(text);
+
+    const nameInput=document.createElement('input');
+    nameInput.type='text';
+    nameInput.className='frame-name';
+    nameInput.value=frame.name || `frame_${String(i+1).padStart(2,'0')}`;
+    nameInput.title='Nome do arquivo PNG deste quadro';
+    nameInput.placeholder='Nome do quadro';
+    nameInput.autocomplete='off';
+    nameInput.spellcheck=false;
+    nameInput.addEventListener('click',e=>e.stopPropagation());
+    nameInput.addEventListener('pointerdown',e=>e.stopPropagation());
+    nameInput.addEventListener('dragstart',e=>e.stopPropagation());
+    nameInput.addEventListener('input',()=>{frame.name=nameInput.value;});
+    nameInput.addEventListener('change',()=>{frame.name=nameInput.value.trim() || `frame_${String(i+1).padStart(2,'0')}`; nameInput.value=frame.name;});
+    nameInput.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){e.preventDefault();nameInput.blur();}
+    });
+    item.appendChild(nameInput);
+
+    const actions=document.createElement('div'); actions.className='frame-actions';
+    const left=document.createElement('button'); left.textContent='◀';
+    const right=document.createElement('button'); right.textContent='▶';
+    const toggle=document.createElement('button'); toggle.textContent=selectedFrames[i]?'✓':'✕';
+    left.onclick=e=>{e.stopPropagation();moveFrame(i,-1)};
+    right.onclick=e=>{e.stopPropagation();moveFrame(i,1)};
+    toggle.onclick=e=>{e.stopPropagation();toggleFrame(i)};
+    actions.append(left,right,toggle); item.appendChild(actions);
+
+    item.draggable=true;
+    item.addEventListener('dragstart',e=>{
+      item.classList.add('dragging'); e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',String(i));
+    });
+    item.addEventListener('dragend',()=>document.querySelectorAll('.frame-item').forEach(x=>x.classList.remove('dragging','drop-target')));
+    item.addEventListener('dragover',e=>{e.preventDefault();item.classList.add('drop-target')});
+    item.addEventListener('dragleave',()=>item.classList.remove('drop-target'));
+    item.addEventListener('drop',e=>{
+      e.preventDefault(); e.stopPropagation();
+      const from=parseInt(e.dataTransfer.getData('text/plain'),10);
+      if(!Number.isNaN(from)&&from!==i)moveFrameTo(from,i);
+    });
+    item.onclick=()=>{currentFrameIndex=i;renderFrameList();renderPreview();updateStatus()};
+    frameList.appendChild(item);
+  });
+}
+
+function toggleFrame(i){
+  selectedFrames[i]=!selectedFrames[i];
+  if(!selectedFrames.some(Boolean)) selectedFrames[i]=true;
+  currentFrameIndex=i; renderFrameList();renderPreview();updateStatus();
+}
+
+function moveFrameTo(from,to){
+  const current=frames[currentFrameIndex];
+  const [f]=frames.splice(from,1),[s]=selectedFrames.splice(from,1);
+  frames.splice(to,0,f); selectedFrames.splice(to,0,s);
+  currentFrameIndex=Math.max(0,frames.indexOf(current));
+  renderFrameList();renderPreview();updateStatus();
+}
+
+function moveFrame(i,dir){
+  const to=i+dir;
+  if(to<0||to>=frames.length)return;
+  moveFrameTo(i,to);
+}
+
+function activeIndices(){return frames.map((_,i)=>i).filter(i=>selectedFrames[i])}
+
+function drawPreviewBackground(pc,w,h,scale){
+  if(magentaKeyInput.checked){
+    // Fundo xadrez para deixar a transparência realmente visível.
+    const cell=16*scale;
+    pc.fillStyle='#bdbdbd';
+    pc.fillRect(0,0,w,h);
+    pc.fillStyle='#8f8f8f';
+    for(let y=0;y<h;y+=cell){
+      for(let x=0;x<w;x+=cell){
+        if(((x/cell)+(y/cell))%2===0) pc.fillRect(x,y,cell,cell);
+      }
+    }
+  }else{
+    pc.fillStyle='#ff00ff';
+    pc.fillRect(0,0,w,h);
+  }
+}
+
+function fitScaleForTile(canvas, sourceW, sourceH, tileW, tileH, requestedScale, allowDownscale=false){
+  if(!canvas)return 1;
+  const naturalW=Math.max(1,sourceW*requestedScale);
+  const naturalH=Math.max(1,sourceH*requestedScale);
+  if(!allowDownscale)return requestedScale;
+  return Math.min(requestedScale,tileW/naturalW,tileH/naturalH);
+}
+
+function drawTileCanvas(canvas, frame, requestedScale, mode='pixel', overlayRig=false, allowDownscale=false){
+  if(!canvas||!frame)return;
+  const source=magentaKeyInput.checked
+    ? (frame.canvas||frame.baseCanvas)
+    : (frame.baseCanvas||frame.canvas);
+  if(!source)return;
+
+  const scale=Math.max(0.1,requestedScale);
+  const outW=Math.max(1,Math.round(source.width*scale));
+  const outH=Math.max(1,Math.round(source.height*scale));
+  canvas.width=outW; canvas.height=outH;
+  // A escala interna permanece exata. Quando a imagem precisa caber no tile,
+  // apenas a apresentação CSS é reduzida, preservando o aspect ratio e os
+  // pixels originais para exportação. Nunca comprimimos X e Y separadamente.
+  canvas.style.width=outW+'px';
+  canvas.style.height=outH+'px';
+  canvas.style.maxWidth=allowDownscale?'100%':'none';
+  canvas.style.maxHeight=allowDownscale?'100%':'none';
+
+  const pc=canvas.getContext('2d');
+  pc.imageSmoothingEnabled=(mode==='smooth' && scale>1);
+  pc.imageSmoothingQuality='high';
+  drawPreviewBackground(pc,outW,outH,Math.max(1,Math.round(scale)));
+
+  let skinned=false;
+  if(overlayRig && rigBinding.enabled && rigBinding.frameIndex===currentFrameIndex && $('rigSkinning')?.checked){
+    pc.save();
+    pc.translate((frame.posX||0)*scale,(frame.posY||0)*scale);
+    skinned=drawBoundSprite(pc,frame,scale);
+    pc.restore();
+  }
+  if(!skinned){
+    pc.drawImage(source,(frame.posX||0)*scale,(frame.posY||0)*scale,source.width*scale,source.height*scale);
+  }
+  pc.imageSmoothingEnabled=false;
+
+  // Só o preview 1× recebe a sobreposição do RIG. A arte continua sempre
+  // proporcional: largura e altura são multiplicadas pela MESMA escala.
+  if(overlayRig){
+    drawRigOverlay();
+  }
+}
+
+function renderPreview(){
+  if(!frames.length)return;
+  const frame=frames[currentFrameIndex];
+  const viewScale=Math.max(1,Number(scaleInput.value)||1);
+  const gameScale=Math.max(0.1,Math.min(1,Number(gameScaleInput?.value)||0.5));
+  const qualityOn=!!qualityEnabledInput?.checked;
+  const previewQuality=qualityOn && !!qualityPreviewInput?.checked;
+  const qualityFactor=previewQuality
+    ? Math.max(1,Math.round(Number(qualityScaleInput?.value)||1))
+    : 1;
+  const qualityMode=qualityModeInput?.value||'nearest';
+
+  // IMPORTANTE: nenhum canvas usa largura/altura independentes para a mesma
+  // imagem. A proporção original do frame é preservada em todas as escalas.
+  drawTileCanvas(previewGame,frame,gameScale,qualityMode,false,true);
+  drawTileCanvas(preview,frame,viewScale,qualityMode,true,true);
+  drawTileCanvas(preview2x,frame,2*viewScale,qualityMode,false,false);
+
+
+  const qText=qualityFactor>1
+    ? ` · Upscale ${qualityFactor}× ${qualityMode==='nearest'?'Pixel Perfect':'Suave'}`
+    : '';
+  const hint=$('qualityPreviewInfo');
+  if(hint) hint.textContent=`Saída: ${frame.fw*qualityFactor} × ${frame.fh*qualityFactor}px${qText}`;
+  if($('gameTileMeta'))$('gameTileMeta').textContent=`${gameScale.toFixed(1)}× · ${Math.round(frame.fw*gameScale)} × ${Math.round(frame.fh*gameScale)} px`;
+  if($('oneTileMeta'))$('oneTileMeta').textContent=`1× · ${frame.fw} × ${frame.fh} px`;
+  if($('twoTileMeta'))$('twoTileMeta').textContent=`2× · ${frame.fw*2} × ${frame.fh*2} px`;
+
+  preview.style.cursor=$('manualPosition')?.checked?'grab':'default';
+  refreshRigInfo();
+}
+
+function updateStatus(){
+  const active=activeIndices(), pos=active.indexOf(currentFrameIndex);
+  frameStatus.textContent=`Frame ${currentFrameIndex+1} / ${frames.length} · ${active.length} quadro(s) ativo(s)`+(pos>=0?` · posição ${pos+1}/${active.length}`:'');
+}
+
+function nextFrame(){
+  const active=activeIndices(); if(!active.length)return;
+  let p=active.indexOf(currentFrameIndex); p=p<0?0:p+1;
+  if(p>=active.length){if($('loop').checked)p=0;else{stopAnimation();p=active.length-1}}
+  currentFrameIndex=active[p];renderPreview();renderFrameList();updateStatus();
+}
+function prevFrame(){
+  const active=activeIndices();if(!active.length)return;
+  let p=active.indexOf(currentFrameIndex);p=p<0?0:p-1;
+  if(p<0)p=$('loop').checked?active.length-1:0;
+  currentFrameIndex=active[p];renderPreview();renderFrameList();updateStatus();
+}
+function playAnimation(){
+  if(!frames.length)return;
+  stopAnimation(false);playing=true;$('play').textContent='❚❚ PAUSAR';
+  const tick=()=>{if(!playing)return;nextFrame();timer=setTimeout(tick,1000/Math.max(1,parseInt(fpsInput.value)))};
+  timer=setTimeout(tick,1000/Math.max(1,parseInt(fpsInput.value)));
+}
+function stopAnimation(reset=true){
+  playing=false;if(timer)clearTimeout(timer);timer=null;
+  if(reset)$('play').textContent='▶ PLAY';
+}
+
+let previewDragging=false;
+let previewPointerId=null;
+let previewStartX=0,previewStartY=0;
+let frameStartX=0,frameStartY=0;
+let dragGroupOrigins={};
+let dragCanvasScale=1;
+
+function selectedFrameIndexes(){
+  return frames.map((f,i)=>selectedFrames[i]?i:-1).filter(i=>i>=0);
+}
+
+function beginPreviewDrag(e,canvas,visualScale){
+  if(!$('manualPosition')?.checked || !frames.length)return;
+  const f=frames[currentFrameIndex];
+  if(!f)return;
+  previewDragging=true;
+  previewPointerId=e.pointerId;
+  previewStartX=e.clientX;
+  previewStartY=e.clientY;
+  frameStartX=f.posX||0;
+  frameStartY=f.posY||0;
+  dragCanvasScale=visualScale;
+  dragGroupOrigins={};
+  const selected=selectedFrameIndexes();
+  if(selected.includes(currentFrameIndex)){
+    selected.forEach(index=>{
+      const sf=frames[index];
+      dragGroupOrigins[index]={x:sf.posX||0,y:sf.posY||0};
+    });
+  }
+  canvas.setPointerCapture?.(e.pointerId);
+  canvas.style.cursor='grabbing';
+  e.preventDefault();
+}
+
+function movePreviewDrag(e,canvas,visualScale){
+  if(!previewDragging || e.pointerId!==previewPointerId)return;
+  const rect=canvas.getBoundingClientRect();
+  // CSS pixels -> pixels do canvas -> pixels do frame.
+  const sx=canvas.width/Math.max(1,rect.width);
+  const sy=canvas.height/Math.max(1,rect.height);
+  const dx=Math.round((e.clientX-previewStartX)*sx/Math.max(0.0001,visualScale));
+  const dy=Math.round((e.clientY-previewStartY)*sy/Math.max(0.0001,visualScale));
+
+  const selected=selectedFrameIndexes();
+  if(selected.includes(currentFrameIndex)){
+    selected.forEach(index=>{
+      const origin=dragGroupOrigins[index];
+      if(origin){frames[index].posX=origin.x+dx;frames[index].posY=origin.y+dy;}
+    });
+  }else{
+    frames[currentFrameIndex].posX=frameStartX+dx;
+    frames[currentFrameIndex].posY=frameStartY+dy;
+  }
+  renderPreview();
+  renderFrameList();
+  e.preventDefault();
+}
+
+function finishPreviewDrag(e,canvas){
+  if(!previewDragging)return;
+  previewDragging=false;
+  try{canvas.releasePointerCapture?.(previewPointerId)}catch(_){ }
+  previewPointerId=null;
+  canvas.style.cursor=$('manualPosition')?.checked?'grab':'default';
+  renderFrameList();
+  schedulePersist();
+}
+
+// O enquadramento é editado no canvas 1×. Os outros dois servem para
+// comparação visual e também aceitam arraste manual.
+preview.addEventListener('pointerdown',e=>beginPreviewDrag(e,preview,Math.max(1,Number(scaleInput.value)||1)));
+preview.addEventListener('pointermove',e=>movePreviewDrag(e,preview,Math.max(1,Number(scaleInput.value)||1)));
+preview.addEventListener('pointerup',e=>finishPreviewDrag(e,preview));
+preview.addEventListener('pointercancel',e=>finishPreviewDrag(e,preview));
+previewGame?.addEventListener('pointerdown',e=>beginPreviewDrag(e,previewGame,Math.max(0.1,Number(gameScaleInput?.value)||0.5)));
+previewGame?.addEventListener('pointermove',e=>movePreviewDrag(e,previewGame,Math.max(0.1,Number(gameScaleInput?.value)||0.5)));
+previewGame?.addEventListener('pointerup',e=>finishPreviewDrag(e,previewGame));
+previewGame?.addEventListener('pointercancel',e=>finishPreviewDrag(e,previewGame));
+preview2x?.addEventListener('pointerdown',e=>beginPreviewDrag(e,preview2x,2*Math.max(1,Number(scaleInput.value)||1)));
+preview2x?.addEventListener('pointermove',e=>movePreviewDrag(e,preview2x,2*Math.max(1,Number(scaleInput.value)||1)));
+preview2x?.addEventListener('pointerup',e=>finishPreviewDrag(e,preview2x));
+preview2x?.addEventListener('pointercancel',e=>finishPreviewDrag(e,preview2x));
+
+$('manualPosition').onchange=()=>{
+  renderPreview();
+};
+gameScaleInput?.addEventListener('input',()=>{renderPreview();schedulePersist();});
+try{const savedGameScale=localStorage.getItem('spriteAnimator_gameScale'); if(savedGameScale && gameScaleInput) gameScaleInput.value=savedGameScale;}catch(_){}
+window.addEventListener('beforeunload',()=>{try{localStorage.setItem('spriteAnimator_gameScale',String(gameScaleInput?.value||0.5));}catch(_){}});
+scaleInput?.addEventListener('input',()=>{renderPreview();schedulePersist();});
+
+$('resetPosition').onclick=()=>{
+  const f=frames[currentFrameIndex];
+  if(!f)return;
+  f.posX=0;f.posY=0;
+  renderPreview();renderFrameList();
+};
+
+$('applyPositionSelected').onclick=()=>{
+  if(!frames.length)return;
+  const selected=selectedFrameIndexes();
+  if(!selected.length){
+    alert('Nenhum quadro selecionado. Marque os quadros desejados com ✓ antes de aplicar o enquadramento.');
+    return;
+  }
+  const source=frames[currentFrameIndex];
+  const x=source.posX||0, y=source.posY||0;
+
+  selected.forEach(index=>{
+    if(index===currentFrameIndex)return;
+    frames[index].posX=x;
+    frames[index].posY=y;
+  });
+
+  renderPreview();
+  renderFrameList();
+  schedulePersist();
+};
+
+$('rekeyFrames').onclick=()=>{
+  frames.forEach(f=>{
+    if(!f.baseCanvas)return;
+    const display=document.createElement('canvas');
+    display.width=f.baseCanvas.width;
+    display.height=f.baseCanvas.height;
+    const dc=display.getContext('2d');
+    smoothing(dc);
+    dc.drawImage(f.baseCanvas,0,0);
+    processMagenta(display);
+    f.canvas=display;
+  });
+  renderFrameList();
+  renderPreview();
+};
+
+
+$('animFps').onchange=()=>{
+  rigAnimation.fps=Math.max(1,Math.min(60,Number($('animFps').value)||8));
+};
+$('animLength').onchange=()=>{
+  rigAnimation.length=Math.max(2,Math.min(120,Number($('animLength').value)||8));
+  rigAnimation.current=Math.min(rigAnimation.current,rigAnimation.length-1);
+  renderAnimTimeline();
+};
+$('animName').oninput=()=>rigAnimation.name=$('animName').value||'Animação 1';
+$('animLoop').onchange=()=>rigAnimation.loop=$('animLoop').checked;
+$('animPrev').onclick=()=>{stopAnimation();setAnimTime(rigAnimation.current-1<0?(rigAnimation.loop?rigAnimation.length-1:0):rigAnimation.current-1);};
+$('animNext').onclick=()=>{stopAnimation();setAnimTime(rigAnimation.current+1>=rigAnimation.length?(rigAnimation.loop?0:rigAnimation.length-1):rigAnimation.current+1);};
+$('animPlay').onclick=()=>rigAnimation.playing?stopAnimation():playAnimation();
+$('animStop').onclick=()=>{stopAnimation();setAnimTime(0);};
+$('addKeyframe').onclick=addKeyframeAtCurrent;
+$('deleteKeyframe').onclick=deleteKeyframeAtCurrent;
+$('copyPose').onclick=copyCurrentPose;
+$('pastePose').onclick=pasteCurrentPose;
+$('mirrorPose').onclick=mirrorCurrentPose;
+
+$('generateHumanRig').onclick=()=>{
+  generateHumanRig();
+  rigBinding.enabled=false;
+};
+
+$('bindSpriteRig').onclick=()=>{
+  if(!rigBones.length){
+    alert('Gere o corpo humano ou carregue um RIG antes de vincular o esqueleto.');
+    return;
+  }
+  makeRigBinding(currentFrameIndex);
+};
+
+$('rigSkinning').onchange=()=>renderPreview();
+
+$('rigMode').onchange=()=>{
+  // Apenas mostra/oculta o RIG existente. Nunca cria um esqueleto automaticamente.
+  renderPreview();
+};
+
+$('addBone').onclick=()=>{
+  if(!frames.length)return;
+  if(!rigBones.length){
+    alert('Gere o corpo humano ou carregue um RIG antes de adicionar ossos.');
+    return;
+  }
+  const parent=getBone(selectedBoneId)||getBone('root');
+  if(!parent)return;
+  const e=boneEnd(parent);
+  const id='bone_'+Date.now();
+  rigBones.push({id,name:'Osso '+(rigBones.length+1),parent:parent.id,x:e.x,y:e.y,angle:parent.angle,length:20});
+  selectedBoneId=id;
+  rigBinding.enabled=false;
+  renderPreview();
+};
+$('deleteBone').onclick=()=>{
+  if(!selectedBoneId||selectedBoneId==='root')return;
+  const doomed=new Set([selectedBoneId]);
+  let changed=true;
+  while(changed){changed=false;rigBones.forEach(b=>{if(b.parent&&doomed.has(b.parent)&&!doomed.has(b.id)){doomed.add(b.id);changed=true;}});}
+  rigBones=rigBones.filter(b=>!doomed.has(b.id));selectedBoneId=null;rigBinding.enabled=false;renderPreview();
+};
+$('resetRigPose').onclick=()=>{
+   if(!rigBones.length){ alert('Nenhum esqueleto criado.'); return; }
+   rigBones.forEach(b=>{ if(typeof b.baseX==='number'){ b.x=b.baseX; b.y=b.baseY; b.angle=b.baseAngle; b.length=b.baseLength; }});
+   selectedBoneId=null; renderPreview(); refreshRigInfo();
+};
+$('saveRig').onclick=()=>{
+  const binding=rigBinding.enabled ? {
+    frameIndex:rigBinding.frameIndex,
+    restBones:rigBinding.restBones,
+    gx:rigBinding.gx,
+    gy:rigBinding.gy,
+    vertices:rigBinding.vertices,
+    weights:rigBinding.weights
+  } : null;
+  const blob=new Blob([JSON.stringify({version:2,bones:rigBones,binding},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rig.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),500);
+};
+$('loadRig').onclick=()=>$('rigFile').click();
+$('rigFile').onchange=async e=>{
+  const file=e.target.files?.[0];if(!file)return;
+  try{
+    const d=JSON.parse(await file.text());
+    if(!Array.isArray(d.bones))throw Error('RIG inválido');
+    rigBones=d.bones;
+    selectedBoneId=null;
+    rigBinding={enabled:false,frameIndex:-1,source:null,restBones:[],vertices:[],weights:[],gx:0,gy:0};
+    if(d.binding && frames[d.binding.frameIndex]){
+      rigBinding={
+        ...d.binding,
+        enabled:true,
+        source:frames[d.binding.frameIndex].canvas||frames[d.binding.frameIndex].baseCanvas
+      };
+    }
+    rigMode.checked=true;
+    renderPreview();
+  }catch(err){alert('Erro ao carregar RIG: '+err.message);}
+};
+
+preview.addEventListener('pointerdown',e=>{
+  if(!$('rigMode')?.checked||!frames.length)return;
+  const p=rigPoint(e);
+  const jointHitRadius=Math.max(12,18/Math.max(1,Math.round(parseInt(scaleInput.value)||1)));
+  let bestJoint=null,bestJointD=Infinity;
+
+  // Joint selection has priority over bone selection. A generous invisible
+  // hit area makes small pixel-art joints easy to grab without enlarging
+  // their visual circles.
+  rigBones.forEach(b=>{
+    const pts=[{x:b.x,y:b.y,role:'base'},{...boneEnd(b),role:'end'}];
+    pts.forEach(pt=>{
+      const d=Math.hypot(p.x-pt.x,p.y-pt.y);
+      if(d<jointHitRadius && d<bestJointD){
+        bestJointD=d;
+        bestJoint={x:pt.x,y:pt.y,role:pt.role,bone:b};
+      }
+    });
+  });
+
+  if(bestJoint){
+    const b=bestJoint.bone;
+    selectedBoneId=b.id;
+    rigDrag={
+      id:b.id,mode:bestJoint.role==='base'?'jointBase':'jointEnd',
+      start:p,x:b.x,y:b.y,angle:b.angle,length:b.length,
+      restSnapshot:rigBones.map(q=>({...q}))
+    };
+    preview.setPointerCapture?.(e.pointerId);
+    renderPreview();e.preventDefault();return;
+  }
+
+  // Fora dos joints, clicar no corpo do osso continua permitindo rotação.
+  let best=null,bd=Infinity;
+  rigBones.forEach(b=>{
+    const en=boneEnd(b),vx=en.x-b.x,vy=en.y-b.y,l2=vx*vx+vy*vy||1;
+    const t=Math.max(0,Math.min(1,((p.x-b.x)*vx+(p.y-b.y)*vy)/l2));
+    const qx=b.x+t*vx,qy=b.y+t*vy,d=Math.hypot(p.x-qx,p.y-qy);
+    if(d<bd){bd=d;best=b;}
+  });
+  if(!best||bd>14)return;
+  selectedBoneId=best.id;
+  rigDrag={id:best.id,mode:'rotate',start:p,x:best.x,y:best.y,angle:best.angle,length:best.length,restSnapshot:rigBones.map(q=>({...q}))};
+  preview.setPointerCapture?.(e.pointerId);renderPreview();e.preventDefault();
+});
+
+preview.addEventListener('pointermove',e=>{
+  if(!rigDrag||!$('rigMode')?.checked)return;
+  const b=getBone(rigDrag.id);if(!b)return;
+  const p=rigPoint(e);
+
+  const descendants=(boneId)=>rigBones.filter(ch=>{
+    let parent=ch.parent;
+    while(parent){
+      if(parent===boneId)return true;
+      const pb=rigDrag.restSnapshot.find(q=>q.id===parent);
+      parent=pb?.parent||null;
+    }
+    return false;
+  });
+
+  if(rigDrag.mode==='jointBase'){
+    // Move the articulation itself and carry its complete child chain.
+    const dx=p.x-rigDrag.start.x,dy=p.y-rigDrag.start.y;
+    b.x=rigDrag.x+dx;b.y=rigDrag.y+dy;
+    descendants(b.id).forEach(ch=>{
+      const rb=rigDrag.restSnapshot.find(q=>q.id===ch.id);
+      if(rb){ch.x=rb.x+dx;ch.y=rb.y+dy;}
+    });
+  }else if(rigDrag.mode==='jointEnd'){
+    // Dragging an endpoint behaves like moving the joint: rotate/resize
+    // the selected bone while keeping its base fixed, then move children
+    // attached to that endpoint so the chain remains connected.
+    const oldEnd=boneEnd(b);
+    const oldAngle=b.angle;
+    const newAngle=Math.atan2(p.y-b.y,p.x-b.x);
+    const newLength=Math.max(3,Math.hypot(p.x-b.x,p.y-b.y));
+    b.angle=newAngle;b.length=newLength;
+    const da=shortAngle(newAngle-oldAngle);
+    const restEnd=oldEnd;
+    descendants(b.id).forEach(ch=>{
+      const rb=rigDrag.restSnapshot.find(q=>q.id===ch.id);if(!rb)return;
+      const dx=rb.x-restEnd.x,dy=rb.y-restEnd.y;
+      const c=Math.cos(da),s=Math.sin(da);
+      ch.x=p.x+dx*c-dy*s;ch.y=p.y+dx*s+dy*c;ch.angle=rb.angle+da;
+    });
+  }else{
+    const na=Math.atan2(p.y-b.y,p.x-b.x),da=shortAngle(na-rigDrag.angle);
+    b.angle=na;
+    descendants(b.id).forEach(ch=>{
+      const rb=rigDrag.restSnapshot.find(q=>q.id===ch.id);if(!rb)return;
+      const dx=rb.x-b.x,dy=rb.y-b.y,c=Math.cos(da),s=Math.sin(da);
+      ch.x=b.x+dx*c-dy*s;ch.y=b.y+dx*s+dy*c;ch.angle=rb.angle+da;
+    });
+  }
+  renderPreview();e.preventDefault();
+});
+preview.addEventListener('pointerup',()=>{rigDrag=null;});
+preview.addEventListener('pointercancel',()=>{rigDrag=null;});
+
+$('editCropBtn').onclick=()=>openCropEditor(currentFrameIndex);
+$('copyCropSelected').onclick=()=>copyCurrentCropToSelected();
+$('resetCropCurrent').onclick=()=>resetCurrentCrop();
+$('cropApply').onclick=()=>{closeCropEditor();renderFrameList();renderPreview();updateStatus();schedulePersist();};
+$('cropCancel').onclick=()=>{closeCropEditor();renderFrameList();renderPreview();};
+$('cropCenterCell').onclick=()=>{const f=frames[currentFrameIndex];if(f)setCurrentCrop(f.sourceX,f.sourceY,true);};
+$('cropCopySelected').onclick=()=>copyCurrentCropToSelected();
+$('cropApplySizeSelected').onclick=()=>copyCurrentCropSizeToSelected();
+$('cropPrevFrame').onclick=()=>{setCurrentCrop(Number(cropXInput.value)||0,Number(cropYInput.value)||0,false);openCropEditor((currentFrameIndex-1+frames.length)%frames.length);};
+$('cropNextFrame').onclick=()=>{setCurrentCrop(Number(cropXInput.value)||0,Number(cropYInput.value)||0,false);openCropEditor((currentFrameIndex+1)%frames.length);};
+cropXInput.addEventListener('change',()=>setCurrentCrop(Number(cropXInput.value)||0,Number(cropYInput.value)||0,true));
+cropYInput.addEventListener('change',()=>setCurrentCrop(Number(cropXInput.value)||0,Number(cropYInput.value)||0,true));
+cropWInput.addEventListener('change',()=>setCurrentCropSize(Number(cropWInput.value)||1,Number(cropHInput.value)||1,true));
+cropHInput.addEventListener('change',()=>setCurrentCropSize(Number(cropWInput.value)||1,Number(cropHInput.value)||1,true));
+cropEditor.addEventListener('pointerdown',e=>{
+  if(!frames.length)return;
+  const f=frames[currentFrameIndex];
+  const rect=cropEditor.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(cropEditor.width/rect.width)/cropEditorScale;
+  const my=(e.clientY-rect.top)*(cropEditor.height/rect.height)/cropEditorScale;
+  const x=f.cropX??f.sourceX,y=f.cropY??f.sourceY;
+  const near=(a,b)=>Math.abs(a-b)<=Math.max(6,10/cropEditorScale);
+  const left=near(mx,x), right=near(mx,x+f.fw), top=near(my,y), bottom=near(my,y+f.fh);
+  // Cantos redimensionam. O interior continua movendo o retângulo.
+  if((left||right)&&(top||bottom)){
+    cropDrag={id:e.pointerId,mode:'resize',anchorLeft:left,anchorTop:top,startX:mx,startY:my,originX:x,originY:y,originW:f.fw,originH:f.fh};
+    cropEditor.classList.add('dragging'); cropEditor.setPointerCapture?.(e.pointerId); e.preventDefault(); return;
+  }
+  if(mx>=x && mx<=x+f.fw && my>=y && my<=y+f.fh){
+    cropDrag={id:e.pointerId,mode:'move',startX:mx,startY:my,originX:x,originY:y};
+    cropEditor.classList.add('dragging'); cropEditor.setPointerCapture?.(e.pointerId); e.preventDefault();
+  }
+});
+cropEditor.addEventListener('pointermove',e=>{
+  if(!cropDrag || e.pointerId!==cropDrag.id)return;
+  const rect=cropEditor.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(cropEditor.width/rect.width)/cropEditorScale;
+  const my=(e.clientY-rect.top)*(cropEditor.height/rect.height)/cropEditorScale;
+  if(cropDrag.mode==='resize'){
+    let x=cropDrag.originX, y=cropDrag.originY;
+    let w=cropDrag.originW, h=cropDrag.originH;
+    if(cropDrag.anchorLeft){
+      const right=cropDrag.originX+cropDrag.originW;
+      x=Math.min(mx,right-1); w=right-x;
+    }else{ w=Math.max(1,mx-cropDrag.originX); }
+    if(cropDrag.anchorTop){
+      const bottom=cropDrag.originY+cropDrag.originH;
+      y=Math.min(my,bottom-1); h=bottom-y;
+    }else{ h=Math.max(1,my-cropDrag.originY); }
+    const f=frames[currentFrameIndex];
+    const size=clampCropSize(f,w,h);
+    // Se o canto esquerdo/superior foi arrastado, mantém o canto oposto.
+    if(cropDrag.anchorLeft) x=(cropDrag.originX+cropDrag.originW)-size.w;
+    if(cropDrag.anchorTop) y=(cropDrag.originY+cropDrag.originH)-size.h;
+    f.fw=size.w; f.fh=size.h;
+    const p=clampCropPosition(f,x,y); f.cropX=p.x; f.cropY=p.y;
+    rebuildFrameFromCrop(f); renderCropEditor();renderFrameList();renderPreview();updateStatus();schedulePersist();
+  }else{
+    setCurrentCrop(cropDrag.originX+(mx-cropDrag.startX),cropDrag.originY+(my-cropDrag.startY),true);
+  }
+  e.preventDefault();
+});
+function finishCropDrag(){if(!cropDrag)return;cropDrag=null;cropEditor.classList.remove('dragging');schedulePersist();}
+cropEditor.addEventListener('pointerup',finishCropDrag); cropEditor.addEventListener('pointercancel',finishCropDrag);
+window.addEventListener('keydown',e=>{
+  if(!cropModal.classList.contains('open'))return;
+  if(e.key==='Escape'){closeCropEditor();return;}
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+    e.preventDefault(); const d=e.shiftKey?10:1;
+    nudgeCrop(e.key==='ArrowLeft'?-d:e.key==='ArrowRight'?d:0,e.key==='ArrowUp'?-d:e.key==='ArrowDown'?d:0);
+  }
+});
+window.addEventListener('resize',()=>{if(cropModal.classList.contains('open'))renderCropEditor();});
+
+$('exportCurrent').onclick=()=>exportFrameAt(currentFrameIndex);
+$('exportSelected').onclick=()=>exportFrames(activeIndices());
+$('exportAll').onclick=()=>exportFrames(frames.map((_,i)=>i));
+
+magentaKeyInput.onchange=()=>{
+  // Recria o canvas processado a partir do original, sem destruir a imagem.
+  frames.forEach(f=>{
+    if(!f.baseCanvas)return;
+    const c=document.createElement('canvas');
+    c.width=f.baseCanvas.width;
+    c.height=f.baseCanvas.height;
+    const cctx=c.getContext('2d');
+    smoothing(cctx);
+    cctx.drawImage(f.baseCanvas,0,0);
+    if(magentaKeyInput.checked) processMagenta(c);
+    f.canvas=c;
+  });
+  renderFrameList();
+  renderPreview();
+};
+
+$('play').onclick=()=>playing?stopAnimation():playAnimation();
+$('stop').onclick=()=>{stopAnimation();currentFrameIndex=activeIndices()[0]??0;renderPreview();renderFrameList();updateStatus()};
+$('prev').onclick=()=>{stopAnimation();prevFrame()};
+$('next').onclick=()=>{stopAnimation();nextFrame()};
+$('selectAll').onclick=()=>{selectedFrames=frames.map(()=>true);renderFrameList();updateStatus()};
+$('clearAll').onclick=()=>{if(!frames.length)return;selectedFrames=frames.map(()=>false);selectedFrames[0]=true;currentFrameIndex=0;renderFrameList();renderPreview();updateStatus()};
+$('applyGrid').onclick=()=>{stopAnimation();buildFrames()};
+$('normalizeBtn').onclick=()=>{stopAnimation();normalizeFrames();renderFrameList();renderPreview();updateStatus()};
+fpsInput.oninput=()=>fpsValue.textContent=fpsInput.value;
+scaleInput.oninput=renderPreview;
+qualityEnabledInput.onchange=()=>{renderFrameList();renderPreview();};
+qualityPreviewInput.onchange=()=>{renderPreview();};
+qualityScaleInput.onchange=()=>{
+  renderFrameList();
+  renderPreview();
+};
+qualityModeInput.onchange=()=>{
+  renderFrameList();
+  renderPreview();
+};
+normalizeInput.onchange=()=>{normalizeFrames();renderFrameList();renderPreview()};
+anchorModeInput.onchange=()=>{normalizeFrames();renderFrameList();renderPreview()};
+
+window.addEventListener('error',e=>{
+  const msg=document.createElement('div');
+  msg.style.cssText='position:fixed;left:10px;bottom:10px;right:10px;padding:10px;background:#7a1111;color:#fff;z-index:99999;font:14px monospace;border:1px solid #f88';
+  msg.textContent='Erro no script: '+(e.error?.message||e.message||'erro desconhecido');
+  document.body.appendChild(msg);
+});
+
+window.addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault();playing?stopAnimation():playAnimation()}
+  if(e.code==='ArrowRight'){stopAnimation();nextFrame()}
+  if(e.code==='ArrowLeft'){stopAnimation();prevFrame()}
+});
+renderAnimTimeline();
+
+/* Transformar cada seção do menu lateral em acordeão.
+   O conteúdo existente não é alterado; apenas é agrupado visualmente. */
+function initSidebarAccordion(){
+  const sidebar = document.querySelector('.sidebar');
+  if(!sidebar) return;
+
+  const headings = Array.from(sidebar.querySelectorAll('h2'));
+  headings.forEach((heading, index)=>{
+    if(heading.parentElement.classList.contains('sidebar-section')) return;
+
+    const section=document.createElement('section');
+    section.className='sidebar-section';
+    heading.parentNode.insertBefore(section,heading);
+
+    section.appendChild(heading);
+    let node=section.nextSibling;
+    while(node){
+      const next=node.nextSibling;
+      if(node.nodeType===1 && node.matches('h2')) break;
+      section.appendChild(node);
+      node=next;
+    }
+
+    heading.addEventListener('click',()=>{
+      section.classList.toggle('collapsed');
+    });
+
+    // Começar recolhido para reduzir a altura inicial.
+    section.classList.add('collapsed');
+  });
+
+  // Manter apenas uma seção aberta por vez para o menu não voltar a ficar enorme.
+  sidebar.addEventListener('click',e=>{
+    const heading=e.target.closest('.sidebar-section > h2');
+    if(!heading) return;
+    const current=heading.parentElement;
+    if(current.classList.contains('collapsed')) return;
+
+    sidebar.querySelectorAll('.sidebar-section').forEach(section=>{
+      if(section!==current) section.classList.add('collapsed');
+    });
+  });
+}
+
+
+initSidebarAccordion();
+
+/* =========================================================
+   PERSISTÊNCIA AUTOMÁTICA DO PROJETO
+   Guarda o trabalho localmente no navegador, incluindo a
+   sprite sheet original, recortes, enquadramento, seleção,
+   RIG, vinculação e animações.
+   ========================================================= */
+const PROJECT_DB_NAME='SpriteSheetAnimatorProjectDB';
+const PROJECT_DB_VERSION=1;
+const PROJECT_STORE='project';
+let projectDbPromise=null;
+
+function openProjectDB(){
+  if(projectDbPromise)return projectDbPromise;
+  projectDbPromise=new Promise((resolve,reject)=>{
+    if(!window.indexedDB){reject(new Error('IndexedDB indisponível'));return;}
+    const req=indexedDB.open(PROJECT_DB_NAME,PROJECT_DB_VERSION);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains(PROJECT_STORE))db.createObjectStore(PROJECT_STORE);
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+  return projectDbPromise;
+}
+
+function serializableFrames(){
+  return frames.map(f=>({
+    row:f.row,col:f.col,sourceX:f.sourceX,sourceY:f.sourceY,
+    fw:f.fw,fh:f.fh,bounds:f.bounds||null,
+    posX:f.posX||0,posY:f.posY||0,
+    name:f.name||'',
+    selected:!!f.selected,
+    cropX:f.cropX??null,cropY:f.cropY??null,
+    anchor:f.anchor||null
+  }));
+}
+
+function serializableBinding(){
+  if(!rigBinding?.enabled)return null;
+  return {
+    enabled:true,
+    frameIndex:rigBinding.frameIndex,
+    restBones:rigBinding.restBones||[],
+    vertices:rigBinding.vertices||[],
+    weights:rigBinding.weights||[],
+    gx:rigBinding.gx||0,
+    gy:rigBinding.gy||0
+  };
+}
+
+function collectProjectState(){
+  return {
+    version:5,
+    savedAt:Date.now(),
+    ui:{
+      cols:$('cols')?.value||4,
+      rows:$('rows')?.value||4,
+      normalize:$('normalize')?.checked??true,
+      anchorMode:$('anchorMode')?.value||'feet',
+      fps:$('fps')?.value||8,
+      scale:$('scale')?.value||1,
+      loop:$('loop')?.checked??true,
+      magentaKey:$('magentaKey')?.checked??true,
+      qualityEnabled:$('qualityEnabled')?.checked??false,
+      qualityPreview:$('qualityPreview')?.checked??false,
+      qualityScale:$('qualityScale')?.value||1,
+      qualityMode:$('qualityMode')?.value||'nearest',
+      rigMode:$('rigMode')?.checked??false,
+      rigSkinning:$('rigSkinning')?.checked??true,
+      animName:$('animName')?.value||'Animação 1',
+      animFps:$('animFps')?.value||8,
+      animLength:$('animLength')?.value||8,
+      animLoop:$('animLoop')?.checked??true,
+      manualPosition:$('manualPosition')?.checked??false
+    },
+    currentFrameIndex,
+    selectedFrames:selectedFrames.slice(),
+    frames:serializableFrames(),
+    rigBones:rigBones,
+    rigBinding:serializableBinding(),
+    rigAnimation:{
+      name:rigAnimation.name,fps:rigAnimation.fps,length:rigAnimation.length,
+      loop:rigAnimation.loop,current:rigAnimation.current,
+      keyframes:rigAnimation.keyframes
+    },
+    selectedBoneId
+  };
+}
+
+async function persistProject(){
+  if(!persistenceReady || restoreInProgress)return;
+  if(!loaded || !projectImageBlob)return;
+  try{
+    const db=await openProjectDB();
+    const state=collectProjectState();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(PROJECT_STORE,'readwrite');
+      tx.objectStore(PROJECT_STORE).put({
+        state,
+        imageBlob:projectImageBlob
+      },'current');
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error);
+    });
+    const status=$('dimensionStatus');
+    if(status && loaded) status.dataset.saved='1';
+  }catch(err){
+    console.warn('Não foi possível salvar o projeto:',err);
+  }
+}
+
+let persistTimer=null;
+function schedulePersist(){
+  if(!persistenceReady)return;
+  clearTimeout(persistTimer);
+  persistTimer=setTimeout(persistProject,350);
+}
+
+async function restoreProject(){
+  try{
+    const db=await openProjectDB();
+    const record=await new Promise((resolve,reject)=>{
+      const tx=db.transaction(PROJECT_STORE,'readonly');
+      const req=tx.objectStore(PROJECT_STORE).get('current');
+      req.onsuccess=()=>resolve(req.result||null);
+      req.onerror=()=>reject(req.error);
+    });
+    if(!record?.imageBlob || !record?.state)return;
+
+    const s=record.state, u=s.ui||{};
+    restoreInProgress=true;
+
+    // Restaurar controles antes de reconstruir os frames.
+    if($('cols'))$('cols').value=u.cols||4;
+    if($('rows'))$('rows').value=u.rows||4;
+    if($('normalize'))$('normalize').checked=u.normalize===true;
+    if($('anchorMode'))$('anchorMode').value=u.anchorMode||'feet';
+    if($('fps'))$('fps').value=u.fps||8;
+    if($('scale'))$('scale').value=u.scale||1;
+    if($('loop'))$('loop').checked=u.loop!==false;
+    if($('magentaKey'))$('magentaKey').checked=u.magentaKey!==false;
+    if($('qualityEnabled'))$('qualityEnabled').checked=!!u.qualityEnabled;
+    if($('qualityPreview'))$('qualityPreview').checked=!!u.qualityPreview;
+    if($('qualityScale'))$('qualityScale').value=u.qualityScale||1;
+    if($('qualityMode'))$('qualityMode').value=u.qualityMode||'nearest';
+    if($('rigMode'))$('rigMode').checked=!!u.rigMode;
+    if($('rigSkinning'))$('rigSkinning').checked=u.rigSkinning!==false;
+    if($('animName'))$('animName').value=u.animName||'Animação 1';
+    if($('animFps'))$('animFps').value=u.animFps||8;
+    if($('animLength'))$('animLength').value=u.animLength||8;
+    if($('animLoop'))$('animLoop').checked=u.animLoop!==false;
+    if($('manualPosition'))$('manualPosition').checked=!!u.manualPosition;
+
+    if(typeof fpsValue!=='undefined')fpsValue.textContent=$('fps').value;
+
+    projectImageBlob=record.imageBlob;
+    const url=URL.createObjectURL(record.imageBlob);
+    const img=new Image();
+
+    await new Promise((resolve,reject)=>{
+      img.onload=resolve;
+      img.onerror=()=>reject(new Error('Falha ao restaurar a sprite sheet'));
+      img.src=url;
+    });
+
+    image=img;
+    loaded=true;
+    dimensionStatus.textContent=`${img.naturalWidth} × ${img.naturalHeight}px`;
+    buildFrames();
+
+    // buildFrames recria os canvases; depois aplicamos os dados persistidos.
+    if(Array.isArray(s.frames)){
+      s.frames.forEach((saved,i)=>{
+        const f=frames[i];
+        if(!f)return;
+        if(saved.fw!==undefined && saved.fh!==undefined){
+          const size=clampCropSize(f,saved.fw,saved.fh);
+          f.fw=size.w; f.fh=size.h;
+        }
+        f.posX=Number(saved.posX)||0;
+        f.posY=Number(saved.posY)||0;
+        f.name=saved.name||f.name;
+        f.selected=!!saved.selected;
+        if(saved.cropX!==null&&saved.cropX!==undefined)f.cropX=saved.cropX;
+        if(saved.cropY!==null&&saved.cropY!==undefined)f.cropY=saved.cropY;
+      });
+    }
+
+    // Os recortes persistidos são aplicados depois de reconstruir a grade.
+    rebuildAllFramesFromCrop();
+
+    selectedFrames=Array.isArray(s.selectedFrames)
+      ? s.selectedFrames.slice(0,frames.length)
+      : frames.map(f=>!!f.selected);
+    while(selectedFrames.length<frames.length)selectedFrames.push(false);
+    frames.forEach((f,i)=>f.selected=!!selectedFrames[i]);
+
+    currentFrameIndex=Math.max(0,Math.min(frames.length-1,Number(s.currentFrameIndex)||0));
+
+    rigBones=Array.isArray(s.rigBones)?s.rigBones:[];
+    selectedBoneId=s.selectedBoneId||null;
+
+    if(s.rigAnimation){
+      rigAnimation={
+        name:s.rigAnimation.name||'Animação 1',
+        fps:Number(s.rigAnimation.fps)||8,
+        length:Number(s.rigAnimation.length)||8,
+        loop:s.rigAnimation.loop!==false,
+        current:Number(s.rigAnimation.current)||0,
+        playing:false,
+        keyframes:s.rigAnimation.keyframes||{}
+      };
+    }
+
+    // Reconstroi a referência visual do binding a partir do frame salvo.
+    rigBinding={enabled:false,frameIndex:-1,source:null,restBones:[],vertices:[],weights:[],gx:0,gy:0};
+    if(s.rigBinding?.enabled && frames[s.rigBinding.frameIndex]){
+      rigBinding={
+        ...s.rigBinding,
+        enabled:true,
+        source:frames[s.rigBinding.frameIndex].canvas||frames[s.rigBinding.frameIndex].baseCanvas
+      };
+    }
+
+    renderFrameList();
+    renderAnimTimeline();
+    renderPreview();
+    updateStatus();
+
+    URL.revokeObjectURL(url);
+    restoreInProgress=false;
+    persistenceReady=true;
+  }catch(err){
+    restoreInProgress=false;
+    persistenceReady=true;
+    console.warn('Não foi possível restaurar o projeto:',err);
+  }
+}
+
+async function clearPersistedProject(){
+  try{
+    const db=await openProjectDB();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(PROJECT_STORE,'readwrite');
+      tx.objectStore(PROJECT_STORE).delete('current');
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error);
+    });
+  }catch(err){console.warn(err);}
+}
+
+window.addEventListener('beforeunload',()=>{
+  if(persistenceReady)persistProject();
+});
+
+// Autosave periódico. Assim mesmo mudanças que não possuem um handler
+// específico ficam persistidas.
+setInterval(()=>persistProject(),2000);
+
+// Restaura o último projeto salvo somente depois que todas as funções
+// do editor foram registradas.
+restoreProject().finally(()=>{
+  persistenceReady=true;
+});
+
+</script>
+</body>
+</html>

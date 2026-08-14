@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thaira — RPG isométrico</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%E2%9A%94%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap');
+:root{
+  --bg:#0b0c0f; --panel:#1b1a18; --panel2:#26241f; --line:#4a4335;
+  --txt:#ddd5c2; --dim:#8f8874; --gold:#d9a441; --gold2:#f0cd7a;
+  --stone:linear-gradient(#2b2823,#1a1815);
+  --serif:"Cinzel","Trajan Pro",Georgia,serif;
+  --dock:208px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
+  font:13px/1.4 "Segoe UI",system-ui,sans-serif;overflow:hidden;user-select:none}
+b{color:#fff}
+
+/* ===== esqueleto: sidebar | jogo + barra + chat | sidebar (modelo do cliente) */
+#app{display:flex;height:100%;align-items:stretch}
+.dock{width:var(--dock);flex:none;background:linear-gradient(#1e1c18,#141310);
+  display:flex;flex-direction:column;gap:6px;padding:6px;overflow-y:auto;overflow-x:hidden}
+.dock.vazio{width:0;padding:0}
+#dock-left{border-right:2px solid var(--line);box-shadow:8px 0 24px #000a}
+#dock-right{border-left:2px solid var(--line);box-shadow:-8px 0 24px #000a}
+.dock-arrow{flex:none;width:13px;background:var(--stone);border-left:1px solid var(--line);
+  border-right:1px solid var(--line);color:var(--dim);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:11px}
+.dock-arrow:hover{color:var(--gold2);background:linear-gradient(#3a342a,#221f1a)}
+#center{flex:1;min-width:0;display:flex;flex-direction:column}
+
+/* painéis das sidebars */
+.panel{background:linear-gradient(#232019,#181614);border:1px solid var(--line);border-radius:5px;
+  box-shadow:inset 0 1px 0 #ffffff10,0 3px 10px #0007;flex:none}
+.panel .ph{display:flex;align-items:center;gap:3px;padding:5px 7px;cursor:pointer;
+  background:var(--stone);border-bottom:1px solid var(--line);border-radius:4px 4px 0 0}
+.panel .ph span{flex:1;font:700 10.5px var(--serif);letter-spacing:.07em;color:var(--gold2);
+  text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel .ph i{font-style:normal;font-size:11px;color:#5c5648;padding:0 2px;opacity:0}
+.panel:hover .ph i{opacity:1}
+.panel .ph i:hover{color:var(--gold2)}
+/* trama de losango bem sutil no corpo do painel, ecoando a mesma textura da tela
+   de login — como o pb não tem cor própria, o desenho fica atrás do conteúdo */
+.panel .pb{padding:7px;background-image:
+    linear-gradient(90deg,transparent 0,transparent 49.6%,#d9a4410c 50%,transparent 50.4%),
+    linear-gradient(0deg,transparent 0,transparent 49.6%,#d9a4410c 50%,transparent 50.4%);
+  background-size:34px 34px}
+.panel.fechado .pb{display:none}
+.panel.fechado .ph{border-bottom:0;border-radius:4px}
+
+/* barras de status: um bloco só, vive na borda do jogo ou dentro do painel */
+#topbar{flex:none;padding:5px 8px 3px;background:linear-gradient(#191713,#121110);
+  border-bottom:1px solid var(--line)}
+#statusbars{display:flex;flex-direction:column;gap:4px}
+#topbar #statusbars{flex-direction:row;align-items:center;gap:8px}
+#topbar .bar{flex:1}
+.bar{position:relative;height:17px;background:#0a0908;border:1px solid #000;border-radius:3px;
+  overflow:hidden;box-shadow:inset 0 2px 6px #000c,inset 0 0 0 1px #6b5a3340,0 0 0 1px #00000080}
+.bar i{display:block;height:100%;transition:width .15s}
+/* réguas a cada 10%: medidor forjado, não retângulo liso */
+.bar::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,transparent 0 9.4%,#00000050 9.4% 10%)}
+.bar::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(#ffffff34,#ffffff06 46%,#00000036)}
+.bar span{position:absolute;inset:0;z-index:2;text-align:center;font-size:10.5px;line-height:15px;
+  text-shadow:0 1px 2px #000,0 0 3px #000}
+#hp-fill{background:linear-gradient(#e05545,#a5251b)}
+#mp-fill{background:linear-gradient(#4b8fe0,#22508f)}
+#xp-fill{background:linear-gradient(#a78bfa,#6d4fc0)}
+/* Barra de status: uma barra só, sempre presente, e os ícones do que está
+   agindo em você aparecem DENTRO dela. Mesmo encaixe das barras de vida/mana
+   (fundo fundo, bisel de bronze) para ler como parte da mesma família.
+   Só ícone — nome, efeito e tempo vivem no tooltip, senão não cabe na sidebar. */
+#status-icons{display:flex;flex-wrap:wrap;align-content:flex-start;gap:3px;margin-bottom:8px;
+  min-height:34px;padding:3px;border:1px solid #000;border-radius:4px;background:#0a0908;
+  box-shadow:inset 0 2px 6px #000c,inset 0 0 0 1px #6b5a3340}
+.stico{position:relative;width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;line-height:1;cursor:help;border-radius:3px;
+  background:linear-gradient(#2b2823,#1a1815);border:1px solid var(--line)}
+.stico.bom{border-color:#5c7a3a}
+.stico.ruim{border-color:#8a3f38}
+.stico:hover{box-shadow:0 0 9px #d9a44177}
+.stico b{position:absolute;right:-1px;bottom:-2px;font-size:8px;font-weight:700;color:var(--gold2);
+  background:#0c0b09;border-radius:3px;padding:0 1px;text-shadow:0 0 3px #000}
+
+/* área do jogo */
+#stage{position:relative;flex:1;min-height:0}
+#stage::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse at 50% 45%,transparent 42%,#000 135%);opacity:.75}
+/* dpr fracionário (Windows a 125%) não vira escala inteira, então sobra uma
+   esticada do navegador: pixelated mantém ela dura em vez de borrar o desenho */
+#c{display:block;width:100%;height:100%;image-rendering:pixelated}
+#overlay{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.plate{position:absolute;top:0;left:0;display:flex;flex-direction:column;align-items:center;white-space:nowrap}
+.plate>span{font-size:11px;font-weight:600;text-shadow:0 1px 2px #000,0 0 4px #000,0 0 4px #000}
+.plate .say{display:none;max-width:230px;margin-bottom:3px;padding:2px 7px;border-radius:9px;
+  background:#000000b0;border:1px solid #ffd16655;color:#ffe9a8;font-style:normal;font-size:11.5px;
+  white-space:normal;text-align:center;text-shadow:0 1px 2px #000}
+.plate .pb{width:40px;height:5px;background:#000c;border:1px solid #000;border-radius:2px;overflow:hidden;padding:0}
+.plate .pb i{display:block;height:100%;background:linear-gradient(#5fe06a,#2a9c38)}
+.ftext{position:absolute;top:0;left:0;font:700 15px var(--serif);text-shadow:0 2px 3px #000,0 0 5px #000,0 0 5px #000}
+#hunt-label{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:2;
+  font:700 15px var(--serif);letter-spacing:.08em;color:#ffcf7a;
+  text-shadow:0 2px 4px #000,0 0 14px #000;pointer-events:none}
+/* barra única, ponta a ponta do #stage: loja na esquerda, ícones na direita */
+#toolbar{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;
+  justify-content:space-between;padding:10px 12px;pointer-events:none}
+#toolbar>*{pointer-events:auto}
+#toolbar-right{display:flex;gap:6px}
+#toolbar button,#shop-btn{background:var(--stone);color:var(--gold2);border:1px solid var(--line);
+  border-radius:4px;padding:7px 11px;cursor:pointer;font:600 11.5px var(--serif);letter-spacing:.04em;
+  box-shadow:inset 0 1px 0 #ffffff1f,0 3px 10px #0008}
+#toolbar button:hover,#shop-btn:hover{border-color:var(--gold);box-shadow:inset 0 1px 0 #ffffff33,0 0 14px #d9a44166}
+#toolbar button.on{border-color:var(--gold);box-shadow:inset 0 0 10px #d9a44133}
+#shop-btn{display:none;border-color:var(--gold)}
+
+/* notificações de marco (level, skill, bestiário, área nova) */
+#toast{position:absolute;top:20%;left:50%;transform:translateX(-50%);z-index:4;
+  display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.toast{display:flex;align-items:center;gap:11px;padding:9px 20px;border-radius:7px;
+  background:linear-gradient(#2b2823ee,#151310ee);border:1px solid var(--gold);
+  box-shadow:inset 0 1px 0 #ffffff22,0 0 26px #d9a44155,0 10px 30px #000b;
+  animation:toastIn .35s cubic-bezier(.2,1.5,.4,1) both, toastOut .5s ease 2.6s both}
+.toast em{font-size:26px;font-style:normal;filter:drop-shadow(0 2px 3px #000)}
+.toast div{display:flex;flex-direction:column}
+.toast b{font:700 15px var(--serif);letter-spacing:.06em;color:var(--gold2);
+  text-shadow:0 2px 4px #000}
+.toast small{font-size:11px;color:var(--txt);opacity:.85}
+@keyframes toastIn{from{opacity:0;transform:translateY(-14px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-10px)}}
+
+/* postura + perseguir: vivem dentro do painel de equipamento agora */
+/* Postura e perseguir numa fileira só, sem texto: eram uma coluna de 73px para
+   quatro botões que já se explicam pelo ícone e pelo tooltip. Perseguir entra no
+   mesmo grupo porque é a mesma classe de decisão — como você briga. */
+#stance-row{display:flex;gap:4px;margin-top:8px}
+#stance{display:flex;flex:1;border:1px solid var(--line);border-radius:5px;overflow:hidden;background:var(--stone)}
+#stance button{flex:1;background:none;border:0;border-right:1px solid var(--line);color:var(--dim);
+  font-size:15px;padding:3px 0;cursor:pointer;line-height:1}
+#stance button:last-child{border-right:0}
+#stance button:hover{background:#ffffff12}
+#stance button.on{background:linear-gradient(#4a3f28,#2a2318);color:var(--gold2);
+  box-shadow:inset 0 0 10px #d9a44155,inset 0 1px 0 #ffffff22}
+#follow-btn{flex:0 0 34px;background:var(--stone);border:1px solid var(--line);border-radius:5px;color:var(--dim);
+  padding:3px 0;cursor:pointer;font:600 11.5px var(--serif);letter-spacing:.03em}
+#follow-btn.on{color:var(--gold2);border-color:var(--gold);box-shadow:inset 0 0 10px #d9a44133}
+#follow-btn:hover{color:var(--txt)}
+#hotbar-wrap{flex:none;padding:5px 8px;border-bottom:1px solid var(--line)}
+#hotbar{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
+/* flex-grow em vez de largura fixa: a fileira estica de ponta a ponta do
+   elemento, não fica um bloco pequeno flutuando com espaço morto ao lado */
+.hk{position:relative;flex:1 1 50px;height:50px;background:var(--stone);border:1px solid var(--line);border-radius:5px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;
+  box-shadow:inset 0 1px 0 #ffffff14,inset 0 0 0 1px #00000090,0 3px 10px #0009}
+.hk:hover{border-color:var(--gold);box-shadow:inset 0 1px 0 #ffffff24,inset 0 0 0 1px #d9a4413a,0 0 14px #d9a44166}
+.hk.rebind{border-color:var(--gold);box-shadow:0 0 12px #d9a44199}
+.hk.nomana{opacity:.45}
+.hk.vazio{opacity:.5}
+.hk.vazio span{color:#5c5648}
+/* tecla do slot: clicável para trocar o atalho, separado do clique que usa o slot */
+.hk b{position:absolute;top:1px;left:3px;font-size:8.5px;color:var(--dim);cursor:pointer;padding:0 2px;border-radius:2px}
+.hk b:hover{color:var(--gold2);background:#00000080}
+.hk span{font-size:19px;line-height:1}
+.hk i{font-size:7.5px;color:var(--dim);font-style:normal;max-width:calc(100% - 6px);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.hk u{position:absolute;bottom:0;left:0;width:100%;background:#000000aa}
+
+/* console */
+#console{flex:none;height:148px;display:flex;flex-direction:column;position:relative;background:#0b0a09}
+#console-grip{height:5px;flex:none;cursor:ns-resize;background:linear-gradient(#2b2823,#151310);
+  border-top:1px solid var(--line);border-bottom:1px solid #000}
+#console-grip:hover{background:linear-gradient(#4a3f28,#221f1a)}
+#chat-tabs{display:flex;flex:none;background:#131210;border-bottom:1px solid var(--line)}
+#chat-tabs .tab{flex:none;padding:4px 16px;font:600 10.5px var(--serif);letter-spacing:.05em;
+  color:var(--dim);cursor:pointer;border-right:1px solid var(--line);border-bottom:2px solid transparent}
+#chat-tabs .tab.on{color:var(--gold2);border-bottom-color:var(--gold);background:#1c1a16}
+#log{flex:1;min-height:0;overflow-y:auto;padding:5px 9px;font-size:11.5px;color:#bdb6a6}
+#log div.good{color:#7fd08a}#log div.bad{color:#e0705f}
+/* linhas de combate: uma cor por tipo de informação, para o olho separar sem ler.
+   `cbt` é o que marca a linha como combate — é ela que decide o que a aba mostra,
+   e a cor fica por conta da segunda classe. */
+#log div.dano{color:#e8a35c}#log div.apanha{color:#ff7a6a}
+#log div.cura{color:#6ee36e}#log div.mana{color:#5aa9ff}
+#log div.morte{color:#c98bdd}#log div.loot{color:#e8c96a}
+#log[data-canal="combate"] div:not(.good):not(.bad):not(.cbt){display:none}
+#log[data-canal="saque"] div:not(.good):not(.bad):not(.loot){display:none}
+#chat{flex:none;background:#0b0a09;border:0;border-top:1px solid var(--line);color:var(--txt);
+  padding:5px 9px;font:inherit;outline:none}
+#chat:focus{background:#141210}
+
+/* conteúdo dos painéis */
+#minimap{width:100%;display:block;image-rendering:pixelated;background:#000;
+  border:1px solid #000a;border-radius:3px;cursor:grab}
+#floor-label{margin-top:5px;font:700 10.5px/1 var(--serif);letter-spacing:.07em;color:var(--gold2);text-align:center}
+.sec{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:2px 0 5px}
+/* estatísticas de combate: mesma barra da de status, encostada nos botões de
+   postura. Só ícone e número — o nome e o que faz vivem no tooltip. */
+#combat-stats{display:flex;gap:3px;margin-top:8px;padding:3px;border:1px solid #000;border-radius:4px;
+  background:#0a0908;box-shadow:inset 0 2px 6px #000c,inset 0 0 0 1px #6b5a3340}
+.cst{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0;
+  cursor:help;border-radius:3px;background:linear-gradient(#2b2823,#1a1815);border:1px solid var(--line)}
+.cst:hover{border-color:var(--gold);box-shadow:0 0 9px #d9a44166}
+.cst .ii{width:16px;height:16px;filter:drop-shadow(0 1px 2px #000)}
+/* Faixa de resistência: quadradinho na cor do elemento com o corte em % dentro.
+   Fora do quadro de estatísticas de propósito — aquele tem quatro linhas fixas,
+   esta tem de zero a sete conforme o equipamento, e misturar as duas fazia o
+   painel inteiro empurrar tudo para baixo a cada peça trocada.
+   Os sete elementos cabem numa linha: 7×22 + 6×2 de intervalo = 166, dentro dos
+   169 úteis do painel. O intervalo é 2 e não 3 por causa desses 3px.
+   Sem :empty a faixa vazia ainda comeria a margem. */
+#res-strip{display:flex;gap:2px;margin-top:4px;flex-wrap:nowrap}
+#res-strip:empty{display:none}
+#res-strip b{flex:0 0 22px;height:22px;border-radius:3px;display:flex;align-items:center;justify-content:center;
+  font:700 10px var(--serif);cursor:help;border:1px solid #0008;box-shadow:inset 0 1px 0 #ffffff40}
+.cst b{font:700 12px var(--serif);color:var(--gold2);line-height:1}
+#eq-slots{position:relative;width:178px;height:239px;margin:auto}
+#eq-slots .cell.eq{position:absolute;width:56px;height:56px}
+#bag{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.cell{position:relative;aspect-ratio:1;background:linear-gradient(#232019,#171512);border:1px solid var(--line);
+  border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:inset 0 2px 5px #0009,inset 0 0 0 1px #00000090}
+.cell.empty{cursor:default;background:#131210;box-shadow:inset 0 2px 6px #000b}
+.cell.eq{background:linear-gradient(#2a261d,#191712);box-shadow:inset 0 2px 5px #0009,inset 0 0 0 1px #6b5a3340}
+.cell:not(.empty):hover{border-color:var(--gold);box-shadow:inset 0 0 12px #d9a44140,inset 0 0 0 1px #d9a4413a,0 0 10px #d9a44140}
+.cell .ico{font-size:18px;filter:drop-shadow(0 1px 2px #000c);
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+/* ícone de imagem: escala pelo font-size de quem o contém, para servir na loja
+   e no bestiário, que são linhas de texto */
+.ii{width:1.9em;height:1.9em;object-fit:contain;vertical-align:-.55em}
+/* na célula não: a mochila é grid fluido (1fr) e encolhe até ~31px, então o
+   ícone acompanha a célula, não a fonte, senão transborda. */
+.cell .ii{width:94%;height:94%}
+/* O slot tem 56px com 1px de borda de cada lado: 54 é exatamente o vão interno.
+   Preencher não é só estética — o PNG é gravado em 54 (ver assets/build_skins.py),
+   então aqui o pixel do arquivo cai em cima do pixel da tela, sem reamostragem.
+   Encolher isso de novo no CSS traria o borrão de volta. */
+#eq-slots .ii{width:54px;height:54px}
+.hk .ii{width:1.6em;height:1.6em}
+.cell .cnt{position:absolute;right:2px;bottom:1px;font-size:9.5px;color:#fff;text-shadow:0 0 3px #000}
+.cell .lbl{font-size:8px;color:#5c5648;text-align:center;font-family:var(--serif)}
+#gold-row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:11.5px}
+.tabc{display:block}
+.skill{margin-bottom:6px}
+.srow{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px}
+.srow small{color:#7d7666;font-size:9.5px;margin-left:4px}
+.srow .bon{color:#6ee36e;font-style:normal;font-size:10.5px;margin-left:3px}
+.sbar{height:6px;background:#0a0908;border:1px solid #000;border-radius:3px;margin-top:3px;
+  overflow:hidden;box-shadow:inset 0 1px 3px #000b}
+.sbar i{display:block;height:100%;background:linear-gradient(#f0cd7a,#b8860b)}
+.note{font-size:10.5px;color:var(--dim);margin-top:8px;line-height:1.5}
+.spell{display:flex;align-items:center;gap:7px;padding:5px;border:1px solid var(--line);border-radius:4px;
+  margin-bottom:4px;cursor:pointer;background:linear-gradient(#232019,#191713)}
+.spell:hover{border-color:var(--gold);box-shadow:0 0 12px #d9a44133}
+.spell.locked{opacity:.4;cursor:default}
+.spell .ico{font-size:15px}
+.sp-n{flex:1;font-size:11px}
+.sp-n i{display:block;font-size:9.5px;color:var(--dim);font-style:italic}
+.sp-c{text-align:right;font-size:10px;color:#7fb0e8}
+.sp-c small{color:var(--dim);font-size:9px}
+.bt{display:flex;align-items:center;gap:6px;padding:3px 5px;border:1px solid transparent;cursor:pointer;font-size:11.5px}
+.bt:hover{background:#26221a}
+.bt.sel{border-color:#e05545;background:#2e1a17;box-shadow:inset 0 0 12px #e0554533}
+.bt span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bt .hb{width:52px;height:6px;background:#0c0d10;border:1px solid var(--line)}
+.bt .hb i{display:block;height:100%;background:#3cc44a}
+
+/* janelas */
+/* Janela é coluna: cabeçalho fixo em cima, corpo rolando embaixo. O JS abre
+   com display:flex — abrir com block matava o flex e as listas longas ficavam
+   cortadas, porque min-height:0 + overflow:auto no filho só valem dentro de
+   um pai flex. */
+.win{position:absolute;background-image:
+    linear-gradient(90deg,transparent 0,transparent 49.6%,#d9a4410c 50%,transparent 50.4%),
+    linear-gradient(0deg,transparent 0,transparent 49.6%,#d9a4410c 50%,transparent 50.4%),
+    linear-gradient(#201e1a,#161412);
+  background-size:34px 34px,34px 34px,auto;
+  border:1px solid var(--line);border-radius:6px;
+  box-shadow:inset 0 1px 0 #ffffff12,0 16px 46px #000d;display:none;z-index:20;
+  flex-direction:column;
+  /* centralizada na tela: cada janela só declara tamanho, nunca posição */
+  top:50%;left:50%;transform:translate(-50%,-50%);max-height:88vh}
+.win h3{margin:0;padding:9px 11px;font:700 12.5px var(--serif);letter-spacing:.05em;color:var(--gold2);
+  background:var(--stone);border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center}
+.win h3 button,.win .foot button{background:linear-gradient(#332e24,#211e18);color:var(--txt);
+  border:1px solid var(--line);border-radius:3px;padding:3px 9px;cursor:pointer;font:inherit;font-size:11px}
+.win h3 button:hover,.win .foot button:hover{border-color:var(--gold);color:var(--gold)}
+#loot-win{width:270px}
+#loot-items{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:8px;min-height:52px;
+  overflow-y:auto}
+#loot-items .empty{grid-column:1/-1;color:var(--dim);font-size:11px;text-align:center;padding:12px}
+.foot{padding:6px 8px;border-top:1px solid var(--line);text-align:right}
+#shop-win{width:520px;overflow:hidden}
+#shop-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;max-height:56vh;overflow-y:auto}
+.srow2{display:flex;justify-content:space-between;gap:6px;padding:5px 7px;border:1px solid var(--line);
+  border-radius:4px;margin-bottom:3px;cursor:pointer;font-size:11.5px;background:linear-gradient(#232019,#191713)}
+.srow2:hover{border-color:var(--gold)}
+.srow2 b{color:var(--gold);white-space:nowrap}
+#best-win{width:min(920px,94vw);height:88vh;overflow:hidden}
+#best-win h3{flex:none}
+#best-cols{flex:1;min-height:0;display:grid;grid-template-columns:1fr 300px;gap:12px;padding:12px}
+#best-list{min-height:0;overflow-y:auto;padding-right:8px}
+#best-detail{min-height:0;overflow-y:auto;border-left:1px solid var(--line);padding-left:12px}
+#best-head{font-size:11.5px;color:var(--gold2)}
+.best-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:6px;margin-bottom:12px}
+.best-card{border:1px solid var(--line);border-radius:5px;padding:7px 9px;cursor:pointer;
+  background:linear-gradient(#232019,#181614);font-size:11.5px}
+.best-card:hover{border-color:var(--gold)}
+.best-card.sel{border-color:var(--gold);box-shadow:inset 0 0 14px #d9a44133}
+.best-card.locked{opacity:.42;filter:grayscale(1)}
+.best-card b{display:block;font:700 12.5px var(--serif);color:var(--txt)}
+.best-card i{font-size:10px;font-style:normal}
+.best-card span{float:right;font-size:10px;color:var(--dim)}
+.bsbar{height:4px;background:#0a0908;border:1px solid #000;border-radius:2px;margin-top:5px;overflow:hidden;clear:both}
+.bsbar u{display:block;height:100%}
+.bd-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.bd-top b{font:700 15px var(--serif)}
+.bd-top span{font-size:10.5px;color:var(--dim)}
+.bd-stats{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:11.5px;color:var(--dim);margin:8px 0}
+.bd-stats b{color:var(--txt);float:right}
+.bd-loot{display:flex;justify-content:space-between;font-size:11.5px;padding:2px 0;border-bottom:1px solid #ffffff0d}
+.bd-loot i{font-style:normal;font-size:10.5px}
+button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);border-radius:3px;
+  padding:1px 7px;margin-left:6px;cursor:pointer;font:inherit;font-size:10.5px}
+#map-win{overflow:hidden}
+#map-canvas{display:block;image-rendering:pixelated;background:#000;border:1px solid var(--line);margin:10px;cursor:grab}
+#map-tabs{display:flex;border-top:1px solid var(--line);background:#131210}
+#map-tabs .tab{flex:1;padding:7px 0;text-align:center;font:600 11px var(--serif);color:var(--dim);
+  cursor:pointer;border-bottom:2px solid transparent}
+#map-tabs .tab.on{color:var(--gold);border-bottom-color:var(--gold);background:#1c1a16}
+#map-foot{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;font-size:11px;color:var(--dim)}
+#map-floor{color:var(--gold2);font:700 12px var(--serif)}
+#pick-win{width:340px;overflow:hidden}
+#pick-win h3{flex:none}
+#pick-list{min-height:0;overflow-y:auto;padding:10px}
+#ui-win{width:300px;overflow:hidden}
+#ui-win h3{flex:none}
+#ui-list{min-height:0;overflow-y:auto;padding:10px}
+.ui-row{display:flex;justify-content:space-between;align-items:center;padding:4px 7px;border-radius:4px;
+  cursor:pointer;font-size:11.5px}
+.ui-row:hover{background:#26221a}
+.ui-extra b{color:var(--gold2);font-size:13px;padding:0 4px}
+/* linha de volume: nome à esquerda, cursor e número à direita */
+.ui-vol{display:flex;align-items:center;gap:8px;padding:3px 7px}
+.ui-vol span:first-child{flex:1;font-size:12px}
+.ui-vol input{width:104px;accent-color:var(--gold)}
+.ui-vol b{color:var(--gold2);font-size:11px;width:32px;text-align:right;font-weight:600}
+#tooltip{position:fixed;z-index:60;display:none;width:236px;background:#12100de8;border:1px solid var(--line);
+  border-radius:5px;padding:9px 11px;font-size:11.5px;pointer-events:none;
+  box-shadow:inset 0 1px 0 #ffffff12,0 10px 30px #000d}
+#tooltip .dim{color:var(--dim)}#tooltip .bad{color:#e0705f}#tooltip .bon{color:#6ee36e}
+#tooltip .tiny{font-size:10px;margin-top:5px}
+
+/* telas cheias — fluxo de entrada: seleção de personagens -> criação */
+.screen{position:fixed;inset:0;background:
+  radial-gradient(circle at 50% 38%,#0a0b0e26 0,#0a0b0e80 55%,#050608b3 100%),
+  url("assets/thaira_background wallpaper.png") center/cover no-repeat,
+  linear-gradient(135deg,#08090b,#11100d 48%,#08090b);display:flex;align-items:center;justify-content:center;z-index:80}
+.screen::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.34;background:
+  linear-gradient(90deg,transparent 0,transparent 49.7%,#d9a44112 50%,transparent 50.3%),
+  linear-gradient(0deg,transparent 0,transparent 49.7%,#d9a4410d 50%,transparent 50.3%);background-size:84px 84px}
+.menu-card{position:relative;width:min(820px,92vw);max-height:92vh;padding:26px 42px 30px;background:linear-gradient(145deg,#211f1a,#141311 72%);border:1px solid #5b513d;border-radius:9px;box-shadow:inset 0 1px 0 #ffffff16,0 25px 80px #000,0 0 45px #d9a4410d;overflow:auto}
+.menu-card::before{content:"";position:absolute;left:12%;right:12%;top:0;height:1px;background:linear-gradient(90deg,transparent,#d9a44199,transparent)}
+.menu-sigil{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.menu-sigil::before,.menu-sigil::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,#5b513d,transparent)}
+.menu-sigil i{width:8px;height:8px;flex:none;background:var(--gold);transform:rotate(45deg);box-shadow:0 0 10px #d9a44177}
+.menu-section-title{display:flex;align-items:center;gap:12px;margin:0 0 10px;color:var(--gold2);font:700 13px var(--serif);letter-spacing:.1em;text-transform:uppercase}
+.menu-section-title::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,#5b513d,transparent)}
+#character-list{display:flex;flex-direction:column;gap:8px;min-height:88px}
+.character-card{position:relative;display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:14px;padding:10px 14px;
+  border:1px solid var(--line);border-left:3px solid var(--voc,var(--line));border-radius:6px;
+  background:linear-gradient(145deg,#25221c,#181614);cursor:pointer;transition:.16s ease}
+.character-card:hover{border-color:#77633a;border-left-color:var(--voc,#77633a);transform:translateY(-1px);box-shadow:0 7px 18px #0008}
+.character-card.sel{border-color:var(--gold);border-left-color:var(--voc,var(--gold));background:linear-gradient(145deg,#312818,#1b1710);
+  box-shadow:inset 0 0 22px #d9a44122,0 0 16px #d9a44122}
+.character-portrait{position:relative;width:56px;height:56px}
+.character-voc-icon{width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+  background:radial-gradient(circle at 50% 35%,#221f19,#0d0c0a 75%);border:2px solid var(--voc,#4a4335);
+  box-shadow:inset 0 2px 8px #000,0 0 10px var(--voc-glow,transparent)}
+.character-voc-icon .ii{width:30px;height:30px;vertical-align:middle;filter:drop-shadow(0 1px 2px #000)}
+.character-lvl{position:absolute;right:-3px;bottom:-3px;min-width:20px;height:20px;padding:0 4px;border-radius:50%;
+  background:linear-gradient(#3a3226,#1c1913);border:1px solid var(--gold);color:var(--gold2);
+  font:700 10px var(--serif);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px #000a}
+.character-info strong{display:block;color:#eee6d3;font:700 15px var(--serif);letter-spacing:.03em}
+.character-info span{display:block;margin-top:3px;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.character-info small{display:block;margin-top:6px;color:#756e60;font-size:10px}
+.character-enter{color:var(--gold2);font:700 10px var(--serif);letter-spacing:.05em;opacity:.55}
+.character-card.sel .character-enter{opacity:1}
+.character-empty{padding:24px;text-align:center;color:#716b5e;border:1px dashed #443e33;border-radius:6px;background:#0e0d0b}
+.menu-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
+.menu-btn{width:100%;background:linear-gradient(#332d22,#1d1a15);color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:11px 14px;font:700 12px var(--serif);letter-spacing:.06em;cursor:pointer;box-shadow:inset 0 1px 0 #ffffff12,0 4px 12px #0008}
+.menu-btn:hover{border-color:var(--gold);color:var(--gold2);background:linear-gradient(#453a26,#242018)}
+.menu-btn.primary{color:var(--gold2);border-color:var(--gold);background:linear-gradient(#453a26,#26200f)}
+.menu-btn.primary:hover{box-shadow:0 0 18px #d9a44144}
+.menu-btn:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+.menu-foot{text-align:center;margin-top:18px;color:#5f594e;font-size:10px}
+/* o box-shadow de 100vmax é a camada escura que tira o wallpaper da leitura */
+/* o card manda no tamanho do modal, não o contrário: 300px é a referência (as
+   fontes são fixas, deixar o card crescer com a tela desequilibra card x texto)
+   e os outros dois termos só encolhem — a altura livre depois do resto da tela
+   (~450px de título, campo, painel e botões) e a largura da janela. Os dois
+   olham só pra viewport, nunca pro modal, senão vira laço: modal estreito quebra
+   o texto, o texto pede mais altura, o card encolhe e o modal estreita de novo.
+   O modal é a fileira + 120px (48 de vão + 72 de padding), então a fileira ocupa
+   a largura interna inteira. Piso de 880px: abaixo disso o painel quebra demais. */
+.create-card{--cardh:max(140px,min(380px,calc(92vh - 450px),calc((94vw - 120px)/4*1.502)));
+  --cardw:calc(var(--cardh)/1.502);
+  position:relative;width:min(max(880px,calc(var(--cardw)*4 + 120px)),94vw);max-height:92vh;padding:30px 36px;background:linear-gradient(145deg,#211f1a,#141311);border:1px solid #5b513d;border-radius:9px;box-shadow:inset 0 1px 0 #ffffff16,0 25px 80px #000,0 0 0 100vmax #0506082b;overflow:auto}
+.create-top{position:relative;text-align:center;margin-bottom:14px}
+.create-top h1{margin:0;font:700 27px var(--serif);letter-spacing:.12em;color:var(--gold2);text-shadow:0 2px 0 #0008,0 0 26px #d9a44144}
+/* os losangos são conteúdo do ::before/::after pra não sujar o HTML */
+.create-top h1::before,.create-top h1::after{content:"❖";margin:0 9px;font-size:13px;color:#8a7038;vertical-align:.2em}
+.create-top p{margin:5px 0 0;color:var(--dim);font-size:11.5px;font-style:italic}
+/* o campo de nome é uma coluna centralizada, mas o rótulo alinha à esquerda dele */
+.name-field{width:min(620px,100%);margin:0 auto 14px}
+#name-input{display:block;width:100%;background:#0b0a09;border:1px solid var(--line);border-radius:5px;
+  color:var(--txt);padding:11px 13px;font:inherit;outline:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238f8874' stroke-width='1.6'%3E%3Ccircle cx='12' cy='8' r='3.4'/%3E%3Cpath d='M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;background-size:17px}
+#name-input:focus{border-color:var(--gold);box-shadow:0 0 0 2px #d9a44112}
+.create-label{display:block;margin:0 0 9px;color:#8f8874;font:700 10px var(--serif);letter-spacing:.1em;text-transform:uppercase;text-align:center}
+.create-label.esq{text-align:left;margin-bottom:7px}
+/* filete curto dos dois lados do rótulo, terminando em losango, como na referência */
+.create-label.orn{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px}
+.create-label.orn::before,.create-label.orn::after{content:"";width:150px;height:1px;
+  background:linear-gradient(90deg,transparent,#d9a44166 55%,#d9a441aa)}
+.create-label.orn::after{transform:scaleX(-1)}
+/* a arte já vem com moldura, brasão e o nome da vocação — o card é só a imagem */
+/* a fileira nasce da ALTURA disponível, não da largura do modal: o card cabe na
+   janela sem rolagem e a largura sai do aspect-ratio, deixando a folga lateral.
+   padding-top é o espaço que o card selecionado usa pra subir sem cobrir o rótulo */
+.voc-grid{display:grid;grid-auto-flow:column;justify-content:center;gap:16px;padding-top:8px;margin-bottom:12px}
+/* usa assets/vocations/card/, que é o master de 1023x1537 já sem a tarja preta e
+   já reduzido pro tamanho de tela. Reduzir 4x no navegador serrilhava a arte, e
+   o serrilhado mudava de padrão quando o card selecionado escalava. */
+.voc-card{height:var(--cardh);aspect-ratio:512/769;padding:0;border:0;border-radius:8px;cursor:pointer;
+  background:#0b0a09 center/cover no-repeat;
+  box-shadow:0 6px 18px #000a;filter:brightness(.6) saturate(.8);
+  transition:transform .16s,box-shadow .16s,filter .16s}
+.voc-card:hover{transform:translateY(-4px);box-shadow:0 10px 26px #000c,0 0 16px var(--voc);filter:none}
+.voc-card.sel{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 30px #000d,0 0 0 2px var(--voc),0 0 28px var(--voc);filter:none}
+.voc-info{display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center;margin-bottom:11px;
+  padding:12px 20px;border:1px solid #4b4436;border-left:3px solid var(--voc,var(--gold));border-radius:7px;
+  background:linear-gradient(90deg,#1c1a15,#131210)}
+/* a inicial é a mesma do brasão na carta, então não precisa de arte nova */
+.voc-emblem{width:60px;height:60px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+  border:1px solid var(--voc,var(--gold));background:radial-gradient(circle,#ffffff08,#0d0c0a 70%);
+  box-shadow:inset 0 0 15px var(--voc,var(--gold)),0 0 12px #0008;
+  font:700 27px var(--serif);color:var(--voc,var(--gold2));text-shadow:0 0 14px var(--voc,var(--gold))}
+/* divisor entre a descrição e os atributos */
+.voc-attrs{border-left:1px solid #4b4436;padding-left:20px}
+#voc-current-name{margin:0;font:700 22px var(--serif);letter-spacing:.08em;color:var(--voc,var(--gold2))}
+#voc-current-desc{margin:6px 0 0;color:#aaa292;font-size:12px;line-height:1.55}
+.voc-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.voc-tags span{padding:3px 8px;border:1px solid var(--voc,var(--line));border-radius:3px;
+  color:var(--voc,var(--dim));background:#ffffff06;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase}
+.voc-attrs-h{margin-bottom:8px;color:#8f8874;font:700 9.5px var(--serif);letter-spacing:.12em;
+  text-transform:uppercase;text-align:center}
+.voc-stats{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.voc-stat{display:flex;flex-direction:column;align-items:center;gap:1px;width:76px;padding:8px 4px;
+  border:1px solid #4b4436;border-radius:5px;background:#0f0e0c;color:#8f8874;font-size:10px}
+.voc-stat i{font-style:normal;font-size:14px;line-height:1.1;color:var(--voc,var(--gold2))}
+.voc-stat.azul i{color:#4b8fe0}
+.voc-stat small{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;text-align:center}
+.voc-stat b{color:#e1d7c2;font-size:14px}
+.voc-stat em{font-style:normal;font-size:8px;color:#6c665a}
+.create-actions{display:flex;gap:12px;margin-top:10px}
+.create-actions .menu-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 14px;font-size:13px}
+.create-actions .menu-btn i{font-style:normal;font-size:15px;opacity:.75}
+#continue-btn{display:none}
+.card{background-image:
+    linear-gradient(90deg,transparent 0,transparent 49.6%,#d9a4410c 50%,transparent 50.4%),
+    linear-gradient(0deg,transparent 0,transparent 49.6%,#d9a4410c 50%,transparent 50.4%),
+    linear-gradient(#211f1a,#151311);
+  background-size:34px 34px,34px 34px,auto;
+  border:1px solid var(--line);border-radius:8px;padding:24px 28px;width:560px;max-height:92vh;overflow-y:auto;box-shadow:inset 0 1px 0 #ffffff12,0 20px 60px #000}
+.card h1{margin:0 0 4px;font:700 30px var(--serif);color:var(--gold2);letter-spacing:.12em;text-shadow:0 2px 0 #0008,0 0 26px #d9a44155}
+.card h2{margin:0 0 16px;font-size:12.5px;color:var(--dim);font-weight:400;font-style:italic}
+.im{width:1.15em;height:1.15em;vertical-align:-.18em}
+#stance button .im,#follow-btn .im{opacity:.5}
+#stance button.on .im,#follow-btn.on .im{opacity:1}
+#toolbar button{padding:6px}
+#toolbar button .im{width:24px;height:24px;vertical-align:middle}
+#stance button .im{width:22px;height:22px;vertical-align:middle}
+#shop-btn .im{width:17px;height:17px}
+#mute-btn .im{opacity:.55}
+#mute-btn.on .im{opacity:1}
+.win h3 .im{width:16px;height:16px;vertical-align:-.2em;margin-right:3px}
+#follow-btn .im{width:15px;height:15px}
+.btn{width:100%;background:linear-gradient(#453a26,#26200f);color:var(--gold2);border:1px solid var(--gold);border-radius:5px;padding:12px;font:600 14px var(--serif);letter-spacing:.06em;cursor:pointer;margin-top:6px;box-shadow:inset 0 1px 0 #ffffff22,0 3px 10px #0008}
+.btn:hover{background:linear-gradient(#5a4c31,#312917);box-shadow:inset 0 1px 0 #ffffff33,0 0 16px #d9a44155}
+#death-screen{display:none;flex-direction:column;gap:14px}
+#death-screen h1{color:#e0705f}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12px;margin-top:6px}
+.keys b{color:var(--gold2);font:600 12px var(--serif);white-space:nowrap}
+#help{display:none}
+@media (max-width:720px){
+  .menu-card,.create-card{width:94vw;padding:24px 20px}
+  .menu-actions{grid-template-columns:1fr}
+  .create-card{padding:22px 18px}
+  .voc-grid{grid-auto-flow:row;grid-template-columns:repeat(2,1fr);gap:8px}
+  .voc-card{height:auto}
+  .voc-info{grid-template-columns:1fr;gap:12px}
+  #voc-current-name{font-size:18px}
+}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:#0d0c0a}
+::-webkit-scrollbar-thumb{background:#4a4335;border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:var(--gold)}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="dock-arrow" data-d="l" title="mostrar/esconder a barra da esquerda">‹</div>
+  <aside id="dock-left" class="dock"></aside>
+
+  <div id="center">
+    <div id="topbar">
+      <div id="statusbars">
+        <div class="bar"><i id="hp-fill" style="width:100%"></i><span id="hp-text"></span></div>
+        <div class="bar"><i id="mp-fill" style="width:100%"></i><span id="mp-text"></span></div>
+        <div class="bar" style="height:13px"><i id="xp-fill" style="width:0"></i>
+          <span id="xp-text" style="line-height:11px"></span></div>
+      </div>
+    </div>
+
+    <div id="stage">
+      <canvas id="c"></canvas>
+      <div id="overlay"></div>
+      <div id="toast"></div>
+      <div id="hunt-label"></div>
+      <div id="toolbar">
+        <button id="shop-btn"><img class="im" src="assets/icons/ui_shop.png" alt=""> Loja do Templo</button>
+        <div id="toolbar-right">
+          <button id="best-btn" title="Bestiário (B)"><img class="im" src="assets/icons/ui_bestiary.png" alt=""></button>
+          <button id="map-btn" title="Mapa (M)"><img class="im" src="assets/icons/ui_map.png" alt=""></button>
+          <button id="ui-btn" title="Interface"><img class="im" src="assets/icons/ui_settings.png" alt=""></button>
+          <button id="mute-btn" class="on" title="som"><img class="im" src="assets/icons/ui_sound_on.png" alt=""></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hotbar-wrap"><div id="hotbar"></div></div>
+
+    <div id="console">
+      <div id="console-grip" title="arraste para redimensionar"></div>
+      <div id="chat-tabs">
+        <div class="tab on" data-canal="tudo">Tudo</div>
+        <div class="tab" data-canal="combate">Combate</div>
+        <div class="tab" data-canal="saque">Saque</div>
+      </div>
+      <div id="log" data-canal="tudo"></div>
+      <input id="chat" placeholder="Enter para falar / conjurar (ex.: exura)" autocomplete="off">
+    </div>
+  </div>
+
+  <aside id="dock-right" class="dock">
+    <section class="panel" id="panel-minimap">
+      <div class="pb"><canvas id="minimap" width="190" height="190"></canvas>
+        <div id="floor-label">Superfície</div></div>
+    </section>
+    <section class="panel" id="panel-status"><div class="pb" id="status-body"></div></section>
+    <section class="panel" id="panel-equip">
+      <div class="pb">
+        <div id="status-icons"></div>
+        <div id="eq-slots"></div>
+        <div id="combat-stats">
+          <div class="cst" data-n="Ataque" data-d="Teto do dano de um golpe seu. Vem da arma e da habilidade dela — o golpe sorteia de 0 até esse número, então na média sai bem menos.">
+            <img class="ii" src="assets/icons/sword.png" alt=""><b id="stat-atk">0</b></div>
+          <div class="cst" data-n="Armadura" data-d="Desconta uma parte de cada golpe que te acerta. Vem das peças que você veste.">
+            <img class="ii" src="assets/icons/armor.png" alt=""><b id="stat-arm">0</b></div>
+          <div class="cst" data-n="Defesa" data-d="Chance de bloquear o golpe inteiro. Vem do escudo e da sua habilidade de Escudo.">
+            <img class="ii" src="assets/icons/shield.png" alt=""><b id="stat-def">0</b></div>
+          <div class="cst" data-n="Velocidade" data-d="Rapidez dos seus passos. Sobe por nível conforme a vocação, e as botas ajudam.">
+            <img class="ii" src="assets/icons/boots.png" alt=""><b id="stat-spd">0</b></div>
+        </div>
+        <div id="res-strip"></div>
+        <div id="stance-row">
+          <div id="stance">
+            <button data-s="def" title="Defesa: quase não machuca, mas aguenta"><img class="im" src="assets/icons/stance_defense.png" alt=""></button>
+            <button data-s="bal" title="Equilíbrio: meio termo"><img class="im" src="assets/icons/stance_balanced.png" alt=""></button>
+            <button data-s="atk" title="Ataque: dano cheio, defesa fraca"><img class="im" src="assets/icons/stance_attack.png" alt=""></button>
+          </div>
+          <button id="follow-btn" class="on"><img class="im" src="assets/icons/ui_follow.png" alt=""> Perseguir</button>
+        </div>
+      </div>
+    </section>
+    <section class="panel" id="panel-skills"><div class="pb"><div class="tabc" id="tab-skills"></div></div></section>
+    <section class="panel" id="panel-battle"><div class="pb"><div class="tabc" id="tab-battle"></div></div></section>
+    <section class="panel" id="panel-spells"><div class="pb"><div class="tabc" id="tab-spells"></div></div></section>
+    <section class="panel" id="panel-bag">
+      <div class="pb">
+        <div id="gold-row"><span>Mochila</span><span>🪙 <b id="gold-val">0</b></span></div>
+        <div id="bag"></div>
+      </div>
+    </section>
+  </aside>
+  <div class="dock-arrow" data-d="r" title="mostrar/esconder a barra da direita">›</div>
+</div>
+
+<div class="win" id="loot-win">
+  <h3><span id="loot-title">Corpo</span><span><button id="loot-all">Pegar tudo</button>
+    <button id="loot-close">✕</button></span></h3>
+  <div id="loot-items"></div>
+</div>
+
+<div class="win" id="shop-win">
+  <h3><span><img class="im" src="assets/icons/ui_shop.png" alt=""> Loja do Templo</span><button id="shop-close">✕</button></h3>
+  <div id="shop-cols">
+    <div><div class="sec">Comprar</div><div id="shop-buy"></div></div>
+    <div><div class="sec">Vender</div><div id="shop-sell"></div></div>
+  </div>
+</div>
+
+<div class="win" id="best-win">
+  <h3><span><img class="im" src="assets/icons/ui_bestiary.png" alt=""> Bestiário — <span id="best-head"></span></span><button id="best-close">✕</button></h3>
+  <div id="best-cols">
+    <div id="best-list"></div>
+    <div id="best-detail"></div>
+  </div>
+</div>
+
+<div class="win" id="map-win">
+  <h3><span><img class="im" src="assets/icons/ui_map.png" alt=""> Mapa — <span id="map-floor"></span></span><button id="map-close">✕</button></h3>
+  <canvas id="map-canvas" width="620" height="620"></canvas>
+  <div id="map-tabs">
+    <div class="tab" data-z="0">Montanha</div><div class="tab on" data-z="1">Superfície</div>
+    <div class="tab" data-z="2">Caverna</div><div class="tab" data-z="3">Abismo</div>
+  </div>
+  <div id="map-foot"><span>Círculos laranja são hunts. Amarelo sobe de andar, escuro desce.</span>
+    <span>M fecha</span></div>
+</div>
+
+<div class="win" id="pick-win">
+  <h3><span id="pick-title">Slot</span><button id="pick-close">✕</button></h3>
+  <div id="pick-list"></div>
+</div>
+
+<div class="win" id="ui-win">
+  <h3><span><img class="im" src="assets/icons/ui_settings.png" alt=""> Interface</span><button id="ui-close">✕</button></h3>
+  <div id="ui-list"></div>
+</div>
+
+<div id="tooltip"></div>
+
+<div class="screen" id="menu-screen">
+  <div class="menu-card">
+    <div class="menu-sigil"><i></i></div>
+    <div class="menu-section-title">Seus personagens</div>
+    <div id="character-list"></div>
+    <div class="menu-actions">
+      <button class="menu-btn primary" id="play-character-btn" disabled>Entrar no mundo</button>
+      <button class="menu-btn" id="new-character-btn">Criar novo personagem</button>
+    </div>
+    <div class="menu-foot">Selecione um personagem existente ou crie um novo para começar sua aventura.</div>
+  </div>
+</div>
+
+<div class="screen" id="create-screen" style="display:none">
+  <div class="create-card">
+    <div class="create-top">
+      <h1>Novo personagem</h1>
+      <p>Escolha um nome e uma vocação. A decisão define como você joga.</p>
+    </div>
+    <div class="name-field">
+      <label class="create-label esq" for="name-input">Nome do personagem</label>
+      <input id="name-input" placeholder="Digite o nome do personagem" maxlength="16" autocomplete="off">
+    </div>
+    <div class="create-label orn">Escolha sua vocação</div>
+    <div class="voc-grid" id="voc-grid"></div>
+    <div class="voc-info">
+      <div class="voc-emblem" id="voc-emblem"></div>
+      <div class="voc-txt">
+        <h2 id="voc-current-name">Knight</h2>
+        <p id="voc-current-desc"></p>
+        <div class="voc-tags" id="voc-tags"></div>
+      </div>
+      <div class="voc-attrs">
+        <div class="voc-attrs-h">Atributos básicos</div>
+        <div class="voc-stats">
+          <span class="voc-stat"><i>♥&#xFE0E;</i><small>Vida</small><b id="voc-hp">+15</b><em>/ nível</em></span>
+          <span class="voc-stat azul"><i>◆</i><small>Mana</small><b id="voc-mana">+5</b><em>/ nível</em></span>
+          <span class="voc-stat"><i>✚</i><small>Regen. vida</small><b id="voc-hpreg">5</b></span>
+          <span class="voc-stat azul"><i>✦</i><small>Regen. mana</small><b id="voc-mpreg">2</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="create-actions">
+      <button class="menu-btn" id="create-cancel"><i>✕</i>Cancelar</button>
+      <button class="menu-btn primary" id="create-character-btn"><i>⚔</i>Criar personagem</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="death-screen">
+  <div class="card" style="width:400px;text-align:center">
+    <h1>VOCÊ MORREU</h1>
+    <h2>Morto por <b id="death-src">algo</b>. Você perdeu 10% da experiência.</h2>
+    <button class="btn" id="respawn-btn">Renascer no templo</button>
+  </div>
+</div>
+
+<div class="screen" id="help">
+  <div class="card" style="width:520px">
+    <h1 style="font-size:20px">Comandos</h1>
+    <div class="keys">
+      <b>WASD / setas</b><span>andar um passo por vez</span>
+      <b>clique esquerdo</b><span>ir até o ponto; no monstro, vira alvo e ataca sozinho</span>
+      <b>clique no corpo</b><span>abre o saque (F ao lado pega tudo); arraste para tirar do caminho</span>
+      <b>F1–F12</b><span>barra de habilidades (clique na tecla no canto do slot pra trocar o atalho); slot vazio abre o seletor, botão direito limpa</span>
+      <b>Ctrl+R</b><span>recarrega a página (F5 virou o slot 5 da barra)</span>
+      <b>🛡️⚖️⚔️</b><span>postura de combate: mais defesa ou mais dano</span>
+      <b>Perseguir</b><span>liga/desliga seguir o alvo automaticamente</span>
+      <b>Enter</b><span>chat — digitar as palavras (exura, exori vis…) conjura</span>
+      <b>Espaço / Tab</b><span>seleciona o mais próximo / troca de alvo</span>
+      <b>X / C</b><span>bebe a melhor poção de vida / de mana</span>
+      <b>G</b><span>pega item largado no chão</span>
+      <b>Q / E · roda</b><span>gira a câmera · zoom</span>
+      <b>M / B</b><span>mapa expandido / bestiário</span>
+      <b><img class="im" src="assets/icons/ui_settings.png" alt=""> Interface</b><span>liga, desliga e troca de lado cada painel; setas ‹ › abrem as barras laterais</span>
+      <b>H · Esc</b><span>esta ajuda · fecha janelas</span>
+    </div>
+    <div class="note">Escadas douradas sobem um andar, buracos escuros descem. Quanto mais longe do templo
+      e mais fundo na caverna, mais forte o monstro e melhor o loot. O jogo salva sozinho a cada 15s.</div>
+    <div class="note">Modelos 3D em domínio público (CC0): cenário do <b>Nature Kit</b> da Kenney
+      e criaturas do <b>Ultimate Monsters</b> do Quaternius. Terreno, efeitos, sons e os monstros sem modelo
+      são gerados por código.</div>
+    <button class="btn" id="help-close">Fechar</button>
+  </div>
+</div>
+
+<script src="src/audio.js"></script>
+<script src="src/icones.js"></script>
+<script src="src/data.js"></script>
+<script src="src/art.js"></script>
+<script src="src/world.js"></script>
+<script src="src/render2d.js"></script>
+<script src="src/game.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/hud.js"></script>
+</body>
+</html>

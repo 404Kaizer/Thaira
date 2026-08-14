@@ -1,0 +1,8 @@
+{
+  "_nota": "conjunto de cavaleiro. 4x4: 1 mochila 2 amuleto 3 anel 4 elmo | 5 armadura 6 calcas 7 botas 8 escudo | 9 espada 10 maca 11 machado 12 lanca | 13 escudo redondo 14 espada longa 15 escudo listrado 16 lanca",
+  "ids": {
+    "noble_shieldsman_amulet": 2, "noble_shieldsman_ring": 3, "noble_shieldsman_helmet": 4,
+    "noble_shieldsman_armor": 5, "noble_shieldsman_legs": 6, "noble_shieldsman_boots": 7,
+    "noble_shieldsman_shield": 8, "noble_shieldsman_sword": 9
+  }
+}

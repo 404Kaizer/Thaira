@@ -1,0 +1,10 @@
+{
+  "_nota": "loot avulso: o nome do arquivo ja e o id. Os apelidos so acertam onde o desenhista usou outra palavra para a mesma gradacao (common=basica, supreme=great).",
+  "apelidos": {
+    "common_health_potion": "health_potion",
+    "common_mana_potion": "mana_potion",
+    "supreme_health_potion": "great_health_potion",
+    "supreme_mana_potion": "great_mana_potion"
+  },
+  "ignorar": ["loot_01", "potions_01"]
+}

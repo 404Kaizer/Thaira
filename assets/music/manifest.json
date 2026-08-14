@@ -1,0 +1,28 @@
+{
+  "superficie-dia": [
+    "dia-vila.mp3",
+    "dia-celta.mp3",
+    "dia-campina.mp3",
+    "dia-taverna.mp3",
+    "dia-menestrel.mp3",
+    "dia-banquete.mp3",
+    "dia-bardo.mp3",
+    "dia-exploracao.mp3",
+    "dia-colheita.mp3",
+    "dia-mercado.mp3"
+  ],
+  "superficie-noite": [
+    "noite-lamento.mp3",
+    "noite-campos.mp3",
+    "noite-espadas.mp3"
+  ],
+  "caverna": [
+    "caverna-eco.ogg",
+    "caverna-masmorra.ogg",
+    "caverna-templo.mp3"
+  ],
+  "abismo": [
+    "abismo-caverna.ogg",
+    "caverna-templo.mp3"
+  ]
+}

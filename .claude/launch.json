@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "jogo",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8803"
+      ],
+      "port": 8803
+    },
+    {
+      "name": "jogo-8804",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8804"
+      ],
+      "port": 8804
+    }
+  ]
+}

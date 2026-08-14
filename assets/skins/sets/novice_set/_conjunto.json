@@ -1,0 +1,16 @@
+{
+  "lado": 54,
+  "_nota": "kit de nivel 1. Os arquivos tem nome proprio, entao a arte cai direto nos itens que ja existem; os apelidos so acertam onde o desenhista usou outro nome.",
+  "apelidos": {
+    "leather_hood": "leather_helmet",
+    "wooden_bow": "short_bow",
+    "spell_wand": "wand_of_vortex",
+    "iron_sword": "short_sword",
+    "iron_dagger": "dagger",
+    "iron_axe": "hand_axe",
+    "iron_mace": "mace",
+    "iron_amulet": "bronze_amulet",
+    "snakebit_rod": "snakebite_rod"
+  },
+  "ignorar": ["novice_set", "leather_backpack"]
+}
