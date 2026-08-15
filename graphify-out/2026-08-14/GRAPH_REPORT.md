@@ -1,16 +1,16 @@
 # Graph Report - Jogo  (2026-08-14)
 
 ## Corpus Check
-- 38 files · ~3,414,097 words
+- 39 files · ~3,415,094 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 943 nodes · 1631 edges · 79 communities (77 shown, 2 thin omitted)
-- Extraction: 87% EXTRACTED · 12% INFERRED · 1% AMBIGUOUS · INFERRED: 193 edges (avg confidence: 0.86)
+- 954 nodes · 1646 edges · 80 communities (78 shown, 2 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 1% AMBIGUOUS · INFERRED: 193 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c469c07c`
+- Built from commit: `279bf5f2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -23,7 +23,7 @@
 - game.js
 - data.js
 - render2d.js
-- log
+- castSpell
 - world.js
 - superficie-dia
 - Orc Animation Sprite Sheet
@@ -33,8 +33,8 @@
 - Combat Stance System (attack / balanced / defense selector)
 - Weapon Equipment Slot
 - Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems)
-- bindInput
-- itemStats
+- log
+- migrateLegacySave
 - Snow Druid Reference Sprite Sheet
 - Flat Monochrome Glyph Icon Style
 - Knight Veteran Skin (voc_knight_veteran)
@@ -54,7 +54,7 @@
 - build_icons.py
 - Áudio — procedência e licença
 - Druid Vocation Icon (leafy wooden staff)
-- atk_axe
+- itemStats
 - heal
 - potion
 - spell_holy
@@ -70,8 +70,8 @@
 - error
 - fire
 - hurt
-- ice
-- levelup
+- renderBars
+- freesound.py
 - loot
 - rune
 - shoot
@@ -82,18 +82,19 @@
 - spell_fire
 - spell_ice
 - stairs
-- step_cave
+- eat
 - step_dirt
 - step_rock
 - step_stone
 - unequip
 - UI Sound On Icon (speaker with sound waves)
 - laco (render loop do visualizador 3D)
-- renderHotbar
+- death
 - build_skins.py
 - build_folhas.py
-- finishStart
-- habilidade
+- step_grass
+- updateMobs
+- step_sand
 
 ## God Nodes (most connected - your core abstractions)
 1. `log()` - 31 edges
@@ -160,7 +161,7 @@
 - **Class Archetype Roster Covered by the Reference Sheets** — tools_amostra_knight_frames_knight_archetype, tools_amostra_black_knight_frames_black_knight_archetype, tools_amostra_ranger_frames_ranger_archetype, tools_amostra_snow_druid_frames_snow_druid_archetype, tools_amostra_energy_sorcerer_front_walk_and_idle_energy_sorcerer_archetype [INFERRED 0.85]
 - **Sprite Sheet Layout Conventions** — tools_amostra_knight_frames_four_row_directional_grid, tools_amostra_ranger_frames_attack_action_row, tools_amostra_energy_sorcerer_front_walk_and_idle_magenta_chroma_key_background, tools_amostra_knight_frames_hd_pixel_art_style [INFERRED 0.85]
 
-## Communities (79 total, 2 thin omitted)
+## Communities (80 total, 2 thin omitted)
 
 ### Community 0 - "Tela de ajuda / comandos (#help)"
 Cohesion: 0.06
@@ -183,20 +184,20 @@ Cohesion: 0.08
 Nodes (33): ambience(), ambNodes, arp(), audioInit(), audioToggle(), audioVol(), audioVolReset(), _avisarSemSom() (+25 more)
 
 ### Community 5 - "game.js"
-Cohesion: 0.08
-Nodes (34): BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, _corTexto(), cycleVoc(), dropItem() (+26 more)
+Cohesion: 0.07
+Nodes (36): SPELLS, abrirPicker(), BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, _corTexto() (+28 more)
 
 ### Community 6 - "data.js"
 Cohesion: 0.05
-Nodes (38): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, boss(), conjunto(), defModificada() (+30 more)
+Nodes (39): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, boss(), conjunto(), defModificada() (+31 more)
 
 ### Community 7 - "render2d.js"
 Cohesion: 0.12
 Nodes (36): bloomPass(), CAM, camadaNuvem(), cloudPass(), creatureSpriteFor(), _criaturaCrua(), dprInt(), drawBlood() (+28 more)
 
-### Community 8 - "log"
-Cohesion: 0.16
-Nodes (32): SHOP_STOCK, addMagic(), addSkillTry(), canEquip(), castSpell(), comer(), curar(), damageFormula() (+24 more)
+### Community 8 - "castSpell"
+Cohesion: 0.18
+Nodes (24): abalo(), addMagic(), addSkillTry(), bloodSpray(), castSpell(), cssCol(), curar(), damageFormula() (+16 more)
 
 ### Community 9 - "world.js"
 Cohesion: 0.14
@@ -211,12 +212,12 @@ Cohesion: 0.14
 Nodes (21): Orc ATTACK Animation Row, Four-Direction Frame Grouping (side-left, front, back, side-right within each row), Orc IDLE Animation Row, Magenta Chroma-Key Background Convention, Orc (Axe-Wielding Green Humanoid Enemy), Row-Labeled Sheet Layout (WALK / IDLE / ATTACK captions baked into image), Orc Animation Sprite Sheet, Orc WALK Animation Row (+13 more)
 
 ### Community 12 - "_corpo_medio"
-Cohesion: 0.12
-Nodes (17): atk_club, mix, n, v, atk_fist, mix, n, v (+9 more)
+Cohesion: 0.10
+Nodes (21): atk_axe, mix, n, v, atk_club, mix, n, v (+13 more)
 
 ### Community 13 - "killMob"
-Cohesion: 0.24
-Nodes (12): abalo(), addExp(), bloodSpray(), congelar(), cssCol(), dealDamage(), fxBurst(), impacto() (+4 more)
+Cohesion: 0.40
+Nodes (6): congelar(), killMob(), removeMob(), ri(), rollRarity(), spawnCorpse()
 
 ### Community 14 - "Ancestral Hunter Set Sheet (4x4 icon atlas on magenta key)"
 Cohesion: 0.33
@@ -234,13 +235,13 @@ Nodes (15): Greataxe Icon (ornate gold double-bladed battleaxe), Painted Semi-Re
 Cohesion: 0.38
 Nodes (15): Golden Guardian Halberd (two-handed polearm skin: dark shaft, gold-filigreed steel axe head with heraldic crest), Golden Guardian Amulet (neck slot skin: braided gold chain, lion-face shield pendant with red gems), Red Gem Accent (ruby inlay used across the set), Golden Guardian Armor (chest slot skin: dark steel cuirass, gold lion breastplate, red tabard), Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems), Lion Head Crest Motif (shared golden guardian emblem), Golden Guardian Backpack (back slot skin: brown leather rucksack with gold lion faceplate and bedroll), Golden Guardian Greaves (feet slot skin: dark plated boots with gold lion knee guards) (+7 more)
 
-### Community 18 - "bindInput"
-Cohesion: 0.21
-Nodes (16): afterStep(), bagAdd(), bindInput(), changeFloor(), clickTile(), corpseAt(), lootAll(), lootTile() (+8 more)
+### Community 18 - "log"
+Cohesion: 0.18
+Nodes (24): bagAdd(), bindInput(), canEquip(), clickTile(), comer(), corpseAt(), drinkBest(), equipItem() (+16 more)
 
-### Community 19 - "itemStats"
-Cohesion: 0.19
-Nodes (19): PREFIXES, SUFFIXES, askConfirm(), charId(), deleteCharacter(), descLoot(), exportarPersonagens(), fixSave() (+11 more)
+### Community 19 - "migrateLegacySave"
+Cohesion: 0.22
+Nodes (16): PREFIXES, SUFFIXES, askConfirm(), charId(), deleteCharacter(), exportarPersonagens(), fixSave(), importarPersonagens() (+8 more)
 
 ### Community 20 - "Snow Druid Reference Sprite Sheet"
 Cohesion: 0.31
@@ -259,8 +260,8 @@ Cohesion: 0.33
 Nodes (13): LOOT_RARITY, bestDiff(), bestiaryKill(), bestKills(), bestStage(), bindBigMap(), drawBigMap(), lootRarity() (+5 more)
 
 ### Community 24 - "frame"
-Cohesion: 0.15
-Nodes (20): chuvaOuvida(), clamp(), drawMinimap(), empurrar(), frame(), lerpEntity(), noTemplo(), occupied() (+12 more)
+Cohesion: 0.14
+Nodes (20): afterStep(), bindMiniMap(), changeFloor(), chuvaOuvida(), clamp(), drawMinimap(), finishStart(), frame() (+12 more)
 
 ### Community 25 - "GG Boots Icon (Golden Lion Greaves)"
 Cohesion: 0.23
@@ -268,7 +269,7 @@ Nodes (12): Armor Icon (Steel Plate Cuirass), Axe Icon (Double-Bladed Wood Axe),
 
 ### Community 26 - "sfx/manifest.json"
 Cohesion: 0.17
-Nodes (11): death, n, v, ext, rev, step_grass, n, v (+3 more)
+Nodes (11): ext, ice, n, v, levelup, n, v, rev (+3 more)
 
 ### Community 27 - "Knight Vocation - Common Skin (Front-Facing Sprite Set)"
 Cohesion: 0.31
@@ -318,9 +319,9 @@ Nodes (4): Como trocar um som, Efeitos — `assets/sfx/`, Trilha — `assets/mus
 Cohesion: 1.00
 Nodes (4): Druid Vocation Icon (leafy wooden staff), Knight Vocation Icon (sword crossed over heraldic shield), Ranger Vocation Icon (bow crossed with arrows), Sorcerer Vocation Icon (arcane wand with purple orb)
 
-### Community 39 - "atk_axe"
-Cohesion: 0.50
-Nodes (4): atk_axe, mix, n, v
+### Community 39 - "itemStats"
+Cohesion: 0.27
+Nodes (11): descLoot(), dropItem(), fmtBon(), itemCell(), itemStats(), renderInv(), renderShop(), sellPrice() (+3 more)
 
 ### Community 40 - "heal"
 Cohesion: 0.50
@@ -351,8 +352,8 @@ Cohesion: 0.67
 Nodes (3): buff, n, v
 
 ### Community 47 - "coin"
-Cohesion: 0.67
-Nodes (3): coin, n, v
+Cohesion: 0.50
+Nodes (4): coin, ext, n, v
 
 ### Community 48 - "_corpo_forte"
 Cohesion: 0.67
@@ -382,17 +383,17 @@ Nodes (3): fire, n, v
 Cohesion: 0.67
 Nodes (3): hurt, n, v
 
-### Community 55 - "ice"
-Cohesion: 0.67
-Nodes (3): ice, n, v
+### Community 55 - "renderBars"
+Cohesion: 0.31
+Nodes (10): addExp(), renderAll(), renderBars(), renderSpells(), renderStance(), renderStatus(), setStance(), statusAtivos() (+2 more)
 
-### Community 56 - "levelup"
-Cohesion: 0.67
-Nodes (3): levelup, n, v
+### Community 56 - "freesound.py"
+Cohesion: 0.80
+Nodes (4): baixa(), busca(), key(), pegar()
 
 ### Community 57 - "loot"
-Cohesion: 0.67
-Nodes (3): loot, n, v
+Cohesion: 0.50
+Nodes (4): loot, ext, n, v
 
 ### Community 58 - "rune"
 Cohesion: 0.67
@@ -430,9 +431,9 @@ Nodes (3): spell_ice, n, v
 Cohesion: 0.67
 Nodes (3): stairs, n, v
 
-### Community 67 - "step_cave"
-Cohesion: 0.67
-Nodes (3): step_cave, n, v
+### Community 67 - "eat"
+Cohesion: 0.50
+Nodes (4): eat, ext, n, v
 
 ### Community 68 - "step_dirt"
 Cohesion: 0.67
@@ -450,9 +451,9 @@ Nodes (3): step_stone, n, v
 Cohesion: 0.67
 Nodes (3): unequip, n, v
 
-### Community 74 - "renderHotbar"
-Cohesion: 0.27
-Nodes (10): SPELLS, abrirPicker(), HOT_KEYS_DEFAULT, hotDefault(), hotEntry(), hotKeyLabel(), hotUse(), knownSpells() (+2 more)
+### Community 74 - "death"
+Cohesion: 0.67
+Nodes (3): death, n, v
 
 ### Community 75 - "build_skins.py"
 Cohesion: 0.20
@@ -462,13 +463,17 @@ Nodes (15): conjuntos(), disponiveis(), encaixa(), escreve_lista(), id_do_arquiv
 Cohesion: 0.50
 Nodes (4): main(), Corta as folhas de arte (vários itens numa imagem só) em PNGs separados. python…, Devolve [(x, y, w, h, imagem_rgba)] na ordem de leitura., separa()
 
-### Community 77 - "finishStart"
-Cohesion: 0.24
-Nodes (11): bindMiniMap(), finishStart(), refreshSpawns(), removeMob(), renderAll(), renderStance(), respawn(), restaurarBichos() (+3 more)
+### Community 77 - "step_grass"
+Cohesion: 0.67
+Nodes (3): step_grass, n, v
 
-### Community 78 - "habilidade"
-Cohesion: 0.50
-Nodes (4): habilidade(), lineClear(), say(), tapaVista()
+### Community 78 - "updateMobs"
+Cohesion: 0.27
+Nodes (10): empurrar(), lineClear(), noTemplo(), occupied(), passoAte(), passoDeFuga(), reservarVagas(), tapaVista() (+2 more)
+
+### Community 79 - "step_sand"
+Cohesion: 0.67
+Nodes (3): step_sand, n, v
 
 ## Ambiguous Edges - Review These
 - `graphify` → `Thaira — RPG isométrico (shell da aplicação)`  [AMBIGUOUS]
@@ -495,7 +500,7 @@ Nodes (4): habilidade(), lineClear(), say(), tapaVista()
   tools/amostra/energy_sorcerer_front_walk_and_idle.png · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **261 isolated node(s):** `dia-vila.mp3`, `dia-celta.mp3`, `dia-campina.mp3`, `dia-taverna.mp3`, `dia-menestrel.mp3` (+256 more)
+- **266 isolated node(s):** `dia-vila.mp3`, `dia-celta.mp3`, `dia-campina.mp3`, `dia-taverna.mp3`, `dia-menestrel.mp3` (+261 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **2 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 

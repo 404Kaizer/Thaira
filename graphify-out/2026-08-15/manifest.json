@@ -1,0 +1,3072 @@
+{
+  ".claude/launch.json": {
+    "mtime": 1786765927.4532943,
+    "ast_hash": "3d779ddc883c9afa3bdca55eb08229bf",
+    "semantic_hash": ""
+  },
+  ".claude/settings.local.json": {
+    "mtime": 1786500961.3791738,
+    "ast_hash": "b01037be7101892d188b83b35f46afc5",
+    "semantic_hash": "b01037be7101892d188b83b35f46afc5"
+  },
+  "assets/build_audicao.py": {
+    "mtime": 1786335220.0,
+    "ast_hash": "242be8f02a986c7a4f27cac42633fa5d",
+    "semantic_hash": "242be8f02a986c7a4f27cac42633fa5d"
+  },
+  "assets/build_icons.py": {
+    "mtime": 1786238006.0,
+    "ast_hash": "747bf4756c940e4336ccbf11d0fe5d8d",
+    "semantic_hash": "747bf4756c940e4336ccbf11d0fe5d8d"
+  },
+  "assets/build_sfx.py": {
+    "mtime": 1786761553.353744,
+    "ast_hash": "7037cf4796f72000e2ef7e4a601d8e31",
+    "semantic_hash": ""
+  },
+  "assets/music/manifest.json": {
+    "mtime": 1786682697.9505103,
+    "ast_hash": "621bffd48c7ec1b4010de0899d1d8a66",
+    "semantic_hash": ""
+  },
+  "assets/sfx/manifest.example.json": {
+    "mtime": 1786761579.1598527,
+    "ast_hash": "e4a8ab46ad409f7fb1d98d780e840724",
+    "semantic_hash": ""
+  },
+  "assets/sfx/manifest.json": {
+    "mtime": 1786761579.4501348,
+    "ast_hash": "6cfa486afe948a4652938fa9c2a6c5ec",
+    "semantic_hash": ""
+  },
+  "src/art.js": {
+    "mtime": 1786766959.8276691,
+    "ast_hash": "5c11ceb325f4d8e8fd04592a857aaab9",
+    "semantic_hash": ""
+  },
+  "src/audio.js": {
+    "mtime": 1786765553.1030395,
+    "ast_hash": "d27d768bd7b1ee3fab3600907f1442a4",
+    "semantic_hash": ""
+  },
+  "src/data.js": {
+    "mtime": 1786770698.292423,
+    "ast_hash": "d9c5481329b293efa399cb9e1570c3df",
+    "semantic_hash": ""
+  },
+  "src/game.js": {
+    "mtime": 1786768238.235966,
+    "ast_hash": "8d7cb5950d7a8b3c33220818c5a3d607",
+    "semantic_hash": ""
+  },
+  "src/hud.js": {
+    "mtime": 1786505777.8030007,
+    "ast_hash": "74ab412e848f8754cfcd2d7af28b7a74",
+    "semantic_hash": ""
+  },
+  "src/render2d.js": {
+    "mtime": 1786763583.2653518,
+    "ast_hash": "244ee90b66452f494c3e819f2bca3ff7",
+    "semantic_hash": ""
+  },
+  "src/ui.js": {
+    "mtime": 1786768541.4406583,
+    "ast_hash": "a19bdd24e0933fa73cc0bead28e7f73d",
+    "semantic_hash": ""
+  },
+  "src/world.js": {
+    "mtime": 1786767782.6938822,
+    "ast_hash": "9f9074d5a8f8e680abce0957ceae4bf1",
+    "semantic_hash": ""
+  },
+  "tests/test.js": {
+    "mtime": 1786770710.0500214,
+    "ast_hash": "677f044c1233e8ed663f7b9609925946",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1786500827.3748634,
+    "ast_hash": "b8d78d812c3b1867d0f86c56cf004c1d",
+    "semantic_hash": "b8d78d812c3b1867d0f86c56cf004c1d"
+  },
+  "assets/CREDITOS.md": {
+    "mtime": 1786761707.3858366,
+    "ast_hash": "7316fb9c5d9d6ec4a308ed39855a42da",
+    "semantic_hash": ""
+  },
+  "index.html": {
+    "mtime": 1786768240.7429695,
+    "ast_hash": "df94c41fd6f5c0d329436dcedd19b110",
+    "semantic_hash": ""
+  },
+  "tools/amostra/kaykit.html": {
+    "mtime": 1786412508.1695359,
+    "ast_hash": "dc3d6a7efa04383e5f8839bbe0e7ca27",
+    "semantic_hash": "dc3d6a7efa04383e5f8839bbe0e7ca27"
+  },
+  "tools/amostra/ranger.html": {
+    "mtime": 1786238322.0,
+    "ast_hash": "112d42fe0f8f0ff7c75a72e3e1008579",
+    "semantic_hash": "112d42fe0f8f0ff7c75a72e3e1008579"
+  },
+  "tools/amostra/sprite-tester.html": {
+    "mtime": 1786248966.0,
+    "ast_hash": "eb19195978232a6f3ecd7976418340f6",
+    "semantic_hash": "eb19195978232a6f3ecd7976418340f6"
+  },
+  "tools/audicao.html": {
+    "mtime": 1786412539.8188672,
+    "ast_hash": "c1db4322bfd45930712ad98e85f79a04",
+    "semantic_hash": "c1db4322bfd45930712ad98e85f79a04"
+  },
+  "assets/green_background/_folhas/orc_anim.png": {
+    "mtime": 1786249054.0,
+    "ast_hash": "dd668bb37a8ef86ed060d58cda761bf3",
+    "semantic_hash": "dd668bb37a8ef86ed060d58cda761bf3"
+  },
+  "assets/green_background/_folhas/ranger_anim.png": {
+    "mtime": 1786237694.0,
+    "ast_hash": "15eae75c8359ca11fe9a0ce7a6a59bfb",
+    "semantic_hash": "15eae75c8359ca11fe9a0ce7a6a59bfb"
+  },
+  "assets/green_background/_folhas/warrior_anim.png": {
+    "mtime": 1786332560.0,
+    "ast_hash": "dd017799fa9e926a5c8cb2b58d34aa6d",
+    "semantic_hash": "dd017799fa9e926a5c8cb2b58d34aa6d"
+  },
+  "assets/green_background/_juntos/ui_sound_on & ui_sound_off.png": {
+    "mtime": 1786236356.0,
+    "ast_hash": "44bd4b858c224c867a0213f62e6fcdcb",
+    "semantic_hash": "44bd4b858c224c867a0213f62e6fcdcb"
+  },
+  "assets/green_background/stance_attack.png": {
+    "mtime": 1786233404.0,
+    "ast_hash": "56f0a2cafc1b26833e8bf72656fdcdd1",
+    "semantic_hash": "56f0a2cafc1b26833e8bf72656fdcdd1"
+  },
+  "assets/green_background/stance_balanced.png": {
+    "mtime": 1786233456.0,
+    "ast_hash": "5b1d28b4749dcf5a1506aa5c3b5e8d4d",
+    "semantic_hash": "5b1d28b4749dcf5a1506aa5c3b5e8d4d"
+  },
+  "assets/green_background/stance_defense.png": {
+    "mtime": 1786233356.0,
+    "ast_hash": "c433783293424698d6ec0a4018fafa6a",
+    "semantic_hash": "c433783293424698d6ec0a4018fafa6a"
+  },
+  "assets/green_background/ui_bestiary.png": {
+    "mtime": 1786235762.0,
+    "ast_hash": "ad5f1f2d7bb75f3478471c4cccf45348",
+    "semantic_hash": "ad5f1f2d7bb75f3478471c4cccf45348"
+  },
+  "assets/green_background/ui_follow.png": {
+    "mtime": 1786233750.0,
+    "ast_hash": "f51610cd3e487bc826409dcaeff5611d",
+    "semantic_hash": "f51610cd3e487bc826409dcaeff5611d"
+  },
+  "assets/green_background/ui_map.png": {
+    "mtime": 1786235814.0,
+    "ast_hash": "7cf7ae0febc0a40093209e845ebf91a1",
+    "semantic_hash": "7cf7ae0febc0a40093209e845ebf91a1"
+  },
+  "assets/green_background/ui_settings.png": {
+    "mtime": 1786235866.0,
+    "ast_hash": "1238a399d40caa0035ce3c18e9d691d5",
+    "semantic_hash": "1238a399d40caa0035ce3c18e9d691d5"
+  },
+  "assets/green_background/ui_shop.png": {
+    "mtime": 1786235702.0,
+    "ast_hash": "ad36d6bf5fe476faaed394611087d003",
+    "semantic_hash": "ad36d6bf5fe476faaed394611087d003"
+  },
+  "assets/green_background/ui_sound_off.png": {
+    "mtime": 1786236524.0,
+    "ast_hash": "3188de609d0484f096ff2364db2e8c75",
+    "semantic_hash": "3188de609d0484f096ff2364db2e8c75"
+  },
+  "assets/green_background/ui_sound_on.png": {
+    "mtime": 1786236524.0,
+    "ast_hash": "2cf861df1fed34c4cfe36b3bb9e7d559",
+    "semantic_hash": "2cf861df1fed34c4cfe36b3bb9e7d559"
+  },
+  "assets/green_background/ui_stand.png": {
+    "mtime": 1786233784.0,
+    "ast_hash": "ebd42ce3ff13499e93a1fdafffe1dada",
+    "semantic_hash": "ebd42ce3ff13499e93a1fdafffe1dada"
+  },
+  "assets/icons/armor.png": {
+    "mtime": 1786225638.0,
+    "ast_hash": "cce21b3061751da6615d81eb685442a7",
+    "semantic_hash": "cce21b3061751da6615d81eb685442a7"
+  },
+  "assets/icons/axe.png": {
+    "mtime": 1786577795.8830092,
+    "ast_hash": "3626d07df1a1c22ab6d6e02be8ed09a5",
+    "semantic_hash": ""
+  },
+  "assets/icons/bone.png": {
+    "mtime": 1786577795.949242,
+    "ast_hash": "60b95ec72a77a56c89e4c2a6fe7a7319",
+    "semantic_hash": ""
+  },
+  "assets/icons/boots.png": {
+    "mtime": 1786225638.0,
+    "ast_hash": "616733bcf6efe5387a4ab2e2c53bd45d",
+    "semantic_hash": "616733bcf6efe5387a4ab2e2c53bd45d"
+  },
+  "assets/icons/boots_leather.png": {
+    "mtime": 1786225638.0,
+    "ast_hash": "1cf4a449a1a3c86841b0bf5609d5664a",
+    "semantic_hash": "1cf4a449a1a3c86841b0bf5609d5664a"
+  },
+  "assets/icons/bow.png": {
+    "mtime": 1786577795.8901534,
+    "ast_hash": "121abb841f0202eb680438596c40a1fc",
+    "semantic_hash": ""
+  },
+  "assets/icons/dagger.png": {
+    "mtime": 1786577796.851314,
+    "ast_hash": "bc122efbc9f500e9f0e71782155262a0",
+    "semantic_hash": ""
+  },
+  "assets/icons/gem.png": {
+    "mtime": 1786577795.8976698,
+    "ast_hash": "9cf36105259c6881df780447f7ced8cd",
+    "semantic_hash": ""
+  },
+  "assets/icons/helmet.png": {
+    "mtime": 1786573901.6057608,
+    "ast_hash": "9b8473e2a482225c8a35e401943d12b0",
+    "semantic_hash": "9b8473e2a482225c8a35e401943d12b0"
+  },
+  "assets/icons/potion.png": {
+    "mtime": 1786577795.9094896,
+    "ast_hash": "d15d229a532c68cd07b45b9b501ad855",
+    "semantic_hash": ""
+  },
+  "assets/icons/rune_fire.png": {
+    "mtime": 1786225638.0,
+    "ast_hash": "893f297bf1be1c672202bbe0534becd2",
+    "semantic_hash": "893f297bf1be1c672202bbe0534becd2"
+  },
+  "assets/icons/shield.png": {
+    "mtime": 1786577795.923309,
+    "ast_hash": "aa5581c0977aed1ec3650fa5cc0fecf0",
+    "semantic_hash": ""
+  },
+  "assets/icons/stance_attack.png": {
+    "mtime": 1786238006.0,
+    "ast_hash": "639a544e8b59a9518386bd960792b761",
+    "semantic_hash": "639a544e8b59a9518386bd960792b761"
+  },
+  "assets/icons/stance_balanced.png": {
+    "mtime": 1786238006.0,
+    "ast_hash": "6be48119de6ccba1e512202f0d209b9f",
+    "semantic_hash": "6be48119de6ccba1e512202f0d209b9f"
+  },
+  "assets/icons/stance_defense.png": {
+    "mtime": 1786238006.0,
+    "ast_hash": "ee6268607d9d1f3560dcba1745a6274d",
+    "semantic_hash": "ee6268607d9d1f3560dcba1745a6274d"
+  },
+  "assets/icons/sword.png": {
+    "mtime": 1786577795.9334261,
+    "ast_hash": "4f152e40fa396e60c363862218809f49",
+    "semantic_hash": ""
+  },
+  "assets/icons/ui_bestiary.png": {
+    "mtime": 1786238006.0,
+    "ast_hash": "c98165118edd901b48a1555e3e5dda03",
+    "semantic_hash": "c98165118edd901b48a1555e3e5dda03"
+  },
+  "assets/icons/ui_follow.png": {
+    "mtime": 1786238008.0,
+    "ast_hash": "86ba786ca67f49b06398596bb48dbd32",
+    "semantic_hash": "86ba786ca67f49b06398596bb48dbd32"
+  },
+  "assets/icons/ui_map.png": {
+    "mtime": 1786238008.0,
+    "ast_hash": "0ce5b6c0f84c63aa0e3c1f55377017d4",
+    "semantic_hash": "0ce5b6c0f84c63aa0e3c1f55377017d4"
+  },
+  "assets/icons/ui_settings.png": {
+    "mtime": 1786238008.0,
+    "ast_hash": "8c87283d89cfdd6dcac2d4bcf05ddf14",
+    "semantic_hash": "8c87283d89cfdd6dcac2d4bcf05ddf14"
+  },
+  "assets/icons/ui_shop.png": {
+    "mtime": 1786238008.0,
+    "ast_hash": "b7fdc4b735db5a15bced62307ddceb94",
+    "semantic_hash": "b7fdc4b735db5a15bced62307ddceb94"
+  },
+  "assets/icons/ui_sound_off.png": {
+    "mtime": 1786238008.0,
+    "ast_hash": "0bf48d39ebae4eb19740f21268143706",
+    "semantic_hash": "0bf48d39ebae4eb19740f21268143706"
+  },
+  "assets/icons/ui_sound_on.png": {
+    "mtime": 1786238008.0,
+    "ast_hash": "a6dda715d88bdef62158f45e863f75a5",
+    "semantic_hash": "a6dda715d88bdef62158f45e863f75a5"
+  },
+  "assets/icons/ui_stand.png": {
+    "mtime": 1786238008.0,
+    "ast_hash": "4aa1f5dd829849b1be862e70ac59a01c",
+    "semantic_hash": "4aa1f5dd829849b1be862e70ac59a01c"
+  },
+  "assets/icons/voc_druid.png": {
+    "mtime": 1786233298.0,
+    "ast_hash": "353a4b7773b698d7c87cfa51ce9f4066",
+    "semantic_hash": "353a4b7773b698d7c87cfa51ce9f4066"
+  },
+  "assets/icons/voc_knight.png": {
+    "mtime": 1786233298.0,
+    "ast_hash": "82d18b3e8ff9e918612fba077e1e198a",
+    "semantic_hash": "82d18b3e8ff9e918612fba077e1e198a"
+  },
+  "assets/icons/voc_ranger.png": {
+    "mtime": 1786233298.0,
+    "ast_hash": "d6266b099419909ee015d2145ebec03d",
+    "semantic_hash": "d6266b099419909ee015d2145ebec03d"
+  },
+  "assets/icons/voc_sorcerer.png": {
+    "mtime": 1786233298.0,
+    "ast_hash": "94c1466b8fea481397b34950ca808b08",
+    "semantic_hash": "94c1466b8fea481397b34950ca808b08"
+  },
+  "assets/skins/voc_knight/voc_knight_commom/dead_front_01.png": {
+    "mtime": 1786340722.0,
+    "ast_hash": "951ac127202acf9d9cb54ebc24799742",
+    "semantic_hash": "951ac127202acf9d9cb54ebc24799742"
+  },
+  "assets/skins/voc_knight/voc_knight_commom/idle_front_01.png": {
+    "mtime": 1786340650.0,
+    "ast_hash": "af19c91574c6af80ba7497b0b6d296e1",
+    "semantic_hash": "af19c91574c6af80ba7497b0b6d296e1"
+  },
+  "assets/skins/voc_knight/voc_knight_commom/idle_front_02.png": {
+    "mtime": 1786340650.0,
+    "ast_hash": "3000e6eebcaabf95b75f8f4592e48bdb",
+    "semantic_hash": "3000e6eebcaabf95b75f8f4592e48bdb"
+  },
+  "assets/skins/voc_knight/voc_knight_commom/idle_front_03.png": {
+    "mtime": 1786340650.0,
+    "ast_hash": "48bcc31a1f1a145716cdb25c2eb338f6",
+    "semantic_hash": "48bcc31a1f1a145716cdb25c2eb338f6"
+  },
+  "assets/skins/voc_knight/voc_knight_commom/idle_front_04.png": {
+    "mtime": 1786340650.0,
+    "ast_hash": "bdd8b3f4a9f74cb74499b551ce68b404",
+    "semantic_hash": "bdd8b3f4a9f74cb74499b551ce68b404"
+  },
+  "assets/skins/voc_knight/voc_knight_commom/walk_front_01.png": {
+    "mtime": 1786340474.0,
+    "ast_hash": "d949d0dab422b78e9b0ec794e916c809",
+    "semantic_hash": "d949d0dab422b78e9b0ec794e916c809"
+  },
+  "assets/skins/voc_knight/voc_knight_commom/walk_front_02.png": {
+    "mtime": 1786340474.0,
+    "ast_hash": "900bda91c443bbbdcd3f393555d38df8",
+    "semantic_hash": "900bda91c443bbbdcd3f393555d38df8"
+  },
+  "assets/skins/voc_knight/voc_knight_commom/walk_front_03.png": {
+    "mtime": 1786340474.0,
+    "ast_hash": "9a5554f439f8ce3f802391bb29f3002a",
+    "semantic_hash": "9a5554f439f8ce3f802391bb29f3002a"
+  },
+  "assets/skins/voc_knight/voc_knight_commom/walk_front_04.png": {
+    "mtime": 1786340474.0,
+    "ast_hash": "fcbe20d6ad63d19ddf48573e5071dc25",
+    "semantic_hash": "fcbe20d6ad63d19ddf48573e5071dc25"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/dead_back_01.png": {
+    "mtime": 1786402884.0,
+    "ast_hash": "b9a6a6e64b3d53facd484f8bfcb7ba34",
+    "semantic_hash": "b9a6a6e64b3d53facd484f8bfcb7ba34"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/dead_front_01.png": {
+    "mtime": 1786400644.0,
+    "ast_hash": "542071a645f39c343ab6f9edff47fbee",
+    "semantic_hash": "542071a645f39c343ab6f9edff47fbee"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/idle_back_01.png": {
+    "mtime": 1786402846.0,
+    "ast_hash": "c95b07dfaee31382fe2c807d8be30e88",
+    "semantic_hash": "c95b07dfaee31382fe2c807d8be30e88"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/idle_back_02.png": {
+    "mtime": 1786402846.0,
+    "ast_hash": "ddf771ef9113582f0f2df43cee1a9a0c",
+    "semantic_hash": "ddf771ef9113582f0f2df43cee1a9a0c"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/idle_back_03.png": {
+    "mtime": 1786402846.0,
+    "ast_hash": "42ff2fe0653fc61bdca08250951e398c",
+    "semantic_hash": "42ff2fe0653fc61bdca08250951e398c"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/idle_back_04.png": {
+    "mtime": 1786402846.0,
+    "ast_hash": "6054483774e74936f3beafe5a7d55148",
+    "semantic_hash": "6054483774e74936f3beafe5a7d55148"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/idle_front_01.png": {
+    "mtime": 1786400592.0,
+    "ast_hash": "e4e99df912ba3311911355b98f7e2132",
+    "semantic_hash": "e4e99df912ba3311911355b98f7e2132"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/idle_front_02.png": {
+    "mtime": 1786400592.0,
+    "ast_hash": "04f9581802ea0b30ae6df7f81c556527",
+    "semantic_hash": "04f9581802ea0b30ae6df7f81c556527"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/idle_front_03.png": {
+    "mtime": 1786400592.0,
+    "ast_hash": "708c00f5ba76ddc9ecfcc1f5a6d11700",
+    "semantic_hash": "708c00f5ba76ddc9ecfcc1f5a6d11700"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/idle_front_04.png": {
+    "mtime": 1786400592.0,
+    "ast_hash": "0f05aebc0858d775f134ddd4b1679e5b",
+    "semantic_hash": "0f05aebc0858d775f134ddd4b1679e5b"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/walk_back_01.png": {
+    "mtime": 1786402778.0,
+    "ast_hash": "0474cd77525c4a35ebcef2a8cd9c94ef",
+    "semantic_hash": "0474cd77525c4a35ebcef2a8cd9c94ef"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/walk_back_02.png": {
+    "mtime": 1786402778.0,
+    "ast_hash": "a4bb440ffe16eae496fd8d96c448c9a8",
+    "semantic_hash": "a4bb440ffe16eae496fd8d96c448c9a8"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/walk_back_03.png": {
+    "mtime": 1786402778.0,
+    "ast_hash": "e56e0ee423f3fd422721d9071689443d",
+    "semantic_hash": "e56e0ee423f3fd422721d9071689443d"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/walk_front_01.png": {
+    "mtime": 1786400498.0,
+    "ast_hash": "ebcaa0d293da6421f8890327e0b3afc0",
+    "semantic_hash": "ebcaa0d293da6421f8890327e0b3afc0"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/walk_front_02.png": {
+    "mtime": 1786400498.0,
+    "ast_hash": "8ac26b1b43c4c71239e62ea8e1a84c67",
+    "semantic_hash": "8ac26b1b43c4c71239e62ea8e1a84c67"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/walk_front_03.png": {
+    "mtime": 1786400498.0,
+    "ast_hash": "b5b90e443252696d71f174197881835a",
+    "semantic_hash": "b5b90e443252696d71f174197881835a"
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/walk_front_04.png": {
+    "mtime": 1786400498.0,
+    "ast_hash": "2a3c6ad2cc6358157c725cd451722737",
+    "semantic_hash": "2a3c6ad2cc6358157c725cd451722737"
+  },
+  "tools/amostra/black_knight_frames.png": {
+    "mtime": 1786255292.0,
+    "ast_hash": "cefcfde64d87c1f6c39d9922ddc829ea",
+    "semantic_hash": "cefcfde64d87c1f6c39d9922ddc829ea"
+  },
+  "tools/amostra/energy_sorcerer_front_walk_and_idle.png": {
+    "mtime": 1786326400.0,
+    "ast_hash": "2e9423fca3d47b5aa680b32e6e7fadd5",
+    "semantic_hash": "2e9423fca3d47b5aa680b32e6e7fadd5"
+  },
+  "tools/amostra/knight_frames.png": {
+    "mtime": 1786253946.0,
+    "ast_hash": "c1fd4dc0218dbaddbed3637d55bf2539",
+    "semantic_hash": "c1fd4dc0218dbaddbed3637d55bf2539"
+  },
+  "tools/amostra/ranger_frames.png": {
+    "mtime": 1786238070.0,
+    "ast_hash": "27bab1b04a9497aaf73f3cb812756314",
+    "semantic_hash": "27bab1b04a9497aaf73f3cb812756314"
+  },
+  "tools/amostra/snow_druid_frames.png": {
+    "mtime": 1786255942.0,
+    "ast_hash": "35fda28f010d4f589081d655fcd4b7b3",
+    "semantic_hash": "35fda28f010d4f589081d655fcd4b7b3"
+  },
+  "assets/music/abismo-caverna.ogg": {
+    "mtime": 1786333718.0,
+    "ast_hash": "2cfd489e05c728194d8ec728bdeac2bc",
+    "semantic_hash": "2cfd489e05c728194d8ec728bdeac2bc"
+  },
+  "assets/music/caverna-eco.ogg": {
+    "mtime": 1786333716.0,
+    "ast_hash": "99b4aa0aafd3968495ad74261c7ebe95",
+    "semantic_hash": "99b4aa0aafd3968495ad74261c7ebe95"
+  },
+  "assets/music/caverna-masmorra.ogg": {
+    "mtime": 1786334452.0,
+    "ast_hash": "45d822146fc60075787812a329c7a4f5",
+    "semantic_hash": "45d822146fc60075787812a329c7a4f5"
+  },
+  "assets/music/caverna-templo.mp3": {
+    "mtime": 1786334450.0,
+    "ast_hash": "aa04e3111b53853f5c6ac43c21782877",
+    "semantic_hash": "aa04e3111b53853f5c6ac43c21782877"
+  },
+  "assets/music/dia-banquete.mp3": {
+    "mtime": 1786335142.0,
+    "ast_hash": "24765bd2cceaafcbb119d2dfbb44e443",
+    "semantic_hash": "24765bd2cceaafcbb119d2dfbb44e443"
+  },
+  "assets/music/dia-bardo.mp3": {
+    "mtime": 1786334446.0,
+    "ast_hash": "e1b3c117a5b187ee5c143ecb41e45b00",
+    "semantic_hash": "e1b3c117a5b187ee5c143ecb41e45b00"
+  },
+  "assets/music/dia-campina.mp3": {
+    "mtime": 1786335114.0,
+    "ast_hash": "bd6e9b70c28addca9039e0ea54fd0228",
+    "semantic_hash": "bd6e9b70c28addca9039e0ea54fd0228"
+  },
+  "assets/music/dia-celta.mp3": {
+    "mtime": 1786335110.0,
+    "ast_hash": "ce0f3df4557622b8ac251ffd5ea4a419",
+    "semantic_hash": "ce0f3df4557622b8ac251ffd5ea4a419"
+  },
+  "assets/music/dia-colheita.mp3": {
+    "mtime": 1786334442.0,
+    "ast_hash": "347ac3f8c3f9093439546bb3fae8e89b",
+    "semantic_hash": "347ac3f8c3f9093439546bb3fae8e89b"
+  },
+  "assets/music/dia-exploracao.mp3": {
+    "mtime": 1786334438.0,
+    "ast_hash": "efa3eba39cd6177d5321d48b6bec7b4f",
+    "semantic_hash": "efa3eba39cd6177d5321d48b6bec7b4f"
+  },
+  "assets/music/dia-menestrel.mp3": {
+    "mtime": 1786335132.0,
+    "ast_hash": "beb88ceb0151d8068af6e4beb211ee9b",
+    "semantic_hash": "beb88ceb0151d8068af6e4beb211ee9b"
+  },
+  "assets/music/dia-mercado.mp3": {
+    "mtime": 1786334444.0,
+    "ast_hash": "e0a3a42ce9074be1ea3188ca5004712f",
+    "semantic_hash": "e0a3a42ce9074be1ea3188ca5004712f"
+  },
+  "assets/music/dia-taverna.mp3": {
+    "mtime": 1786333712.0,
+    "ast_hash": "3a8d4cdac419c310dfeb4fba1fcbac8d",
+    "semantic_hash": "3a8d4cdac419c310dfeb4fba1fcbac8d"
+  },
+  "assets/music/dia-vila.mp3": {
+    "mtime": 1786335106.0,
+    "ast_hash": "df8f8a8521a6a83936dccb9bb0fefa56",
+    "semantic_hash": "df8f8a8521a6a83936dccb9bb0fefa56"
+  },
+  "assets/music/noite-campos.mp3": {
+    "mtime": 1786335154.0,
+    "ast_hash": "fad359d2eeb88d017012b8eba7734130",
+    "semantic_hash": "fad359d2eeb88d017012b8eba7734130"
+  },
+  "assets/music/noite-espadas.mp3": {
+    "mtime": 1786335158.0,
+    "ast_hash": "5ca9ff1c3d90a3addaa459f728a078a0",
+    "semantic_hash": "5ca9ff1c3d90a3addaa459f728a078a0"
+  },
+  "assets/music/noite-lamento.mp3": {
+    "mtime": 1786335148.0,
+    "ast_hash": "cc10a2305cd5fd01b2d6ba8613d144b8",
+    "semantic_hash": "cc10a2305cd5fd01b2d6ba8613d144b8"
+  },
+  "assets/sfx/_corpo_forte-2.ogg": {
+    "mtime": 1786333072.0668547,
+    "ast_hash": "365e865981118657bf9356b949f7481b",
+    "semantic_hash": "365e865981118657bf9356b949f7481b"
+  },
+  "assets/sfx/_corpo_forte-3.ogg": {
+    "mtime": 1786333072.0668547,
+    "ast_hash": "3d9328c2fffaa3409bca2f8820dfb045",
+    "semantic_hash": "3d9328c2fffaa3409bca2f8820dfb045"
+  },
+  "assets/sfx/_corpo_forte.ogg": {
+    "mtime": 1786333072.065811,
+    "ast_hash": "7e54f01fa9104a0bbf7b15edb96785bd",
+    "semantic_hash": "7e54f01fa9104a0bbf7b15edb96785bd"
+  },
+  "assets/sfx/_corpo_medio-2.ogg": {
+    "mtime": 1786333072.0924919,
+    "ast_hash": "daf869c83db8d9799689a01836439d2c",
+    "semantic_hash": "daf869c83db8d9799689a01836439d2c"
+  },
+  "assets/sfx/_corpo_medio-3.ogg": {
+    "mtime": 1786333072.0924919,
+    "ast_hash": "e5e0935d430fe5a46e269899debedf4c",
+    "semantic_hash": "e5e0935d430fe5a46e269899debedf4c"
+  },
+  "assets/sfx/_corpo_medio-4.ogg": {
+    "mtime": 1786333072.0924919,
+    "ast_hash": "544f03b7af6b7471160dfcbfd4eb3772",
+    "semantic_hash": "544f03b7af6b7471160dfcbfd4eb3772"
+  },
+  "assets/sfx/_corpo_medio.ogg": {
+    "mtime": 1786333072.0912552,
+    "ast_hash": "2b2e19808f152829f08db07595a19fa2",
+    "semantic_hash": "2b2e19808f152829f08db07595a19fa2"
+  },
+  "assets/sfx/atk_axe-2.ogg": {
+    "mtime": 1786333305.8653262,
+    "ast_hash": "212799ef9a299e2a7fc2b504560f1722",
+    "semantic_hash": "212799ef9a299e2a7fc2b504560f1722"
+  },
+  "assets/sfx/atk_axe.ogg": {
+    "mtime": 1786333072.5330875,
+    "ast_hash": "8f357819da0d5101a67a5e46be6de1ab",
+    "semantic_hash": "8f357819da0d5101a67a5e46be6de1ab"
+  },
+  "assets/sfx/atk_club-2.ogg": {
+    "mtime": 1786333072.0965426,
+    "ast_hash": "3f61b920daa19f2177406c8f421a146e",
+    "semantic_hash": "3f61b920daa19f2177406c8f421a146e"
+  },
+  "assets/sfx/atk_club-3.ogg": {
+    "mtime": 1786333072.097674,
+    "ast_hash": "573ce1def562dd08d3d5117a4fcd2fbe",
+    "semantic_hash": "573ce1def562dd08d3d5117a4fcd2fbe"
+  },
+  "assets/sfx/atk_club.ogg": {
+    "mtime": 1786333072.0965426,
+    "ast_hash": "87e4ce8a211b6e9529649cf9f2f0a083",
+    "semantic_hash": "87e4ce8a211b6e9529649cf9f2f0a083"
+  },
+  "assets/sfx/atk_distance-2.ogg": {
+    "mtime": 1786333305.866328,
+    "ast_hash": "21f1683a36e6b56523fa67ab267ec418",
+    "semantic_hash": "21f1683a36e6b56523fa67ab267ec418"
+  },
+  "assets/sfx/atk_distance.ogg": {
+    "mtime": 1786333305.8653262,
+    "ast_hash": "0304ed1083f5847c75236020659c754a",
+    "semantic_hash": "0304ed1083f5847c75236020659c754a"
+  },
+  "assets/sfx/atk_fist-2.ogg": {
+    "mtime": 1786333072.0577884,
+    "ast_hash": "4171126622b5ef2b1eecdd25da62bb27",
+    "semantic_hash": "4171126622b5ef2b1eecdd25da62bb27"
+  },
+  "assets/sfx/atk_fist-3.ogg": {
+    "mtime": 1786333072.0577884,
+    "ast_hash": "3add4bb3c16a579b9931dbc3c055d599",
+    "semantic_hash": "3add4bb3c16a579b9931dbc3c055d599"
+  },
+  "assets/sfx/atk_fist.ogg": {
+    "mtime": 1786333072.056573,
+    "ast_hash": "7442bad8f295468b2fa89c7f5cadd9a4",
+    "semantic_hash": "7442bad8f295468b2fa89c7f5cadd9a4"
+  },
+  "assets/sfx/atk_sword-2.ogg": {
+    "mtime": 1786333305.8653262,
+    "ast_hash": "0304ed1083f5847c75236020659c754a",
+    "semantic_hash": "0304ed1083f5847c75236020659c754a"
+  },
+  "assets/sfx/atk_sword-3.ogg": {
+    "mtime": 1786333305.866328,
+    "ast_hash": "21f1683a36e6b56523fa67ab267ec418",
+    "semantic_hash": "21f1683a36e6b56523fa67ab267ec418"
+  },
+  "assets/sfx/atk_sword.ogg": {
+    "mtime": 1786333305.8653262,
+    "ast_hash": "212799ef9a299e2a7fc2b504560f1722",
+    "semantic_hash": "212799ef9a299e2a7fc2b504560f1722"
+  },
+  "assets/sfx/atk_wand-2.ogg": {
+    "mtime": 1786333305.8997927,
+    "ast_hash": "cc5e0da13c61d4aa3fd8b62d20be3466",
+    "semantic_hash": "cc5e0da13c61d4aa3fd8b62d20be3466"
+  },
+  "assets/sfx/atk_wand.ogg": {
+    "mtime": 1786333305.8997927,
+    "ast_hash": "4800fc6d175ea6df2ff29d5b5583ca93",
+    "semantic_hash": "4800fc6d175ea6df2ff29d5b5583ca93"
+  },
+  "assets/sfx/block-2.ogg": {
+    "mtime": 1786333072.0713959,
+    "ast_hash": "c603ac726af6e32f97351bb6d0f2f0f8",
+    "semantic_hash": "c603ac726af6e32f97351bb6d0f2f0f8"
+  },
+  "assets/sfx/block-3.ogg": {
+    "mtime": 1786333072.0713959,
+    "ast_hash": "5ca6a1f3f780a62b9d5991bbb435fa19",
+    "semantic_hash": "5ca6a1f3f780a62b9d5991bbb435fa19"
+  },
+  "assets/sfx/block-4.ogg": {
+    "mtime": 1786333072.0713959,
+    "ast_hash": "3ab07627f0aca5d7ad6ecf874e2d7367",
+    "semantic_hash": "3ab07627f0aca5d7ad6ecf874e2d7367"
+  },
+  "assets/sfx/block.ogg": {
+    "mtime": 1786333072.0700347,
+    "ast_hash": "81990e0b141b2bea91517dd22aec13b5",
+    "semantic_hash": "81990e0b141b2bea91517dd22aec13b5"
+  },
+  "assets/sfx/buff-2.ogg": {
+    "mtime": 1786333305.886123,
+    "ast_hash": "cc44bcec8568d395e7904b7f566a52c4",
+    "semantic_hash": "cc44bcec8568d395e7904b7f566a52c4"
+  },
+  "assets/sfx/buff.ogg": {
+    "mtime": 1786333305.886123,
+    "ast_hash": "83682cc4f3317cf098d470447d2e6d78",
+    "semantic_hash": "83682cc4f3317cf098d470447d2e6d78"
+  },
+  "assets/sfx/crit-2.ogg": {
+    "mtime": 1786333072.078277,
+    "ast_hash": "2c533d107b85a7f038b4d8b916968311",
+    "semantic_hash": "2c533d107b85a7f038b4d8b916968311"
+  },
+  "assets/sfx/crit-3.ogg": {
+    "mtime": 1786333072.078277,
+    "ast_hash": "4592d7aff92b9c2c43deb165771f803f",
+    "semantic_hash": "4592d7aff92b9c2c43deb165771f803f"
+  },
+  "assets/sfx/crit-4.ogg": {
+    "mtime": 1786333072.0795324,
+    "ast_hash": "b1d986bce9b8d20f5327f449dc98c991",
+    "semantic_hash": "b1d986bce9b8d20f5327f449dc98c991"
+  },
+  "assets/sfx/crit.ogg": {
+    "mtime": 1786333072.078277,
+    "ast_hash": "7b654284d68b07a5ecb4c7b5668f7fe0",
+    "semantic_hash": "7b654284d68b07a5ecb4c7b5668f7fe0"
+  },
+  "assets/sfx/death.ogg": {
+    "mtime": 1786333072.3910723,
+    "ast_hash": "c1295c7f230d9cd5108e25455405daa8",
+    "semantic_hash": "c1295c7f230d9cd5108e25455405daa8"
+  },
+  "assets/sfx/die-2.ogg": {
+    "mtime": 1786333305.8795934,
+    "ast_hash": "e1eec9d68a2d779ce01a7ff9deb60bcb",
+    "semantic_hash": "e1eec9d68a2d779ce01a7ff9deb60bcb"
+  },
+  "assets/sfx/die-3.ogg": {
+    "mtime": 1786333305.8805964,
+    "ast_hash": "d97eb192614a85b37d3d3f46d1a5b1e5",
+    "semantic_hash": "d97eb192614a85b37d3d3f46d1a5b1e5"
+  },
+  "assets/sfx/die.ogg": {
+    "mtime": 1786333305.8713937,
+    "ast_hash": "943042377fe499692220f5281a70bfff",
+    "semantic_hash": "943042377fe499692220f5281a70bfff"
+  },
+  "assets/sfx/energy-2.ogg": {
+    "mtime": 1786333305.8997927,
+    "ast_hash": "cc5e0da13c61d4aa3fd8b62d20be3466",
+    "semantic_hash": "cc5e0da13c61d4aa3fd8b62d20be3466"
+  },
+  "assets/sfx/energy.ogg": {
+    "mtime": 1786333305.8997927,
+    "ast_hash": "4800fc6d175ea6df2ff29d5b5583ca93",
+    "semantic_hash": "4800fc6d175ea6df2ff29d5b5583ca93"
+  },
+  "assets/sfx/equip-2.ogg": {
+    "mtime": 1786333072.5344915,
+    "ast_hash": "c5088752a8b01837d294d6c687957f67",
+    "semantic_hash": "c5088752a8b01837d294d6c687957f67"
+  },
+  "assets/sfx/equip-3.ogg": {
+    "mtime": 1786333072.5358992,
+    "ast_hash": "7bb086582f50adf131d662d839d25071",
+    "semantic_hash": "7bb086582f50adf131d662d839d25071"
+  },
+  "assets/sfx/equip.ogg": {
+    "mtime": 1786333072.5330875,
+    "ast_hash": "3c4786f48407df7594b6b61c3ab8a108",
+    "semantic_hash": "3c4786f48407df7594b6b61c3ab8a108"
+  },
+  "assets/sfx/error-2.ogg": {
+    "mtime": 1786333072.2238853,
+    "ast_hash": "48e561761e8706e3be4a804dbe97b468",
+    "semantic_hash": "48e561761e8706e3be4a804dbe97b468"
+  },
+  "assets/sfx/error.ogg": {
+    "mtime": 1786333072.2228854,
+    "ast_hash": "5411e5aef377d635c40fe3fbb78f0d84",
+    "semantic_hash": "5411e5aef377d635c40fe3fbb78f0d84"
+  },
+  "assets/sfx/fire-2.ogg": {
+    "mtime": 1786333305.904519,
+    "ast_hash": "53b45fef1f99f030b0317a2fd8077dce",
+    "semantic_hash": "53b45fef1f99f030b0317a2fd8077dce"
+  },
+  "assets/sfx/fire-3.ogg": {
+    "mtime": 1786333305.904519,
+    "ast_hash": "8946ebbbf4258439158900da21584e4a",
+    "semantic_hash": "8946ebbbf4258439158900da21584e4a"
+  },
+  "assets/sfx/fire.ogg": {
+    "mtime": 1786333305.9030151,
+    "ast_hash": "4d60ffa09f391fe1e6f20be5d208b217",
+    "semantic_hash": "4d60ffa09f391fe1e6f20be5d208b217"
+  },
+  "assets/sfx/heal-2.wav": {
+    "mtime": 1786333305.9174519,
+    "ast_hash": "1833b38bf285cdc12ec187d11fdd36ab",
+    "semantic_hash": "1833b38bf285cdc12ec187d11fdd36ab"
+  },
+  "assets/sfx/heal-3.wav": {
+    "mtime": 1786333305.91946,
+    "ast_hash": "ebb2598f841fd6b0e83b95a29c6eb467",
+    "semantic_hash": "ebb2598f841fd6b0e83b95a29c6eb467"
+  },
+  "assets/sfx/heal-4.wav": {
+    "mtime": 1786333305.9204645,
+    "ast_hash": "ae5d23f7d0e63fa85a9086f8a1f39377",
+    "semantic_hash": "ae5d23f7d0e63fa85a9086f8a1f39377"
+  },
+  "assets/sfx/heal.wav": {
+    "mtime": 1786333305.9154446,
+    "ast_hash": "4e4de784f95b7149d261639f2f4f8d38",
+    "semantic_hash": "4e4de784f95b7149d261639f2f4f8d38"
+  },
+  "assets/sfx/hit-2.ogg": {
+    "mtime": 1786333072.0833502,
+    "ast_hash": "f50de95ce9bd80c125a6829181d55de3",
+    "semantic_hash": "f50de95ce9bd80c125a6829181d55de3"
+  },
+  "assets/sfx/hit-3.ogg": {
+    "mtime": 1786333072.0833502,
+    "ast_hash": "2506d200e49f3e3eb0c8f1e564a1c4a5",
+    "semantic_hash": "2506d200e49f3e3eb0c8f1e564a1c4a5"
+  },
+  "assets/sfx/hit-4.ogg": {
+    "mtime": 1786333072.0843506,
+    "ast_hash": "982863bfb97a3b6911abbed44ae53a91",
+    "semantic_hash": "982863bfb97a3b6911abbed44ae53a91"
+  },
+  "assets/sfx/hit.ogg": {
+    "mtime": 1786333072.0823483,
+    "ast_hash": "661d51072d99eea1f4fb952d8ffa1904",
+    "semantic_hash": "661d51072d99eea1f4fb952d8ffa1904"
+  },
+  "assets/sfx/hurt-2.ogg": {
+    "mtime": 1786333305.8723977,
+    "ast_hash": "0db1fd53c534b3ffa80d95582b390da9",
+    "semantic_hash": "0db1fd53c534b3ffa80d95582b390da9"
+  },
+  "assets/sfx/hurt.ogg": {
+    "mtime": 1786333305.8723977,
+    "ast_hash": "e72d9c71a1ffcd55b30d7b2b89e86e8c",
+    "semantic_hash": "e72d9c71a1ffcd55b30d7b2b89e86e8c"
+  },
+  "assets/sfx/ice-2.ogg": {
+    "mtime": 1786333072.063809,
+    "ast_hash": "09c8fe60ace6d390ff0098179f1c164b",
+    "semantic_hash": "09c8fe60ace6d390ff0098179f1c164b"
+  },
+  "assets/sfx/ice-3.ogg": {
+    "mtime": 1786333072.0648108,
+    "ast_hash": "b7aa9b2eb68d882bd822898c362bb4b3",
+    "semantic_hash": "b7aa9b2eb68d882bd822898c362bb4b3"
+  },
+  "assets/sfx/ice.ogg": {
+    "mtime": 1786333072.063809,
+    "ast_hash": "1bedc0ad4696b6986c3fdecb82f9d7f3",
+    "semantic_hash": "1bedc0ad4696b6986c3fdecb82f9d7f3"
+  },
+  "assets/sfx/levelup.ogg": {
+    "mtime": 1786333072.389059,
+    "ast_hash": "2a21ef914965194a4737da6d58e226bd",
+    "semantic_hash": "2a21ef914965194a4737da6d58e226bd"
+  },
+  "assets/sfx/rune-2.ogg": {
+    "mtime": 1786333305.886123,
+    "ast_hash": "cc44bcec8568d395e7904b7f566a52c4",
+    "semantic_hash": "cc44bcec8568d395e7904b7f566a52c4"
+  },
+  "assets/sfx/rune-3.ogg": {
+    "mtime": 1786333305.8871276,
+    "ast_hash": "1ee5ef307784f03b506f41d71e90bcf0",
+    "semantic_hash": "1ee5ef307784f03b506f41d71e90bcf0"
+  },
+  "assets/sfx/rune-4.ogg": {
+    "mtime": 1786333305.8871276,
+    "ast_hash": "4bb5bd29b596616d74a5867dffb47332",
+    "semantic_hash": "4bb5bd29b596616d74a5867dffb47332"
+  },
+  "assets/sfx/rune.ogg": {
+    "mtime": 1786333305.886123,
+    "ast_hash": "83682cc4f3317cf098d470447d2e6d78",
+    "semantic_hash": "83682cc4f3317cf098d470447d2e6d78"
+  },
+  "assets/sfx/shoot-2.ogg": {
+    "mtime": 1786333305.866328,
+    "ast_hash": "21f1683a36e6b56523fa67ab267ec418",
+    "semantic_hash": "21f1683a36e6b56523fa67ab267ec418"
+  },
+  "assets/sfx/shoot.ogg": {
+    "mtime": 1786333305.8653262,
+    "ast_hash": "0304ed1083f5847c75236020659c754a",
+    "semantic_hash": "0304ed1083f5847c75236020659c754a"
+  },
+  "assets/sfx/skillup-2.ogg": {
+    "mtime": 1786333072.387662,
+    "ast_hash": "adb6b8fa1b15778072467c597dff25e6",
+    "semantic_hash": "adb6b8fa1b15778072467c597dff25e6"
+  },
+  "assets/sfx/skillup.ogg": {
+    "mtime": 1786333072.3961837,
+    "ast_hash": "7a8371dec16b2f38bffd381175a3d33f",
+    "semantic_hash": "7a8371dec16b2f38bffd381175a3d33f"
+  },
+  "assets/sfx/spell_death-2.ogg": {
+    "mtime": 1786333305.8784502,
+    "ast_hash": "35a4a5878cca95292710c0eae6868c3f",
+    "semantic_hash": "35a4a5878cca95292710c0eae6868c3f"
+  },
+  "assets/sfx/spell_death.ogg": {
+    "mtime": 1786333305.8774304,
+    "ast_hash": "f023741ba5347ca3c61cf69c0acb74f0",
+    "semantic_hash": "f023741ba5347ca3c61cf69c0acb74f0"
+  },
+  "assets/sfx/spell_earth-2.ogg": {
+    "mtime": 1786333305.9056306,
+    "ast_hash": "ce16bc6dfa1e9022f476b8b23cf79c4a",
+    "semantic_hash": "ce16bc6dfa1e9022f476b8b23cf79c4a"
+  },
+  "assets/sfx/spell_earth-3.ogg": {
+    "mtime": 1786333305.9066324,
+    "ast_hash": "f1e465a13b3efa4e970b0ae5ccb06528",
+    "semantic_hash": "f1e465a13b3efa4e970b0ae5ccb06528"
+  },
+  "assets/sfx/spell_earth-4.ogg": {
+    "mtime": 1786333305.9066324,
+    "ast_hash": "c8318766e3ddea83930142504b965ba2",
+    "semantic_hash": "c8318766e3ddea83930142504b965ba2"
+  },
+  "assets/sfx/spell_earth.ogg": {
+    "mtime": 1786333305.9056306,
+    "ast_hash": "b01b63cb07805865e30e4e6d333dde92",
+    "semantic_hash": "b01b63cb07805865e30e4e6d333dde92"
+  },
+  "assets/sfx/spell_energy-2.ogg": {
+    "mtime": 1786333305.8997927,
+    "ast_hash": "cc5e0da13c61d4aa3fd8b62d20be3466",
+    "semantic_hash": "cc5e0da13c61d4aa3fd8b62d20be3466"
+  },
+  "assets/sfx/spell_energy.ogg": {
+    "mtime": 1786333305.8997927,
+    "ast_hash": "4800fc6d175ea6df2ff29d5b5583ca93",
+    "semantic_hash": "4800fc6d175ea6df2ff29d5b5583ca93"
+  },
+  "assets/sfx/spell_fire-2.ogg": {
+    "mtime": 1786333305.9010034,
+    "ast_hash": "c1cf2da3d4c134dc97f9e413ce27e207",
+    "semantic_hash": "c1cf2da3d4c134dc97f9e413ce27e207"
+  },
+  "assets/sfx/spell_fire-3.ogg": {
+    "mtime": 1786333305.9020061,
+    "ast_hash": "675d285aa492490c5b12a3cdeb25aebf",
+    "semantic_hash": "675d285aa492490c5b12a3cdeb25aebf"
+  },
+  "assets/sfx/spell_fire-4.ogg": {
+    "mtime": 1786333305.9030151,
+    "ast_hash": "03d0ae817b92842f268230196c703ad4",
+    "semantic_hash": "03d0ae817b92842f268230196c703ad4"
+  },
+  "assets/sfx/spell_fire.ogg": {
+    "mtime": 1786333305.9010034,
+    "ast_hash": "07238abe14e0d0b9fdaeb2fddbcc75df",
+    "semantic_hash": "07238abe14e0d0b9fdaeb2fddbcc75df"
+  },
+  "assets/sfx/spell_holy-2.wav": {
+    "mtime": 1786333305.912928,
+    "ast_hash": "056b1038e6859693a6836984d6fd2821",
+    "semantic_hash": "056b1038e6859693a6836984d6fd2821"
+  },
+  "assets/sfx/spell_holy-3.wav": {
+    "mtime": 1786333305.9144316,
+    "ast_hash": "1ff46a91b1e2b666e74bf3b5075a1d0a",
+    "semantic_hash": "1ff46a91b1e2b666e74bf3b5075a1d0a"
+  },
+  "assets/sfx/spell_holy.wav": {
+    "mtime": 1786333305.911925,
+    "ast_hash": "42e16d13799eb8bba4f0b5007ef0b3aa",
+    "semantic_hash": "42e16d13799eb8bba4f0b5007ef0b3aa"
+  },
+  "assets/sfx/spell_ice-2.ogg": {
+    "mtime": 1786333072.0614085,
+    "ast_hash": "a2a4923a52fe7539f1ad6117233fed58",
+    "semantic_hash": "a2a4923a52fe7539f1ad6117233fed58"
+  },
+  "assets/sfx/spell_ice-3.ogg": {
+    "mtime": 1786333072.062799,
+    "ast_hash": "66961bf5a5335759c75450d932ed8ab5",
+    "semantic_hash": "66961bf5a5335759c75450d932ed8ab5"
+  },
+  "assets/sfx/spell_ice.ogg": {
+    "mtime": 1786333072.0614085,
+    "ast_hash": "bfe961851857bd0385bec6bb3a2f8cf4",
+    "semantic_hash": "bfe961851857bd0385bec6bb3a2f8cf4"
+  },
+  "assets/sfx/stairs-2.ogg": {
+    "mtime": 1786333072.5384235,
+    "ast_hash": "6c1a5859e223844e7fb5fdfb1210bf1a",
+    "semantic_hash": "6c1a5859e223844e7fb5fdfb1210bf1a"
+  },
+  "assets/sfx/stairs-3.ogg": {
+    "mtime": 1786333072.539562,
+    "ast_hash": "f319fa326b96e6148a1b91fe47ab649a",
+    "semantic_hash": "f319fa326b96e6148a1b91fe47ab649a"
+  },
+  "assets/sfx/stairs.ogg": {
+    "mtime": 1786333072.5384235,
+    "ast_hash": "983491662cb14781dd0b08ce0191e3d6",
+    "semantic_hash": "983491662cb14781dd0b08ce0191e3d6"
+  },
+  "assets/sfx/step_cave-2.ogg": {
+    "mtime": 1786333072.04541,
+    "ast_hash": "26fc6ee64072ac9e564297c61d8ee9be",
+    "semantic_hash": "26fc6ee64072ac9e564297c61d8ee9be"
+  },
+  "assets/sfx/step_cave-3.ogg": {
+    "mtime": 1786333072.0464153,
+    "ast_hash": "9ea5a861dc000861f60b26f47cdd9988",
+    "semantic_hash": "9ea5a861dc000861f60b26f47cdd9988"
+  },
+  "assets/sfx/step_cave-4.ogg": {
+    "mtime": 1786333072.0464153,
+    "ast_hash": "4cd1c38becd337a09644104c9e905a2a",
+    "semantic_hash": "4cd1c38becd337a09644104c9e905a2a"
+  },
+  "assets/sfx/step_cave-5.ogg": {
+    "mtime": 1786333072.0474236,
+    "ast_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6",
+    "semantic_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6"
+  },
+  "assets/sfx/step_cave.ogg": {
+    "mtime": 1786333072.04541,
+    "ast_hash": "1a54419c397fd9c1bdb087bf0fff7919",
+    "semantic_hash": "1a54419c397fd9c1bdb087bf0fff7919"
+  },
+  "assets/sfx/step_dirt-2.ogg": {
+    "mtime": 1786333072.5454633,
+    "ast_hash": "e9b4a723aec382f25f5b8f3b97711384",
+    "semantic_hash": "e9b4a723aec382f25f5b8f3b97711384"
+  },
+  "assets/sfx/step_dirt-3.ogg": {
+    "mtime": 1786333072.5465515,
+    "ast_hash": "9b1fbd49f2b5b756e160a6c9ba398191",
+    "semantic_hash": "9b1fbd49f2b5b756e160a6c9ba398191"
+  },
+  "assets/sfx/step_dirt-4.ogg": {
+    "mtime": 1786333072.5465515,
+    "ast_hash": "69a23043ecf3b78576866c6b06135dfe",
+    "semantic_hash": "69a23043ecf3b78576866c6b06135dfe"
+  },
+  "assets/sfx/step_dirt-5.ogg": {
+    "mtime": 1786333072.5475552,
+    "ast_hash": "e7db2bcac543ead3f10942ca8f5b0422",
+    "semantic_hash": "e7db2bcac543ead3f10942ca8f5b0422"
+  },
+  "assets/sfx/step_dirt.ogg": {
+    "mtime": 1786333072.5454633,
+    "ast_hash": "e5ba26b141619b182b206145b4047edb",
+    "semantic_hash": "e5ba26b141619b182b206145b4047edb"
+  },
+  "assets/sfx/step_grass-2.ogg": {
+    "mtime": 1786333072.048428,
+    "ast_hash": "c12f296eb7db4fe1dda3b3d2b6ba0ad3",
+    "semantic_hash": "c12f296eb7db4fe1dda3b3d2b6ba0ad3"
+  },
+  "assets/sfx/step_grass-3.ogg": {
+    "mtime": 1786333072.048428,
+    "ast_hash": "ebbfae271d23bbdb77d9371477e13dac",
+    "semantic_hash": "ebbfae271d23bbdb77d9371477e13dac"
+  },
+  "assets/sfx/step_grass-4.ogg": {
+    "mtime": 1786333072.0494506,
+    "ast_hash": "4a0b671b14cf708d59cadb6d28ec474d",
+    "semantic_hash": "4a0b671b14cf708d59cadb6d28ec474d"
+  },
+  "assets/sfx/step_grass-5.ogg": {
+    "mtime": 1786333072.0494506,
+    "ast_hash": "f007e368647e726606037bfc576226bb",
+    "semantic_hash": "f007e368647e726606037bfc576226bb"
+  },
+  "assets/sfx/step_grass.ogg": {
+    "mtime": 1786333072.0474236,
+    "ast_hash": "c093e23e647821ea7bfc451541476d5a",
+    "semantic_hash": "c093e23e647821ea7bfc451541476d5a"
+  },
+  "assets/sfx/step_rock-2.ogg": {
+    "mtime": 1786333072.04541,
+    "ast_hash": "26fc6ee64072ac9e564297c61d8ee9be",
+    "semantic_hash": "26fc6ee64072ac9e564297c61d8ee9be"
+  },
+  "assets/sfx/step_rock-3.ogg": {
+    "mtime": 1786333072.0464153,
+    "ast_hash": "9ea5a861dc000861f60b26f47cdd9988",
+    "semantic_hash": "9ea5a861dc000861f60b26f47cdd9988"
+  },
+  "assets/sfx/step_rock-4.ogg": {
+    "mtime": 1786333072.0464153,
+    "ast_hash": "4cd1c38becd337a09644104c9e905a2a",
+    "semantic_hash": "4cd1c38becd337a09644104c9e905a2a"
+  },
+  "assets/sfx/step_rock-5.ogg": {
+    "mtime": 1786333072.0474236,
+    "ast_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6",
+    "semantic_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6"
+  },
+  "assets/sfx/step_rock.ogg": {
+    "mtime": 1786333072.04541,
+    "ast_hash": "1a54419c397fd9c1bdb087bf0fff7919",
+    "semantic_hash": "1a54419c397fd9c1bdb087bf0fff7919"
+  },
+  "assets/sfx/step_sand-2.ogg": {
+    "mtime": 1786333072.050451,
+    "ast_hash": "6f6fed7a85c72558568d18fcafef1744",
+    "semantic_hash": "6f6fed7a85c72558568d18fcafef1744"
+  },
+  "assets/sfx/step_sand-3.ogg": {
+    "mtime": 1786333072.0515702,
+    "ast_hash": "75eb3eb0d8025f41cbf167127133b14c",
+    "semantic_hash": "75eb3eb0d8025f41cbf167127133b14c"
+  },
+  "assets/sfx/step_sand-4.ogg": {
+    "mtime": 1786333072.0515702,
+    "ast_hash": "f8da25cef8fa18e8e4129f128bb81e9d",
+    "semantic_hash": "f8da25cef8fa18e8e4129f128bb81e9d"
+  },
+  "assets/sfx/step_sand-5.ogg": {
+    "mtime": 1786333072.0525718,
+    "ast_hash": "0b494074142a917e6f87d1b881d30577",
+    "semantic_hash": "0b494074142a917e6f87d1b881d30577"
+  },
+  "assets/sfx/step_sand.ogg": {
+    "mtime": 1786333072.0494506,
+    "ast_hash": "453aee8cc86c73701d363534fcab0897",
+    "semantic_hash": "453aee8cc86c73701d363534fcab0897"
+  },
+  "assets/sfx/step_stone-2.ogg": {
+    "mtime": 1786333072.04541,
+    "ast_hash": "26fc6ee64072ac9e564297c61d8ee9be",
+    "semantic_hash": "26fc6ee64072ac9e564297c61d8ee9be"
+  },
+  "assets/sfx/step_stone-3.ogg": {
+    "mtime": 1786333072.0464153,
+    "ast_hash": "9ea5a861dc000861f60b26f47cdd9988",
+    "semantic_hash": "9ea5a861dc000861f60b26f47cdd9988"
+  },
+  "assets/sfx/step_stone-4.ogg": {
+    "mtime": 1786333072.0464153,
+    "ast_hash": "4cd1c38becd337a09644104c9e905a2a",
+    "semantic_hash": "4cd1c38becd337a09644104c9e905a2a"
+  },
+  "assets/sfx/step_stone-5.ogg": {
+    "mtime": 1786333072.0474236,
+    "ast_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6",
+    "semantic_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6"
+  },
+  "assets/sfx/step_stone.ogg": {
+    "mtime": 1786333072.04541,
+    "ast_hash": "1a54419c397fd9c1bdb087bf0fff7919",
+    "semantic_hash": "1a54419c397fd9c1bdb087bf0fff7919"
+  },
+  "assets/sfx/unequip-2.ogg": {
+    "mtime": 1786333072.5369976,
+    "ast_hash": "7419241aec89f62472f1171073662217",
+    "semantic_hash": "7419241aec89f62472f1171073662217"
+  },
+  "assets/sfx/unequip.ogg": {
+    "mtime": 1786333072.5358992,
+    "ast_hash": "7bb086582f50adf131d662d839d25071",
+    "semantic_hash": "7bb086582f50adf131d662d839d25071"
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_alabard.png": {
+    "mtime": 1786547636.905967,
+    "ast_hash": "fa09234985279277424931843418c5c8",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_amulet.png": {
+    "mtime": 1786547550.928179,
+    "ast_hash": "0f55ab7dec37e651940b819999cf351e",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_armor.png": {
+    "mtime": 1786547567.2581935,
+    "ast_hash": "29e8197634240acc4348eb4b93321496",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_backpack.png": {
+    "mtime": 1786547535.2234778,
+    "ast_hash": "2849d542e484191101bcc61b5d01caa2",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_graves.png": {
+    "mtime": 1786547576.094756,
+    "ast_hash": "183cac2df3843920c03caa654a727213",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_helmet.png": {
+    "mtime": 1786547562.8763666,
+    "ast_hash": "8579fa31219e652333feea4be768750f",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_legs.png": {
+    "mtime": 1786547571.770428,
+    "ast_hash": "b133539ea8606d3060dbfdb83b34e58e",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_mace.png": {
+    "mtime": 1786547591.8850935,
+    "ast_hash": "46efca8ccad11dcf0ddf9433e06e18be",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_maul.png": {
+    "mtime": 1786547620.825376,
+    "ast_hash": "3336d616d70989b8eeebf909f46d33e6",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_ohaxe.png": {
+    "mtime": 1786547626.5901866,
+    "ast_hash": "65eee3b5497ad25f2efe5d49b9a26492",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_ohsword.png": {
+    "mtime": 1786547611.3729599,
+    "ast_hash": "aaecf2438e956431e5eaf41528d9660d",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_ring.png": {
+    "mtime": 1786547558.6682746,
+    "ast_hash": "52a002b11baa43c3ba4416b4a76f8aaf",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_set.png": {
+    "mtime": 1786414574.5555508,
+    "ast_hash": "a70879b550db06954afb619be102177c",
+    "semantic_hash": "a70879b550db06954afb619be102177c"
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_shield.png": {
+    "mtime": 1786547583.9846437,
+    "ast_hash": "987d4a429e6c722f4ab2de88b576f106",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_thaxe.png": {
+    "mtime": 1786547648.7022674,
+    "ast_hash": "3078bbbbaeee4cd84f2ec419b546d040",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/golden_guardian_thsword.png": {
+    "mtime": 1786547643.0572617,
+    "ast_hash": "230c55dd10dc94ae67fe1907d0b9d8cc",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_amulet.png": {
+    "mtime": 1786577796.5930123,
+    "ast_hash": "8d9e9271121b9b7e282b4a73838404a0",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_armor.png": {
+    "mtime": 1786577796.6025934,
+    "ast_hash": "6e072437c7758cd5383ed8a21c7bb2d0",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_axe.png": {
+    "mtime": 1786577796.657494,
+    "ast_hash": "25baabae6fe15134a49e25b2a325f669",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_boots.png": {
+    "mtime": 1786577796.612192,
+    "ast_hash": "4f1c995df4063adac5efde7c5643b989",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_greataxe.png": {
+    "mtime": 1786577796.6929946,
+    "ast_hash": "b47373636c7dae9ed9e77dbd8765d56e",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_greatsword.png": {
+    "mtime": 1786577796.7011998,
+    "ast_hash": "f748f710ffab6169f7075de8c0931925",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_halberd.png": {
+    "mtime": 1786577796.5843906,
+    "ast_hash": "67849c3f46d043e11a98c3e0b33d7dbe",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_helmet.png": {
+    "mtime": 1786577796.621894,
+    "ast_hash": "af9ee0309046030ada535edb620130ce",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_legs.png": {
+    "mtime": 1786577796.6309133,
+    "ast_hash": "66996023c7f33097fb5822f54edfdbf5",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_mace.png": {
+    "mtime": 1786577796.6405835,
+    "ast_hash": "7c1a64ffb45c8fc5943575ba0b89a504",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_maul.png": {
+    "mtime": 1786577796.6481676,
+    "ast_hash": "f38e5504fc04e60c7f967bbdd2db903b",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_ring.png": {
+    "mtime": 1786577796.6738708,
+    "ast_hash": "ca06624138562733ab44b371aafd048f",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_shield.png": {
+    "mtime": 1786577796.6839168,
+    "ast_hash": "12e93e815d43608836e5ef28c0f3f5f4",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_sword.png": {
+    "mtime": 1786577796.6652348,
+    "ast_hash": "df0ef8f2d4d168c3f767a725b76abf41",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1786419231.587348,
+    "ast_hash": "43c7360954fcb6a3ffc06bdb859c0029",
+    "semantic_hash": "43c7360954fcb6a3ffc06bdb859c0029"
+  },
+  "assets/skins/sets/ancestral_hunter_set/ancestral_hunter_amulet.png": {
+    "mtime": 1786500563.451005,
+    "ast_hash": "cd8a68117f9aa6ebc2913fa653fe6f47",
+    "semantic_hash": "cd8a68117f9aa6ebc2913fa653fe6f47"
+  },
+  "assets/skins/sets/ancestral_hunter_set/ancestral_hunter_armor.png": {
+    "mtime": 1786500563.4721828,
+    "ast_hash": "606cff890648d0ac481f6f1826a08080",
+    "semantic_hash": "606cff890648d0ac481f6f1826a08080"
+  },
+  "assets/skins/sets/ancestral_hunter_set/ancestral_hunter_backpack.png": {
+    "mtime": 1786500563.4378562,
+    "ast_hash": "229a43ebdb2098b76f49bc153d573c69",
+    "semantic_hash": "229a43ebdb2098b76f49bc153d573c69"
+  },
+  "assets/skins/sets/ancestral_hunter_set/ancestral_hunter_boots.png": {
+    "mtime": 1786500563.4855137,
+    "ast_hash": "c96ecf5143cfd991d48393dfaf2fa44b",
+    "semantic_hash": "c96ecf5143cfd991d48393dfaf2fa44b"
+  },
+  "assets/skins/sets/ancestral_hunter_set/ancestral_hunter_bow.png": {
+    "mtime": 1786500563.498257,
+    "ast_hash": "501eb84df4fb3b29e14f11d6a707bd0e",
+    "semantic_hash": "501eb84df4fb3b29e14f11d6a707bd0e"
+  },
+  "assets/skins/sets/ancestral_hunter_set/ancestral_hunter_hood.png": {
+    "mtime": 1786500563.4647393,
+    "ast_hash": "3704bc675bcb3043ea05219a4c42892d",
+    "semantic_hash": "3704bc675bcb3043ea05219a4c42892d"
+  },
+  "assets/skins/sets/ancestral_hunter_set/ancestral_hunter_legs.png": {
+    "mtime": 1786500563.4779172,
+    "ast_hash": "129e56d3be82ee1113f47fed0984f750",
+    "semantic_hash": "129e56d3be82ee1113f47fed0984f750"
+  },
+  "assets/skins/sets/ancestral_hunter_set/ancestral_hunter_quiver.png": {
+    "mtime": 1786500563.50536,
+    "ast_hash": "602c40452d7e521dae76b6cc4e3c3cae",
+    "semantic_hash": "602c40452d7e521dae76b6cc4e3c3cae"
+  },
+  "assets/skins/sets/ancestral_hunter_set/ancestral_hunter_ring.png": {
+    "mtime": 1786500563.4581592,
+    "ast_hash": "f2ecde1d05c12086d75c85aeb734a351",
+    "semantic_hash": "f2ecde1d05c12086d75c85aeb734a351"
+  },
+  "assets/skins/sets/ancestral_hunter_set/ancestral_hunter_set.png": {
+    "mtime": 1786500042.3666353,
+    "ast_hash": "297b6fcaa5c113213c4d9c5ed76bb775",
+    "semantic_hash": "297b6fcaa5c113213c4d9c5ed76bb775"
+  },
+  "assets/skins/sets/ancestral_hunter_set/ancestral_hunter_shield.png": {
+    "mtime": 1786500563.4921305,
+    "ast_hash": "8e219560ceabeda38210c4d73b062a1a",
+    "semantic_hash": "8e219560ceabeda38210c4d73b062a1a"
+  },
+  "tools/sprite_sheet_animator.html": {
+    "mtime": 1786503916.689942,
+    "ast_hash": "d757fab2c358521c686aa528a97fba90",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/arcane_initiate_set/arcane_initiate_set.png": {
+    "mtime": 1786501670.7771397,
+    "ast_hash": "28a689a1605aef6bffdbe681800b42d9",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/forest_stalker_set/forest_stalker_set.png": {
+    "mtime": 1786501526.8672788,
+    "ast_hash": "81a157dc160f40bf5894b47790fa5c13",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/noble_shieldsman_set/noble_shieldsman_set.png": {
+    "mtime": 1786501187.4839404,
+    "ast_hash": "8748f539f65ee08385a78eafbe2b136e",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/novice_set.png": {
+    "mtime": 1786501934.6077678,
+    "ast_hash": "9cc713473c9f5e1e3386d41b1b4aaf02",
+    "semantic_hash": ""
+  },
+  "assets/thaira_background wallpaper.png": {
+    "mtime": 1786501597.002235,
+    "ast_hash": "1c4e8b255b200c347f8efea31673ec8f",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/beef.png": {
+    "mtime": 1786504423.9052105,
+    "ast_hash": "264d64a62e554b0479b727a7310a2d48",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/bone.png": {
+    "mtime": 1786504423.9128222,
+    "ast_hash": "f007592cc77e48f4d3e6c6873d0d559c",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/coal.png": {
+    "mtime": 1786504423.8989923,
+    "ast_hash": "a3d565c35668f2173f77359a01bc9618",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/cyclop_toe.png": {
+    "mtime": 1786504423.9418187,
+    "ast_hash": "23473b5def8aa078882dd6e042a95b29",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/feather.png": {
+    "mtime": 1786504423.8490553,
+    "ast_hash": "30a28d0354c1e53831507d164ebde855",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/herb.png": {
+    "mtime": 1786504423.8914163,
+    "ast_hash": "ed473965d41d6e6ec0d9d4a39826c894",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/leather.png": {
+    "mtime": 1786504423.8561018,
+    "ast_hash": "c8dcc65c0c19ffa767985c2cee5c0116",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/loot_01.png": {
+    "mtime": 1786502696.9306026,
+    "ast_hash": "0b438598513a357820deab6730a91231",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/mushroom.png": {
+    "mtime": 1786504423.8771598,
+    "ast_hash": "76ed49658e85cdcc77104481a3641da6",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/orc_thooth.png": {
+    "mtime": 1786504423.9553845,
+    "ast_hash": "6ccb320f521b35acab0db6137335321d",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/poison_vial.png": {
+    "mtime": 1786504423.8842337,
+    "ast_hash": "3ec6416d3d7966e24959587128cb401c",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/rope.png": {
+    "mtime": 1786504423.9334645,
+    "ast_hash": "7f44b55624911d4842164f17309ab60b",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/shell.png": {
+    "mtime": 1786504423.9201384,
+    "ast_hash": "c369c958ceaa09ff6d082ef28fcc0e0e",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/spider_fang.png": {
+    "mtime": 1786504423.8702583,
+    "ast_hash": "946d523345ad257fe1c9a8785288942e",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/spider_web.png": {
+    "mtime": 1786504423.8624525,
+    "ast_hash": "9ec694a909823e85836d4d51c851d67a",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/steak.png": {
+    "mtime": 1786504423.9489129,
+    "ast_hash": "ea416e01af064f4d5670ca3273da6a0a",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/worm.png": {
+    "mtime": 1786504423.9270878,
+    "ast_hash": "8df22e5a004199bb61a77f85b743da56",
+    "semantic_hash": ""
+  },
+  "assets/skins/weapons/acessories_01.png": {
+    "mtime": 1786502369.4266849,
+    "ast_hash": "72dc6551589c164406a6f80dc053d601",
+    "semantic_hash": ""
+  },
+  "assets/skins/weapons/shields_01.png": {
+    "mtime": 1786502461.2795024,
+    "ast_hash": "25160a57fd82e2b9fa0756a5589238c4",
+    "semantic_hash": ""
+  },
+  "assets/skins/weapons/weapons_01.png": {
+    "mtime": 1786502282.046978,
+    "ast_hash": "c5d477e752135c3610141b0b30834554",
+    "semantic_hash": ""
+  },
+  "assets/build_skins.py": {
+    "mtime": 1786572699.284565,
+    "ast_hash": "87629839ba4f6e18965757c8c767db15",
+    "semantic_hash": ""
+  },
+  "assets/icons/bone@2x.png": {
+    "mtime": 1786577795.9538243,
+    "ast_hash": "049a53ddd7a35b1ccbbb5e58df1b5077",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_amulet@2x.png": {
+    "mtime": 1786577796.597031,
+    "ast_hash": "1238749688afe0eb8a42423612d676aa",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_armor@2x.png": {
+    "mtime": 1786577796.6081815,
+    "ast_hash": "1df40fb8e4c352758b3a9174a8725656",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_axe@2x.png": {
+    "mtime": 1786577796.661508,
+    "ast_hash": "94922021e35a899045e63d4bb9b33ce7",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_boots@2x.png": {
+    "mtime": 1786577796.617837,
+    "ast_hash": "bca1338000f8835ed88ceb0974a6bd25",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_greataxe@2x.png": {
+    "mtime": 1786577796.697097,
+    "ast_hash": "d84437e22e578520d02655f1e576fae7",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_greatsword@2x.png": {
+    "mtime": 1786577796.7057035,
+    "ast_hash": "41006970068abf67014654ad3244070f",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_halberd@2x.png": {
+    "mtime": 1786577796.588499,
+    "ast_hash": "c849b18cb69b4145ec20859af50ee86e",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_helmet@2x.png": {
+    "mtime": 1786577796.6264064,
+    "ast_hash": "004693fa6d8ebcb74beea72e44551b38",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_legs@2x.png": {
+    "mtime": 1786577796.636479,
+    "ast_hash": "fd9d597989279e7ab1fc8b2e687c7ffe",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_mace@2x.png": {
+    "mtime": 1786577796.6441002,
+    "ast_hash": "92b481bf25595d0b2e1eb1cc682ca289",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_maul@2x.png": {
+    "mtime": 1786577796.6533062,
+    "ast_hash": "3becfea432ec36597fe6794f68b9d88a",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_ring@2x.png": {
+    "mtime": 1786577796.6789365,
+    "ast_hash": "660409422ba49383f62f6e2e2d66eb5b",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_shield@2x.png": {
+    "mtime": 1786577796.688986,
+    "ast_hash": "e91b43e617fa2b2ae3990da4c1303c00",
+    "semantic_hash": ""
+  },
+  "assets/icons/gg_sword@2x.png": {
+    "mtime": 1786577796.6693575,
+    "ast_hash": "18e366e05aabb06e28bebcc7574cceb9",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/torch.png": {
+    "mtime": 1786550814.644567,
+    "ast_hash": "128b47d23c523beaa05fc5fedda5648a",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/iron_amulet.png": {
+    "mtime": 1786550814.6605825,
+    "ast_hash": "06b4b6375abe24f0631aef13d634eb13",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/iron_axe.png": {
+    "mtime": 1786550814.623388,
+    "ast_hash": "fe48056730643b482f27d6002afcc16d",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/iron_dagger.png": {
+    "mtime": 1786550814.6379156,
+    "ast_hash": "53d8713005a0e4888054fe29c63bb31f",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/iron_mace.png": {
+    "mtime": 1786550814.6303368,
+    "ast_hash": "8885f490e5885b6074f0032a8132c7ea",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/iron_ring.png": {
+    "mtime": 1786550814.5490358,
+    "ast_hash": "1821964ecb472b90bb22feab4d81fa1d",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/iron_sword.png": {
+    "mtime": 1786550814.6153286,
+    "ast_hash": "36e5ec4804ca0013f286a8ab3ecedddd",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/leather_armor.png": {
+    "mtime": 1786550814.5708532,
+    "ast_hash": "122f212254dacee6a276848d8116a207",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/leather_backpack.png": {
+    "mtime": 1786550814.6527157,
+    "ast_hash": "573abdb65e3e581fda4a799fc41d4f7c",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/leather_boots.png": {
+    "mtime": 1786550814.5856671,
+    "ast_hash": "183c7284df35f8d63a9db181b6a59d55",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/leather_hood.png": {
+    "mtime": 1786550814.5631497,
+    "ast_hash": "1274c54c1ded7a91f05c568639bd1dde",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/leather_legs.png": {
+    "mtime": 1786550814.5781033,
+    "ast_hash": "e163a358a12c917ff8b8ee886692a558",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/spell_wand.png": {
+    "mtime": 1786550814.6077816,
+    "ast_hash": "71da12148be9b2da1f16c67d10a3403c",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/wooden_bow.png": {
+    "mtime": 1786550814.600676,
+    "ast_hash": "c6fb733ca40f6132a65daa2a8b8369cc",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/wooden_shield.png": {
+    "mtime": 1786550814.592965,
+    "ast_hash": "a1c15e63998da6ca1cc0daaa3d27a9bf",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/golden_guardian_set/_conjunto.json": {
+    "mtime": 1786551685.5317717,
+    "ast_hash": "e9ca134154f10d78c9cf689524d1b4b6",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/_conjunto.json": {
+    "mtime": 1786551792.450763,
+    "ast_hash": "65ba450d3994f7e07480498d258a4837",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/_conjunto.json": {
+    "mtime": 1786551792.450763,
+    "ast_hash": "65ba450d3994f7e07480498d258a4837",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/_conjunto.json": {
+    "mtime": 1786551792.450763,
+    "ast_hash": "65ba450d3994f7e07480498d258a4837",
+    "semantic_hash": ""
+  },
+  "src/icones.js": {
+    "mtime": 1786577797.2230055,
+    "ast_hash": "4aa0f8a4616bff6ae2f3cfd8447458bc",
+    "semantic_hash": ""
+  },
+  "assets/COMO_ADICIONAR.md": {
+    "mtime": 1786552022.1497688,
+    "ast_hash": "52be4880b85a273c5519c230efa55e52",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_amulet.png": {
+    "mtime": 1786577796.1670697,
+    "ast_hash": "39c8c5ae8da43fe61c5c3130d1a32e81",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_amulet@2x.png": {
+    "mtime": 1786577796.1721935,
+    "ast_hash": "4312bf184774876ffcd5b8ec642dc979",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_armor.png": {
+    "mtime": 1786577796.1776989,
+    "ast_hash": "37294ea552d0929dacf3f533d50bc1ba",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_armor@2x.png": {
+    "mtime": 1786577796.182195,
+    "ast_hash": "dbaaf29089ff25bcae7fbe6b05136060",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_backpack.png": {
+    "mtime": 1786577796.1878421,
+    "ast_hash": "f653cee9f809d952496885f2e1ebf489",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_backpack@2x.png": {
+    "mtime": 1786577796.193509,
+    "ast_hash": "6f4bf782a3d61e379f518f7fc18ebbcc",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_boots.png": {
+    "mtime": 1786577796.1975212,
+    "ast_hash": "80a0a5ca4a902c3df8be664502bf9a33",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_boots@2x.png": {
+    "mtime": 1786577796.204316,
+    "ast_hash": "6158d106a7d6ccf7e51b29580c5a89bb",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_bow.png": {
+    "mtime": 1786577796.20834,
+    "ast_hash": "ffdd43df26eb184443bab3825144028d",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_bow@2x.png": {
+    "mtime": 1786577796.213873,
+    "ast_hash": "6831144a7ace1ff4341b479d2621cf2f",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_hood.png": {
+    "mtime": 1786577796.2190518,
+    "ast_hash": "c3d31ad977c0cff5ad0f059b91dc0b75",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_hood@2x.png": {
+    "mtime": 1786577796.2245722,
+    "ast_hash": "7e4258db46b1ff240bf4e741a7e62857",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_legs.png": {
+    "mtime": 1786577796.2290945,
+    "ast_hash": "43d5a0f35f393dd1f747d7e8f73d4e20",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_legs@2x.png": {
+    "mtime": 1786577796.2347097,
+    "ast_hash": "920c031c3da532010f63a755e3dad28f",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_quiver.png": {
+    "mtime": 1786577796.2388062,
+    "ast_hash": "742e4b6553965e769211cd3cdfb48e5d",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_quiver@2x.png": {
+    "mtime": 1786577796.2433243,
+    "ast_hash": "3c1950e26a2a037affe0e9ced440a835",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_ring.png": {
+    "mtime": 1786577796.2474177,
+    "ast_hash": "594057d41ff6247574e33d5ec2d48cb7",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_ring@2x.png": {
+    "mtime": 1786577796.2515104,
+    "ast_hash": "ae9e951efdc1f298c8ab352011336c8d",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_shield.png": {
+    "mtime": 1786577796.3008544,
+    "ast_hash": "2ec5f34a1dc455e4e5e1056eef7cdc09",
+    "semantic_hash": ""
+  },
+  "assets/icons/ah_shield@2x.png": {
+    "mtime": 1786577796.305493,
+    "ast_hash": "08692b78cf08549ecb2c00498f1c769b",
+    "semantic_hash": ""
+  },
+  "assets/icons/beef.png": {
+    "mtime": 1786577795.9415977,
+    "ast_hash": "f4bd6b6ee6ec6d288b270ca57d1b40d1",
+    "semantic_hash": ""
+  },
+  "assets/icons/beef@2x.png": {
+    "mtime": 1786577795.9461653,
+    "ast_hash": "6fcd1fe9ec8bc055f72e61110c9e7ed7",
+    "semantic_hash": ""
+  },
+  "assets/icons/coal.png": {
+    "mtime": 1786577795.9571717,
+    "ast_hash": "25c4441eb0424f8fbc5c9cfb3207fddd",
+    "semantic_hash": ""
+  },
+  "assets/icons/coal@2x.png": {
+    "mtime": 1786577795.9612503,
+    "ast_hash": "8cf3d511a928c2efb6f73a43151a3dd0",
+    "semantic_hash": ""
+  },
+  "assets/icons/cyclop_toe.png": {
+    "mtime": 1786577795.9878964,
+    "ast_hash": "cc7faef5f87ac63593d2066a3af290c3",
+    "semantic_hash": ""
+  },
+  "assets/icons/cyclop_toe@2x.png": {
+    "mtime": 1786577795.9930258,
+    "ast_hash": "da762c81b6437f980e6d97ab98a0c7d7",
+    "semantic_hash": ""
+  },
+  "assets/icons/feather.png": {
+    "mtime": 1786577795.9963617,
+    "ast_hash": "e6c0ba1ef292302b804d2b91f5886e38",
+    "semantic_hash": ""
+  },
+  "assets/icons/feather@2x.png": {
+    "mtime": 1786577796.0014932,
+    "ast_hash": "6678ba0903a0f744ad74e01fcb6b3bbd",
+    "semantic_hash": ""
+  },
+  "assets/icons/herb.png": {
+    "mtime": 1786577796.0050123,
+    "ast_hash": "e106d130b0d5a477d5189542501ba17e",
+    "semantic_hash": ""
+  },
+  "assets/icons/herb@2x.png": {
+    "mtime": 1786577796.0102413,
+    "ast_hash": "0376917d7d59e31f3661df95e69bbf4d",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_amulet.png": {
+    "mtime": 1786551950.6903589,
+    "ast_hash": "52fd32de22663434b815894b2b652b8c",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_amulet@2x.png": {
+    "mtime": 1786551950.6934443,
+    "ast_hash": "f8e57c3c80e33ce287685778961a1ac2",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_axe.png": {
+    "mtime": 1786551950.7002268,
+    "ast_hash": "3cb253366adeafa55b1e49e9e9b5c284",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_axe@2x.png": {
+    "mtime": 1786551950.7052474,
+    "ast_hash": "c0595866151b54b0336f7fab7e80e972",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_dagger.png": {
+    "mtime": 1786551950.7101307,
+    "ast_hash": "bc122efbc9f500e9f0e71782155262a0",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_dagger@2x.png": {
+    "mtime": 1786551950.7143729,
+    "ast_hash": "b39998e18b128910c636d03bc121eb24",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_mace.png": {
+    "mtime": 1786551950.7173827,
+    "ast_hash": "3b336a2f267bab28d7e5be4891639e8a",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_mace@2x.png": {
+    "mtime": 1786551950.7234354,
+    "ast_hash": "8017acb579761beee838122bd4cbe978",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_ring.png": {
+    "mtime": 1786577796.866107,
+    "ast_hash": "2e7ca56e90b7cb75197e9aae5b0c354f",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_ring@2x.png": {
+    "mtime": 1786577796.8722787,
+    "ast_hash": "8f1e10ec6a7a5a5b9456654ce73cc0e3",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_sword.png": {
+    "mtime": 1786551950.7387784,
+    "ast_hash": "8ff8089e0dd683da0ea788730f68867c",
+    "semantic_hash": ""
+  },
+  "assets/icons/iron_sword@2x.png": {
+    "mtime": 1786551950.7416441,
+    "ast_hash": "52ab52fa29cdd784641f74a4f43f244d",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather.png": {
+    "mtime": 1786577796.0134523,
+    "ast_hash": "2367cb01bd5002a451530fba44fd9f6d",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather@2x.png": {
+    "mtime": 1786577796.017951,
+    "ast_hash": "948488c17211112d167add05dbc8e6f3",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_armor.png": {
+    "mtime": 1786577796.8857472,
+    "ast_hash": "fd5d08e5324455b2eeea72182e953f04",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_armor@2x.png": {
+    "mtime": 1786577796.8918142,
+    "ast_hash": "7b26c264e1876c43be79ae41d4a838d8",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_backpack.png": {
+    "mtime": 1786551950.760466,
+    "ast_hash": "b44d0dbe9d204620a4401b334ec480a2",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_backpack@2x.png": {
+    "mtime": 1786551950.765908,
+    "ast_hash": "dcdca59e17b3d42ea3564f3724bc3b7c",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_boots.png": {
+    "mtime": 1786577796.8963275,
+    "ast_hash": "039087e3385c1711e96b22a780e3bd9b",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_boots@2x.png": {
+    "mtime": 1786577796.9029553,
+    "ast_hash": "38bb8a91ea24a6b5b0d8d698830eb368",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_hood.png": {
+    "mtime": 1786551950.7841213,
+    "ast_hash": "c8c30dd7691905d4900c5e04c72c7b24",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_hood@2x.png": {
+    "mtime": 1786551950.7901194,
+    "ast_hash": "2f6a59b8dbf12b5c8c55492daa94c7e6",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_legs.png": {
+    "mtime": 1786577796.9197068,
+    "ast_hash": "9f49df95b52656dfd803569b80e67801",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_legs@2x.png": {
+    "mtime": 1786577796.9242196,
+    "ast_hash": "6e69a5316d1543332fb9d4a6987b8061",
+    "semantic_hash": ""
+  },
+  "assets/icons/mushroom.png": {
+    "mtime": 1786577796.0209603,
+    "ast_hash": "9c7ac288f650f43f8c186ba18f5b15e0",
+    "semantic_hash": ""
+  },
+  "assets/icons/mushroom@2x.png": {
+    "mtime": 1786577796.024479,
+    "ast_hash": "b9b1f25880f4e0beba6e6ee17ab239c6",
+    "semantic_hash": ""
+  },
+  "assets/icons/orc_thooth.png": {
+    "mtime": 1786577796.0275016,
+    "ast_hash": "33b6ce61c68d6cbf4c6fdea21debf860",
+    "semantic_hash": ""
+  },
+  "assets/icons/orc_thooth@2x.png": {
+    "mtime": 1786577796.0321207,
+    "ast_hash": "57fc581cf1a2e00191d0422d50f21a9f",
+    "semantic_hash": ""
+  },
+  "assets/icons/poison_vial.png": {
+    "mtime": 1786577796.0355506,
+    "ast_hash": "879d88b3bde6441972d8ad7befe2897b",
+    "semantic_hash": ""
+  },
+  "assets/icons/poison_vial@2x.png": {
+    "mtime": 1786577796.0396242,
+    "ast_hash": "5751c6b63a6f101ff0c346ac11a474ee",
+    "semantic_hash": ""
+  },
+  "assets/icons/rope.png": {
+    "mtime": 1786577796.0417795,
+    "ast_hash": "a9990c038c8de4f60c2ce2a853422c16",
+    "semantic_hash": ""
+  },
+  "assets/icons/rope@2x.png": {
+    "mtime": 1786577796.0463686,
+    "ast_hash": "18954f7261379a7bab1dfd8157b6b0fd",
+    "semantic_hash": ""
+  },
+  "assets/icons/shell.png": {
+    "mtime": 1786577796.0498862,
+    "ast_hash": "6d8fb1c66bec717aae0a445444a0c433",
+    "semantic_hash": ""
+  },
+  "assets/icons/shell@2x.png": {
+    "mtime": 1786577796.0533981,
+    "ast_hash": "5aa24578b1726ea8e68f7ef14fe915cf",
+    "semantic_hash": ""
+  },
+  "assets/icons/spell_wand.png": {
+    "mtime": 1786551950.8507514,
+    "ast_hash": "f1052d9d039a27dd6d9bd4be442e8dc5",
+    "semantic_hash": ""
+  },
+  "assets/icons/spell_wand@2x.png": {
+    "mtime": 1786551950.8567746,
+    "ast_hash": "ee51cbb3a9d340a2485e36e00ab99fbd",
+    "semantic_hash": ""
+  },
+  "assets/icons/spider_fang.png": {
+    "mtime": 1786577796.056415,
+    "ast_hash": "9d27cef5cb0dd3733dc17a8570492c00",
+    "semantic_hash": ""
+  },
+  "assets/icons/spider_fang@2x.png": {
+    "mtime": 1786577796.0605319,
+    "ast_hash": "2b1d97e605407d9194d183bbc7108477",
+    "semantic_hash": ""
+  },
+  "assets/icons/spider_web.png": {
+    "mtime": 1786577796.0650785,
+    "ast_hash": "09538594fdf414d3ce74058873ac1081",
+    "semantic_hash": ""
+  },
+  "assets/icons/spider_web@2x.png": {
+    "mtime": 1786577796.0711632,
+    "ast_hash": "25119c27c8e75da1da4a3f265618aa1f",
+    "semantic_hash": ""
+  },
+  "assets/icons/steak.png": {
+    "mtime": 1786577796.0741913,
+    "ast_hash": "48e5c6356b268c0e1bddc3df605c7936",
+    "semantic_hash": ""
+  },
+  "assets/icons/steak@2x.png": {
+    "mtime": 1786577796.078343,
+    "ast_hash": "1fc4ebe2fd08149f04fe795681dace0a",
+    "semantic_hash": ""
+  },
+  "assets/icons/torch.png": {
+    "mtime": 1786577796.1396034,
+    "ast_hash": "ed007afe720728430328ae1d86d3ad8f",
+    "semantic_hash": ""
+  },
+  "assets/icons/torch@2x.png": {
+    "mtime": 1786577796.1441157,
+    "ast_hash": "1a5eff36ec555627a09bd88964bd8495",
+    "semantic_hash": ""
+  },
+  "assets/icons/wooden_bow.png": {
+    "mtime": 1786551950.8628793,
+    "ast_hash": "c5e2a6ae1651470ce3e4a98d21575d51",
+    "semantic_hash": ""
+  },
+  "assets/icons/wooden_bow@2x.png": {
+    "mtime": 1786551950.868889,
+    "ast_hash": "e2d40de4d26116ed78ab049e63672f16",
+    "semantic_hash": ""
+  },
+  "assets/icons/wooden_shield.png": {
+    "mtime": 1786577797.0011554,
+    "ast_hash": "cbb5db3f8458c5498f069805317ca790",
+    "semantic_hash": ""
+  },
+  "assets/icons/wooden_shield@2x.png": {
+    "mtime": 1786577797.0058563,
+    "ast_hash": "6ebb5ad3e92c76381bfc45c185cffd29",
+    "semantic_hash": ""
+  },
+  "assets/icons/worm.png": {
+    "mtime": 1786577796.157491,
+    "ast_hash": "79323ec001cb61b1f26b6da8b4ea85d8",
+    "semantic_hash": ""
+  },
+  "assets/icons/worm@2x.png": {
+    "mtime": 1786577796.161548,
+    "ast_hash": "871f4a087ec5271fb4f8cd39a65df2b7",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/_conjunto.json": {
+    "mtime": 1786572614.4070778,
+    "ast_hash": "73b9d87bd6b8ad2a92601deda3892976",
+    "semantic_hash": ""
+  },
+  "assets/icons/bronze_amulet.png": {
+    "mtime": 1786577796.8333771,
+    "ast_hash": "52fd32de22663434b815894b2b652b8c",
+    "semantic_hash": ""
+  },
+  "assets/icons/bronze_amulet@2x.png": {
+    "mtime": 1786577796.837649,
+    "ast_hash": "f8e57c3c80e33ce287685778961a1ac2",
+    "semantic_hash": ""
+  },
+  "assets/icons/dagger@2x.png": {
+    "mtime": 1786577796.855445,
+    "ast_hash": "b39998e18b128910c636d03bc121eb24",
+    "semantic_hash": ""
+  },
+  "assets/icons/hand_axe.png": {
+    "mtime": 1786577796.8417227,
+    "ast_hash": "3cb253366adeafa55b1e49e9e9b5c284",
+    "semantic_hash": ""
+  },
+  "assets/icons/hand_axe@2x.png": {
+    "mtime": 1786577796.8462358,
+    "ast_hash": "c0595866151b54b0336f7fab7e80e972",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_helmet.png": {
+    "mtime": 1786577796.9080446,
+    "ast_hash": "c8c30dd7691905d4900c5e04c72c7b24",
+    "semantic_hash": ""
+  },
+  "assets/icons/leather_helmet@2x.png": {
+    "mtime": 1786577796.9145494,
+    "ast_hash": "2f6a59b8dbf12b5c8c55492daa94c7e6",
+    "semantic_hash": ""
+  },
+  "assets/icons/mace.png": {
+    "mtime": 1786577796.8595772,
+    "ast_hash": "3b336a2f267bab28d7e5be4891639e8a",
+    "semantic_hash": ""
+  },
+  "assets/icons/mace@2x.png": {
+    "mtime": 1786577796.8640978,
+    "ast_hash": "8017acb579761beee838122bd4cbe978",
+    "semantic_hash": ""
+  },
+  "assets/icons/short_bow.png": {
+    "mtime": 1786577796.9915178,
+    "ast_hash": "c5e2a6ae1651470ce3e4a98d21575d51",
+    "semantic_hash": ""
+  },
+  "assets/icons/short_bow@2x.png": {
+    "mtime": 1786577796.9960816,
+    "ast_hash": "e2d40de4d26116ed78ab049e63672f16",
+    "semantic_hash": ""
+  },
+  "assets/icons/short_sword.png": {
+    "mtime": 1786577796.875783,
+    "ast_hash": "8ff8089e0dd683da0ea788730f68867c",
+    "semantic_hash": ""
+  },
+  "assets/icons/short_sword@2x.png": {
+    "mtime": 1786577796.881067,
+    "ast_hash": "52ab52fa29cdd784641f74a4f43f244d",
+    "semantic_hash": ""
+  },
+  "assets/icons/wand_of_vortex.png": {
+    "mtime": 1786577796.982947,
+    "ast_hash": "f1052d9d039a27dd6d9bd4be442e8dc5",
+    "semantic_hash": ""
+  },
+  "assets/icons/wand_of_vortex@2x.png": {
+    "mtime": 1786577796.9874518,
+    "ast_hash": "ee51cbb3a9d340a2485e36e00ab99fbd",
+    "semantic_hash": ""
+  },
+  "assets/icons/snakebite_rod.png": {
+    "mtime": 1786577796.9586637,
+    "ast_hash": "08e5d65292605f868a7a93c23c0b8a40",
+    "semantic_hash": ""
+  },
+  "assets/icons/snakebite_rod@2x.png": {
+    "mtime": 1786577796.978946,
+    "ast_hash": "3823ae883d60d7e84dc85ea54d3dab61",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/novice_set/snakebit_rod.png": {
+    "mtime": 1786572534.8795478,
+    "ast_hash": "b6473a60ee8c4a6a0066de2dd53ab411",
+    "semantic_hash": ""
+  },
+  "assets/skins/weapons/wands_01.png": {
+    "mtime": 1786571926.6322348,
+    "ast_hash": "6ec14d51185f5ee9f600f9c36ae16ce3",
+    "semantic_hash": ""
+  },
+  "assets/skins/weapons/wands_02.png": {
+    "mtime": 1786571938.7283044,
+    "ast_hash": "a7aee228c78b919861124159ef2ce1f4",
+    "semantic_hash": ""
+  },
+  "assets/build_folhas.py": {
+    "mtime": 1786574012.7551491,
+    "ast_hash": "b1ba6b0b911b501d179c8751f39dd5f3",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/loot_01.json": {
+    "mtime": 1786573579.6094148,
+    "ast_hash": "b6b87535409e12c59db8d0ff6bf6095a",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/arcane_initiate_set/arcane_initiate_set.json": {
+    "mtime": 1786574042.4671912,
+    "ast_hash": "f7af15236448a522245210a4c50fdec3",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/forest_stalker_set/forest_stalker_set.json": {
+    "mtime": 1786574042.4879267,
+    "ast_hash": "9a05223eeaf24a3d19ce76e59528da8b",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/noble_shieldsman_set/noble_shieldsman_set.json": {
+    "mtime": 1786574042.509088,
+    "ast_hash": "e635fbcbaae0d5c5554cb4c7181196a1",
+    "semantic_hash": ""
+  },
+  "assets/skins/weapons/shields_01.json": {
+    "mtime": 1786573712.7487254,
+    "ast_hash": "eb1706d18edffabde8df73f0d95e02be",
+    "semantic_hash": ""
+  },
+  "assets/skins/weapons/weapons_01.json": {
+    "mtime": 1786573579.5639164,
+    "ast_hash": "bd34ac07f1efc76c9d5ffc36002ee8d3",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_amulet.png": {
+    "mtime": 1786577796.3117054,
+    "ast_hash": "1ab2d95fd1579b8640eb1c98ac5c7b06",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_amulet@2x.png": {
+    "mtime": 1786577796.3162189,
+    "ast_hash": "d7e58e9a75c8f6b375a7aa1dd4d6e284",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_armor.png": {
+    "mtime": 1786577796.3241665,
+    "ast_hash": "f00258bac08c2cc6e2f436fc0c6c1ca4",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_armor@2x.png": {
+    "mtime": 1786577796.3318129,
+    "ast_hash": "13e6508060a359615cb09674c20846a7",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_boots.png": {
+    "mtime": 1786577796.33841,
+    "ast_hash": "e5d866a9e85c3a713aa2af8db1229abd",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_boots@2x.png": {
+    "mtime": 1786577796.3460011,
+    "ast_hash": "5bf8c0be11012236a6b5f3fd0007ad98",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_hood.png": {
+    "mtime": 1786577796.352082,
+    "ast_hash": "6dac2a5108ee42a4f4ca1dca40d34b88",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_hood@2x.png": {
+    "mtime": 1786577796.3597412,
+    "ast_hash": "d6fccf12b0578d669b93bdf8eb656b30",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_legs.png": {
+    "mtime": 1786577796.3652804,
+    "ast_hash": "b35857ac6636b38d7e1977a4cdf8687b",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_legs@2x.png": {
+    "mtime": 1786577796.3715775,
+    "ast_hash": "05e7000aeba596c39b05abec9d67e7cc",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_ring.png": {
+    "mtime": 1786577796.37509,
+    "ast_hash": "9f2cf7a7f783eb6c2d7cf581b4d84fb6",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_ring@2x.png": {
+    "mtime": 1786577796.3814847,
+    "ast_hash": "8393ccafc93bc26d56ee06cf34bfa10c",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_staff.png": {
+    "mtime": 1786577796.431121,
+    "ast_hash": "9b84e8041dab0c27ec6bcaf7b77c96cf",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_staff@2x.png": {
+    "mtime": 1786577796.4385405,
+    "ast_hash": "05bb7096dc4e7d5a96a05e5c2e49bcd8",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_tome.png": {
+    "mtime": 1786577796.4440634,
+    "ast_hash": "9104082e36e72791019773e2e06ae6d4",
+    "semantic_hash": ""
+  },
+  "assets/icons/ai_tome@2x.png": {
+    "mtime": 1786577796.450202,
+    "ast_hash": "60099f8238270a0c08c2acbab6f07a10",
+    "semantic_hash": ""
+  },
+  "assets/icons/axe@2x.png": {
+    "mtime": 1786577795.8860247,
+    "ast_hash": "9eb08f01e5e451c3d5fb2581d6ccc158",
+    "semantic_hash": ""
+  },
+  "assets/icons/bow@2x.png": {
+    "mtime": 1786577795.8946638,
+    "ast_hash": "36c57183479d12d3e9fdc31c14bc4701",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_amulet.png": {
+    "mtime": 1786577796.45509,
+    "ast_hash": "32f84d096050a5f242acf1700d36ba27",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_amulet@2x.png": {
+    "mtime": 1786577796.459161,
+    "ast_hash": "9b9b0109592ff59ac03a20880518e73b",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_armor.png": {
+    "mtime": 1786577796.464678,
+    "ast_hash": "c0b463f877e07c0e5ce59dc04ad9a641",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_armor@2x.png": {
+    "mtime": 1786577796.4709475,
+    "ast_hash": "328563b1187d9460547c50914a57ecee",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_boots.png": {
+    "mtime": 1786577796.4754677,
+    "ast_hash": "8a29dc35a51f77b5707f0425ea230ba5",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_boots@2x.png": {
+    "mtime": 1786577796.4822588,
+    "ast_hash": "4574b63e8de9872566451ad8497ce623",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_bow.png": {
+    "mtime": 1786577796.486763,
+    "ast_hash": "6d6abc4ee1d4e23998b0377436ad5506",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_bow@2x.png": {
+    "mtime": 1786577796.4933357,
+    "ast_hash": "3060c7bc1cd6b78eb196638934739a8d",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_hood.png": {
+    "mtime": 1786577796.4996479,
+    "ast_hash": "39e0a078663bc15cee205fdff794179e",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_hood@2x.png": {
+    "mtime": 1786577796.5051765,
+    "ast_hash": "90f19cda7e1184236028c586026c4cbd",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_legs.png": {
+    "mtime": 1786577796.510559,
+    "ast_hash": "fe95089a83a24acaa016f2bb1b1b4856",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_legs@2x.png": {
+    "mtime": 1786577796.5151696,
+    "ast_hash": "a9fbf5864ef0de06f9ede133d4a21659",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_ring.png": {
+    "mtime": 1786577796.5192392,
+    "ast_hash": "f21ce1e626489da7d36dd5f937e44995",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_ring@2x.png": {
+    "mtime": 1786577796.5248172,
+    "ast_hash": "28ec40edb46ab3f6d7db259b34e618f8",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_shield.png": {
+    "mtime": 1786577796.574793,
+    "ast_hash": "0a0d6fe74df0cce2e94bb30529d0ad04",
+    "semantic_hash": ""
+  },
+  "assets/icons/fs_shield@2x.png": {
+    "mtime": 1786577796.5798695,
+    "ast_hash": "932deab11495bd8adec4b715a4e47498",
+    "semantic_hash": ""
+  },
+  "assets/icons/gem@2x.png": {
+    "mtime": 1786577795.9017477,
+    "ast_hash": "232c5b211ae67911215f089babec5b3b",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_amulet.png": {
+    "mtime": 1786577796.709771,
+    "ast_hash": "9a9d00503472bda1ebdc875d968afbe1",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_amulet@2x.png": {
+    "mtime": 1786577796.7154217,
+    "ast_hash": "e1efba3fcd0f760c0441d11ffbc4bf72",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_armor.png": {
+    "mtime": 1786577796.7205243,
+    "ast_hash": "af79f57ae5c1f4fb70982c8f5f6eb9d7",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_armor@2x.png": {
+    "mtime": 1786577796.7260578,
+    "ast_hash": "46b5d25f923444ab322ab74ef16f8a47",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_boots.png": {
+    "mtime": 1786577796.7318406,
+    "ast_hash": "12049f4925f43c702dc8cbb15102edd8",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_boots@2x.png": {
+    "mtime": 1786577796.737371,
+    "ast_hash": "da9a136cfc08c1de5cfe63bdb7f59268",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_helmet.png": {
+    "mtime": 1786577796.7414615,
+    "ast_hash": "58275a8eb00ddd102016597df9880746",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_helmet@2x.png": {
+    "mtime": 1786577796.7470875,
+    "ast_hash": "7820e73791959f9bbaa9296cc3ced309",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_legs.png": {
+    "mtime": 1786577796.7511566,
+    "ast_hash": "a33a7a8a03044287d083b8ef9870382f",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_legs@2x.png": {
+    "mtime": 1786577796.7556603,
+    "ast_hash": "319e2fa1d7822624bf9cbd92913ee342",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_ring.png": {
+    "mtime": 1786577796.759736,
+    "ast_hash": "e8d570817e00ce7ef36465c6d2535f9f",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_ring@2x.png": {
+    "mtime": 1786577796.7655187,
+    "ast_hash": "214712ed8cd8c07afe02648f07d7513b",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_shield.png": {
+    "mtime": 1786577796.8146696,
+    "ast_hash": "50f3a2411dbcbcdbf07cbad996408ddc",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_shield@2x.png": {
+    "mtime": 1786577796.8200128,
+    "ast_hash": "77f0876ca9ae8b184826ca6d5e1f3a38",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_sword.png": {
+    "mtime": 1786577796.82429,
+    "ast_hash": "ec2ac7650ea6322341c1e7377cee1ade",
+    "semantic_hash": ""
+  },
+  "assets/icons/ns_sword@2x.png": {
+    "mtime": 1786577796.8288043,
+    "ast_hash": "46fc68101509b33e501d1ed9d7866567",
+    "semantic_hash": ""
+  },
+  "assets/icons/potion@2x.png": {
+    "mtime": 1786577795.9151676,
+    "ast_hash": "817edae8e6473e3b957c451657eefe8f",
+    "semantic_hash": ""
+  },
+  "assets/icons/shield@2x.png": {
+    "mtime": 1786577795.929919,
+    "ast_hash": "169d72f2efa426b5ae048025341b8a6c",
+    "semantic_hash": ""
+  },
+  "assets/icons/sword@2x.png": {
+    "mtime": 1786577795.9375894,
+    "ast_hash": "85b84f94a03269e0949d077b2001029a",
+    "semantic_hash": ""
+  },
+  "assets/skins/_recortes/axe.png": {
+    "mtime": 1786573602.0664072,
+    "ast_hash": "2198ba4a4683df4bf97d5192da4313f1",
+    "semantic_hash": ""
+  },
+  "assets/skins/_recortes/bow.png": {
+    "mtime": 1786573602.0603502,
+    "ast_hash": "50acfdb46a0520167e9a0400ebebe0e0",
+    "semantic_hash": ""
+  },
+  "assets/skins/_recortes/gem.png": {
+    "mtime": 1786573602.8510704,
+    "ast_hash": "fb104f2c4e8d9e282044e000fef3a978",
+    "semantic_hash": ""
+  },
+  "assets/skins/_recortes/potion.png": {
+    "mtime": 1786577771.6287806,
+    "ast_hash": "d560f85632c7208cdf0735191ea68238",
+    "semantic_hash": ""
+  },
+  "assets/skins/_recortes/shield.png": {
+    "mtime": 1786573713.118439,
+    "ast_hash": "f182603504226feb3e40643ca2dd679c",
+    "semantic_hash": ""
+  },
+  "assets/skins/_recortes/sword.png": {
+    "mtime": 1786573602.0652437,
+    "ast_hash": "887d5eaafb8e0d9b28ebd022dd6f0021",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/arcane_initiate_set/arcane_initiate_amulet.png": {
+    "mtime": 1786574066.956577,
+    "ast_hash": "26b3081f4df9c467c1f056e3244ef27d",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/arcane_initiate_set/arcane_initiate_armor.png": {
+    "mtime": 1786574066.978265,
+    "ast_hash": "ca5f8375b3abe4232196e623716e7aeb",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/arcane_initiate_set/arcane_initiate_boots.png": {
+    "mtime": 1786574066.993671,
+    "ast_hash": "5a1af1f1345d0db3ca283dd33b6a7eec",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/arcane_initiate_set/arcane_initiate_hood.png": {
+    "mtime": 1786574066.9694693,
+    "ast_hash": "0e4009b31b32a44dedde0f9cde0a8177",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/arcane_initiate_set/arcane_initiate_legs.png": {
+    "mtime": 1786574066.987384,
+    "ast_hash": "610411af4c50e36995749921c4a094bd",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/arcane_initiate_set/arcane_initiate_ring.png": {
+    "mtime": 1786574066.9600666,
+    "ast_hash": "7872ecb943169916ac1adbd40c2dd886",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/arcane_initiate_set/arcane_initiate_staff.png": {
+    "mtime": 1786574067.011776,
+    "ast_hash": "06a7a70b551508e12c618960165a3626",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/arcane_initiate_set/arcane_initiate_tome.png": {
+    "mtime": 1786574067.0025077,
+    "ast_hash": "c9555df4a5888d1243de87b424a3ad16",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/forest_stalker_set/forest_stalker_amulet.png": {
+    "mtime": 1786574067.446712,
+    "ast_hash": "de5dc5ec3dca8bb99f941827e1baf397",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/forest_stalker_set/forest_stalker_armor.png": {
+    "mtime": 1786574067.463403,
+    "ast_hash": "e737953d7597c7273483b0a1f9818301",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/forest_stalker_set/forest_stalker_boots.png": {
+    "mtime": 1786574067.4760642,
+    "ast_hash": "659107a7237bed34046a1e9ea7d29ad8",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/forest_stalker_set/forest_stalker_bow.png": {
+    "mtime": 1786574067.487679,
+    "ast_hash": "7b589b4c0fa29bb07efe2742dd6f4a3f",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/forest_stalker_set/forest_stalker_hood.png": {
+    "mtime": 1786574067.457052,
+    "ast_hash": "cdcb2b0bbb241ceae8d6cf252c3aa06e",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/forest_stalker_set/forest_stalker_legs.png": {
+    "mtime": 1786574067.4693062,
+    "ast_hash": "0592747501ddba0ac140ea7ffcfd5bdd",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/forest_stalker_set/forest_stalker_ring.png": {
+    "mtime": 1786574067.4482296,
+    "ast_hash": "75c26e527fe3517e5171d2b9dae9455a",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/forest_stalker_set/forest_stalker_shield.png": {
+    "mtime": 1786574067.4812698,
+    "ast_hash": "016bf1901b908e6af9146b3f6ec8e2ea",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/noble_shieldsman_set/noble_shieldsman_amulet.png": {
+    "mtime": 1786574067.9211383,
+    "ast_hash": "42b9b467cf7057ba7337bb63716d2306",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/noble_shieldsman_set/noble_shieldsman_armor.png": {
+    "mtime": 1786574067.936342,
+    "ast_hash": "4e691af5a7e3a7c10ee2be225409edbb",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/noble_shieldsman_set/noble_shieldsman_boots.png": {
+    "mtime": 1786574067.9462616,
+    "ast_hash": "192a246374a3054ddb7b647e8462a6cd",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/noble_shieldsman_set/noble_shieldsman_helmet.png": {
+    "mtime": 1786574067.929689,
+    "ast_hash": "d8f09c932a6f54167f9b3613b7ea8f03",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/noble_shieldsman_set/noble_shieldsman_legs.png": {
+    "mtime": 1786574067.9389248,
+    "ast_hash": "34c8d01bf601d9e93c57f80a99c875fd",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/noble_shieldsman_set/noble_shieldsman_ring.png": {
+    "mtime": 1786574067.9265704,
+    "ast_hash": "e557d7137f4047dcfeae3957afef466e",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/noble_shieldsman_set/noble_shieldsman_shield.png": {
+    "mtime": 1786574067.9513345,
+    "ast_hash": "17b5c75dfd17c48eebb620f7632c24b9",
+    "semantic_hash": ""
+  },
+  "assets/skins/sets/noble_shieldsman_set/noble_shieldsman_sword.png": {
+    "mtime": 1786574067.957961,
+    "ast_hash": "4cc56fd17f1da2a3f1204c9845a9c347",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/_conjunto.json": {
+    "mtime": 1786577771.651887,
+    "ast_hash": "3d41e0186e8abb7600fc8b24500f029b",
+    "semantic_hash": ""
+  },
+  "assets/icons/great_health_potion.png": {
+    "mtime": 1786577796.1134017,
+    "ast_hash": "47534f4295b5634b994d8204348c0ea3",
+    "semantic_hash": ""
+  },
+  "assets/icons/great_health_potion@2x.png": {
+    "mtime": 1786577796.1209364,
+    "ast_hash": "a2a6fe417fb45886e5fb0e54747a8046",
+    "semantic_hash": ""
+  },
+  "assets/icons/great_mana_potion.png": {
+    "mtime": 1786577796.1289554,
+    "ast_hash": "25a3f84d3822f27086f7f67c13bf5de4",
+    "semantic_hash": ""
+  },
+  "assets/icons/great_mana_potion@2x.png": {
+    "mtime": 1786577796.1354783,
+    "ast_hash": "ba7fc64196cac3fcb6d4412ba64916a8",
+    "semantic_hash": ""
+  },
+  "assets/icons/health_potion.png": {
+    "mtime": 1786577795.9668126,
+    "ast_hash": "d15d229a532c68cd07b45b9b501ad855",
+    "semantic_hash": ""
+  },
+  "assets/icons/health_potion@2x.png": {
+    "mtime": 1786577795.9735649,
+    "ast_hash": "817edae8e6473e3b957c451657eefe8f",
+    "semantic_hash": ""
+  },
+  "assets/icons/mana_potion.png": {
+    "mtime": 1786577795.978656,
+    "ast_hash": "40ce7d3214968875d7843e2043ef7a11",
+    "semantic_hash": ""
+  },
+  "assets/icons/mana_potion@2x.png": {
+    "mtime": 1786577795.9848294,
+    "ast_hash": "78e73902917ab146c148bf04c1085953",
+    "semantic_hash": ""
+  },
+  "assets/icons/strong_health_potion.png": {
+    "mtime": 1786577796.0853057,
+    "ast_hash": "b9971dc8de75b209c977e233c00719f8",
+    "semantic_hash": ""
+  },
+  "assets/icons/strong_health_potion@2x.png": {
+    "mtime": 1786577796.09328,
+    "ast_hash": "fa25ac1bec1690916a70f1ff68144c9f",
+    "semantic_hash": ""
+  },
+  "assets/icons/strong_mana_potion.png": {
+    "mtime": 1786577796.0993655,
+    "ast_hash": "f282539818ac6efc67fd8503b4f59d5b",
+    "semantic_hash": ""
+  },
+  "assets/icons/strong_mana_potion@2x.png": {
+    "mtime": 1786577796.1052296,
+    "ast_hash": "91f0bfa1045a4a0a4fee326411294b1d",
+    "semantic_hash": ""
+  },
+  "assets/icons/weak_health_potion.png": {
+    "mtime": 1786577796.149182,
+    "ast_hash": "ee5a710da4b3de9b82880ae2a8b6eeaa",
+    "semantic_hash": ""
+  },
+  "assets/icons/weak_health_potion@2x.png": {
+    "mtime": 1786577796.15442,
+    "ast_hash": "93b963797558de06fd889da254391be1",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/common_health_potion.png": {
+    "mtime": 1786577585.974504,
+    "ast_hash": "d560f85632c7208cdf0735191ea68238",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/common_mana_potion.png": {
+    "mtime": 1786577585.980757,
+    "ast_hash": "f56afecae87a17e0fd3d4eb549d1a079",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/potions_01.png": {
+    "mtime": 1786577333.8736215,
+    "ast_hash": "ca63532b475486fc11b2830f506d8a95",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/strong_health_potion.png": {
+    "mtime": 1786577585.9337282,
+    "ast_hash": "ce7a8474f4187cc51b0f8031e3bedad5",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/strong_mana_potion.png": {
+    "mtime": 1786577585.9474113,
+    "ast_hash": "9c0ec21d6b272b8ad84cc25e3983263a",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/supreme_health_potion.png": {
+    "mtime": 1786577585.9544456,
+    "ast_hash": "ecb0e50c33f766a8224089a935ecb0e5",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/supreme_mana_potion.png": {
+    "mtime": 1786577585.9610682,
+    "ast_hash": "5f73981e8e973e841e0efa8c034b0701",
+    "semantic_hash": ""
+  },
+  "assets/skins/loot/weak_health_potion.png": {
+    "mtime": 1786577585.967649,
+    "ast_hash": "5112b7c792bfb4dd70c94f7094628dac",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_dead_01.png": {
+    "mtime": 1786584879.4775832,
+    "ast_hash": "5e3af11532cb4b3b1866c159cec35161",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_dead_02.png": {
+    "mtime": 1786584879.4939845,
+    "ast_hash": "3ea4d98dd438e9a758391f1fce6fc4d4",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_dead_03.png": {
+    "mtime": 1786584879.503241,
+    "ast_hash": "3f0677b3bfd2b7e92c90625fe5b7e82a",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/Gemini_Generated_Image_qnl4t3qnl4t3qnl4.png": {
+    "mtime": 1786587402.7942984,
+    "ast_hash": "4a91036808ad1ddd42b116bda554ac06",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_idle_back_01.png": {
+    "mtime": 1786588373.0792093,
+    "ast_hash": "40bcd537bbfe14adf500148c2f3f9859",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_idle_front_01.png": {
+    "mtime": 1786584644.6868322,
+    "ast_hash": "7c3fddaee9778341a4be3651e1719167",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_idle_left_01.png": {
+    "mtime": 1786588008.3903108,
+    "ast_hash": "ad03a31aa2bd0a825e1da64ca78b4975",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_idle_left_02.png": {
+    "mtime": 1786588008.3778994,
+    "ast_hash": "2ded735f8df3d7ebf46f907a6a5741d3",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_idle_right_01.png": {
+    "mtime": 1786587838.192103,
+    "ast_hash": "d0ab9023bb2a4233745581d5cbbd2d2b",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_idle_right_02.png": {
+    "mtime": 1786587838.1736896,
+    "ast_hash": "13a01d9dc1b319b8108267888b025365",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_walk_back_01.png": {
+    "mtime": 1786588351.9159577,
+    "ast_hash": "ddfec714f8e470261c3963f7f958f7a0",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_walk_back_02.png": {
+    "mtime": 1786588362.3513343,
+    "ast_hash": "347ef8a0f99bc0d0da3a9aa6fdfcff6a",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_walk_front_01.png": {
+    "mtime": 1786584644.7041223,
+    "ast_hash": "5c35278b25c165cb053178e80f1c4b19",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_walk_front_02.png": {
+    "mtime": 1786584644.7134137,
+    "ast_hash": "67d6325aec51c49b4dd34ef14d71a604",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_walk_left_02.png": {
+    "mtime": 1786588008.3840606,
+    "ast_hash": "e865a616864be8a92bda7ff9bdee5ffa",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_walk_left_03.png": {
+    "mtime": 1786588008.3988311,
+    "ast_hash": "b796d277fc7b4ea771e30bfb7ce7ec99",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_walk_left_04.png": {
+    "mtime": 1786588008.4052548,
+    "ast_hash": "f9441ee300d43f5955f9036e40b676cb",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_walk_right_02.png": {
+    "mtime": 1786587838.1859002,
+    "ast_hash": "6a483e05a6440b155d324d17f2484962",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_walk_right_03.png": {
+    "mtime": 1786587838.198218,
+    "ast_hash": "50ab34a43a1fa16aef4233e6caf5ea5e",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/demon_walk_right_04.png": {
+    "mtime": 1786587838.207769,
+    "ast_hash": "d1486784425533a71c7bbce61a0cbcf4",
+    "semantic_hash": ""
+  },
+  "assets/build_criaturas.py": {
+    "mtime": 1786589695.4733548,
+    "ast_hash": "abf0650c62708baf0464eb2442b6d8ed",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/demon/_conjunto.json": {
+    "mtime": 1786589695.941102,
+    "ast_hash": "ab96cb3108a3ef6f7c4ea907cb95b600",
+    "semantic_hash": ""
+  },
+  "assets/creatures/demon.png": {
+    "mtime": 1786589716.5839624,
+    "ast_hash": "5bab99c4959ad7adaf315fafa8039e57",
+    "semantic_hash": ""
+  },
+  "assets/thaira_druid wallpaper.png": {
+    "mtime": 1786658829.8087943,
+    "ast_hash": "63538ea54541d01a8604bdd0d43c9a02",
+    "semantic_hash": ""
+  },
+  "assets/vocations/druid.png": {
+    "mtime": 1786661386.3682797,
+    "ast_hash": "eaa968dcae8b87bc4cc0a71ffa415d3d",
+    "semantic_hash": ""
+  },
+  "assets/vocations/knight.png": {
+    "mtime": 1786671639.7958677,
+    "ast_hash": "65af0d4037e0a55a8ce1c80e63d3b8ed",
+    "semantic_hash": ""
+  },
+  "assets/vocations/ranger.png": {
+    "mtime": 1786671285.151127,
+    "ast_hash": "aa173f41fe18b07580c15775511a9a51",
+    "semantic_hash": ""
+  },
+  "assets/vocations/sorcerer.png": {
+    "mtime": 1786671849.7282984,
+    "ast_hash": "7eb3b59e90683597cb9c343b4acadd50",
+    "semantic_hash": ""
+  },
+  "assets/vocations/card/druid.png": {
+    "mtime": 1786671918.1307123,
+    "ast_hash": "4c9aa99bc9093444234606e443df666c",
+    "semantic_hash": ""
+  },
+  "assets/vocations/card/knight.png": {
+    "mtime": 1786671917.5324101,
+    "ast_hash": "48ba2b967205e24b0fb0e94532db7958",
+    "semantic_hash": ""
+  },
+  "assets/vocations/card/ranger.png": {
+    "mtime": 1786671917.7219398,
+    "ast_hash": "39aea45c9cd63c0a263334e65ba6cb09",
+    "semantic_hash": ""
+  },
+  "assets/vocations/card/sorcerer.png": {
+    "mtime": 1786671917.9337516,
+    "ast_hash": "5871dcf6516c3098951968975b655a34",
+    "semantic_hash": ""
+  },
+  "assets/vocations/druid_symbol.png": {
+    "mtime": 1786673502.9356635,
+    "ast_hash": "c965e055fee989d42eaa24adf8e3899d",
+    "semantic_hash": ""
+  },
+  "assets/vocations/knight_symbol.png": {
+    "mtime": 1786673432.3211823,
+    "ast_hash": "0efebdc2c31558960f344091dd23f645",
+    "semantic_hash": ""
+  },
+  "assets/vocations/ranger_symbol.png": {
+    "mtime": 1786673647.8840787,
+    "ast_hash": "52a97cd0846a4f05bb91d6a7ef2f83b7",
+    "semantic_hash": ""
+  },
+  "assets/vocations/sorcerer_symbol.png": {
+    "mtime": 1786673257.2132275,
+    "ast_hash": "a0e505e82431086848982be8057d385c",
+    "semantic_hash": ""
+  },
+  "assets/music/Scape Main.mp3": {
+    "mtime": 1786680480.2220168,
+    "ast_hash": "90ba52edf750219740f30561e80de417",
+    "semantic_hash": ""
+  },
+  "tools/freesound.py": {
+    "mtime": 1786760752.863919,
+    "ast_hash": "e05256e08cf9745a4b29a7f5f64e2a1a",
+    "semantic_hash": ""
+  },
+  "assets/sfx/coin-2.mp3": {
+    "mtime": 1786760543.5016823,
+    "ast_hash": "68e2a9ae1f1376f91f49fa23ddb58e33",
+    "semantic_hash": ""
+  },
+  "assets/sfx/coin-3.mp3": {
+    "mtime": 1786760544.5375535,
+    "ast_hash": "d044df2fa03a0d3467b1f2fe3e4697a5",
+    "semantic_hash": ""
+  },
+  "assets/sfx/coin-4.mp3": {
+    "mtime": 1786760545.5259502,
+    "ast_hash": "dcbcadedcda8d2734a9d1c16eb8368aa",
+    "semantic_hash": ""
+  },
+  "assets/sfx/coin.mp3": {
+    "mtime": 1786760542.5106683,
+    "ast_hash": "f9c0002bf2c7262e7d432056f53ba75b",
+    "semantic_hash": ""
+  },
+  "assets/sfx/eat-2.mp3": {
+    "mtime": 1786760512.5382822,
+    "ast_hash": "ada46f4ff14be3ccded6400f247584ec",
+    "semantic_hash": ""
+  },
+  "assets/sfx/eat-3.mp3": {
+    "mtime": 1786760513.7415786,
+    "ast_hash": "9379d7fd15162e15ae993eef9960c458",
+    "semantic_hash": ""
+  },
+  "assets/sfx/eat-4.mp3": {
+    "mtime": 1786760514.978068,
+    "ast_hash": "14811d0a22ebb2748a2425c136f96f4c",
+    "semantic_hash": ""
+  },
+  "assets/sfx/eat.mp3": {
+    "mtime": 1786760511.3085415,
+    "ast_hash": "f6574c91c0ea3efb0437ec74eeb7393c",
+    "semantic_hash": ""
+  },
+  "assets/sfx/loot-2.mp3": {
+    "mtime": 1786761105.629301,
+    "ast_hash": "42d7726e5fb475e0554e2c5407723fe7",
+    "semantic_hash": ""
+  },
+  "assets/sfx/loot-3.mp3": {
+    "mtime": 1786761106.3771956,
+    "ast_hash": "bb7a18115edf895703ad36ccbb60e476",
+    "semantic_hash": ""
+  },
+  "assets/sfx/loot-4.mp3": {
+    "mtime": 1786761107.1182184,
+    "ast_hash": "a90a803afd1edd9f516677923ac26b6f",
+    "semantic_hash": ""
+  },
+  "assets/sfx/loot.mp3": {
+    "mtime": 1786761104.8501942,
+    "ast_hash": "fae5f64feaffb7b6412a798c66ea9975",
+    "semantic_hash": ""
+  },
+  "assets/sfx/potion-2.mp3": {
+    "mtime": 1786760517.8964138,
+    "ast_hash": "6f46853aece4a5a878375b057dbab8b6",
+    "semantic_hash": ""
+  },
+  "assets/sfx/potion-3.mp3": {
+    "mtime": 1786760518.8842368,
+    "ast_hash": "2eb64f4ec53fd3bd5f7c9d70b3044846",
+    "semantic_hash": ""
+  },
+  "assets/sfx/potion.mp3": {
+    "mtime": 1786760516.8963814,
+    "ast_hash": "29e82677aa9e8670d8bbe707737a2d5d",
+    "semantic_hash": ""
+  },
+  "assets/sfx/ui_click-2.mp3": {
+    "mtime": 1786761544.188697,
+    "ast_hash": "9269f77b5f1cbe4bb4ba812796e623d4",
+    "semantic_hash": ""
+  },
+  "assets/sfx/ui_click-3.mp3": {
+    "mtime": 1786761544.9765246,
+    "ast_hash": "2fed0ee0a5ece188ef8f85cc73b00fd5",
+    "semantic_hash": ""
+  },
+  "assets/sfx/ui_click.mp3": {
+    "mtime": 1786761543.4308443,
+    "ast_hash": "975b5e317661a3a022744c26ce9cf852",
+    "semantic_hash": ""
+  },
+  "assets/sfx/ui_close.mp3": {
+    "mtime": 1786761546.6426294,
+    "ast_hash": "80a72017bd4ec7f72599ffe97d36aa36",
+    "semantic_hash": ""
+  },
+  "assets/scenario/trees_01.png": {
+    "mtime": 1786768419.167671,
+    "ast_hash": "41d61cbfbe611506227c6705606fe630",
+    "semantic_hash": ""
+  }
+}

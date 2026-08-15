@@ -70,7 +70,10 @@ function fakeEl() {
     // entra em laço infinito se o stub mentir
     remove() { if (this.parent) this.parent.removeChild(this); },
     addEventListener() { }, focus() { }, blur() { }, getContext: ctx2d,
-    querySelector() { return fakeEl() }, getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 })
+    // todo Element real tem os dois; sem querySelectorAll, qualquer render que
+    // religue handlers depois de montar por innerHTML estoura só no teste
+    querySelector() { return fakeEl() }, querySelectorAll() { return [] },
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 })
   };
   Object.defineProperty(el, 'innerHTML', {
     get() { return el._h || '' },
@@ -112,6 +115,11 @@ vm.runInContext(`
     habilidade, impacto, cssColOu: cssCol, ELEM, RES, resistOf,
     ELITES, ELITE_CHANCE, defModificada, mixCol, SETS,
     HUD_PANELS, HUD_DEF, hudApply, hudMove, hudLoad, luzCarregada, SLOT_POS, SLOT_LABEL, equipItem, unequip,
+    playerDeath, BENCAOS, blessPrice, bagAdd, DEEP, SPAWN_POOLS,
+    taskEstado, taskAceitar, taskReceber, taskProgresso, taskOfertas, nivelDe, shopNear, SKILL_NAMES, fixSave,
+    POIS, poiAt, abrirTesouro, BIOMA_POOLS,
+    COLETA, SKILLS_COLETA, colher, coletaDe, IMBUEMENTS, imbuir, contaMat, renderForja,
+    getForjaSlot: () => forjaSlot, setForjaSlot: v => forjaSlot = v,
     getHUD: () => HUD, setHUD: v => HUD = v, getP: () => P });
 
   /* O templo é zona segura: lá o jogador não ataca nem é atacado. Quem for medir
@@ -644,10 +652,28 @@ const dAtk = mediaDano('atk'), dBal = mediaDano('bal'), dDef = mediaDano('def');
 A(dAtk > dBal && dBal > dDef, `postura muda o dano: ${dAtk.toFixed(0)}/${dBal.toFixed(0)}/${dDef.toFixed(0)}`);
 // mede golpe a golpe: subir escudo chama recalc(), que corta a vida no máximo
 // e estragaria a conta de uma tacada só
+/* Duas armadilhas, as duas descobertas medindo em vez de chutando:
+
+   1. `hitPlayer` começa com `if (G.dead) return`. Se um bloco anterior deixou o
+      personagem morto, as 4000 pancadas não fazem NADA e as duas somas dão zero
+      — e `0 < 0` é falso. Era essa a falha intermitente (1 em 6 execuções), não
+      variância: quando falhava, def e atk vinham ambos 0. Com o jogador vivo a
+      margem é enorme e estável (~40 mil contra ~90 mil).
+   2. `hitPlayer` também chama addSkillTry('shielding') a todo golpe, então a
+      primeira postura medida TREINAVA o personagem e a segunda era medida com
+      mais escudo — a conta media a ordem de execução, não a postura.
+
+   Por isso cada medição zera as duas coisas antes de começar. Aumentar a amostra
+   não resolvia nenhuma das duas (e na segunda, piorava). */
 const apanha = st => {
-  vm.runInContext(`P.stance = '${st}';`, ctx);
+  vm.runInContext(`
+    P.stance = '${st}';
+    P.sk.shielding = { l: 10, t: 0 };   // mesmo ponto de partida nas duas medidas
+    G.dead = false;                     // ver comentário acima: morto não apanha
+    recalc();
+  `, ctx);
   let tot = 0;
-  for (let i = 0; i < 400; i++) {
+  for (let i = 0; i < 2000; i++) {
     vm.runInContext('P.hp = P.st.maxhp;', ctx);
     const a = S.getP().hp;
     vm.runInContext('hitPlayer(60, "t");', ctx);
@@ -655,7 +681,8 @@ const apanha = st => {
   }
   return tot;
 };
-A(apanha('def') < apanha('atk'), 'postura defensiva apanha menos');
+const apDef = apanha('def'), apAtk = apanha('atk');
+A(apDef < apAtk, `postura defensiva apanha menos (${apDef} contra ${apAtk})`);
 
 /* 26. follow attack desligado não faz o personagem andar até o alvo */
 vm.runInContext(`
@@ -706,11 +733,13 @@ S.G.mobs.length = 0;
    tapava o único vizinho que diminuía a distância e os de trás travavam. */
 vm.runInContext(`
   newPlayer('IA', 'knight'); G.dead = false; G.mobs.length = 0; G.now = 1e6; P.buffs = {};
-  // arena: um bloco 7x7 inteiramente andável, senão o teste mede o mapa e não a IA
+  /* arena: bloco 13x13 inteiramente andável. Tem de cobrir o bicho mais distante
+     da fila (dy = -5) COM folga de manobra — com 7x7 o último rato nascia fora
+     da área garantida e o teste passava a medir o relevo do mapa, não a IA. */
   const aberto = (() => {
-    for (let y = 4; y < H - 4; y++) for (let x = 4; x < W - 4; x++) {
+    for (let y = 7; y < H - 7; y++) for (let x = 7; x < W - 7; x++) {
       let ok = true;
-      for (let j = -3; j <= 3 && ok; j++) for (let i = -3; i <= 3; i++) if (!isWalkable(x + i, y + j, SURF)) { ok = false; break; }
+      for (let j = -6; j <= 6 && ok; j++) for (let i = -6; i <= 6; i++) if (!isWalkable(x + i, y + j, SURF)) { ok = false; break; }
       if (ok) return [x, y];
     }
     return null;
@@ -942,7 +971,10 @@ A(S.esperaDiag > S.animDiag, 'a espera da diagonal é maior que a animação —
 vm.runInContext(`
   newPlayer('Mundo', 'knight'); G.mobs.length = 0; G.corpses.length = 0; G.drops.length = 0;
   G.now = 1e6;
-  const sps = WORLD.spawns.filter(s => s.z === P.z).slice(0, 2);
+  /* o ponto tem de ter vizinho andável: restaurarBichos recusa posição que não dá
+     pé (senão o save devolveria bicho dentro da pedra), e um deslocamento fixo de
+     +2 caía na parede dependendo do mapa */
+  const sps = WORLD.spawns.filter(s => s.z === P.z && isWalkable(s.x + 2, s.y, s.z)).slice(0, 2);
   sps.forEach(s => { s.live = null; s.dead = 0; });
   const vivo = spawnMob(sps[0]); vivo.hp = 33; vivo.x = vivo.px = sps[0].x + 2;
   removeMob(spawnMob(sps[1]), true);              // esse morre e fica devendo respawn
@@ -957,7 +989,7 @@ vm.runInContext(`
   globalThis.mortoNaLista = (d.mortos || []).some(([i]) => i === iMorto);
 `, ctx);
 A(S.voltou.length === 1 && S.voltou[0].hp === 33 && S.voltou[0].dx === 2,
-  'o bicho vivo volta na posição e na vida em que estava');
+  'o bicho vivo volta na posição e na vida em que estava: ' + JSON.stringify(S.voltou));
 A(S.mortoNaLista && S.segueMorto, 'quem você matou continua morto depois de recarregar');
 S.G.mobs.length = 0;
 
@@ -1005,8 +1037,14 @@ A(S.danoArea > 0, `estouro do ciclope machuca quem está no raio (${S.danoArea})
 A(S.danoLonge === 0, 'fora do raio ninguém se machuca');
 A(S.curou > 100, `esqueleto demoníaco se cura (100 → ${S.curou})`);
 A(S.naoCurou, 'quem está de vida cheia não gasta a habilidade de cura');
-A(Object.values(S.MONSTERS).every(d => !d.hab || (d.hab.cd > 0 && ['area','lento','cura'].includes(d.hab.tipo))),
+const HAB_TIPOS = ['area', 'lento', 'cura', 'mana'];
+A(Object.values(S.MONSTERS).every(d => !d.hab || (d.hab.cd > 0 && HAB_TIPOS.includes(d.hab.tipo))),
   'toda habilidade tem tipo conhecido e descanso');
+/* Fase de chefe: a segunda habilidade passa pelo mesmo `habilidade()`, então tem
+   de obedecer às mesmas regras — e só chefe pode ter, senão vira elite disfarçado */
+A(Object.values(S.MONSTERS).every(d => !d.fase || (d.boss && d.hab && d.fase.hab
+  && d.fase.hab.cd > 0 && HAB_TIPOS.includes(d.fase.hab.tipo) && d.fase.hp > 0 && d.fase.hp < 1)),
+  'fase de chefe é válida e exclusiva de chefe');
 S.G.mobs.length = 0;
 
 /* 29j. impacto: um efeito por tipo de dano, e nada de texto empilhado no bloqueio */
@@ -1325,6 +1363,288 @@ vm.runInContext("equipItem(P.bag.find(b => b.id === 'torch'));", ctx);
 A(S.luzCarregada() === S.ITEMS.torch.luz, 'com tocha e magia fraca vale a MAIOR, não a soma');
 Pl.buffs.light = null;
 A(S.itemStats(Pl.eq.light).slot === 'light', 'a tocha só cabe no slot de luz');
+
+/* 25. morte que dói: exp cai, nível pode cair junto, suprimento queima e quem
+   morre sem bênção larga uma peça. É a régua de risco do jogo — se ela voltar a
+   ser de graça, hunt acima da faixa vira tentativa sem custo e o endgame some. */
+/* `expBase` é onde DENTRO do nível o personagem estava. Importa: quem morre com
+   a barra quase cheia perde menos níveis que quem acabou de subir, porque a
+   perda é fração da exp TOTAL e o começo do nível não tem folga nenhuma abaixo.
+   O padrão é o topo do nível (garante queda de pelo menos um). */
+const morte = (bless, lvl = 40, expBase = `expForLevel(${lvl} + 1) - 1`) => {
+  vm.runInContext(`
+    newPlayer('Defunto', 'knight');
+    P.level = ${lvl}; P.exp = ${expBase}; P.bless = ${bless};
+    bagAdd(mkItem('health_potion', 0, 20)); bagAdd(mkItem('rune_sd', 0, 3)); bagAdd(mkItem('bone', 0, 5));
+    globalThis.antes = { exp: P.exp, lvl: P.level, eq: Object.values(P.eq).filter(Boolean).length };
+    G.dead = false; playerDeath('teste');
+  `, ctx);
+  const p = S.getP();
+  return { antes: S.antes, exp: p.exp, lvl: p.level, bless: p.bless, bag: p.bag.slice(), eq: Object.values(p.eq).filter(Boolean).length };
+};
+{
+  const sem = morte(0), com = morte(S.BENCAOS);
+  A(sem.exp < sem.antes.exp * 0.905 && sem.exp > sem.antes.exp * 0.895, `sem bênção perde 10% da exp (${sem.antes.exp} → ${sem.exp})`);
+  A(com.exp > sem.exp, `bênção reduz a perda de exp (${sem.exp} → ${com.exp})`);
+  A(sem.lvl < sem.antes.lvl, `a exp perdida DERRUBA o nível (${sem.antes.lvl} → ${sem.lvl})`);
+  /* Quanto o nível cai, exatamente. Sem esta régua o teste só dizia "caiu", e
+     "caiu" cobre tanto o certo quanto uma queda de 45 níveis — que foi o susto
+     que uma sonda de teste deu ao forçar P.level sem tocar em P.exp. O nível
+     depois da morte tem de ser o que a exp restante vale, nem mais nem menos.
+     Os números são a curva cúbica do Tibia: no 60 caem 3, no 200 caem 7, e a
+     bênção corta isso pra 1 e 3. Se mexerem em expForLevel ou na fração de
+     perda, é aqui que estoura. */
+  const nivelReal = exp => { let l = 1; while (S.expForLevel(l + 1) <= exp) l++; return l; };
+  const base = lvl => `expForLevel(${lvl})`;      // acabou de subir: o pior caso
+  for (const [lvl, esperadoSem, esperadoCom] of [[60, 3, 1], [100, 4, 1], [200, 7, 3]]) {
+    const s = morte(0, lvl, base(lvl)), c = morte(S.BENCAOS, lvl, base(lvl));
+    A(s.lvl === nivelReal(s.exp), `nv ${lvl}: o nível depois da morte é o que a exp restante vale (${s.lvl})`);
+    A(lvl - s.lvl === esperadoSem, `nv ${lvl} sem bênção cai ${esperadoSem} nível(is) — caiu ${lvl - s.lvl}`);
+    A(lvl - c.lvl === esperadoCom, `nv ${lvl} com bênção cai ${esperadoCom} nível(is) — caiu ${lvl - c.lvl}`);
+    // morrer com a barra cheia dói menos que morrer recém-subido
+    A(lvl - morte(0, lvl).lvl <= esperadoSem, `nv ${lvl}: morrer com a barra cheia não custa mais que recém-subido`);
+  }
+  A(!sem.bag.some(i => i.id === 'health_potion' || i.id === 'rune_sd'), 'poção e runa queimam na morte');
+  A(sem.bag.some(i => i.id === 'bone'), 'o que não é suprimento fica na mochila');
+  A(sem.eq === sem.antes.eq - 1, `morrer sem bênção larga uma peça equipada (${sem.antes.eq} → ${sem.eq})`);
+  A(com.eq === com.antes.eq, 'com bênção o equipamento fica inteiro');
+  A(sem.bless === 0 && com.bless === 0, 'as bênçãos somem na morte, com ou sem');
+  A(S.blessPrice(100) > S.blessPrice(40), 'a bênção fica mais cara conforme o nível sobe');
+  // nível 1 não pode cair para 0 nem para exp negativa
+  const bebe = morte(0, 1);
+  A(bebe.lvl === 1 && bebe.exp >= 0, 'nível 1 não cai abaixo de 1 nem fica com exp negativa');
+}
+
+/* 26. andares novos: o endgame tem onde morar e nada dele vaza pra superfície */
+{
+  const fundos = S.HUNTS.filter(h => h.z >= S.DEEP);
+  A(S.FLOORS === 6 && fundos.length >= 3, `os andares de endgame existem e têm hunt (${fundos.length})`);
+  A(fundos.every(h => h.lvl >= 100), 'toda hunt de andar fundo é de nível alto');
+  const rasos = new Set(S.SPAWN_POOLS[1].flatMap(p => p.mobs).concat(S.SPAWN_POOLS[0][0].mobs));
+  /* Dragão e afins já eram 'challenging' na montanha desde antes — a régua aqui
+     é a faixa NOVA: nada de 'Pesadelo' pode vazar para andar de cima, senão o
+     nível 20 encontra um Colosso indo caçar lobo. */
+  A(![...rasos].some(id => S.MONSTERS[id].diff === 'nightmare'),
+    'nenhuma criatura de Pesadelo nasce na superfície nem na montanha');
+  A(S.SPAWN_POOLS[5][0].mobs.every(id => S.MONSTERS[id].diff === 'nightmare'),
+    'o Coração do Abismo só tem criatura de Pesadelo');
+}
+
+/* 27. contratos de caça: o laço templo → hunt → templo. O contador é o mesmo do
+   bestiário, então o que este teste protege é o CERCO — aceitar e receber só no
+   templo, e a base de contagem gravada na hora do aceite (sem ela, quem já matou
+   500 minotauros ganharia o contrato de 200 já cumprido). */
+{
+  vm.runInContext(`
+    newPlayer('Contratado', 'knight');
+    P.level = 100; P.gold = 0; P.charm = 0; P.tasks = null;
+    P.best = { minotaur: 400, dragon: 30 };
+    P.x = WORLD.temple.x + 2; P.y = WORLD.temple.y + 2; P.z = SURF;
+    globalThis.ofertas = taskEstado().ofertas;
+  `, ctx);
+  A(S.ofertas.length > 0 && S.ofertas.every(o => S.MONSTERS[o.mob] && o.alvo > 0 && o.ouro > 0),
+    `o quadro oferece contratos válidos (${S.ofertas.length})`);
+  A(S.ofertas.every(o => S.getP().best[o.mob] > 0), 'só oferece criatura que o jogador já matou');
+
+  // fora do templo não se aceita
+  vm.runInContext('P.x = 20; P.y = 20; taskAceitar(0);', ctx);
+  A(!S.getP().tasks.ativo, 'contrato não é aceito longe do templo');
+
+  vm.runInContext('P.x = WORLD.temple.x + 2; P.y = WORLD.temple.y + 2; taskAceitar(0);', ctx);
+  const at = S.getP().tasks.ativo;
+  A(at && at.base === S.getP().best[at.mob], 'aceitar grava a contagem de partida (mortes velhas não valem)');
+  A(S.taskProgresso(at) === 0, 'contrato começa em zero mesmo com 400 mortes no bestiário');
+
+  // cumpre, tenta receber longe, depois perto
+  vm.runInContext(`for (let i = 0; i < P.tasks.ativo.alvo; i++) bestiaryKill(P.tasks.ativo.mob);`, ctx);
+  A(S.taskProgresso(S.getP().tasks.ativo) === at.alvo, 'as mortes contam para o contrato');
+  vm.runInContext('P.x = 20; P.y = 20; taskReceber();', ctx);
+  A(S.getP().tasks.ativo && S.getP().gold === 0, 'não paga longe do templo');
+  // carisma tem de ser medido em DELTA: as mortes do contrato também completam
+  // entradas do bestiário, e essas rendem carisma por conta própria
+  vm.runInContext(`P.x = WORLD.temple.x + 2; P.y = WORLD.temple.y + 2;
+    globalThis.expAntes = P.exp; globalThis.charmAntes = P.charm; taskReceber();`, ctx);
+  const P4 = S.getP();
+  A(!P4.tasks.ativo && P4.tasks.feitos === 1, 'entregar no templo fecha o contrato');
+  A(P4.gold === at.ouro && P4.charm - S.charmAntes === at.carisma && P4.exp - S.expAntes >= at.exp,
+    `paga ouro, carisma e exp (${P4.gold} 🪙 · +${P4.charm - S.charmAntes} carisma)`);
+  A(P4.tasks.ofertas && P4.tasks.ofertas.length > 0, 'o quadro se reabastece depois da entrega');
+  // teto do carisma: 3 presas custam 300, então nenhum contrato pode pagar isso sozinho
+  A(S.taskOfertas().every(o => o.carisma <= S.CHARM_COST), 'nenhum contrato paga uma presa inteira de uma vez');
+}
+
+/* 28. POIs: existem, não pisam nas hunts, têm guarda em volta, e o tesouro abre
+   UMA vez. O uma-vez é o que este teste protege — sem ele o POI vira uma máquina
+   de ouro infinita que se saqueia andando em círculo em cima do mesmo tile. */
+{
+  const ps = S.WORLD.pois;
+  A(ps.length >= 30, `o mundo tem pontos de interesse (${ps.length})`);
+  A(ps.every(p => typeof p.z === 'number' && S.POIS.find(d => d.id === p.id).z.includes(p.z)),
+    'todo POI está num andar previsto pelo molde dele');
+  A(ps.every(p => S.isWalkable(p.x, p.y, p.z)), 'o centro de todo POI é andável');
+  A(ps.every(p => !S.huntAt(p.x, p.y, p.z)), 'nenhum POI cai dentro de hunt');
+  A(ps.every(p => S.distT(p.x, p.y, S.WORLD.temple.x, S.WORLD.temple.y) >= 22 || p.z !== S.SURF),
+    'nenhum POI colado no templo');
+  A(new Set(ps.map(p => p.uid)).size === ps.length, 'cada POI tem identidade própria (o saque é por uid)');
+  const guardas = S.WORLD.spawns.filter(s => s.poi);
+  A(guardas.length > 40, `os POIs têm guarda em volta (${guardas.length} pontos)`);
+  A(guardas.every(s => { const p = ps.find(p => p.uid === s.poi); return p && p.mobs.includes(s.m); }),
+    'guarda de POI é da família do POI');
+
+  vm.runInContext(`
+    newPlayer('Saqueador', 'knight');
+    const p = WORLD.pois[0];
+    P.z = p.z; P.x = p.x; P.y = p.y; P.seen = {};
+    G.drops.length = 0; abrirTesouro(p);
+    globalThis.primeiro = G.drops.length;
+    abrirTesouro(p); abrirTesouro(p);
+    globalThis.depois = G.drops.length;
+    globalThis.noChao = G.drops.every(d => isWalkable(d.x, d.y, d.z) && distT(d.x, d.y, p.x, p.y) <= 1);
+  `, ctx);
+  A(S.primeiro > 0, `o tesouro larga item ao ser aberto (${S.primeiro})`);
+  A(S.depois === S.primeiro, 'abrir de novo não larga mais nada — o POI é de uma vez só');
+  A(S.noChao, 'o tesouro cai no chão em volta, em tile andável (mochila cheia não come nada)');
+}
+
+/* 29. biomas: tundra e pântano existem na superfície e têm fauna própria */
+{
+  const conta = t => { let n = 0; const f = S.WORLD.floors[S.SURF].t; for (let i = 0; i < f.length; i++) if (f[i] === t) n++; return n; };
+  A(conta(S.T.SNOW) > 200 && conta(S.T.SWAMP) > 200, `tundra e pântano existem (${conta(S.T.SNOW)} / ${conta(S.T.SWAMP)} tiles)`);
+  A(Object.values(S.BIOMA_POOLS).every(pools => pools.every(p => p.mobs.every(id => S.MONSTERS[id]))),
+    'toda fauna de bioma é criatura de verdade');
+  A(Object.values(S.TILE).every(t => !t.tex || S.TEX_DRAW[t.tex]), 'os tiles novos têm rotina de desenho');
+}
+
+/* 29b. arma de endgame tem de ser melhor que TUDO abaixo dela.
+   A régua vale só para os conjuntos `sa` e `vz` — nos conjuntos do meio do jogo
+   (gg, ns, ah…) a peça é de propósito um pouco mais fraca que a melhor arma solta
+   da faixa, porque ela paga em bônus de conjunto e existe alternativa fora dele.
+   Acima do nível 50 NÃO existe alternativa: se a peça do conjunto não ganhar de
+   tudo que veio antes, aquela vocação simplesmente nunca troca de arma — foi o
+   que aconteceu com o Arco da Sentinela (44 contra os 45 da Besta Real). */
+{
+  const pot = i => i.atk || (i.dmg ? (i.dmg[0] + i.dmg[1]) / 2 : 0);
+  const armas = Object.values(S.ITEMS).filter(i => i.slot === 'weapon');
+  const ruins = armas.filter(i => (i.set === 'sa' || i.set === 'vz')).filter(i =>
+    armas.some(o => o.wt === i.wt && (o.lvl || 0) < (i.lvl || 0) && pot(o) >= pot(i)));
+  A(!ruins.length, 'toda arma de endgame ganha de tudo que vem abaixo dela: '
+    + (ruins.map(i => `${i.n} (nv${i.lvl}, ${pot(i)})`).join(', ') || 'ok'));
+}
+
+/* 29c. arma que não se compra nem cai NÃO EXISTE. Cinco varinhas e uma besta
+   estavam declaradas na tabela e fora de toda loja e de toda lista de loot — o
+   druida chegava ao nível 25 ainda com o cajado do nível 6 porque literalmente
+   não havia caminho até o próximo. É o defeito mais barato de cometer de novo:
+   basta declarar um item e esquecer de plugar. */
+{
+  const noLoot = new Set();
+  Object.values(S.MONSTERS).forEach(m => m.loot.forEach(([id]) => noLoot.add(id)));
+  const naLoja = new Set(S.SHOP_STOCK);
+  const orfas = Object.values(S.ITEMS).filter(i => i.slot === 'weapon' && !naLoja.has(i.id) && !noLoot.has(i.id));
+  A(!orfas.length, 'toda arma tem como ser obtida (loja ou loot): '
+    + (orfas.map(i => `${i.n} (nv${i.lvl || 0})`).join(', ') || 'ok'));
+
+  /* Sem buraco maior que 12 níveis na linha de cada vocação. O ranger passava 26
+     níveis sem arma nova e o mago 20 — a ficha dizia que ele evoluía e a mão
+     dizia que não. 12 é aproximadamente o tempo de uma faixa de hunt. */
+  const pot = i => i.atk || (i.dmg ? (i.dmg[0] + i.dmg[1]) / 2 : 0);
+  for (const [wt, voc] of [['distance', null], ['wand', 'sorcerer'], ['wand', 'druid']]) {
+    const l = Object.values(S.ITEMS)
+      .filter(i => i.slot === 'weapon' && i.wt === wt && (!voc || !i.voc || i.voc.includes(voc)))
+      .sort((a, b) => (a.lvl || 0) - (b.lvl || 0));
+    // só conta degrau quem é de fato mais forte que tudo que veio antes
+    const degraus = []; let melhor = 0;
+    for (const i of l) if (pot(i) > melhor) { melhor = pot(i); degraus.push(i); }
+    const buracos = degraus.slice(1)
+      .map((i, x) => [degraus[x], i, (i.lvl || 0) - (degraus[x].lvl || 0)])
+      .filter(([, , d]) => d > 12);
+    A(!buracos.length, `${wt}${voc ? '/' + voc : ''}: nenhum buraco maior que 12 níveis — `
+      + (buracos.map(([a, b, d]) => `${a.n} nv${a.lvl} → ${b.n} nv${b.lvl} (${d})`).join('; ') || 'ok'));
+  }
+}
+
+/* 30. coleta: pedra, árvore e água viram recurso, o tile se esgota e a skill sobe.
+   O esgotamento é o que este teste guarda — sem ele o jogador fica num tile só
+   clicando, e mineração deixa de ser uma coisa a fazer no mundo. */
+{
+  A(S.SKILLS_COLETA.every(k => S.SKILL_NAMES && S.COLETA[k]
+    && Object.values(S.VOCATIONS).every(v => v.sk[k] > 0)),
+    'toda skill de coleta tem nome, curva por vocação e tabela');
+  A(Object.values(S.VOCATIONS).every(v => S.SKILLS_COLETA.every(k => v.sk[k] === S.VOCATIONS.knight.sk[k])),
+    'nenhuma vocação colhe melhor que outra — coleta não é ofício de classe');
+  A(Object.values(S.COLETA).every(c => c.tab.every(([id, ch, lv]) => S.ITEMS[id] && ch > 0 && lv >= 10)),
+    'toda linha de colheita aponta pra item real, com chance e nível');
+  A(Object.values(S.COLETA).every(c => c.tab.some(([, , lv]) => lv <= 10)),
+    'toda coleta rende alguma coisa já no nível inicial');
+  A(Object.values(S.COLETA).every(c => c.tiles.every(t => S.T[t] !== undefined)),
+    'todo tile de coleta existe na tabela de terreno');
+
+  vm.runInContext(`
+    newPlayer('Colhedor', 'knight'); P.bag.length = 0; G.drops.length = 0; G.now = 5e6;
+    // acha um tile de cada recurso com vizinho andável e colhe dele
+    globalThis.res = {};
+    for (const [nome, tt] of [['mining', T.ROCK], ['woodcut', T.TREE], ['fishing', T.WATER]]) {
+      let achou = null;
+      for (let y = 5; y < H - 5 && !achou; y++) for (let x = 5; x < W - 5; x++) {
+        if (tileAt(x, y, SURF) !== tt) continue;
+        const v = DIRS.map(([dx, dy]) => [x + dx, y + dy]).find(([a, b]) => isWalkable(a, b, SURF));
+        if (v) { achou = { x, y, v }; break; }
+      }
+      if (!achou) { res[nome] = null; continue; }
+      P.z = SURF; P.x = achou.v[0]; P.y = achou.v[1];
+      const antes = P.bag.length, tAntes = P.sk[nome].t;
+      G.colheitaCd = 0; colher(achou.x, achou.y);
+      const ganhou = P.bag.length - antes, treinou = P.sk[nome].t - tAntes;
+      G.colheitaCd = 0; colher(achou.x, achou.y);          // tile gasto: não rende de novo
+      res[nome] = { ganhou, treinou, repetido: P.bag.length - antes };
+    }
+  `, ctx);
+  for (const k of ['mining', 'woodcut', 'fishing']) {
+    const r = S.res[k];
+    A(r && r.ganhou === 1, `${k}: colher rende um item (${r && r.ganhou})`);
+    A(r && r.treinou > 0, `${k}: colher treina a habilidade`);
+    A(r && r.repetido === 1, `${k}: o tile se esgota — colher de novo não rende nada`);
+  }
+}
+
+/* 31. imbuement: gasta material e ouro, entra como afixo, um por peça, e
+   SOBREVIVE ao save. O fixSave é o ponto frágil: ele descarta afixo que não
+   reconhece, então um imbuement fora da lista dele sumiria em silêncio. */
+{
+  vm.runInContext(`
+    newPlayer('Ferreiro', 'knight');
+    P.x = WORLD.temple.x + 2; P.y = WORLD.temple.y + 2; P.z = SURF;
+    P.gold = 1e6; P.bag.length = 0;
+    equipItem(mkItem('plate_armor'), true);
+    setForjaSlot('armor');
+    const vit = IMBUEMENTS.find(i => i.id === 'vitalidade');
+    const arc = IMBUEMENTS.find(i => i.id === 'arcano');
+    globalThis.semMat = (imbuir('vitalidade'), P.eq.armor.imb);      // sem material: não aplica
+    vit.mats.forEach(([id, q]) => bagAdd(mkItem(id, 0, q)));
+    globalThis.hpAntes = P.st.maxhp; globalThis.ouroAntes = P.gold;
+    imbuir('vitalidade');
+    globalThis.r1 = { imb: P.eq.armor.imb, hp: P.st.maxhp, ouro: ouroAntes - P.gold,
+                      mats: vit.mats.map(([id]) => contaMat(id)) };
+    // longe do templo não forja
+    arc.mats.forEach(([id, q]) => bagAdd(mkItem(id, 0, q)));
+    P.x = 20; P.y = 20; imbuir('arcano');
+    globalThis.longeNaoForja = P.eq.armor.imb === 'vitalidade';
+    P.x = WORLD.temple.x + 2; P.y = WORLD.temple.y + 2;
+    imbuir('arcano');
+    globalThis.r2 = { af: (P.eq.armor.af || []).map(a => a.n), hp: P.st.maxhp, mana: P.st.maxmana };
+    save();
+    globalThis.afNoSave = (fixSave(load()).p.eq.armor.af || []).map(a => a.n);
+  `, ctx);
+  A(S.semMat === undefined, 'sem material o imbuement não é aplicado');
+  A(S.r1.imb === 'vitalidade' && S.r1.hp === S.hpAntes + 150, `imbuir soma o bônus (${S.hpAntes} → ${S.r1.hp} de vida)`);
+  A(S.r1.ouro === S.IMBUEMENTS[0].ouro && S.r1.mats.every(n => n === 0), 'imbuir cobra o ouro e consome os materiais');
+  A(S.longeNaoForja, 'longe do templo não se forja');
+  A(S.r2.af.length === 1 && S.r2.af[0] === 'Arcano' && S.r2.hp === S.hpAntes,
+    `trocar o imbuement apaga o anterior (${JSON.stringify(S.r2.af)})`);
+  A(S.afNoSave.length === 1 && S.afNoSave[0] === 'Arcano', 'o imbuement sobrevive ao save/load');
+  A(S.IMBUEMENTS.every(i => i.mats.every(([id]) => S.ITEMS[id]) && i.ouro > 0 && Object.keys(i.b).length),
+    'todo imbuement usa material real, cobra ouro e dá bônus');
+}
 
 console.log(`  espada ${T2.sk.sword.l} · escudo ${T2.sk.shielding.l} após 2 min de treino`);
 console.log(`  dragão: ${Math.min(...tam)}–${Math.max(...tam)} itens por morte, média ${medio.toFixed(1)}`);

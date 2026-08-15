@@ -286,7 +286,18 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
   /* Sangue do chão entra entre os dois passes: depois do piso inteiro, para a
      mancha não ser apagada pelo tile vizinho, e antes dos volumes, para quem
      pisa nela passar por cima. Só o andar do jogador tem sangue desenhado. */
-  if (bucket) { drawBlood(z, t); hoverTile(t); }
+  /* Corpo entra aqui, e não no balde de entidades: sprite de bicho grande
+     transborda o próprio tile, e no balde o corpo de um tile mais ao sul/leste
+     era pintado DEPOIS do jogador e o cobria. Como chão, fica sempre atrás de
+     bicho, boneco, parede e deco. */
+  if (bucket) {
+    drawBlood(z, t);
+    const lim = VW / t + 3;
+    for (const c of G.corpses)
+      if (c.z === z && Math.abs(c.x - camX) <= lim && Math.abs(c.y - camY) <= lim)
+        drawEntity({ k: 'corpo', c }, telaX(c.x), telaY(c.y), t);
+    hoverTile(t);
+  }
 
   /* 2º passe: o que tem volume, na ordem do pintor */
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
@@ -374,7 +385,6 @@ function entityBucket() {
     }
     add(ax, ay, { k: 'bicho', e, ax, ay });
   };
-  for (const c of G.corpses) if (c.z === P.z) add(c.x, c.y, { k: 'corpo', c });
   for (const d of G.drops) if (d.z === P.z) add(d.x, d.y, { k: 'item', d });
   for (const m of G.mobs) if (m.z === P.z && m.hp > 0) andante(m);
   andante(P);

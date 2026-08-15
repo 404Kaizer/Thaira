@@ -1,11 +1,17 @@
-/* world.js — geração do mundo (4 andares), pathfinding, luz por andar e
+/* world.js — geração do mundo (6 andares), pathfinding, luz por andar e
    minimapa. Só dados: quem desenha é render2d.js. Depende de data.js. */
 'use strict';
 
-const W = 160, H = 160, FLOORS = 4, SURF = 1;   // 0=montanha  1=superfície  2=caverna  3=profundo
-const FLOOR_NAMES = ['Pico da Montanha (+1)', 'Superfície (0)', 'Caverna (-1)', 'Abismo (-2)'];
+/* Os dois andares de baixo são o endgame: a progressão do jogo é VERTICAL, como
+   em Tibia — descer é o que separa o nível 60 do nível 300, e cada degrau tem a
+   própria família de criatura, o próprio loot e o próprio chefe. Andar novo é
+   barato aqui (o gerador de caverna já é genérico), então quando a curva
+   precisar de mais fôlego, o caminho é FLOORS+1 e mais um pool de spawn. */
+const W = 224, H = 224, FLOORS = 6, SURF = 1;   // 0=montanha 1=superfície 2=caverna 3=abismo 4=fenda 5=coração
+const FLOOR_NAMES = ['Pico da Montanha (+1)', 'Superfície (0)', 'Caverna (-1)', 'Abismo (-2)', 'Fenda (-3)', 'Coração do Abismo (-4)'];
+const DEEP = 4;   // a partir daqui é endgame: mais lava, mais elite, sem meio-termo
 
-const T = { VOID: 0, GRASS: 1, DIRT: 2, SAND: 3, WATER: 4, ROCK: 5, TREE: 6, CFLOOR: 7, CWALL: 8, LAVA: 9, DOWN: 10, UP: 11, TEMPLE: 12 };
+const T = { VOID: 0, GRASS: 1, DIRT: 2, SAND: 3, WATER: 4, ROCK: 5, TREE: 6, CFLOOR: 7, CWALL: 8, LAVA: 9, DOWN: 10, UP: 11, TEMPLE: 12, SNOW: 13, SWAMP: 14 };
 const TILE = {
   [T.VOID]:   { c: 0x000000, top: 0,    walk: false, hide: true },
   [T.GRASS]:  { c: 0x4a7a3a, top: 0,    walk: true,  tex: 'grass' },
@@ -19,10 +25,12 @@ const TILE = {
   [T.LAVA]:   { c: 0xd1441a, top: -0.1, walk: false, tex: 'lava' },
   [T.DOWN]:   { c: 0x3a332c, top: 0,    walk: true,  tex: 'cave' },
   [T.UP]:     { c: 0x9a9185, top: 0,    walk: true,  tex: 'stone' },
-  [T.TEMPLE]: { c: 0xb9ae94, top: 0,    walk: true,  tex: 'stone' }
+  [T.TEMPLE]: { c: 0xb9ae94, top: 0,    walk: true,  tex: 'stone' },
+  [T.SNOW]:   { c: 0xd6e2ea, top: 0,    walk: true,  tex: 'snow' },
+  [T.SWAMP]:  { c: 0x3c4a2e, top: -0.06, walk: true, tex: 'swamp' }
 };
 
-const WORLD = { floors: [], temple: { x: 80, y: 80, z: SURF }, spawns: [], hunts: [], seed: 0 };
+const WORLD = { floors: [], temple: { x: W >> 1, y: H >> 1, z: SURF }, spawns: [], hunts: [], pois: [], seed: 0 };
 
 /* --------------------------------------------------------------- ruído/rng */
 function mulberry32(a) {
@@ -59,6 +67,12 @@ function huntAt(x, y, z) {
   }
   return null;
 }
+/* em qual POI este tile cai. Quadrado e não círculo como a hunt: o POI é
+   pequeno, e num raio de 2-3 tiles o círculo tira justamente os cantos onde os
+   guardas ficariam. */
+function poiAt(x, y, z) {
+  return WORLD.pois.find(p => p.z === z && distT(x, y, p.x, p.y) <= p.r) || null;
+}
 const idx = (x, y) => y * W + x;
 const inBounds = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
 function tileAt(x, y, z) { return inBounds(x, y) ? WORLD.floors[z].t[idx(x, y)] : T.VOID; }
@@ -69,6 +83,11 @@ function distT(a, b, c, d) { return Math.max(Math.abs(a - c), Math.abs(b - d)); 
 function genWorld(seed) {
   WORLD.seed = seed;
   const rnd = mulberry32(seed), nEl = makeNoise(seed), nMo = makeNoise(seed + 7777);
+  /* Terceiro ruído, bem mais largo que os outros dois: bioma é região, não
+     mancha. Com a mesma frequência da umidade sairiam ilhotas de neve de três
+     tiles espalhadas pelo campo inteiro; com esta, a tundra é um pedaço do
+     mundo pelo qual se atravessa, e o pântano é um lugar aonde se vai. */
+  const nBio = makeNoise(seed + 24601);
   WORLD.floors = [];
   for (let z = 0; z < FLOORS; z++) WORLD.floors.push({ t: new Uint8Array(W * H), deco: [] });
 
@@ -82,11 +101,16 @@ function genWorld(seed) {
   const surf = WORLD.floors[SURF].t, mount = WORLD.floors[0].t;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const e = nEl(x, y), m = nMo(x, y, 3, 0.07), i = idx(x, y);
+    const b = nBio(x, y, 2, 0.018);
     const edge = Math.min(x, y, W - 1 - x, H - 1 - y);
     if (edge < 3) { surf[i] = T.WATER; continue; }        // oceano em volta do mapa
     if (e < tWater) surf[i] = T.WATER;
     else if (e < tSand) surf[i] = T.SAND;
     else if (e > tRock) surf[i] = T.ROCK;
+    // tundra no alto e frio, pântano no baixo e úmido; a árvore ainda nasce nos
+    // dois, é o CHÃO que muda de nome e de fauna
+    else if (b < .30 && e > tSand + (tRock - tSand) * .35) surf[i] = (m > .62 && mulberry32(seed + i)() < .3) ? T.TREE : T.SNOW;
+    else if (b > .66 && m > .42 && e < tSand + (tRock - tSand) * .55) surf[i] = (m > .72 && mulberry32(seed + i)() < .35) ? T.TREE : T.SWAMP;
     else if (m > 0.58 && mulberry32(seed + i)() < 0.45) surf[i] = T.TREE;
     else surf[i] = m < 0.4 ? T.DIRT : T.GRASS;
     // andar de cima: platô onde a elevação é extrema
@@ -94,7 +118,7 @@ function genWorld(seed) {
   }
 
   // cavernas por autômato celular
-  for (const z of [2, 3]) {
+  for (let z = 2; z < FLOORS; z++) {
     const t = WORLD.floors[z].t, r2 = mulberry32(seed + z * 913);
     let a = new Uint8Array(W * H);
     for (let i = 0; i < a.length; i++) a[i] = r2() < 0.46 ? 1 : 0;
@@ -113,7 +137,9 @@ function genWorld(seed) {
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const i = idx(x, y), edge = Math.min(x, y, W - 1 - x, H - 1 - y);
       if (edge < 2 || a[i]) t[i] = T.CWALL;
-      else t[i] = (z === 3 && r2() < 0.03) ? T.LAVA : T.CFLOOR;
+      // quanto mais fundo, mais o chão é lava: no Coração ela é 1 tile em 12 e
+      // vira geografia, não decoração — passagem estreita e box difícil de fechar
+      else t[i] = (z >= 3 && r2() < 0.03 * (z - 2)) ? T.LAVA : T.CFLOOR;
     }
   }
 
@@ -129,17 +155,32 @@ function genWorld(seed) {
       if (inBounds(x + i2, y + j)) t[idx(x + i2, y + j)] = tile;
   };
 
-  // escadas: superfície->caverna->abismo e superfície->montanha
-  const pairs = [[SURF, 2, 16], [2, 3, 12]];
+  /* Escada JÁ COLOCADA é intocável. Um par [z,z+1] sorteia em cima de tiles do
+     andar z, e os tiles de escada são andáveis: sem esta guarda, colocar o par
+     [3,4] podia cair num T.UP que o par [2,3] tinha acabado de criar e apagá-lo
+     — o buraco do andar 2 passava a dar num chão sem volta, e quem descesse por
+     ele ficava preso. O andar de baixo também precisa da guarda: `carve` alarga
+     em raio 2 e engoliria a escada do vizinho pelo mesmo motivo. */
+  const ehEscada = (t, i) => t[i] === T.UP || t[i] === T.DOWN;
+  const livrePraCavar = (t, x, y, r) => {
+    for (let j = -r; j <= r; j++) for (let i2 = -r; i2 <= r; i2++)
+      if (inBounds(x + i2, y + j) && ehEscada(t, idx(x + i2, y + j))) return false;
+    return true;
+  };
+
+  // escadas: superfície->caverna->abismo->fenda->coração, e superfície->montanha
+  const pairs = [[SURF, 2, 16], [2, 3, 12], [3, 4, 10], [4, 5, 8]];
   for (const [up, down, count] of pairs) {
     const tu = WORLD.floors[up].t, td = WORLD.floors[down].t;
     let placed = 0, guard = 0;
     while (placed < count && guard++ < 8000) {
       const x = 6 + Math.floor(rnd() * (W - 12)), y = 6 + Math.floor(rnd() * (H - 12));
-      if (!TILE[tu[idx(x, y)]].walk || tu[idx(x, y)] === T.TEMPLE) continue;
+      const i = idx(x, y);
+      if (!TILE[tu[i]].walk || tu[i] === T.TEMPLE || ehEscada(tu, i)) continue;
+      if (!livrePraCavar(td, x, y, 2)) continue;
       if (distT(x, y, tx, ty) < 10) continue;
       carve(td, x, y, 2, T.CFLOOR);
-      tu[idx(x, y)] = T.DOWN; td[idx(x, y)] = T.UP;
+      tu[i] = T.DOWN; td[i] = T.UP;
       placed++;
     }
   }
@@ -148,6 +189,7 @@ function genWorld(seed) {
     while (placed < 6 && guard++ < 20000) {
       const x = 6 + Math.floor(rnd() * (W - 12)), y = 6 + Math.floor(rnd() * (H - 12));
       if (mount[idx(x, y)] !== T.DIRT) continue;
+      if (ehEscada(surf, idx(x, y))) continue;      // não rouba o buraco da caverna
       // acha chão andável na superfície por perto e cava um caminho até a escada
       let best = null;
       for (let r = 2; r <= 6 && !best; r++)
@@ -159,7 +201,7 @@ function genWorld(seed) {
       let [cx, cy] = best;
       while (cx !== x || cy !== y) {
         cx += Math.sign(x - cx); cy += Math.sign(y - cy);
-        surf[idx(cx, cy)] = T.DIRT;
+        if (!ehEscada(surf, idx(cx, cy))) surf[idx(cx, cy)] = T.DIRT;   // a trilha desvia da escada
       }
       surf[idx(x, y)] = T.UP; mount[idx(x, y)] = T.DOWN;
       placed++;
@@ -186,6 +228,33 @@ function genWorld(seed) {
     }
   }
 
+  /* POIs: mesma busca da hunt, só que menor e em lote. Ficam longe do templo,
+     fora de hunt e longe uns dos outros — POI colado em hunt some no meio do
+     respawn dela e deixa de ser descoberta. */
+  WORLD.pois = [];
+  const rP = mulberry32(seed + 90210);
+  for (const def of POIS) {
+    for (let k = 0; k < def.qtd; k++) {
+      for (let n = 0; n < 3000; n++) {
+        const z = def.z[Math.floor(rP() * def.z.length)];
+        const x = 8 + Math.floor(rP() * (W - 16)), y = 8 + Math.floor(rP() * (H - 16));
+        if (!isWalkable(x, y, z) || tileAt(x, y, z) === T.TEMPLE) continue;
+        if (distT(x, y, tx, ty) < 22) continue;
+        if (huntAt(x, y, z)) continue;
+        if (WORLD.hunts.some(h => h.z === z && distT(x, y, h.x, h.y) < h.r + def.r + 5)) continue;
+        if (WORLD.pois.some(p => p.z === z && distT(x, y, p.x, p.y) < 18)) continue;
+        let livre = 0, total = 0;
+        for (let j = -def.r; j <= def.r; j++) for (let i2 = -def.r; i2 <= def.r; i2++) {
+          total++; if (isWalkable(x + i2, y + j, z)) livre++;
+        }
+        if (livre / total < 0.6) continue;
+        // a posição vem DEPOIS do molde: `def.z` é a lista de andares possíveis,
+        // e sobrescrever na ordem errada deixava o POI com z sendo um array
+        WORLD.pois.push(Object.assign({}, def, { x, y, z, uid: def.id + '_' + k }));
+        break;
+      }
+    }
+  }
   // decoração + pontos de spawn
   WORLD.spawns = [];
   for (let z = 0; z < FLOORS; z++) {
@@ -206,8 +275,22 @@ function genWorld(seed) {
         WORLD.spawns.push({ x, y, z, m: hunt.mobs[Math.floor(r3() * hunt.mobs.length)], dead: 0, live: null, hunt: hunt.id });
         continue;
       }
-      if (r3() > (z === SURF ? 0.008 : 0.012)) continue;    // fora das hunts o mundo é mais vazio
-      const pool = pools.find(p => d >= p.r[0] && d < p.r[1]) || pools[pools.length - 1];
+      // POI: guarda temático em volta do tesouro, denso mas num raio pequeno
+      const poi = poiAt(x, y, z);
+      if (poi) {
+        if (x === poi.x && y === poi.y) continue;     // o centro é o tesouro
+        if (r3() > poi.dens) continue;
+        WORLD.spawns.push({ x, y, z, m: poi.mobs[Math.floor(r3() * poi.mobs.length)], dead: 0, live: null, poi: poi.uid });
+        continue;
+      }
+      /* Mundo aberto: RALO de propósito. O mapa dobrou de área, e manter a taxa
+         antiga dobraria a quantidade de bicho de estrada — o oposto do que faz
+         um mundo ser bom de atravessar. O perigo mora nas hunts e nos POIs; o
+         caminho entre eles é para andar, não para brigar a cada dez passos. */
+      if (r3() > (z === SURF ? 0.004 : 0.009)) continue;
+      const bio = BIOMA_POOLS[TILE[tt].tex];             // tundra e pântano têm dono
+      const usados = bio || pools;
+      const pool = usados.find(p => d >= p.r[0] && d < p.r[1]) || usados[usados.length - 1];
       WORLD.spawns.push({ x, y, z, m: pool.mobs[Math.floor(r3() * pool.mobs.length)], dead: 0, live: null });
     }
   }
@@ -219,6 +302,16 @@ function genWorld(seed) {
      seria pedir uma parede de vida que ninguém derruba. */
   for (const h of WORLD.hunts)
     if (h.boss) WORLD.spawns.push({ x: h.x, y: h.y, z: h.z, m: h.boss, dead: 0, live: null, hunt: h.id, boss: true });
+
+  /* O guardião do tesouro dorme COLADO nele, não espalhado no raio: é o que faz
+     dar pra ver o prêmio e o preço na mesma olhada e decidir se vale. Vai num
+     tile vizinho porque o centro é o baú. */
+  for (const p of WORLD.pois) {
+    if (!p.guarda) continue;
+    const v = DIRS.map(([dx, dy]) => [p.x + dx, p.y + dy]).find(([x, y]) => isWalkable(x, y, p.z));
+    const m = p.mobs[p.z ? POIS.find(d => d.id === p.id).z.indexOf(p.z) : 0] || p.mobs[0];
+    if (v) WORLD.spawns.push({ x: v[0], y: v[1], z: p.z, m, dead: 0, live: null, poi: p.uid });
+  }
 }
 
 /* ------------------------------------------------------------ pathfinding */
@@ -269,7 +362,9 @@ const FLOOR_AMBIENCE = [
   { bg: '#223047', amb: null },
   { bg: '#162015', amb: null },
   { bg: '#0b0a09', amb: '#2b2a30' },
-  { bg: '#0a0506', amb: '#241419' }
+  { bg: '#0a0506', amb: '#241419' },
+  { bg: '#070309', amb: '#1e1030' },   // fenda: o roxo do vazio
+  { bg: '#050203', amb: '#2a0c10' }    // coração: só a brasa
 ];
 
 /* Ciclo dia/noite. A hora vem do relógio de parede: continua de onde parou entre

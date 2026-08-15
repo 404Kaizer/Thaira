@@ -397,7 +397,7 @@ function ambience(z) {
   if (!audioInit()) return;
   pararAmbiente();
   if (!SFX_ON) return;
-  musica(z <= 1 ? (ehNoite() ? 'superficie-noite' : 'superficie-dia') : z === 3 ? 'abismo' : 'caverna');
+  musica(z <= 1 ? (ehNoite() ? 'superficie-noite' : 'superficie-dia') : z >= 3 ? 'abismo' : 'caverna');
   const t = AC.currentTime;
   if (z === 0 || z === 1) {                       // vento
     const n = AC.sampleRate * 4, buf = AC.createBuffer(1, n, AC.sampleRate), ch = buf.getChannelData(0);
@@ -413,7 +413,7 @@ function ambience(z) {
     ambNodes.push(src, lfo);
   } else {                                        // rumor grave da caverna
     const osc = AC.createOscillator(), g = AC.createGain();
-    osc.type = 'sine'; osc.frequency.value = z === 3 ? 44 : 62;
+    osc.type = 'sine'; osc.frequency.value = z >= 3 ? 44 : 62;
     g.gain.value = 0.05;
     osc.connect(g); g.connect(BUS.ambiente || master);
     osc.start(t);

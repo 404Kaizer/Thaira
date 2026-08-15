@@ -116,6 +116,28 @@ const TEX_DRAW = {
     _speckle(ctx, S, c, 600, 1, 3, .65, 1.4);
     _cracks(ctx, S, c, 30, .55);
   },
+  snow(ctx, S, c) {
+    ctx.fillStyle = _rgb(c); ctx.fillRect(0, 0, S, S);
+    _speckle(ctx, S, c, 800, 1, 3, .94, 1.06);           // grão fino: neve não tem contraste
+    for (let i = 0; i < 14; i++) {                       // sombra das cristas
+      ctx.fillStyle = _rgb(c, .86); ctx.beginPath();
+      ctx.ellipse(_rnd() * S, _rnd() * S, 4 + _rnd() * 7, 1.5 + _rnd() * 2, _rnd() * 3, 0, 7); ctx.fill();
+    }
+  },
+  swamp(ctx, S, c) {
+    ctx.fillStyle = _rgb(c); ctx.fillRect(0, 0, S, S);
+    _speckle(ctx, S, c, 520, 1, 4, .6, 1.35);
+    for (let i = 0; i < 9; i++) {                        // poças paradas
+      ctx.fillStyle = _rgb(c, .55); ctx.beginPath();
+      ctx.ellipse(_rnd() * S, _rnd() * S, 3 + _rnd() * 6, 2 + _rnd() * 4, _rnd() * 3, 0, 7); ctx.fill();
+    }
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 34; i++) {                       // junco
+      const x = _rnd() * S, y = _rnd() * S;
+      ctx.strokeStyle = _rgb(c, 1.5);
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (_rnd() - .5) * 2, y - 4 - _rnd() * 5); ctx.stroke();
+    }
+  },
   lava(ctx, S, c) {
     ctx.fillStyle = _rgb(c, .32); ctx.fillRect(0, 0, S, S);
     for (let i = 0; i < 22; i++) {                       // veios incandescentes
@@ -176,7 +198,10 @@ function flowTexture(kind, hex) {
 /* ---------------------------------------------------- bordas de terreno */
 /* Quem tem prioridade maior invade o vizinho. Água é a menor de todas: assim é a
    margem de terra que avança sobre a água, e não a água sobre a praia. */
-const TERRAIN_PRIO = { water: 0, lava: 1, grass: 2, cave: 3, dirt: 4, sand: 5, rock: 6, stone: 7 };
+/* Quem desenha borda por cima de quem. Pântano fica logo acima da água (é água
+   com chão) e neve acima da grama — assim a tundra invade o campo e não o
+   contrário, que é como bioma frio parece na natureza. */
+const TERRAIN_PRIO = { water: 0, swamp: 1, lava: 1, grass: 2, snow: 3, cave: 3, dirt: 4, sand: 5, rock: 6, stone: 7 };
 
 /* 8 máscaras de 32×32: 0..3 = N,L,S,O; 4..7 = NL,SL,SO,NO.
    O degradê sozinho dá borda de aerógrafo, que destoa de tudo em volta. A

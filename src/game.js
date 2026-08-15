@@ -108,11 +108,12 @@ function newPlayer(name, voc) {
   const p = {
     name, voc, level: 1, exp: 0, hp: 150, mana: 30, kills: 0,
     x: WORLD.temple.x, y: WORLD.temple.y + 2, z: SURF, px: WORLD.temple.x, py: WORLD.temple.y + 2, dir: 0,
-    sk: { fist: { l: 10, t: 0 }, sword: { l: 10, t: 0 }, axe: { l: 10, t: 0 }, club: { l: 10, t: 0 }, distance: { l: 10, t: 0 }, shielding: { l: 10, t: 0 } },
+    sk: { fist: { l: 10, t: 0 }, sword: { l: 10, t: 0 }, axe: { l: 10, t: 0 }, club: { l: 10, t: 0 }, distance: { l: 10, t: 0 }, shielding: { l: 10, t: 0 },
+      mining: { l: 10, t: 0 }, woodcut: { l: 10, t: 0 }, fishing: { l: 10, t: 0 } },
     ml: { l: 0, t: 0 },
     eq: { helmet: null, amulet: null, armor: null, legs: null, boots: null, weapon: null, shield: null, ring: null, light: null },
     bag: [], gold: 200, buffs: {}, cd: {}, nextStep: 0, nextAtk: 0, stance: 'bal', follow: true,
-    best: {}, charm: 0, charms: {}, seen: {}
+    best: {}, charm: 0, charms: {}, seen: {}, bless: 0
   };
   P = p;
   /* Todo nível 1 sai do templo vestido igual: couro fechado e escudo de madeira.
@@ -134,7 +135,9 @@ function recalc() {
   const st = {
     arm: 0, shieldDef: 0, speed: Math.round(220 * (1 + v.spd / 100 * (P.level - 1))), crit: 0.04, lifesteal: 0,
     maxhp: 150 + (P.level - 1) * v.hp, maxmana: 30 + (P.level - 1) * v.mana,
-    hpReg: v.hpReg, mpReg: v.mpReg, sk: { fist: 0, sword: 0, axe: 0, club: 0, distance: 0, shielding: 0, magic: 0 },
+    // coleta entra em `st.sk` zerada só para o render e o `add()` não tropeçarem;
+    // nenhum equipamento dá bônus de minerar, e nem deveria
+    hpReg: v.hpReg, mpReg: v.mpReg, sk: { fist: 0, sword: 0, axe: 0, club: 0, distance: 0, shielding: 0, magic: 0, mining: 0, woodcut: 0, fishing: 0 },
     res: {}
   };
   const add = o => {
@@ -305,7 +308,7 @@ function useItem(it) {
     // mesma placa da fala das magias: dá pra ver de longe quem bebeu ou comeu
     say(P, b.food ? 'Hmm...' : 'Gulp gulp...');
     if (--it.count <= 0) P.bag.splice(P.bag.indexOf(it), 1);
-    sfx('potion');
+    sfx(b.food ? 'eat' : 'potion');
     renderInv(); renderBars(); return;
   }
   if (b.slot) equipItem(it);
@@ -434,7 +437,9 @@ let mobSeq = 1;
    Chefe não entra no sorteio: ele já é o extremo da espécie. */
 function spawnMob(sp) {
   let d = MONSTERS[sp.m];
-  if (sp.el === undefined) sp.el = (!sp.boss && Math.random() < ELITE_CHANCE) ? ri(0, ELITES.length - 1) : -1;
+  // fundo é mais hostil: no Coração 1 em 5 pontos de spawn vem com modificador
+  const chance = ELITE_CHANCE * (sp.z >= DEEP ? 2 + (sp.z - DEEP) : 1);
+  if (sp.el === undefined) sp.el = (!sp.boss && Math.random() < chance) ? ri(0, ELITES.length - 1) : -1;
   if (sp.el >= 0) d = defModificada(d, ELITES[sp.el]);
   const m = {
     uid: mobSeq++, id: sp.m, def: d, n: d.n, hp: d.hp, maxhp: d.hp, x: sp.x, y: sp.y, z: sp.z,
@@ -643,7 +648,17 @@ function regenMobs() {
    O raio é medido do bicho, não do jogador, e a linha tem de estar limpa: sopro de
    dragão não dobra esquina. */
 function habilidade(m, d) {
-  const h = m.def.hab;
+  /* Fase de chefe: abaixo da fração de vida a habilidade TROCA. É a única coisa
+     que separa um chefe de um bicho com muita vida — o plano que derrubou a
+     primeira metade não serve pra segunda. `faseOn` marca uma vez só, senão o
+     grito de virada sairia a cada tique. */
+  const f = m.def.fase;
+  if (f && !m.faseOn && m.hp < f.hp * m.maxhp) {
+    m.faseOn = true; m.habT = 0;
+    say(m, f.grito); log(`${m.n} muda de postura!`, 'bad'); sfx('levelup');
+    abalo(6, 400); fxBurst(m.x, m.y, f.hab.col, 3);
+  }
+  const h = m.faseOn ? f.hab : m.def.hab;
   if (G.now < (m.habT || 0)) return;
   if (h.tipo !== 'cura' && (d > h.r || !lineClear(m.x, m.y, P.x, P.y, m.z))) return;
   if (h.tipo === 'cura' && m.hp > m.maxhp * .6) return;      // só se cura quando dói
@@ -655,6 +670,21 @@ function habilidade(m, d) {
     m.hp += v; float(m.x, m.y, '+' + v, '#6ee36e');
     log(`${m.n} se cura em ${v}.`, 'cbt morte');
     renderBattle();
+    return;
+  }
+  /* Dreno de mana — a resposta da Aberração ao mago. O escudo mágico é a muleta
+     que faz o sorcerer atravessar o jogo inteiro sem pensar; aqui ele para de
+     ser de graça. Não causa dano: quem não usa mana perde nada, e é isso que faz
+     a criatura ser um problema de VOCAÇÃO em vez de mais um número de dano. */
+  if (h.tipo === 'mana') {
+    const v = Math.min(P.mana, h.val);
+    if (v > 0) {
+      P.mana -= v;
+      if (P.mana <= 0 && P.buffs.mshield) { delete P.buffs.mshield; log('Seu escudo mágico acabou.', 'bad'); }
+      float(P.x, P.y, '-' + v, '#5aa9ff');
+      log(`${m.n} drena ${v} de mana.`, 'cbt mana');
+      renderBars();
+    }
     return;
   }
   if (h.dano) hitPlayer(ri(h.dano[0], h.dano[1]), m.n, h.el);
@@ -850,13 +880,60 @@ function hitPlayer(raw, src, el) {
   renderBars();
   if (P.hp <= 0) playerDeath(src);
 }
+/* Morte. Antes custava 10% da exp com o nível travado, o que na prática não
+   custava nada: dava pra descer no Fosso Demoníaco, morrer cinco vezes e não
+   perder um único ponto de vida máxima. Agora a morte é a régua de risco do
+   jogo, e ela cobra em três moedas:
+     exp     pode DERRUBAR o nível — é o que faz uma hunt acima da sua faixa ser
+             uma aposta e não uma tentativa de graça;
+     ida     todo consumível da mochila queima. O custo da viagem contra o loot
+             da volta é o que torna uma caçada difícil, não o dano do bicho;
+     peça    sem NENHUMA bênção, um equipamento aleatório fica pra trás.
+   E a bênção é a saída paga: gasta ouro (o único sumidouro grande do jogo) para
+   comprar de volta a segurança. Quem caça bem sempre tem as cinco. */
+const BENCAOS = 5;
+/* ponytail: curva calibrada na mão contra o ouro que as hunts largam — as cinco
+   bênçãos custam mais ou menos uma sessão de caça na faixa do jogador (45k no
+   nível 60, 100k no 100, 550k no 300). Se o ouro inflacionar, mexa no 40. */
+const blessPrice = lvl => Math.round(2000 + Math.pow(Math.max(30, lvl) - 20, 1.4) * 40);
+const CONSUMIVEL = it => !!(ITEMS[it.id].use || ITEMS[it.id].rune || ITEMS[it.id].food);
+
 function playerDeath(src) {
   G.dead = true; P.hp = 0;
-  // perde 10% da exp, mas nunca cai de nível — morrer já dói o bastante
-  P.exp = Math.max(expForLevel(P.level), Math.round(P.exp * 0.9));
+  const b = P.bless || 0;
+  const perdas = [];
+
+  // exp: 10% sem bênção, 3% com as cinco — e o nível cai junto se for o caso
+  const perda = 0.10 * (1 - (b / BENCAOS) * 0.7);
+  const antes = P.level;
+  P.exp = Math.max(0, Math.round(P.exp * (1 - perda)));
+  while (P.level > 1 && P.exp < expForLevel(P.level)) P.level--;
+  perdas.push(`${(perda * 100).toFixed(1)}% da experiência`);
+  if (P.level < antes) perdas.push(`<b style="color:#e0705f">caiu para o nível ${P.level}</b> (era ${antes})`);
+
+  // suprimento: poção, runa e comida da mochila queimam junto
+  const queimou = P.bag.filter(CONSUMIVEL);
+  if (queimou.length) {
+    P.bag = P.bag.filter(it => !CONSUMIVEL(it));
+    perdas.push(`${queimou.length} ${queimou.length > 1 ? 'suprimentos' : 'suprimento'} da mochila`);
+  }
+
+  // equipamento: só quem morreu sem nenhuma bênção deixa uma peça pra trás
+  if (!b) {
+    const vestido = Object.keys(P.eq).filter(s => P.eq[s]);
+    if (vestido.length) {
+      const slot = vestido[ri(0, vestido.length - 1)];
+      perdas.push(`<b style="color:#e0705f">${itemStats(P.eq[slot]).name}</b> (equipado)`);
+      P.eq[slot] = null;
+    }
+  }
+  if (b) perdas.push(`<span style="color:#9fd4a0">${b} ${b > 1 ? 'bênçãos protegeram' : 'bênção protegeu'} o resto</span>`);
+  P.bless = 0;
+
   recalc();
-  log(`Você foi morto por ${src}.`, 'bad');
+  log(`Você foi morto por ${src}. Perdeu: ${perdas.join(', ').replace(/<[^>]+>/g, '')}.`, 'bad');
   sfx('death');
+  $('#death-loss').innerHTML = perdas.map(p => '· ' + p).join('<br>');
   $('#death-screen').style.display = 'flex';
   $('#death-src').textContent = src;
 }
@@ -972,6 +1049,31 @@ function spawnCorpse(x, y, z, name, items, spr) {
 }
 function spawnDrop(x, y, z, it) {
   G.drops.push({ x, y, z, it });
+}
+/* Tesouro do POI. Rola a tabela igual à do monstro, mas com um empurrão fixo na
+   raridade: o prêmio de atravessar meio mapa e limpar os guardas não pode ser a
+   mesma espada Comum que cai de um orc no caminho.
+   Cai NO CHÃO, não na mochila: mochila cheia comendo o tesouro de uma vez só —
+   que nunca mais volta — seria o pior jeito possível de perder um item. */
+function abrirTesouro(p) {
+  P.seen = P.seen || {};
+  const k = 'poi' + p.uid;
+  if (P.seen[k]) return;
+  P.seen[k] = 1;
+  const livres = [[0, 0], ...DIRS].map(([dx, dy]) => [p.x + dx, p.y + dy])
+    .filter(([x, y]) => isWalkable(x, y, p.z));
+  let i = 0, n = 0;
+  for (const [id, ch, mn, mx] of p.loot) {
+    if (Math.random() > ch) continue;
+    const stack = ITEMS[id].stack;
+    const it = mkItem(id, stack ? 0 : rollRarity(1.2), stack && mn ? ri(mn, mx || mn) : 1);
+    const [x, y] = livres[i++ % livres.length];
+    spawnDrop(x, y, p.z, it); n++;
+  }
+  fxBurst(p.x, p.y, 0xffd166, 2.2);
+  sfx('loot', p.x, p.y); congelar(60);
+  log(`${p.ico} Você saqueia ${p.n}: ${n} ${n === 1 ? 'item cai' : 'itens caem'} no chão.`, 'good');
+  notify('💰', 'Tesouro saqueado', `${p.n} — ${n} ${n === 1 ? 'item' : 'itens'} no chão`);
 }
 function openLoot(c) {
   G.lootOpen = c;
@@ -1390,6 +1492,69 @@ const hideTip = () => { tipDono = null; $('#tooltip').style.display = 'none'; };
 let tipDono = null;
 function tipCheck() { if (tipDono && !tipDono.offsetParent) hideTip(); }
 
+/* ------------------------------------------------------------- coleta */
+/* Qual colheita este tile aceita. Resolve o nome do tile da tabela (data.js não
+   conhece `T`) uma vez só, no primeiro uso, e guarda. */
+let COLETA_POR_TILE = null;
+function coletaDe(tt) {
+  if (!COLETA_POR_TILE) {
+    COLETA_POR_TILE = {};
+    for (const k in COLETA) for (const nome of COLETA[k].tiles)
+      COLETA_POR_TILE[T[nome]] = Object.assign({ skill: k }, COLETA[k]);
+  }
+  return COLETA_POR_TILE[tt] || null;
+}
+/* Tile gasto: chave "z:x:y" -> quando volta. Vive só na sessão de propósito —
+   ponytail: um Map em memória; se o jogador reclamar que a mina reabre ao
+   recarregar a página, isto vira campo de P e passa a ser salvo. */
+const COLHIDO = new Map();
+const chaveTile = (x, y, z) => z + ':' + x + ':' + y;
+
+/* Colhe o tile vizinho. É o botão direito, o mesmo do saque: se não tem corpo
+   nem item no chão, a pergunta seguinte é "dá pra tirar alguma coisa daqui?" —
+   e assim a coleta não gasta tecla nova nem botão de interface. */
+function colher(x, y) {
+  const c = coletaDe(tileAt(x, y, P.z));
+  if (!c) return false;
+  /* Recurso é tile que NÃO dá pé (pedra, árvore, água), então não dá para pedir
+     caminho até ele — o pathfinding recusa o destino. Anda até um vizinho e
+     deixa marcado; `afterStep` colhe ao chegar, do mesmo jeito que o saque. */
+  if (distT(P.x, P.y, x, y) > 1) {
+    const v = DIRS.map(([dx, dy]) => [x + dx, y + dy])
+      .filter(([nx, ny]) => isWalkable(nx, ny, P.z))
+      .sort((a, b) => distT(P.x, P.y, a[0], a[1]) - distT(P.x, P.y, b[0], b[1]))[0];
+    const p = v && findPath(P.x, P.y, v[0], v[1], P.z);
+    if (p) { G.path = p; G.pendingColheita = [x, y]; } else log('Não dá para chegar lá.');
+    return true;
+  }
+  if (G.now < (G.colheitaCd || 0)) return true;                    // uma ação por vez
+  const k = chaveTile(x, y, P.z), volta = COLHIDO.get(k) || 0;
+  if (Date.now() < volta) {
+    log(`Aqui já foi ${c.n === 'pescar' ? 'pescado' : 'colhido'} — volte em ${Math.ceil((volta - Date.now()) / 1000)}s.`);
+    return true;
+  }
+  G.colheitaCd = G.now + 1200;
+  COLHIDO.set(k, Date.now() + c.seg * 1000);
+  const nivel = skillOf(c.skill);
+  /* Uma linha por colheita, sorteada entre as que o nível já alcança e SÓ entre
+     elas: subir a skill não deixa o comum mais raro, abre linha nova. Peso pela
+     chance, então mithril continua sendo mithril mesmo com 60 de mineração. */
+  const abertas = c.tab.filter(([, , lv]) => nivel >= lv);
+  const total = abertas.reduce((a, [, ch]) => a + ch, 0);
+  let r = Math.random() * total, escolha = abertas[0];
+  for (const linha of abertas) { r -= linha[1]; if (r <= 0) { escolha = linha; break; } }
+  const qtd = 1 + Math.floor(Math.random() * (1 + nivel / 25));
+  const it = mkItem(escolha[0], 0, qtd);
+  addSkillTry(c.skill, 3);
+  sfx(c.skill === 'fishing' ? 'loot' : 'hit', x, y);
+  fxBurst(x, y, c.skill === 'fishing' ? 0x5aa9ff : 0xc9a05a, 0.9);
+  if (!bagAdd(it)) spawnDrop(P.x, P.y, P.z, it);                   // mochila cheia: cai no chão
+  log(`${c.ico} Você ${c.n} e obtém ${qtd}× ${ITEMS[escolha[0]].n}.`, 'good');
+  float(x, y, '+' + qtd + ' ' + ITEMS[escolha[0]].n, '#9fd4a0');
+  renderInv(); renderBars();
+  return true;
+}
+
 /* --------------------------------------------------------------- loja */
 /* raridade também vale ouro: um item lendário vende bem mais que o comum */
 function sellPrice(it) {
@@ -1398,6 +1563,24 @@ function sellPrice(it) {
 }
 function shopNear() { return P.z === SURF && distT(P.x, P.y, WORLD.temple.x, WORLD.temple.y) <= 8; }
 function renderShop() {
+  /* Bênção fica no topo da loja e não na lista de itens porque não é item: não
+     ocupa mochila, não se vende e some quando você morre. Comprar de uma vez
+     evita cinco cliques — a decisão é "vou descer?", não "quantas?". */
+  const b = P.bless || 0, preco = blessPrice(P.level), falta = BENCAOS - b;
+  const bl = $('#shop-bless');
+  bl.innerHTML = `<div class="sec">Bênçãos do Templo — ${b}/${BENCAOS}</div>`
+    + `<div class="srow2" ${falta ? '' : 'style="opacity:.5"'}>`
+    + `<span>✨ ${falta ? `Comprar ${falta} bênção${falta > 1 ? 's' : ''}` : 'Você está abençoado'}</span>`
+    + `<b>${falta ? falta * preco + ' 🪙' : '—'}</b></div>`
+    + `<div style="font-size:11px;opacity:.7;padding:2px 4px 6px">Reduz a perda de exp de 10% para 3% e impede que você largue equipamento ao morrer. Somem todas na morte.</div>`;
+  if (falta) bl.lastElementChild.previousElementSibling.onclick = () => {
+    const custo = falta * preco;
+    if (P.gold < custo) return log('Ouro insuficiente para as bênçãos.', 'bad');
+    P.gold -= custo; P.bless = BENCAOS;
+    log(`Você recebeu ${falta} bênção${falta > 1 ? 's' : ''} do templo.`, 'good');
+    notify('✨', 'Abençoado', `${BENCAOS}/${BENCAOS} — a morte custa menos agora`);
+    sfx('coin'); renderShop(); renderBars();
+  };
   const buy = $('#shop-buy'); buy.innerHTML = '';
   SHOP_STOCK.forEach(id => {
     const b = ITEMS[id];
@@ -1452,7 +1635,7 @@ function corpseAt(x, y) {
 function lootTile(x, y) {
   const c = corpseAt(x, y);
   const dr = G.drops.find(d => d.z === P.z && d.x === x && d.y === y);
-  if (!c && !dr) return;
+  if (!c && !dr) { colher(x, y); return; }   // nada pra saquear: talvez dê pra colher
   if (distT(P.x, P.y, x, y) <= 1) { if (c) openLoot(c); else if (bagAdd(dr.it)) G.drops.splice(G.drops.indexOf(dr), 1); return; }
   // fora de alcance: anda até ficar ADJACENTE, nunca em cima do corpo — corta o
   // último passo do caminho, igual ao alcance de corpo a corpo faz com o alvo.
@@ -1520,7 +1703,26 @@ function afterStep() {
     }
     $('#hunt-label').textContent = h ? h.n : '';
   }
+  /* POI: mesma mecânica de entrada da hunt, com um acréscimo — o CENTRO é o
+     tesouro, e ele abre uma vez só na vida do personagem. A marca vai em
+     `P.seen`, que já é o lugar onde o jogo guarda "isto eu já vi" (andar novo,
+     hunt nova) e já é salvo junto com o resto. */
+  const poi = poiAt(P.x, P.y, P.z);
+  if ((poi && poi.uid) !== (G.poi && G.poi.uid)) {
+    G.poi = poi;
+    if (poi) {
+      P.seen = P.seen || {};
+      const achado = P.seen['poi' + poi.uid];
+      log(`${poi.ico} ${poi.n}${achado ? ' (já saqueado)' : ' — ' + poi.dica}.`, achado ? '' : 'good');
+      if (!achado) notify(poi.ico, poi.n, poi.dica);
+    }
+    if (!h) $('#hunt-label').textContent = poi ? poi.ico + ' ' + poi.n : '';
+  }
+  if (poi && P.x === poi.x && P.y === poi.y) abrirTesouro(poi);
   if (t === T.DOWN || t === T.UP) changeFloor(t === T.DOWN ? P.z + 1 : P.z - 1);
+  if (G.pendingColheita && distT(P.x, P.y, G.pendingColheita[0], G.pendingColheita[1]) <= 1) {
+    const [cx, cy] = G.pendingColheita; G.pendingColheita = null; colher(cx, cy);
+  }
   if (G.pendingLoot && distT(P.x, P.y, G.pendingLoot[0], G.pendingLoot[1]) <= 1) {
     const [lx, ly] = G.pendingLoot; G.pendingLoot = null;
     const c = corpseAt(lx, ly);
@@ -1529,6 +1731,11 @@ function afterStep() {
     if (dr && bagAdd(dr.it)) G.drops.splice(G.drops.indexOf(dr), 1);
   }
   $('#shop-btn').style.display = shopNear() ? 'block' : 'none';
+  // o quadro de contratos muda de cara ao pisar no templo (aceitar/receber liberam)
+  if (G.perto !== shopNear()) {
+    G.perto = shopNear();
+    if ($('#task-win').style.display === 'flex') renderTasks();
+  }
 }
 function changeFloor(nz) {
   if (nz < 0 || nz >= FLOORS) return;
@@ -1643,8 +1850,10 @@ function bindInput(canvas) {
       const dr = G.drops.find(d => d.z === P.z && distT(d.x, d.y, P.x, P.y) <= 1);
       if (dr && bagAdd(dr.it)) G.drops.splice(G.drops.indexOf(dr), 1);
     }
-    else if (k === 'x') drinkBest(['great_health_potion', 'strong_health_potion', 'health_potion', 'weak_health_potion']);
-    else if (k === 'c') drinkBest(['great_mana_potion', 'strong_mana_potion', 'mana_potion']);
+    // as poções novas entram na frente da lista: X e C sempre bebem a MELHOR que
+    // você tem, e sem isto o nível 200 continuaria bebendo a de 400 de cura
+    else if (k === 'x') drinkBest(['ultimate_health_potion', 'supreme_health_potion', 'great_health_potion', 'strong_health_potion', 'health_potion', 'weak_health_potion']);
+    else if (k === 'c') drinkBest(['ultimate_mana_potion', 'supreme_mana_potion', 'great_mana_potion', 'strong_mana_potion', 'mana_potion']);
     else if (k === 'tab') {
       e.preventDefault();
       const perto = G.mobs.filter(m => m.hp > 0 && m.z === P.z && distT(m.x, m.y, P.x, P.y) <= 8)
@@ -1657,6 +1866,8 @@ function bindInput(canvas) {
     }
     else if (k === 'm') { const w = $('#map-win'); w.style.display === 'flex' ? w.style.display = 'none' : openMap(); }
     else if (k === 'b') $('#best-btn').onclick();
+    else if (k === 't') $('#task-btn').onclick();
+    else if (k === 'r') $('#forja-btn').onclick();
     else if (k === 'h') $('#help').style.display = $('#help').style.display === 'flex' ? 'none' : 'flex';
     else if (k === 'escape') fecharJanelas();
     else if (k === 'enter') { $('#chat').focus(); e.preventDefault(); }
@@ -1816,8 +2027,12 @@ function fixSave(d) {
   // Compatibilidade: saves antigos usavam a vocação 'paladin'.
   if (d.p.voc === 'paladin') d.p.voc = 'ranger';
   // JSON guarda apenas nome+bônus dos afixos; remontamos as referências às tabelas.
+  /* O imbuement entra pela mesma porta dos afixos, então tem de sair pela mesma:
+     sem a busca em IMBUEMENTS aqui, o `filter(Boolean)` apagaria em silêncio o
+     bônus que o jogador pagou com material e ouro, todo carregamento. */
   const fixAf = it => {
-    if (it && it.af) it.af = it.af.map(a => PREFIXES.find(x => x.n === a.n) || SUFFIXES.find(x => x.n === a.n)).filter(Boolean);
+    if (it && it.af) it.af = it.af.map(a => PREFIXES.find(x => x.n === a.n) || SUFFIXES.find(x => x.n === a.n)
+      || IMBUEMENTS.find(x => x.n === a.n)).filter(Boolean);
     return it;
   };
   for (const k in (d.p.eq || {})) fixAf(d.p.eq[k]);
@@ -1830,6 +2045,10 @@ function fixSave(d) {
      que pintava o herói de branco — `hitT` do último dano voltava adiantado e o
      clarão do acerto nunca terminava. */
   d.p.hitT = d.p.stepT = d.p.stepD = 0;
+  if (d.p.bless === undefined) d.p.bless = 0;   // save anterior às bênçãos
+  // save anterior às skills de coleta: sem isto `skillOf('mining')` estoura no
+  // primeiro clique numa pedra com um personagem antigo
+  for (const k of SKILLS_COLETA) if (!d.p.sk[k]) d.p.sk[k] = { l: 10, t: 0 };
   d.drops = (d.drops || []).filter(dr => dr && dr.it);
   d.drops.forEach(dr => fixAf(dr.it));
   return d;
@@ -1971,7 +2190,7 @@ function frame(t) {
     chuvaOuvida();
     // a trilha muda com o andar E com a hora; musica() sai na hora quando já é a
     // lista certa, então chamar de novo aqui não custa nada
-    musica(P.z <= SURF ? (noite ? 'superficie-noite' : 'superficie-dia') : P.z === 3 ? 'abismo' : 'caverna');
+    musica(P.z <= SURF ? (noite ? 'superficie-noite' : 'superficie-dia') : P.z >= 3 ? 'abismo' : 'caverna');
     renderBars();
   }
   if (G.now - G.lastSave > 15000) { G.lastSave = G.now; save(); }

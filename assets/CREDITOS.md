@@ -15,14 +15,33 @@ abaixo. O mapa de qual arquivo vira qual som está no topo do script.
 | Pacote | Origem | Licença | Usado em |
 |---|---|---|---|
 | Kenney *Impact Sounds* | kenney.nl/assets/impact-sounds | CC0 | impacto, defesa, passos, gelo |
-| Kenney *RPG Audio* | kenney.nl/assets/rpg-audio | CC0 | machado, roupa, saque, escada, passos de terra |
+| Kenney *RPG Audio* | kenney.nl/assets/rpg-audio | CC0 | machado, roupa, escada, passos de terra |
 | Kenney *Interface Sounds* | kenney.nl/assets/interface-sounds | CC0 | erro |
 | Kenney *UI Audio* | kenney.nl/assets/ui-audio | CC0 | — (reserva) |
 | Kenney *Music Jingles* | kenney.nl/assets/music-jingles | CC0 | nível, perícia, morte |
 | Kenney *Casino Audio* | kenney.nl/assets/casino-audio | CC0 | — (reserva) |
-| *80 CC0 RPG SFX* | opengameart.org/content/80-cc0-rpg-sfx | CC0 | lâmina, magia, moeda, gema, criatura |
+| *80 CC0 RPG SFX* | opengameart.org/content/80-cc0-rpg-sfx | CC0 | lâmina, magia, gema, criatura |
 | *Cure Magic* | opengameart.org/content/cure-magic | CC0 | cura, magia sagrada |
-| *202 More Sound Effects* | opengameart.org/content/202-more-sound-effects | CC0 | poção (gole) |
+| *202 More Sound Effects* | opengameart.org/content/202-more-sound-effects | CC0 | — (reserva) |
+
+### Freesound — arquivos avulsos
+
+Baixados por `tools/freesound.py`, que só busca com filtro `license:"Creative
+Commons 0"`. São *previews* mp3 (~128 kbps), não o arquivo original — o original
+exigiria OAuth2, e para efeito de meio segundo a diferença não aparece.
+
+O id é o que torna isto reprodutível: `python tools/freesound.py baixa <som>
+<ids…>` refaz a pasta inteira do zero. A página de cada um é
+`freesound.org/s/<id>/`.
+
+| Som | ids (na ordem das variações) | Autores |
+|---|---|---|
+| `eat` | 521253, 723600, 723601, 457475 | maugusto_sfx, R1nkata ×2, princessemilu |
+| `potion` | 574077, 445970, 534336 | ValentinPetiteau, Breviceps, Defaultv |
+| `loot` | 493211, 493213, 493205, 493202 | Joao_Janz |
+| `coin` | 336573, 336569, 336570, 336567 | Anthousai |
+| `ui_click` | 333430, 333429, 333427 | brandondelehoy (série *UI Series*) |
+| `ui_close` | 584183 | unfa |
 
 ## Trilha — `assets/music/`
 

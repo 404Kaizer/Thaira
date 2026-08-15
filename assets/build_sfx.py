@@ -11,9 +11,15 @@ Rodar de novo é seguro — reescreve assets/sfx do zero.
 """
 import json
 import shutil
+import tempfile
 import time
 import sys
 from pathlib import Path
+
+# Raiz dos pacotes de origem. Era '/tmp/aud' escrito na mão, que no Windows o
+# Python resolve como C:\tmp\aud — pasta que não existe. Resultado: o build
+# apagava assets/sfx e não achava nenhuma fonte pra repor.
+PACOTES = Path(tempfile.gettempdir()) / 'aud'
 
 # nome no jogo -> (lista de arquivos de origem, ganho)
 # O ganho existe porque as fontes vêm com volumes bem diferentes entre si.
@@ -74,13 +80,22 @@ MAPA = {
                  'music-jingles/**/jingles_PIZZI00.ogg'], 0.3),
 
     # --- itens e interface
-    'loot':     (['rpg-audio/**/handleSmallLeather.ogg', 'rpg-audio/**/handleSmallLeather2.ogg'], 0.6),
-    'coin':     (['oga80/**/item_coins_0%d.ogg' % i for i in (1, 2, 3, 4)], 0.5),
+    # freesound/ vem de tools/freesound.py (preview mp3, CC0). Gravação de campo
+    # entra mais alta que os pacotes de jogo, por isso os ganhos aqui são
+    # menores que os vizinhos — é esse número que se mexe se soar alto demais.
+    'loot':     (['freesound/loot-%d.mp3' % i for i in (1, 2, 3, 4)], 0.5),
+    'coin':     (['freesound/coin-%d.mp3' % i for i in (1, 2, 3, 4)], 0.4),
     'equip':    (['rpg-audio/**/cloth%d.ogg' % i for i in (1, 2, 3)], 0.6),
     'unequip':  (['rpg-audio/**/cloth%d.ogg' % i for i in (3, 4)], 0.5),
-    'potion':   (['more/**/Drink_0%d.wav' % i for i in (1, 2, 3, 4)], 0.6),
+    'potion':   (['freesound/potion-%d.mp3' % i for i in (1, 2, 3)], 0.45),
+    'eat':      (['freesound/eat-%d.mp3' % i for i in (1, 2, 3, 4)], 0.45),
     'stairs':   (['rpg-audio/**/creak%d.ogg' % i for i in (1, 2, 3)], 0.5),
     'error':    (['interface-sounds/**/error_00%d.ogg' % i for i in (1, 2)], 0.4),
+    # ui_click sai em TODO botão, então é o som que mais toca no jogo depois do
+    # passo: ganho baixo de propósito, e três variações porque repetir o mesmo
+    # arquivo em menu é o que faz interface soar máquina de escrever.
+    'ui_click': (['freesound/ui_click-%d.mp3' % i for i in (1, 2, 3)], 0.3),
+    'ui_close': (['freesound/ui_close-1.mp3'], 0.35),
 
     # --- passos por terreno. Água e lava não entram: TILE marca as duas como
     # não caminháveis, então o som nunca dispararia.
@@ -112,7 +127,7 @@ def achar(raiz: Path, padrao: str):
 
 
 def main():
-    origem = Path(sys.argv[1] if len(sys.argv) > 1 else '/tmp/aud')
+    origem = Path(sys.argv[1]) if len(sys.argv) > 1 else PACOTES
     destino = Path(__file__).parent / 'sfx'
     exemplo = destino / 'manifest.example.json'
     guardado = exemplo.read_bytes() if exemplo.exists() else None

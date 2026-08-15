@@ -17,6 +17,15 @@ function bestiaryKill(id) {
   P.best = P.best || {};
   const antes = bestStage(id);
   P.best[id] = bestKills(id) + 1;
+  /* O contrato lê o MESMO contador, então não há nada para incrementar aqui —
+     só o aviso de que fechou. Fica antes do `return` de estágio igual, senão a
+     conclusão só apareceria nas mortes que por acaso viram marco do bestiário. */
+  const a = P.tasks && P.tasks.ativo;
+  if (a && a.mob === id && taskProgresso(a) === a.alvo) {
+    log(`Contrato cumprido: ${a.alvo} ${MONSTERS[id].n}. Volte ao templo para receber.`, 'good');
+    notify('📜', 'Contrato cumprido', 'volte ao templo para receber o pagamento');
+  }
+  if ($('#task-win') && $('#task-win').style.display === 'flex') renderTasks();
   const agora = bestStage(id);
   if (agora === antes) return;
   const d = bestDiff(id);
@@ -27,6 +36,124 @@ function bestiaryKill(id) {
     log(`+${d.cp} pontos de carisma (total ${P.charm}).`, 'good');
   }
   if ($('#best-win').style.display === 'flex') renderBestiary();
+}
+
+/* ------------------------------------------------------- contratos de caça */
+/* A Tarefa de Caça do Tibia e o Slayer do RuneScape resolvem o mesmo problema
+   que este jogo tinha: subir de nível era o ÚNICO objetivo, então nenhuma hunt
+   tinha razão de existir depois que você passava dela. Um contrato dá razão —
+   e ele custa quase nada em código porque o contador já existe: é o mesmo
+   `P.best` do bestiário, com uma marca de onde a contagem começou.
+
+   O laço é de propósito: aceita no templo, caça longe, VOLTA pro templo pra
+   receber. Andar de volta é o que transforma o loot em decisão (levo mais poção
+   ou volto agora?) — sem isso o contrato seria só um número que se preenche. */
+const TASK_ALVOS = [25, 50, 100, 200];
+const TASK_OFERTAS = 3;
+
+/* nível sugerido da criatura: o da hunt onde ela mora. Quem só existe no mundo
+   aberto conta como nível 1 — é bicho de estrada, e contrato de bicho de estrada
+   some sozinho da lista quando coisa melhor aparece (a lista é ordenada por xp). */
+const nivelDe = id => {
+  const hs = HUNTS.filter(h => h.mobs.includes(id));
+  return hs.length ? Math.min(...hs.map(h => h.lvl)) : 1;
+};
+
+function taskOfertas() {
+  const vistos = Object.keys(MONSTERS).filter(id =>
+    !MONSTERS[id].boss && bestKills(id) > 0 && nivelDe(id) <= P.level + 10);
+  // as 10 criaturas mais fortes que ele já encarou: contrato tem de ser da faixa
+  // dele, senão vira "mate 200 ratos" no nível 200
+  const pool = vistos.sort((a, b) => MONSTERS[b].exp - MONSTERS[a].exp).slice(0, 10);
+  const out = [];
+  while (out.length < TASK_OFERTAS && pool.length) {
+    const id = pool.splice(ri(0, pool.length - 1), 1)[0];
+    const alvo = TASK_ALVOS[ri(0, TASK_ALVOS.length - 1)];
+    const m = MONSTERS[id], d = bestDiff(id);
+    /* Prêmio calibrado contra o que a própria caçada já paga: o ouro fica em
+       torno de metade do que o loot das N mortes rende (bônus, não substituto) e
+       a exp é 15% a mais. O carisma NÃO escala com a quantidade de propósito —
+       só dá pra ter 3 presas marcadas, então um contrato de 200 bichos pagando
+       carisma proporcional estouraria o teto na primeira entrega e a moeda
+       inteira viraria lixo. Ele escala com a DIFICULDADE, que é o que interessa. */
+    out.push({
+      mob: id, alvo,
+      ouro: Math.round(m.exp * alvo * 0.25),
+      exp: Math.round(m.exp * XP_MULT * alvo * 0.15),
+      carisma: Math.max(1, Math.round(d.cp / 5))
+    });
+  }
+  return out;
+}
+
+function taskEstado() {
+  P.tasks = P.tasks || { ativo: null, ofertas: null, feitos: 0 };
+  if (!P.tasks.ativo && !P.tasks.ofertas) P.tasks.ofertas = taskOfertas();
+  return P.tasks;
+}
+const taskProgresso = t => t ? Math.min(t.alvo, bestKills(t.mob) - t.base) : 0;
+
+function taskAceitar(i) {
+  const t = taskEstado();
+  if (!shopNear()) return log('Os contratos são firmados no templo.', 'bad');
+  const o = t.ofertas[i]; if (!o) return;
+  t.ativo = Object.assign({ base: bestKills(o.mob) }, o);
+  t.ofertas = null;
+  log(`Contrato aceito: matar ${o.alvo} ${MONSTERS[o.mob].n}.`, 'good');
+  notify('📜', 'Contrato aceito', `${o.alvo} ${MONSTERS[o.mob].n} — volte ao templo para receber`);
+  renderTasks();
+}
+function taskDesistir() {
+  const t = taskEstado();
+  t.ativo = null; t.ofertas = taskOfertas();
+  log('Contrato abandonado.');
+  renderTasks();
+}
+function taskReceber() {
+  const t = taskEstado(), a = t.ativo;
+  if (!a || taskProgresso(a) < a.alvo) return;
+  if (!shopNear()) return log('Volte ao templo para receber o pagamento.', 'bad');
+  P.gold += a.ouro; P.charm = (P.charm || 0) + a.carisma; addExp(a.exp);
+  t.feitos++; t.ativo = null; t.ofertas = taskOfertas();
+  log(`Contrato cumprido: +${a.ouro} moedas, +${a.exp} exp, +${a.carisma} de carisma.`, 'good');
+  notify('📜', 'Contrato cumprido', `${a.ouro} 🪙 · ${a.carisma} de carisma`);
+  sfx('coin'); renderTasks(); renderBars(); renderInv();
+}
+
+function renderTasks() {
+  const box = $('#task-list'); if (!box) return;
+  const t = taskEstado(), perto = shopNear();
+  $('#task-head').textContent = `${t.feitos} cumprido${t.feitos === 1 ? '' : 's'}`;
+  if (t.ativo) {
+    const a = t.ativo, p = taskProgresso(a), pronto = p >= a.alvo, m = MONSTERS[a.mob];
+    box.innerHTML = `<div class="sec">Contrato em andamento</div>
+      <div class="task-card">
+        <b>Matar ${a.alvo} × ${m.n}</b>
+        <div class="bsbar"><u style="width:${p / a.alvo * 100}%;background:${pronto ? '#7fd08a' : '#f0cd7a'}"></u></div>
+        <span>${p}/${a.alvo}${pronto ? ' — pronto' : ''}</span>
+        <i>Paga ${a.ouro} 🪙 · ${a.exp} exp · ${a.carisma} de carisma</i>
+      </div>
+      <button class="btn" id="task-claim" ${pronto && perto ? '' : 'disabled'}>
+        ${pronto ? (perto ? 'Receber pagamento' : 'Volte ao templo para receber') : 'Ainda caçando'}</button>
+      <button class="mini" id="task-drop" style="margin-top:8px">Abandonar contrato</button>`;
+    $('#task-claim').onclick = taskReceber;
+    $('#task-drop').onclick = taskDesistir;
+    return;
+  }
+  if (!t.ofertas.length) {
+    box.innerHTML = '<div class="note">Nenhum contrato disponível. Mate alguma criatura primeiro — o quadro só oferece o que você já enfrentou.</div>';
+    return;
+  }
+  box.innerHTML = '<div class="sec">Contratos disponíveis</div>' + t.ofertas.map((o, i) => {
+    const m = MONSTERS[o.mob], d = bestDiff(o.mob);
+    return `<div class="task-card">
+      <b>Matar ${o.alvo} × ${m.n}</b>
+      <span style="color:${d.col}">${m.cls} · ${d.n} · nível ${nivelDe(o.mob)}+</span>
+      <i>Paga ${o.ouro} 🪙 · ${o.exp} exp · ${o.carisma} de carisma</i>
+      <button class="mini" data-i="${i}" ${perto ? '' : 'disabled'}>${perto ? 'Aceitar' : 'só no templo'}</button>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => taskAceitar(+b.dataset.i));
 }
 
 /* classifica um item do loot pela chance, como a coluna de raridade do bestiário */
@@ -135,6 +262,72 @@ function toggleCharm(id) {
   renderBestiary();
 }
 
+/* ---------------------------------------------------------------- forja */
+/* Imbuement: gasta despojo de monstro e ouro para pôr um bônus fixo numa peça
+   equipada. O bônus entra como AFIXO (`it.af`), que é a estrutura que o recalc,
+   o tooltip e o save já leem — nenhum caminho novo, nenhuma regra nova.
+   Um por peça, e trocar apaga o anterior: sem esse teto a forja viraria a única
+   fonte de poder e o que cai no chão deixaria de valer. */
+const temMats = im => im.mats.every(([id, q]) => contaMat(id) >= q);
+const contaMat = id => P.bag.filter(b => b.id === id).reduce((a, b) => a + (b.count || 1), 0);
+function gastaMat(id, q) {
+  for (let i = P.bag.length - 1; i >= 0 && q > 0; i--) {
+    const b = P.bag[i]; if (b.id !== id) continue;
+    const usa = Math.min(q, b.count || 1); q -= usa;
+    if ((b.count || 1) <= usa) P.bag.splice(i, 1); else b.count -= usa;
+  }
+}
+let forjaSlot = 'weapon';
+function imbuir(imId) {
+  const im = IMBUEMENTS.find(x => x.id === imId), it = P.eq[forjaSlot];
+  if (!im || !it) return;
+  if (!shopNear()) return log('A forja fica no templo.', 'bad');
+  if (P.gold < im.ouro) return log('Ouro insuficiente.', 'bad');
+  if (!temMats(im)) return log('Faltam materiais.', 'bad');
+  P.gold -= im.ouro;
+  im.mats.forEach(([id, q]) => gastaMat(id, q));
+  // o afixo antigo do imbuement sai junto: `imb` guarda qual era, e o afixo dele
+  // é reconhecível pelo nome — é o mesmo objeto que foi empurrado da tabela
+  it.af = (it.af || []).filter(a => !IMBUEMENTS.some(x => x.n === a.n));
+  it.af.push({ n: im.n, b: im.b });
+  it.imb = im.id;
+  recalc(); renderInv(); renderBars(); renderForja();
+  log(`${im.ico} ${itemStats(it).name} recebeu o imbuement ${im.n}.`, 'good');
+  notify(im.ico, 'Imbuement aplicado', `${im.n} em ${ITEMS[it.id].n}`);
+  sfx('levelup');
+}
+function renderForja() {
+  const box = $('#forja-list'); if (!box) return;
+  const perto = shopNear();
+  const slots = Object.keys(P.eq).filter(s => P.eq[s]);
+  if (!slots.includes(forjaSlot)) forjaSlot = slots[0];
+  const it = P.eq[forjaSlot];
+  $('#forja-head').textContent = perto ? 'no templo' : 'volte ao templo para forjar';
+  if (!it) { box.innerHTML = '<div class="note">Equipe alguma peça para imbuir.</div>'; return; }
+  let h = '<div class="sec">Peça</div><div class="forja-slots">'
+    + slots.map(s => `<button class="mini${s === forjaSlot ? ' on' : ''}" data-s="${s}">${SLOT_LABEL[s] || s}</button>`).join('')
+    + `</div><div class="note">${itemStats(it).name}${it.imb ? ' · imbuído com <b>' + IMBUEMENTS.find(x => x.id === it.imb).n + '</b>' : ' · sem imbuement'}</div>`;
+  h += '<div class="sec">Imbuements</div>' + IMBUEMENTS.map(im => {
+    const mats = im.mats.map(([id, q]) => {
+      const t = contaMat(id);
+      return `<span style="color:${t >= q ? '#7fd08a' : '#e07a6a'}">${ITEMS[id].ico} ${t}/${q}</span>`;
+    }).join(' · ');
+    // fmtBon é o mesmo formatador do tooltip de item: rótulo em português e a
+    // regra de quando o número é porcentagem. Escrever outro aqui daria duas
+    // verdades sobre o mesmo bônus na mesma tela
+    const bons = Object.entries(im.b).map(([k, v]) => fmtBon(k, v)).join(' · ');
+    const pode = perto && temMats(im) && P.gold >= im.ouro && it.imb !== im.id;
+    return `<div class="task-card">
+      <b>${im.ico} ${im.n}</b><span>${bons}</span>
+      <i>${mats} · ${im.ouro} 🪙</i>
+      <button class="mini" data-im="${im.id}" ${pode ? '' : 'disabled'}>${it.imb === im.id ? 'já aplicado' : 'Imbuir'}</button>
+    </div>`;
+  }).join('');
+  box.innerHTML = h;
+  box.querySelectorAll('button[data-s]').forEach(b => b.onclick = () => { forjaSlot = b.dataset.s; renderForja(); });
+  box.querySelectorAll('button[data-im]').forEach(b => b.onclick = () => imbuir(b.dataset.im));
+}
+
 /* ---------------------------------------------------------- mapa expandido */
 let mapFloor = null;
 // x/y: centro da vista em tiles do mundo. zoom: 1 = mapa inteiro no canvas.
@@ -164,6 +357,22 @@ function drawBigMap() {
     ctx.fillStyle = '#00000099'; ctx.fillRect(hx - 62, hy - hr - 15, 124, 13);
     ctx.fillStyle = '#f0cd7a';
     ctx.fillText(`${h.n} (nv ${h.lvl}+)`, hx, hy - hr - 5);
+  }
+  /* POIs: losango com o ícone. Saqueado fica apagado — o mapa é o caderno do
+     jogador, e "já fui ali" é metade da informação que ele procura aqui. */
+  for (const p of WORLD.pois) {
+    if (p.z !== mapFloor) continue;
+    const px = tx(p.x), py = ty(p.y), feito = P.seen && P.seen['poi' + p.uid];
+    ctx.globalAlpha = feito ? .35 : 1;
+    ctx.beginPath(); ctx.moveTo(px, py - 5); ctx.lineTo(px + 5, py); ctx.lineTo(px, py + 5); ctx.lineTo(px - 5, py);
+    ctx.closePath();
+    ctx.fillStyle = feito ? '#5a5348' : '#e0b055'; ctx.fill();
+    if (mapView.zoom > 2.2) {                     // só de perto: de longe vira sopa
+      ctx.fillStyle = '#000000aa'; ctx.fillRect(px - 52, py + 7, 104, 12);
+      ctx.fillStyle = feito ? '#8a8378' : '#f0cd7a';
+      ctx.fillText(`${p.ico} ${p.n}`, px, py + 16);
+    }
+    ctx.globalAlpha = 1;
   }
   // escadas
   const t = WORLD.floors[mapFloor].t;
@@ -209,6 +418,16 @@ function bindBigMap(cv) {
   }, { passive: false });
 }
 
+/* Clique de interface por delegação, não botão a botão: os painéis abrem e
+   fecham em 28 pontos espalhados por game.js, ui.js e hud.js, e ligar som em
+   cada um significa lembrar de ligar de novo em todo botão futuro. Aqui um
+   listener só cobre o que existe hoje e o que vier depois.
+   Fase de captura porque alguns handlers chamam stopPropagation. */
+addEventListener('pointerdown', e => {
+  const b = e.target.closest('button');
+  if (b) sfx(b.id.endsWith('-close') ? 'ui_close' : 'ui_click');
+}, true);
+
 /* ------------------------------------------------------------------ botões */
 addEventListener('DOMContentLoaded', () => {
   $('#best-btn').onclick = () => {
@@ -217,6 +436,18 @@ addEventListener('DOMContentLoaded', () => {
     if (w.style.display === 'flex') renderBestiary();
   };
   $('#best-close').onclick = () => $('#best-win').style.display = 'none';
+  $('#task-btn').onclick = () => {
+    const w = $('#task-win');
+    w.style.display = w.style.display === 'flex' ? 'none' : 'flex';
+    if (w.style.display === 'flex') renderTasks();
+  };
+  $('#task-close').onclick = () => $('#task-win').style.display = 'none';
+  $('#forja-btn').onclick = () => {
+    const w = $('#forja-win');
+    w.style.display = w.style.display === 'flex' ? 'none' : 'flex';
+    if (w.style.display === 'flex') renderForja();
+  };
+  $('#forja-close').onclick = () => $('#forja-win').style.display = 'none';
   $('#map-btn').onclick = () => openMap();
   $('#map-close').onclick = () => $('#map-win').style.display = 'none';
   $('#minimap').onclick = () => { if (!miniDragMoved) openMap(); };
