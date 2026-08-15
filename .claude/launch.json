@@ -4,13 +4,13 @@
     {
       "name": "jogo",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8765"],
+      "runtimeArgs": ["tools/serve.py", "8765"],
       "port": 8765
     },
     {
       "name": "jogo-alt",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8766"],
+      "runtimeArgs": ["tools/serve.py", "8766"],
       "port": 8766
     }
   ]

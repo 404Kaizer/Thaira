@@ -1510,7 +1510,7 @@ function coletaDe(tt) {
 const COLHIDO = new Map();
 const chaveTile = (x, y, z) => z + ':' + x + ':' + y;
 
-/* Colhe o tile vizinho. É o botão direito, o mesmo do saque: se não tem corpo
+/* Colhe o tile vizinho. É o Ctrl + clique, o mesmo do saque: se não tem corpo
    nem item no chão, a pergunta seguinte é "dá pra tirar alguma coisa daqui?" —
    e assim a coleta não gasta tecla nova nem botão de interface. */
 function colher(x, y) {
@@ -1630,7 +1630,7 @@ function corpseAt(x, y) {
   const aqui = G.corpses.filter(c => c.z === P.z && c.x === x && c.y === y);
   return aqui[aqui.length - 1] || null;
 }
-/* Saque é botão direito agora — separado do clique esquerdo (mira/anda), que antes
+/* Saque é Ctrl + clique — separado do clique esquerdo puro (mira/anda), que antes
    um corpo no meio do caminho travava em "arrastar" e ninguém conseguia só passar. */
 function lootTile(x, y) {
   const c = corpseAt(x, y);
@@ -1767,6 +1767,10 @@ function fecharJanelas() {
   return fechou;
 }
 const KEYDIR = { w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0], arrowup: [0, -1], arrowdown: [0, 1], arrowleft: [-1, 0], arrowright: [1, 0] };
+/* Espaço e Tab miram na MESMA lista: sem o limite o espaço pegava o mais próximo
+   do andar inteiro, mirava um bicho a 60 tiles fora da tela e nada acontecia. */
+const ALVO_R = 8;
+const alvosPerto = () => G.mobs.filter(m => m.hp > 0 && m.z === P.z && distT(m.x, m.y, P.x, P.y) <= ALVO_R);
 function bindInput(canvas) {
   canvas.addEventListener('mousedown', e => {
     const t = tileUnderMouse(e, canvas); if (!t) return;
@@ -1776,9 +1780,9 @@ function bindInput(canvas) {
        caixa de quem está embaixo invade o quadrado de quem está em cima, e
        clicar na criatura de cima selecionava a de baixo. Quadrado não tem
        essa ambiguidade. */
-    if (e.button === 2) {
-      // botão direito: só corpo/item. Nunca anda, então nunca disputa com o
-      // clique esquerdo — corpo no meio do caminho parava de travar passagem.
+    // Ctrl + esquerdo: só corpo/item. Nunca anda, então nunca disputa com o
+    // clique esquerdo puro — corpo no meio do caminho parava de travar passagem.
+    if (e.button === 0 && e.ctrlKey) {
       const c = corpseAt(t[0], t[1]);
       if (c && distT(P.x, P.y, c.x, c.y) <= 1) G.dragCorpse = c;
       else lootTile(t[0], t[1]);
@@ -1823,7 +1827,11 @@ function bindInput(canvas) {
     resizeCam(canvas);
   }, { passive: false });
   addEventListener('keydown', e => {
-    if (document.activeElement.tagName === 'INPUT') return;
+    /* só campo de texto engole o teclado. Com `tagName === 'INPUT'` o slider de
+       volume também engolia: um clique nele e espaço, WASD e hotkeys morriam
+       até o jogador clicar em outro lugar. */
+    const foco = document.activeElement;
+    if (foco.tagName === 'INPUT' && foco.type !== 'range') return;
     // captura a próxima tecla pra virar o atalho do slot; Esc cancela sem trocar nada
     if (G.rebindSlot != null) {
       e.preventDefault();
@@ -1838,7 +1846,7 @@ function bindInput(canvas) {
     else if (P.hotkeys && P.hotkeys.indexOf(k) >= 0) { e.preventDefault(); hotUse(P.hotkeys.indexOf(k)); }
     else if (k === ' ') {
       e.preventDefault();
-      const near = G.mobs.filter(m => m.hp > 0 && m.z === P.z).sort((a, b) => distT(a.x, a.y, P.x, P.y) - distT(b.x, b.y, P.x, P.y))[0];
+      const near = alvosPerto().sort((a, b) => distT(a.x, a.y, P.x, P.y) - distT(b.x, b.y, P.x, P.y))[0];
       if (near) { G.target = near; renderBattle(); }
     }
     else if (k === 'f') {
@@ -1856,8 +1864,7 @@ function bindInput(canvas) {
     else if (k === 'c') drinkBest(['ultimate_mana_potion', 'supreme_mana_potion', 'great_mana_potion', 'strong_mana_potion', 'mana_potion']);
     else if (k === 'tab') {
       e.preventDefault();
-      const perto = G.mobs.filter(m => m.hp > 0 && m.z === P.z && distT(m.x, m.y, P.x, P.y) <= 8)
-        .sort((a, b) => a.uid - b.uid);
+      const perto = alvosPerto().sort((a, b) => a.uid - b.uid);
       if (perto.length) {
         const i = perto.indexOf(G.target);
         G.target = perto[(i + 1) % perto.length];
@@ -1977,7 +1984,8 @@ function drawMinimap() {
   const cv = $('#minimap'), ctx = cv.getContext('2d'), src = miniCanvas[P.z];
   const cx = P.x + miniView.ox, cy = P.y + miniView.oy, R = miniView.R;
   ctx.imageSmoothingEnabled = false;
-  ctx.clearRect(0, 0, cv.width, cv.height);
+  // fundo = o que existe fora do mapa, senão a borda do mundo fica transparente
+  ctx.fillStyle = corFora(P.z); ctx.fillRect(0, 0, cv.width, cv.height);
   ctx.drawImage(src, cx - R, cy - R, R * 2, R * 2, 0, 0, cv.width, cv.height);
   const sc = cv.width / (R * 2);
   const dot = (x, y, c, s) => { ctx.fillStyle = c; ctx.fillRect((x - cx + R) * sc - s / 2, (y - cy + R) * sc - s / 2, s, s); };

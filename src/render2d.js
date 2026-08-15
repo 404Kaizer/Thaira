@@ -63,11 +63,11 @@ function plateAnchor(e) {
   const [sx, sy] = w2s(e.px, e.py);
   // altura útil = dos pés até o primeiro pixel opaco, não até o topo do canvas
   const alto = (spr.feet - spriteTop(spr)) * K;
-  // o mesmo `t * CHAO` do desenho (linha do drawImage): com (CHAO - .5) o termo
-  // zerava e a placa subia meio tile acima da cabeça. A folga acompanha o zoom,
-  // senão em tile grande a barra encosta no capacete
+  /* w2s devolve o CENTRO do tile; drawEntity recebe o canto (w2s - t/2) e só
+     então soma t * CHAO. Sem o -t/2 aqui a placa descia meio tile e pousava na
+     cabeça. A folga acompanha o zoom, senão em tile grande a barra encosta. */
   const t = tpx();
-  return paraCss([sx, sy + t * CHAO - alto - 3 - t * .22]);
+  return paraCss([sx, sy + t * (CHAO - .5) - alto - 3 - t * .1]);
 }
 const evToCanvas = (ev, canvas) => {
   const r = canvas.getBoundingClientRect();
@@ -472,14 +472,21 @@ function drawEntity(it, sx, sy, t) {
   }
   const e = it.e, spr = creatureSpriteFor(e);
   const ox = (e.px - it.ax) * t, oy = (e.py - it.ay) * t;   // deslocamento do passo, relativo à âncora
-  /* Marca do alvo: mancha no chão ANTES do bicho, cantoneiras DEPOIS.
-     Antes era só a cantoneira, e desenhada antes do sprite — o corpo tapava a
-     metade de cima dela e só sobrava o canto de baixo à esquerda, o que lê como
-     "o quadrado está deslocado". Corpo de criatura ocupa quase todo o próprio
-     tile mas encosta no topo dele, então a parte livre é justamente embaixo. */
+  /* Marca do alvo: mancha e cantoneiras, as duas no CHÃO, antes do bicho. As
+     cantoneiras já foram desenhadas depois do sprite para não serem tapadas — só
+     que aí viravam risco vermelho atravessando a criatura. No chão, o corpo tapa
+     o pedaço de cima delas, e é assim que tem de ser: o marcador está embaixo. */
   if (G.target === e) {
     g2.fillStyle = 'rgba(255,68,68,.18)';
     g2.fillRect(sx + ox + 1, sy + oy + 1, t - 2, t - 2);
+    g2.strokeStyle = '#ff5555'; g2.lineWidth = Math.max(2, S);
+    const x0 = sx + ox + 1, y0 = sy + oy + 1, L = t - 2, c = L * .3;
+    g2.beginPath();
+    for (const [px, py, ex, ey] of [[0, 0, 1, 1], [L, 0, -1, 1], [0, L, 1, -1], [L, L, -1, -1]]) {
+      g2.moveTo(x0 + px + ex * c, y0 + py);
+      g2.lineTo(x0 + px, y0 + py); g2.lineTo(x0 + px, y0 + py + ey * c);
+    }
+    g2.stroke();
   }
   dropShadow(spr, sx + ox + t / 2, sy + oy + t * CHAO);
   // investida do ataque: o boneco avança na direção que está olhando
@@ -510,17 +517,6 @@ function drawEntity(it, sx, sy, t) {
     g2.globalAlpha = Math.min(1, fk) * .85; g2.filter = 'brightness(0) invert(1)';
     g2.drawImage(spr, dx, dy, dw, dh);
     g2.restore();
-  }
-  if (G.target === e) {
-    // por cima de tudo: cantoneira que o bicho tapa não serve para nada
-    g2.strokeStyle = '#ff5555'; g2.lineWidth = Math.max(2, S);
-    const x0 = sx + ox + 1, y0 = sy + oy + 1, L = t - 2, c = L * .3;
-    g2.beginPath();
-    for (const [px, py, dx, dy] of [[0, 0, 1, 1], [L, 0, -1, 1], [0, L, 1, -1], [L, L, -1, -1]]) {
-      g2.moveTo(x0 + px + dx * c, y0 + py);
-      g2.lineTo(x0 + px, y0 + py); g2.lineTo(x0 + px, y0 + py + dy * c);
-    }
-    g2.stroke();
   }
 }
 

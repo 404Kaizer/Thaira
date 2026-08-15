@@ -1,7 +1,7 @@
 {
   ".claude/launch.json": {
-    "mtime": 1786765927.4532943,
-    "ast_hash": "3d779ddc883c9afa3bdca55eb08229bf",
+    "mtime": 1786821909.3181746,
+    "ast_hash": "0c817f0a1d18b532030b9a2aab8c44ef",
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
@@ -55,8 +55,8 @@
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1786768238.235966,
-    "ast_hash": "8d7cb5950d7a8b3c33220818c5a3d607",
+    "mtime": 1786822411.9840088,
+    "ast_hash": "21367418dfc7ec12766f40f6bd36c56e",
     "semantic_hash": ""
   },
   "src/hud.js": {
@@ -65,18 +65,18 @@
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1786763583.2653518,
-    "ast_hash": "244ee90b66452f494c3e819f2bca3ff7",
+    "mtime": 1786822203.9847412,
+    "ast_hash": "aa9f5bad7fa71c728b88dd6732be2c0f",
     "semantic_hash": ""
   },
   "src/ui.js": {
-    "mtime": 1786768541.4406583,
-    "ast_hash": "a19bdd24e0933fa73cc0bead28e7f73d",
+    "mtime": 1786820817.9566424,
+    "ast_hash": "3cfc181deec9c87eded96b95203c3810",
     "semantic_hash": ""
   },
   "src/world.js": {
-    "mtime": 1786767782.6938822,
-    "ast_hash": "9f9074d5a8f8e680abce0957ceae4bf1",
+    "mtime": 1786820809.1797044,
+    "ast_hash": "c7fd0a34265c25b8d0afda7df297b9e3",
     "semantic_hash": ""
   },
   "tests/test.js": {
@@ -95,8 +95,8 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1786768240.7429695,
-    "ast_hash": "df94c41fd6f5c0d329436dcedd19b110",
+    "mtime": 1786822385.4065585,
+    "ast_hash": "5a61efb44bdea09b0c16a31ef877107f",
     "semantic_hash": ""
   },
   "tools/amostra/kaykit.html": {
@@ -3227,6 +3227,11 @@
   "assets/scenario/trees_02.png": {
     "mtime": 1786770968.4710226,
     "ast_hash": "da3e836f912dfcbd01dfcae6abe6f447",
+    "semantic_hash": ""
+  },
+  "tools/serve.py": {
+    "mtime": 1786821901.7466507,
+    "ast_hash": "73a2e1d79ad6af1a6afe2744daa31277",
     "semantic_hash": ""
   }
 }

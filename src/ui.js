@@ -344,7 +344,7 @@ function drawBigMap() {
   const ox = S / 2 - mapView.x * k, oy = S / 2 - mapView.y * k;
   const tx = x => x * k + ox, ty = y => y * k + oy;
   ctx.imageSmoothingEnabled = false;
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, S, S);
+  ctx.fillStyle = corFora(mapFloor); ctx.fillRect(0, 0, S, S);
   ctx.drawImage(miniCanvas[mapFloor], 0, 0, W, H, ox, oy, W * k, H * k);
 
   // hunts do andar: círculo + nome

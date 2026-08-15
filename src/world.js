@@ -75,7 +75,12 @@ function poiAt(x, y, z) {
 }
 const idx = (x, y) => y * W + x;
 const inBounds = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
-function tileAt(x, y, z) { return inBounds(x, y) ? WORLD.floors[z].t[idx(x, y)] : T.VOID; }
+/* Fora do mapa a superfície continua no oceano que já cerca a borda: sem isto o
+   jogador anda até o limite e vê o vazio preto. Nos outros andares o fora é
+   rocha maciça, e preto é a leitura certa. */
+const foraDoMapa = z => z === SURF ? T.WATER : T.VOID;
+const corFora = z => '#' + TILE[foraDoMapa(z)].c.toString(16).padStart(6, '0');
+function tileAt(x, y, z) { return inBounds(x, y) ? WORLD.floors[z].t[idx(x, y)] : foraDoMapa(z); }
 function isWalkable(x, y, z) { return TILE[tileAt(x, y, z)].walk; }
 function distT(a, b, c, d) { return Math.max(Math.abs(a - c), Math.abs(b - d)); }
 
