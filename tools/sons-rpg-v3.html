@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sons RPG — Freesound v3</title>
+<style>
+  :root{
+    --bg:#0f1117; --painel:#1a1d26; --borda:#2e323d;
+    --texto:#e6e6e6; --fraco:#8b8f9a; --ouro:#d8b45a;
+    --azul:#3d6fb5; --vermelho:#c05050; --verde:#4a8c5f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:20px;background:var(--bg);color:var(--texto);
+    font:14px/1.5 system-ui,-apple-system,sans-serif}
+  .container{max-width:860px;margin:0 auto}
+  h1{font-size:20px;color:var(--ouro);letter-spacing:.03em;margin:0 0 4px}
+  .sub{font-size:12px;color:var(--fraco);margin:0 0 20px}
+  label{display:block;font-size:11px;color:var(--fraco);margin-bottom:5px;
+    text-transform:uppercase;letter-spacing:.05em}
+  input,select{padding:10px;background:var(--painel);border:1px solid var(--borda);
+    border-radius:4px;color:var(--texto);font-size:14px;font-family:inherit}
+  input[type=text],input[type=password]{width:100%}
+  .linha{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  button{border:none;border-radius:4px;cursor:pointer;font-family:inherit;font-weight:600}
+  .primario{padding:10px 20px;background:var(--ouro);color:var(--bg);font-size:14px;white-space:nowrap}
+  .primario:disabled{opacity:.5;cursor:default}
+  .cats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .cat{padding:7px 12px;background:var(--painel);color:var(--fraco);
+    border:1px solid var(--borda);font-size:12px}
+  .cat.on{background:var(--ouro);color:var(--bg);border-color:var(--ouro)}
+  .painelTags{background:var(--painel);border:1px solid var(--borda);border-radius:4px;
+    padding:12px;margin-bottom:14px}
+  .painelTags .campo{margin-bottom:10px}
+  .painelTags .campo:last-child{margin-bottom:0}
+  .painelTags input{font-size:12px;padding:7px 9px;font-family:ui-monospace,monospace}
+  .dica{font-size:10px;color:#5f6470;margin-top:4px}
+  .opcoes{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px;
+    font-size:12px;color:var(--fraco)}
+  .opcoes select{padding:6px 8px;font-size:12px}
+  .opcoes label{display:inline;text-transform:none;letter-spacing:0;font-size:12px;
+    margin:0;cursor:pointer}
+  .aviso{padding:11px;border-radius:4px;font-size:13px;margin-bottom:14px;display:none}
+  .aviso.erro{background:#2a1a1a;border:1px solid #6b2b2b;color:#e88}
+  .aviso.info{background:#1a2230;border:1px solid #2c4468;color:#9bd}
+  .contador{font-size:12px;color:var(--fraco);margin-bottom:10px;display:none}
+  .contador b{color:var(--ouro);font-weight:600}
+  .card{background:var(--painel);border:1px solid var(--borda);border-radius:4px;
+    padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .card .nome{flex:1;min-width:0;font-size:13px;word-break:break-word}
+  .card .meta{font-size:11px;color:var(--fraco);margin-top:3px}
+  .tags{font-size:10px;color:#5f6470;margin-top:3px;word-break:break-word}
+  .icone{width:36px;height:36px;flex:0 0 36px;font-size:15px;color:#fff;background:var(--borda)}
+  .icone.play{background:var(--azul)}
+  .icone.play.ativo{background:var(--vermelho)}
+  .icone.fav.on{background:var(--ouro);color:var(--bg)}
+  .icone.dl{background:var(--verde)}
+  .btMais{width:100%;padding:11px;background:var(--painel);color:var(--ouro);
+    border:1px solid var(--ouro);font-size:13px;display:none;margin-top:4px}
+  .favs{margin-top:22px;padding:15px;background:var(--painel);
+    border:1px solid var(--ouro);border-radius:4px}
+  .favs h2{font-size:15px;color:var(--ouro);margin:0 0 10px}
+  .favlinha{display:flex;align-items:center;gap:8px;font-size:12px;
+    color:var(--fraco);padding:4px 0}
+  .favlinha input{flex:1;padding:5px 8px;font-size:12px}
+  .nota{font-size:11px;color:var(--fraco);margin-top:10px}
+  code{background:var(--bg);padding:1px 5px;border-radius:3px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>SONS RPG — FREESOUND v3</h1>
+  <p class="sub">Paginação, contagem real de resultados e filtros editáveis. <b style="color:var(--verde)">Só CC0</b> — sem atribuição.</p>
+
+  <label for="key">API key</label>
+  <input id="key" type="password" placeholder="cole seu token do Freesound" autocomplete="off">
+  <div style="height:14px"></div>
+
+  <label for="q">Termo (opcional — refina dentro da categoria)</label>
+  <div class="linha">
+    <input id="q" type="text" placeholder="ex: fire, ice, heavy, wood">
+    <button id="btBuscar" class="primario">Buscar</button>
+  </div>
+
+  <div class="cats" id="cats"></div>
+
+  <div class="painelTags">
+    <div class="campo">
+      <label for="tags">Tags aceitas nesta categoria</label>
+      <input id="tags" type="text" spellcheck="false">
+      <div class="dica">Separe por vírgula. O som precisa ter ao menos UMA delas. Vazio = sem filtro de tag.</div>
+    </div>
+    <div class="campo">
+      <label for="excluir">Tags excluídas</label>
+      <input id="excluir" type="text" spellcheck="false">
+      <div class="dica">Nenhum resultado terá essas tags. Vazio = não exclui nada.</div>
+    </div>
+    <div class="campo">
+      <label for="base">Palavras de contexto somadas ao termo</label>
+      <input id="base" type="text" spellcheck="false">
+      <div class="dica">Entram na busca textual junto com o que você digitar acima.</div>
+    </div>
+  </div>
+
+  <div class="opcoes">
+    <span>
+      ordenar:
+      <select id="ordem">
+        <option value="score">relevância</option>
+        <option value="rating_desc">avaliação</option>
+        <option value="downloads_desc">downloads</option>
+      </select>
+    </span>
+    <span>
+      duração máx:
+      <select id="dur">
+        <option value="3">3s</option>
+        <option value="6" selected>6s</option>
+        <option value="12">12s</option>
+        <option value="30">30s</option>
+        <option value="600">sem limite</option>
+      </select>
+    </span>
+    <span>
+      por página:
+      <select id="tam">
+        <option value="20">20</option>
+        <option value="50" selected>50</option>
+        <option value="100">100</option>
+      </select>
+    </span>
+  </div>
+
+  <div id="aviso" class="aviso"></div>
+  <div id="contador" class="contador"></div>
+  <div id="lista"></div>
+  <button id="btMais" class="btMais">Carregar mais</button>
+
+  <div class="favs" id="favs" style="display:none">
+    <h2>Favoritos (<span id="qtdFav">0</span>)</h2>
+    <div id="listaFav"></div>
+    <div class="linha" style="margin-top:12px">
+      <button id="btBaixarTodos" class="primario" style="flex:1;background:var(--verde);color:#fff">
+        Baixar todos os áudios
+      </button>
+      <button id="btExport" class="primario" style="flex:1">Exportar sons.json</button>
+    </div>
+    <p class="nota">
+      Nomeie cada evento (ex: <code>golpe_espada</code>) — vira a chave no JSON e o nome do arquivo.
+    </p>
+  </div>
+
+  <audio id="player"></audio>
+</div>
+
+<script>
+const PADROES = {
+  combate:   { nome:'⚔️ Combate',   base:'sword hit impact',
+               tags:'sword,weapon,combat,hit,impact,metal,blade,slash,clang' },
+  magia:     { nome:'✨ Magia',     base:'magic spell',
+               tags:'magic,spell,fantasy,magical,whoosh,mystical,arcane' },
+  criaturas: { nome:'👹 Criaturas', base:'monster growl',
+               tags:'monster,creature,growl,roar,beast,scream,snarl,animal' },
+  passos:    { nome:'👣 Passos',    base:'footstep',
+               tags:'footstep,footsteps,walk,walking,step,steps,boots' },
+  ambiente:  { nome:'🌲 Ambiente',  base:'ambience',
+               tags:'ambience,ambient,atmosphere,background,nature,room-tone' },
+  ui:        { nome:'🎮 Interface', base:'ui click',
+               tags:'ui,interface,button,click,menu,beep,notification' },
+  itens:     { nome:'🧪 Itens',     base:'pickup item',
+               tags:'coin,potion,glass,pickup,inventory,bottle,chest,gold' },
+};
+const EXCLUIR_PADRAO = 'music,loop,song,melody';
+
+let categoria = 'combate';
+let favoritos = {};
+// estado da paginação
+let pagina = 1, totalDisponivel = 0, carregados = 0, buscaAtual = null;
+
+const $ = id => document.getElementById(id);
+const player = $('player');
+
+// ---- categorias
+const elCats = $('cats');
+for (const [k, c] of Object.entries(PADROES)) {
+  const b = document.createElement('button');
+  b.className = 'cat' + (k === categoria ? ' on' : '');
+  b.textContent = c.nome;
+  b.onclick = () => {
+    categoria = k;
+    [...elCats.children].forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    preencherFiltros();
+  };
+  elCats.appendChild(b);
+}
+
+function preencherFiltros() {
+  $('tags').value = PADROES[categoria].tags;
+  $('base').value = PADROES[categoria].base;
+  $('excluir').value = EXCLUIR_PADRAO;
+}
+preencherFiltros();
+
+function aviso(msg, tipo) {
+  const el = $('aviso');
+  if (!msg) { el.style.display = 'none'; return; }
+  el.className = 'aviso ' + (tipo || 'erro');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function listaDeTags(valor) {
+  return valor.split(',').map(t => t.trim()).filter(Boolean);
+}
+
+// ---- monta query a partir dos campos editáveis
+function montarBusca() {
+  const termo = $('q').value.trim();
+  const base = $('base').value.trim();
+  const query = [termo, base].filter(Boolean).join(' ') || '*';
+
+  // Só CC0: o jogo declara em assets/CREDITOS.md que nada exige atribuição.
+  // ponytail: fixo no código. Se um dia aceitar CC-BY, vira checkbox aqui.
+  const partes = ['license:"Creative Commons 0"'];
+  const dur = $('dur').value;
+  if (dur !== '600') partes.push('duration:[0.1 TO ' + dur + ']');
+
+  const aceitas = listaDeTags($('tags').value);
+  if (aceitas.length) {
+    partes.push('(' + aceitas.map(t => 'tag:' + t).join(' OR ') + ')');
+  }
+  listaDeTags($('excluir').value).forEach(t => partes.push('-tag:' + t));
+
+  return { query, filter: partes.join(' ') };
+}
+
+async function requisitar(pag) {
+  const token = $('key').value.trim();
+  const params = new URLSearchParams({
+    query: buscaAtual.query,
+    filter: buscaAtual.filter,
+    fields: 'id,name,previews,duration,avg_rating,num_downloads,license,username,tags',
+    sort: $('ordem').value,
+    page: String(pag),
+    page_size: $('tam').value,
+    token: token,
+  });
+
+  const endpoints = [
+    'https://freesound.org/apiv2/search/?',
+    'https://freesound.org/apiv2/search/text/?',
+  ];
+
+  let ultimoErro = null;
+  for (const base of endpoints) {
+    try {
+      const r = await fetch(base + params);
+      if (r.status === 401) throw new Error('Token rejeitado (401).');
+      if (!r.ok) { ultimoErro = 'HTTP ' + r.status; continue; }
+      return await r.json();
+    } catch (e) {
+      if (e.message.includes('401')) throw e;
+      ultimoErro = e.message;
+    }
+  }
+  throw new Error(ultimoErro || 'falha desconhecida');
+}
+
+async function buscar(novaBusca) {
+  if (!$('key').value.trim()) return aviso('Cole sua API key primeiro.');
+
+  if (novaBusca) {
+    pagina = 1; carregados = 0; totalDisponivel = 0;
+    buscaAtual = montarBusca();
+    $('lista').innerHTML = '';
+    $('contador').style.display = 'none';
+    $('btMais').style.display = 'none';
+  }
+
+  $('btBuscar').disabled = true;
+  $('btMais').disabled = true;
+  aviso('Buscando…', 'info');
+
+  try {
+    const data = await requisitar(pagina);
+    const res = data.results || [];
+    totalDisponivel = data.count || 0;
+    carregados += res.length;
+
+    render(res, !novaBusca);
+    atualizarContador(data.next);
+    aviso(res.length ? '' :
+      'Nada encontrado. Tente limpar o campo de tags ou ampliar a duração.', 'info');
+  } catch (e) {
+    aviso('Falhou: ' + e.message);
+  } finally {
+    $('btBuscar').disabled = false;
+    $('btMais').disabled = false;
+  }
+}
+
+function atualizarContador(temProxima) {
+  const c = $('contador');
+  c.style.display = 'block';
+  c.innerHTML = 'Exibindo <b>' + carregados + '</b> de <b>' +
+    totalDisponivel.toLocaleString('pt-BR') + '</b> encontrados';
+  $('btMais').style.display = temProxima ? 'block' : 'none';
+  $('btMais').textContent = 'Carregar mais (' +
+    Math.min(+$('tam').value, totalDisponivel - carregados) + ')';
+}
+
+$('btBuscar').onclick = () => buscar(true);
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') buscar(true); });
+$('btMais').onclick = () => { pagina++; buscar(false); };
+
+// ---- download
+async function baixar(url, nomeArquivo) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nomeArquivo;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch (e) {
+    window.open(url, '_blank');
+    aviso('Download direto bloqueado — abri em outra aba, salve por lá (Ctrl+S).', 'info');
+  }
+}
+
+function nomeLimpo(t) {
+  return (t || 'som').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s-]/g, '').trim().replace(/[\s_-]+/g, '_').slice(0, 45).toLowerCase();
+}
+
+// ---- resultados
+function render(sons, acrescentar) {
+  const lista = $('lista');
+  if (!acrescentar) lista.innerHTML = '';
+
+  sons.forEach(s => {
+    const src = s.previews?.['preview-hq-mp3'] || s.previews?.['preview-lq-mp3'];
+    if (!src) return;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const info = document.createElement('div');
+    info.className = 'nome';
+    const tags = (s.tags || []).slice(0, 7).join(', ');
+    info.innerHTML =
+      '<div>' + escapar(s.name) + '</div>' +
+      '<div class="meta">' + s.duration.toFixed(1) + 's · ⭐ ' +
+        (s.avg_rating ? s.avg_rating.toFixed(1) : '—') +
+        ' · ⬇ ' + (s.num_downloads || 0) + ' · ' + escapar(s.username) + '</div>' +
+      (tags ? '<div class="tags">' + escapar(tags) + '</div>' : '');
+
+    const btPlay = document.createElement('button');
+    btPlay.className = 'icone play';
+    btPlay.textContent = '▶';
+    btPlay.onclick = () => {
+      player.src = src;
+      player.play().catch(e => aviso('Não tocou: ' + e.message));
+      document.querySelectorAll('.icone.play').forEach(b => b.classList.remove('ativo'));
+      btPlay.classList.add('ativo');
+    };
+
+    const btDl = document.createElement('button');
+    btDl.className = 'icone dl';
+    btDl.textContent = '⬇';
+    btDl.title = 'Baixar mp3';
+    btDl.onclick = () => baixar(src, nomeLimpo(s.name) + '_' + s.id + '.mp3');
+
+    const btFav = document.createElement('button');
+    btFav.className = 'icone fav' + (favoritos[s.id] ? ' on' : '');
+    btFav.textContent = favoritos[s.id] ? '★' : '☆';
+    btFav.onclick = () => {
+      if (favoritos[s.id]) delete favoritos[s.id];
+      else favoritos[s.id] = {
+        id: s.id, nome: s.name, url: src, categoria: categoria,
+        duracao: +s.duration.toFixed(2), licenca: s.license,
+        autor: s.username, pagina: 'https://freesound.org/s/' + s.id + '/', evento: '',
+      };
+      btFav.className = 'icone fav' + (favoritos[s.id] ? ' on' : '');
+      btFav.textContent = favoritos[s.id] ? '★' : '☆';
+      renderFavs();
+    };
+
+    card.append(info, btPlay, btDl, btFav);
+    lista.appendChild(card);
+  });
+}
+
+// ---- favoritos
+function renderFavs() {
+  const chaves = Object.keys(favoritos);
+  $('favs').style.display = chaves.length ? 'block' : 'none';
+  $('qtdFav').textContent = chaves.length;
+
+  const box = $('listaFav');
+  box.innerHTML = '';
+  chaves.forEach(k => {
+    const f = favoritos[k];
+    const linha = document.createElement('div');
+    linha.className = 'favlinha';
+
+    const bt = document.createElement('button');
+    bt.className = 'icone play';
+    bt.style.cssText = 'width:28px;height:28px;flex:0 0 28px;font-size:12px';
+    bt.textContent = '▶';
+    bt.onclick = () => { player.src = f.url; player.play(); };
+
+    const tag = document.createElement('span');
+    tag.textContent = PADROES[f.categoria].nome;
+    tag.style.cssText = 'flex:0 0 105px;font-size:11px';
+
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.placeholder = 'nome do evento';
+    inp.value = f.evento;
+    inp.oninput = e => { f.evento = e.target.value; };
+
+    linha.append(bt, tag, inp);
+    box.appendChild(linha);
+  });
+}
+
+$('btBaixarTodos').onclick = async () => {
+  const itens = Object.values(favoritos);
+  const bt = $('btBaixarTodos');
+  bt.disabled = true;
+  for (let i = 0; i < itens.length; i++) {
+    const f = itens[i];
+    bt.textContent = 'Baixando ' + (i + 1) + '/' + itens.length + '…';
+    const nome = (f.evento.trim() ? nomeLimpo(f.evento) : nomeLimpo(f.nome) + '_' + f.id) + '.mp3';
+    await baixar(f.url, nome);
+    await new Promise(r => setTimeout(r, 400));
+  }
+  bt.textContent = 'Baixar todos os áudios';
+  bt.disabled = false;
+};
+
+$('btExport').onclick = () => {
+  const mapa = {};
+  Object.values(favoritos).forEach(f => {
+    const chave = (f.evento.trim() || 'som_' + f.id).replace(/\s+/g, '_');
+    const arq = (f.evento.trim() ? nomeLimpo(f.evento) : nomeLimpo(f.nome) + '_' + f.id) + '.mp3';
+    mapa[chave] = {
+      arquivo: 'sounds/' + arq, url: f.url, categoria: f.categoria,
+      duracao: f.duracao, licenca: f.licenca, autor: f.autor, fonte: f.pagina,
+    };
+  });
+  const blob = new Blob([JSON.stringify(mapa, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sons.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+function escapar(t) {
+  const d = document.createElement('div');
+  d.textContent = t;
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>

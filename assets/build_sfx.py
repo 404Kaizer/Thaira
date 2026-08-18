@@ -84,6 +84,10 @@ MAPA = {
     # entra mais alta que os pacotes de jogo, por isso os ganhos aqui são
     # menores que os vizinhos — é esse número que se mexe se soar alto demais.
     'loot':     (['freesound/loot-%d.mp3' % i for i in (1, 2, 3, 4)], 0.5),
+    # roupa sendo remexida, não couro estalando: abrir um corpo é gesto suave, e
+    # o estalo de couro soava agressivo demais pro que é só vasculhar. Mesmo autor
+    # do 'loot', então os dois soam da mesma família.
+    'bag':      (['freesound/bag-%d.mp3' % i for i in (1, 2, 3)], 0.45),
     'coin':     (['freesound/coin-%d.mp3' % i for i in (1, 2, 3, 4)], 0.4),
     'equip':    (['rpg-audio/**/cloth%d.ogg' % i for i in (1, 2, 3)], 0.6),
     'unequip':  (['rpg-audio/**/cloth%d.ogg' % i for i in (3, 4)], 0.5),

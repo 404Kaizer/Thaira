@@ -420,6 +420,25 @@ const SHAPE_DRAW = {
     _poly(g, [[18, 23.5], [17, 26], [16.2, 23.5]], dk);
   },
 
+  /* Bicho pequeno que VOA. As outras cinco formas plantam o corpo no chão pelos
+     pés; esta flutua de propósito, e é isso que a distingue de longe — silhueta
+     minúscula, alta no tile e sem perna nenhuma.
+     Nasceu porque o vaga-lume sem forma caía no `biped` padrão e virava uma
+     criança humanoide de trinta centímetros. */
+  mote(g, color, o, dir, sw) {
+    const md = _rgb(color), dk = _rgb(color, .55), lt = _rgb(color, 1.6);
+    const yb = 21 + Math.sin(sw * 1.7) * 1.6;                  // pairando, nunca parado
+    const abre = 2.4 + Math.abs(Math.sin(sw * 2.2)) * 1.8;     // asa borrada batendo
+    g.globalAlpha = .4;
+    _el(g, 16 - 2.8, yb - 1.6, abre, 1.4, '#eef4d2');
+    _el(g, 16 + 2.8, yb - 1.6, abre, 1.4, '#eef4d2');
+    g.globalAlpha = 1;
+    _el(g, 16, yb, 2.1, 1.5, dk);                              // tórax
+    _el(g, 16, yb + 2.1, 2.5, 1.9, md);                        // abdômen
+    _el(g, 16, yb + 2.5, 1.5, 1.1, lt);                        // a lanterna
+    _olhos(g, 16, yb - 1.4, '#241f14', 1.1);
+  },
+
   serpent(g, color, o, dir, sw) {
     const md = _rgb(color), dk = _rgb(color, .72), lt = _rgb(color, 1.3);
     for (let i = 5; i >= 0; i--) {                                      // corpo em S
@@ -643,24 +662,32 @@ function itemIcon(nome) {
   return im.complete && im.naturalWidth ? im : null;
 }
 
-/* Primeira linha com pixel opaco do sprite. O canvas tem folga vazia por cima —
-   na célula do ranger são 54px dos 236, quase um quinto — então ancorar a placa
-   de nome no topo do canvas deixa o nome boiando bem longe da cabeça.
-   Guardado no próprio canvas, como cx/feet/k, e só quando alguém pergunta.
+/* Caixa do que está DESENHADO no sprite, não do canvas: a folga vazia em volta
+   é grande (na célula do ranger são 54px dos 236 só em cima). A placa de nome usa
+   o topo dela, e o corpo morto usa o centro — os dois erravam feio com a medida
+   do canvas. Guardada no próprio canvas, como cx/feet/k, e só quando perguntam.
    O try existe porque canvas com imagem de outra origem (abrir o jogo por
-   file://) proíbe ler pixel: melhor a placa voltar ao topo do canvas do que o
+   file://) proíbe ler pixel: melhor a caixa virar o canvas inteiro do que o
    desenho inteiro parar. */
-function spriteTop(spr) {
-  if (spr.topo !== undefined) return spr.topo;
-  spr.topo = 0;
+function spriteBox(spr) {
+  if (spr.caixa) return spr.caixa;
+  let x0 = 0, y0 = 0, x1 = spr.width - 1, y1 = spr.height - 1;   // manchado: canvas inteiro
   try {
     const d = spr.getContext('2d').getImageData(0, 0, spr.width, spr.height).data;
-    busca: for (let y = 0; y < spr.height; y++)
+    x0 = spr.width; y0 = spr.height; x1 = -1; y1 = -1;
+    for (let y = 0; y < spr.height; y++)
       for (let x = 0; x < spr.width; x++)
-        if (d[(y * spr.width + x) * 4 + 3] > 16) { spr.topo = y; break busca; }
-  } catch (e) { /* canvas manchado: fica em 0 */ }
-  return spr.topo;
+        if (d[(y * spr.width + x) * 4 + 3] > 16) {
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          y1 = y;
+        }
+    if (x1 < 0) { x0 = y0 = 0; x1 = spr.width - 1; y1 = spr.height - 1; }   // sprite vazio
+  } catch (e) { /* canvas manchado: fica com o canvas inteiro */ }
+  return spr.caixa = { x0, y0, x1, y1, mx: (x0 + x1 + 1) / 2, my: (y0 + y1 + 1) / 2 };
 }
+const spriteTop = spr => spriteBox(spr).y0;
 
 /* ----------------------------------------------------------- contorno */
 /* Bicho verde em cima de grama some: o sprite e o chão têm o mesmo valor e a
@@ -791,6 +818,83 @@ function cloudTexture() {
 
 /* escadas: buraco escuro para descer, degraus claros para subir */
 const STAIR_CACHE = {};
+/* Marca de POI no chão. Os 39 pontos de interesse apareciam no minimapa e
+   NADA no terreno: o jogador via o losango no mapa, andava até lá e chegava num
+   quadrado igual a todos os outros. Isto é informação faltando, não enfeite.
+
+   Procedural, e não recorte de `assets/scenario/tiles_01.png`, por dois motivos:
+   a folha tem célula fracionária e fundo chroma (o #19 cataloga), e adereço não
+   precisa costurar com o vizinho — o custo de acertar a extração não se paga
+   aqui. Segue o mesmo idioma do `stairSprite` logo abaixo.
+   Cada marca sai da própria `dica` da tabela, para o que se vê no chão e o que
+   se lê no mapa contarem a mesma história.
+   Saqueado desenha apagado, igual ao losango do minimapa: o mapa é o caderno do
+   jogador, e o chão tem de concordar com ele. */
+const POI_CACHE = {};
+const POI_DRAW = {
+  // "fogueira apagada e pegadas frescas"
+  bandit_camp(g) {
+    for (let i = 0; i < 7; i++) {                                  // roda de pedras
+      const a = i / 7 * Math.PI * 2;
+      _el(g, 16 + Math.cos(a) * 9, 18 + Math.sin(a) * 6, 2.6, 2, _rgb(0x6b6459));
+    }
+    _poly(g, [[11, 20], [21, 15], [22, 17], [12, 22]], _rgb(0x2a211a));   // lenha cruzada
+    _poly(g, [[11, 15], [21, 20], [22, 18], [12, 13]], _rgb(0x33291f));
+    _el(g, 16, 18, 3.4, 2.4, _rgb(0x15110d));                      // brasa morta
+  },
+  // "pedra lavrada tomada pelo mato"
+  ruin(g) {
+    g.fillStyle = _rgb(0x9a9185); g.fillRect(10, 8, 6, 16);        // coluna quebrada
+    g.fillStyle = _rgb(0x7c7468); g.fillRect(10, 8, 2, 16);
+    _poly(g, [[10, 8], [16, 8], [15, 5], [11, 6]], _rgb(0xb0a698)); // topo lascado
+    g.fillStyle = _rgb(0x8a8276); g.fillRect(18, 19, 9, 5);        // bloco tombado
+    for (let i = 0; i < 5; i++)                                     // mato subindo
+      _el(g, 9 + i * 3.4, 24 - (i % 2) * 2, 2.2, 3, _rgb(0x3f6b34));
+  },
+  // "teia grossa demais para ser de aranha comum"
+  nest(g) {
+    g.strokeStyle = _rgb(0xd8d2c4, 1, .8); g.lineWidth = 1.2;
+    for (let i = 0; i < 6; i++) {                                   // raios
+      const a = i / 6 * Math.PI * 2;
+      g.beginPath(); g.moveTo(16, 17);
+      g.lineTo(16 + Math.cos(a) * 13, 17 + Math.sin(a) * 11); g.stroke();
+    }
+    for (const r of [5, 9, 12]) {                                   // anéis
+      g.beginPath(); g.ellipse(16, 17, r, r * .82, 0, 0, 7); g.stroke();
+    }
+    _el(g, 16, 17, 4, 3.4, _rgb(0xe8e2d2));                         // casulo no centro
+    _el(g, 16, 17, 2.2, 1.8, _rgb(0xb9ae94));
+  },
+  // "a laje foi aberta por dentro"
+  barrow(g) {
+    _el(g, 16, 20, 12, 8, _rgb(0x2b2620));                          // cova
+    _el(g, 16, 20, 9, 5.6, _rgb(0x0d0b09));                         // boca escura
+    _poly(g, [[6, 12], [20, 9], [22, 13], [8, 16]], _rgb(0x8a8276)); // laje empurrada
+    _poly(g, [[6, 12], [20, 9], [20, 10.5], [6, 13.5]], _rgb(0xa79e90));
+  },
+  // "alguma coisa dorme em cima disto há muito tempo"
+  hoard(g) {
+    _el(g, 16, 22, 12, 5, _rgb(0x6b5a2a));                          // monte
+    for (let i = 0; i < 14; i++) {                                  // moedas
+      const x = 6 + (i * 7 % 21), y = 17 + (i * 5 % 8);
+      _el(g, x, y, 2.2, 1.5, _rgb(i % 3 ? 0xd9a441 : 0xf0cd7a));
+    }
+    _poly(g, [[16, 10], [17.4, 14], [21, 15.4], [17.4, 16.8], [16, 20],
+              [14.6, 16.8], [11, 15.4], [14.6, 14]], _rgb(0xfff0b0, 1, .55));  // brilho
+  }
+};
+function poiSprite(id, saqueado) {
+  const key = id + (saqueado ? '.s' : '');
+  if (POI_CACHE[key]) return POI_CACHE[key];
+  const c = _canvas2(32, 32), g = c.getContext('2d');
+  const d = POI_DRAW[id];
+  if (!d) return POI_CACHE[key] = c;              // tipo novo sem arte: some, não quebra
+  if (saqueado) g.globalAlpha = .32;
+  d(g);
+  g.globalAlpha = 1;
+  return POI_CACHE[key] = c;
+}
+
 function stairSprite(desce) {
   const key = desce ? 'd' : 'u';
   if (STAIR_CACHE[key]) return STAIR_CACHE[key];

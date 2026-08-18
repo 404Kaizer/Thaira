@@ -2,6 +2,13 @@
    Depende de data.js, world.js e game.js (P, G, log, $). */
 'use strict';
 
+/* Token de cor para quem desenha em canvas. O mapa expandido é bitmap, então
+   `var(--good)` não chega lá — mas duplicar o hexadecimal no JS criaria duas
+   verdades sobre a mesma cor. Isto lê o token do CSS uma vez e guarda: a folha
+   de estilo continua sendo a única fonte. */
+const TOK = {};
+const tok = n => TOK[n] || (TOK[n] = getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim());
+
 /* ------------------------------------------------------------- bestiário */
 /* Mesma ideia do Tibia: cada criatura tem 3 marcos de mortes (Proeza, Perícia,
    Maestria). Cada marco revela mais informação; o terceiro rende pontos de
@@ -129,7 +136,7 @@ function renderTasks() {
     box.innerHTML = `<div class="sec">Contrato em andamento</div>
       <div class="task-card">
         <b>Matar ${a.alvo} × ${m.n}</b>
-        <div class="bsbar"><u style="width:${p / a.alvo * 100}%;background:${pronto ? '#7fd08a' : '#f0cd7a'}"></u></div>
+        <div class="bsbar"><u style="width:${p / a.alvo * 100}%;background:${pronto ? tok('good') : tok('gold2')}"></u></div>
         <span>${p}/${a.alvo}${pronto ? ' — pronto' : ''}</span>
         <i>Paga ${a.ouro} 🪙 · ${a.exp} exp · ${a.carisma} de carisma</i>
       </div>
@@ -220,7 +227,7 @@ function renderBestDetail() {
         for (const k of fora) {
           const r = resistOf(m, k);
           h += `<div class="bd-loot"><span style="color:${cssCol(ELEM[k].cor)}">${ELEM[k].n}</span>
-            <i style="color:${r > 1 ? '#7fd08a' : '#e07a6a'}">${r === 0 ? 'imune' : (r > 1 ? 'fraco ×' : 'resiste ×') + r}</i></div>`;
+            <i style="color:${r > 1 ? tok('good') : tok('bad')}">${r === 0 ? 'imune' : (r > 1 ? 'fraco ×' : 'resiste ×') + r}</i></div>`;
         }
       }
     }
@@ -239,13 +246,14 @@ function renderBestDetail() {
         ? `${hunt.n} (${FLOOR_NAMES[hunt.z]}) — em ${hunt.x},${hunt.y}`
         : 'espalhado pelo mundo aberto'}</div>`;
       h += marcado
-        ? `<div class="note" style="color:#7fd08a">★ Marcada como presa: +${Math.round(CHARM_BONUS * 100)}% de dano.
+        ? `<div class="note" style="color:${tok('good')}">★ Marcada como presa: +${Math.round(CHARM_BONUS * 100)}% de dano.
              <button class="mini" onclick="toggleCharm('${id}')">remover</button></div>`
         : `<button class="btn" style="margin-top:8px" onclick="toggleCharm('${id}')">
              Marcar como presa — ${CHARM_COST} pontos (+${Math.round(CHARM_BONUS * 100)}% de dano)</button>`;
     }
   }
-  box.innerHTML = h;
+  // ficha igual não é remontada: os <img> do saque piscam ao renascer
+  if (box._h !== h) { box._h = h; box.innerHTML = h; }
 }
 
 function toggleCharm(id) {
@@ -307,25 +315,33 @@ function renderForja() {
   let h = '<div class="sec">Peça</div><div class="forja-slots">'
     + slots.map(s => `<button class="mini${s === forjaSlot ? ' on' : ''}" data-s="${s}">${SLOT_LABEL[s] || s}</button>`).join('')
     + `</div><div class="note">${itemStats(it).name}${it.imb ? ' · imbuído com <b>' + IMBUEMENTS.find(x => x.id === it.imb).n + '</b>' : ' · sem imbuement'}</div>`;
-  h += '<div class="sec">Imbuements</div>' + IMBUEMENTS.map(im => {
+  h += '<div class="sec">Imbuements</div>';
+  /* cabeçalho e lista em caixas separadas: a lista é remontada card a card
+     (syncRows), senão imbuir refazia os <img> dos materiais e a forja inteira
+     piscava — mesmo motivo do itemCell e da loja. */
+  if (!box.querySelector('#forja-imbs')) box.innerHTML = '<div id="forja-cab"></div><div id="forja-imbs"></div>';
+  const cab = box.querySelector('#forja-cab');
+  if (cab._h !== h) {
+    cab._h = h; cab.innerHTML = h;
+    cab.querySelectorAll('button[data-s]').forEach(b => b.onclick = () => { forjaSlot = b.dataset.s; renderForja(); });
+  }
+  syncRows(box.querySelector('#forja-imbs'), IMBUEMENTS.map(im => {
     const mats = im.mats.map(([id, q]) => {
       const t = contaMat(id);
-      return `<span style="color:${t >= q ? '#7fd08a' : '#e07a6a'}">${ITEMS[id].ico} ${t}/${q}</span>`;
+      return `<span style="color:${t >= q ? tok('good') : tok('bad')}">${ITEMS[id].ico} ${t}/${q}</span>`;
     }).join(' · ');
     // fmtBon é o mesmo formatador do tooltip de item: rótulo em português e a
     // regra de quando o número é porcentagem. Escrever outro aqui daria duas
     // verdades sobre o mesmo bônus na mesma tela
     const bons = Object.entries(im.b).map(([k, v]) => fmtBon(k, v)).join(' · ');
     const pode = perto && temMats(im) && P.gold >= im.ouro && it.imb !== im.id;
-    return `<div class="task-card">
-      <b>${im.ico} ${im.n}</b><span>${bons}</span>
+    return {
+      html: `<b>${im.ico} ${im.n}</b><span>${bons}</span>
       <i>${mats} · ${im.ouro} 🪙</i>
-      <button class="mini" data-im="${im.id}" ${pode ? '' : 'disabled'}>${it.imb === im.id ? 'já aplicado' : 'Imbuir'}</button>
-    </div>`;
-  }).join('');
-  box.innerHTML = h;
-  box.querySelectorAll('button[data-s]').forEach(b => b.onclick = () => { forjaSlot = b.dataset.s; renderForja(); });
-  box.querySelectorAll('button[data-im]').forEach(b => b.onclick = () => imbuir(b.dataset.im));
+      <button class="mini" data-im="${im.id}" ${pode ? '' : 'disabled'}>${it.imb === im.id ? 'já aplicado' : 'Imbuir'}</button>`,
+      liga: d => d.querySelector('button[data-im]').onclick = () => imbuir(im.id)
+    };
+  }), 'task-card');
 }
 
 /* ---------------------------------------------------------- mapa expandido */
@@ -353,9 +369,9 @@ function drawBigMap() {
     if (h.z !== mapFloor) continue;
     const hx = tx(h.x), hy = ty(h.y), hr = h.r * k;
     ctx.beginPath(); ctx.arc(hx, hy, hr, 0, 7);
-    ctx.strokeStyle = '#ffb03a'; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = '#00000099'; ctx.fillRect(hx - 62, hy - hr - 15, 124, 13);
-    ctx.fillStyle = '#f0cd7a';
+    ctx.strokeStyle = tok('hunt'); ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = tok('scrim'); ctx.fillRect(hx - 62, hy - hr - 15, 124, 13);
+    ctx.fillStyle = tok('gold2');
     ctx.fillText(`${h.n} (nv ${h.lvl}+)`, hx, hy - hr - 5);
   }
   /* POIs: losango com o ícone. Saqueado fica apagado — o mapa é o caderno do
@@ -366,10 +382,10 @@ function drawBigMap() {
     ctx.globalAlpha = feito ? .35 : 1;
     ctx.beginPath(); ctx.moveTo(px, py - 5); ctx.lineTo(px + 5, py); ctx.lineTo(px, py + 5); ctx.lineTo(px - 5, py);
     ctx.closePath();
-    ctx.fillStyle = feito ? '#5a5348' : '#e0b055'; ctx.fill();
+    ctx.fillStyle = feito ? tok('mute') : tok('wait'); ctx.fill();
     if (mapView.zoom > 2.2) {                     // só de perto: de longe vira sopa
-      ctx.fillStyle = '#000000aa'; ctx.fillRect(px - 52, py + 7, 104, 12);
-      ctx.fillStyle = feito ? '#8a8378' : '#f0cd7a';
+      ctx.fillStyle = tok('scrim2'); ctx.fillRect(px - 52, py + 7, 104, 12);
+      ctx.fillStyle = feito ? tok('dim') : tok('gold2');
       ctx.fillText(`${p.ico} ${p.n}`, px, py + 16);
     }
     ctx.globalAlpha = 1;
@@ -379,16 +395,16 @@ function drawBigMap() {
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const tt = t[y * W + x];
     if (tt !== T.UP && tt !== T.DOWN) continue;
-    ctx.fillStyle = tt === T.UP ? '#ffd166' : '#20242a';
+    ctx.fillStyle = tt === T.UP ? tok('stair-up') : tok('stair-down');
     ctx.fillRect(tx(x) - 2, ty(y) - 2, 5, 5);
   }
   if (mapFloor === SURF) {
-    ctx.fillStyle = '#fff0b0';
+    ctx.fillStyle = tok('temple');
     ctx.fillRect(tx(WORLD.temple.x) - 4, ty(WORLD.temple.y) - 4, 9, 9);
     ctx.fillText('Templo', tx(WORLD.temple.x), ty(WORLD.temple.y) - 8);
   }
   if (mapFloor === P.z) {                      // você, piscando
-    ctx.fillStyle = (G.now % 900 < 550) ? '#ffffff' : '#ff5252';
+    ctx.fillStyle = (G.now % 900 < 550) ? tok('player') : tok('alert');
     ctx.fillRect(tx(P.x) - 3, ty(P.y) - 3, 7, 7);
   }
   $('#map-floor').textContent = FLOOR_NAMES[mapFloor];
@@ -436,6 +452,7 @@ addEventListener('DOMContentLoaded', () => {
     if (w.style.display === 'flex') renderBestiary();
   };
   $('#best-close').onclick = () => $('#best-win').style.display = 'none';
+  $('#spell-close').onclick = () => $('#spell-win').style.display = 'none';
   $('#task-btn').onclick = () => {
     const w = $('#task-win');
     w.style.display = w.style.display === 'flex' ? 'none' : 'flex';

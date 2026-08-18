@@ -5,39 +5,105 @@
 const XP_MULT = 6;      // ponytail: multiplicador global de xp p/ caber numa sessão; baixe p/ 1 se quiser grind clássico
 const SKILL_RATE = 4;   // mesma curva de skill do Tibia, só N× mais rápida (par com XP_MULT); 1 = ritmo original
 const MAGIC_BASE = 400; // mana necessária p/ magic level 1
+/* Intervalo do ataque básico, e PISO do descanso de toda magia que causa dano.
+   Havia magia de dano em 1100–1400 ms contra os 2000 do golpe de arma, o que
+   invertia o jogo: com mana e poção bastando, conjurar sem parar batia mais que
+   qualquer arma, e conseguir arma boa deixava de valer a pena. Magia pode ser
+   mais FORTE que o golpe, nunca mais frequente.
+   Cura e utilidade ficam de fora do piso de propósito — elas não competem com a
+   arma por dano, e travar `exura` em 2 s tiraria a defesa de quem conjura. */
+const ATAQUE_MS = 2000;
+/* DEFESA: um contador só, e uma conta só.
+   Havia dois sistemas empilhados — armadura por subtração plana e escudo por
+   bloqueio tudo-ou-nada — e cada um criava o próprio limiar de imunidade. Com
+   armadura 60 em postura defensiva a subtração comia de 41 a 82 de dano fixo,
+   então criatura que batesse abaixo disso causava ZERO; e o bloqueio saturava
+   no teto com um escudo de bronze de nível 1, anulando 60% dos golpes de
+   qualquer jogador para sempre. Dois contadores, dois muros, e nenhum dos dois
+   escalava com o equipamento depois do começo do jogo.
+   Agora toda peça vestida — armadura, elmo, perneira, bota, escudo, arma —
+   soma no MESMO número, e ele vira uma fração do golpe:
+
+     defEf = DEFESA × postura × (1 + skillEscudo/100)
+     redução = defEf / (defEf + DEF_K)
+
+   Percentual e não subtração: a curva nunca chega a 1, então imunidade deixa
+   de ser possível por construção, e o mesmo número funciona contra um golpe de
+   12 e contra um de 553 — que é o que achata a dificuldade do nível 8 ao 320.
+   O Tibia moderno faz a armadura assim também (`a/100 · c`, armadura como
+   percentual do ataque), e é por isso que lá a armadura total fica na casa dos
+   30-40: em percentual puro, 100 seria imunidade. A curva dispensa esse teto. */
+const DEF_K = 400;
+/* Piso: esta fração do golpe bruto sempre passa. Com a curva percentual ele
+   nunca chega a valer — a redução máxima hoje é 56% — mas é ele que garante a
+   promessa "nada é imune" mesmo se um imbuement ou um conjunto futuro empurrar
+   a DEFESA para um número que ninguém previu. Resistência elemental corta
+   DEPOIS e tem teto próprio de 75%. */
+const DANO_MIN = 0.12;
+const DANO_TIPOS = ['attack', 'beam', 'wave', 'aoe', 'melee', 'melee_aoe'];
+const cdDe = sp => DANO_TIPOS.includes(sp.type) ? Math.max(sp.cd, ATAQUE_MS) : sp.cd;
+
+/* Dano e cura de magia. A conta antiga era `base × (1 + ML×0.11)`, ou seja o
+   ganho por ponto de ML era 0.11×base — PROPORCIONAL ao tamanho da magia. Isso
+   fazia a distância entre a magia mais fraca e a mais forte crescer para
+   sempre: 1,43 de ganho por ponto na Faísca contra 23,10 na Fúria dos Céus,
+   16× de espalhamento. No Tibia o ganho por ML é escrito à mão em cada magia e
+   as strikes todas ficam entre 1,4 e 2,2 — o jogo ESCOLHE a distância, ela não
+   é consequência da base.
+
+   Aqui a raiz quadrada faz o mesmo trabalho sem 27 campos novos: magia maior
+   ainda escala mais, mas sublinearmente. O espalhamento cai para 4×, que é a
+   faixa que separa uma strike inicial de uma AoE de fim de jogo.
+   K = 0.39 está calibrado para deixar as magias iniciais IGUAIS ao que eram
+   (corte de 1%) e cortar só o topo — a ponta de baixo já estava certa.
+   Se uma magia um dia precisar fugir da régua, o caminho é um campo `mlk`
+   nela e `sp.mlk ?? MAG_K * Math.sqrt(base)`; não vale criar antes de precisar.
+   Serve magia e runa: eram duas escalas quase iguais (0.11 e 0.10) por acidente,
+   e deixar a runa de fora só mudaria o exagero de lugar. */
+const MAG_K = 0.39;
+const magPower = (base, ml, level) => base + ml * MAG_K * Math.sqrt(base) + level * 0.25;
 
 /* ---------------------------------------------------------------- vocações */
 /* spd = % da velocidade base ganho por nível. No Tibia todos ganham igual;
-   aqui o mago é o mais rápido e o cavaleiro o mais lento, como você pediu. */
+   aqui o mago é o mais rápido e o cavaleiro o mais lento, como você pediu.
+   Os valores caíram para ~1/4 do que eram (knight 0.65, sorcerer 1.25). A
+   fórmula é linear e sem teto, então com os antigos um sorcerer passava a
+   criatura mais rápida do jogo no nível 47 e no 300 andava a 1042 — três vezes
+   o lobo, 96 ms por tile. Fugir de tudo, para sempre, de graça. Agora o nível
+   300 fica entre 325 (knight) e 425 (sorcerer): ainda bem acima da criatura de
+   meio de jogo, e alcançável pelas classes caçadoras de tier alto. */
 const VOCATIONS = {
-/* color = tinta do boneco no mapa; art = matiz da carta em assets/vocations,
-   que é outra paleta e só a tela de criação usa. */
+/* color = a cor da vocação: boneco no mapa, símbolo, criação e lista. Uma só. */
   knight: {
-    name: 'Knight', emoji: '🛡️', color: '#d8a04a', art: '#d25555',
-    hp: 15, mana: 5, hpReg: 5, mpReg: 2, spd: 0.65,
+    name: 'Knight', emoji: '🛡️', color: '#d25555',
+    hp: 15, mana: 5, hpReg: 5, mpReg: 2, spd: 0.16,
     sk: { fist: 1.1, sword: 1.1, axe: 1.1, club: 1.1, distance: 1.4, shielding: 1.1, mining: 1.1, woodcut: 1.1, fishing: 1.1 }, magic: 3.0,
     desc: 'Ganha três vezes mais vida que um mago e não conjura quase nada. Fica na frente, apanha e devolve com espada, machado ou maça.',
     tags: ['Segura a linha', 'Espada e escudo', 'Magia quase nula']
   },
   ranger: {
-    name: 'Ranger', emoji: '🏹', color: '#66c48a', art: '#5587d2',
-    hp: 10, mana: 15, hpReg: 4, mpReg: 4, spd: 0.85,
+    name: 'Ranger', emoji: '🏹', color: '#5587d2',
+    hp: 10, mana: 15, hpReg: 4, mpReg: 4, spd: 0.21,
     sk: { fist: 1.2, sword: 1.2, axe: 1.2, club: 1.2, distance: 1.1, shielding: 1.1, mining: 1.1, woodcut: 1.1, fishing: 1.1 }, magic: 1.4,
     desc: 'A melhor mão do jogo para arco e besta, e vida suficiente para errar um passo. Atira, recua e atira de novo.',
     tags: ['Arco e besta', 'Bate e recua', 'Mana para runas']
   },
   sorcerer: {
-    name: 'Sorcerer', emoji: '🔥', color: '#e05a5a', art: '#ae55d2',
-    hp: 5, mana: 30, hpReg: 2, mpReg: 8, spd: 1.25,
+    name: 'Sorcerer', emoji: '🔥', color: '#ae55d2',
+    hp: 5, mana: 30, hpReg: 2, mpReg: 8, spd: 0.31,
     sk: { fist: 1.5, sword: 2.0, axe: 2.0, club: 2.0, distance: 2.0, shielding: 1.5, mining: 1.1, woodcut: 1.1, fishing: 1.1 }, magic: 1.1,
     desc: 'Seis vezes mais mana que vida por nível. Um exevo flam hur limpa o corredor; dois golpes de volta limpam você.',
     tags: ['Fogo e energia', 'Mana de sobra', 'Casca de vidro']
   },
   druid: {
-    name: 'Druid', emoji: '❄️', color: '#5aa9ff', art: '#98d255',
-    hp: 5, mana: 30, hpReg: 2, mpReg: 8, spd: 1.05,
+    name: 'Druid', emoji: '❄️', color: '#98d255',
+    /* hp 7 contra os 5 do sorcerer: os dois eram numericamente IDÊNTICOS, e a
+       tag "aguenta a caçada" dependia inteiramente de ter a Cura Suprema.
+       A vida a mais é o que torna o diferencial real — e de quebra derruba a
+       cura como fração da barra, que era o resíduo de 124% do #38c. */
+    hp: 7, mana: 30, hpReg: 2, mpReg: 8, spd: 0.26,
     sk: { fist: 1.5, sword: 2.0, axe: 2.0, club: 2.0, distance: 2.0, shielding: 1.5, mining: 1.1, woodcut: 1.1, fishing: 1.1 }, magic: 1.1,
-    desc: 'A mesma mana do sorcerer, gasta em gelo, terra e no exura vita que te mantém de pé quando a caçada vira.',
+    desc: 'A mesma mana do sorcerer e metade a mais de vida, gasta em gelo, terra e no exura vita que te mantém de pé quando a caçada vira. Bate menos que o sorcerer e cai muito depois.',
     tags: ['Gelo e terra', 'Cura pesada', 'Aguenta a caçada']
   }
 };
@@ -134,7 +200,14 @@ const item = o => {
        e o encaixe se repete. Sem isso o navegador reamostra e volta o borrão. */
     const dobro = typeof ICONES2X !== 'undefined' && ICONES2X.has(s)
       ? ` srcset="assets/icons/${s}.png 1x, assets/icons/${s}@2x.png 2x"` : '';
-    o.ico = `<img class="ii" src="assets/icons/${s}.png"${dobro} alt="">`;
+    /* decoding="sync": no decode assíncrono (o padrão) a <img> recém-montada
+       aparece um frame depois do resto da célula. A célula hoje é reaproveitada
+       (ver itemCell), então isso só pesa em item que entra na tela pela primeira
+       vez — que é justamente onde o pisca-pisca ainda apareceria. */
+    /* a classe do slot deixa a mochila e o equipamento darem a anel, colar e
+       bota o tamanho que eles têm de verdade — a mesma régua do chão
+       (CHAO_ESCALA em render2d.js). Em linha de texto ela não casa com nada. */
+    o.ico = `<img class="ii ii-${o.slot || 'x'}" decoding="sync" src="assets/icons/${s}.png"${dobro} alt="">`;
   }
   return (ITEMS[o.id] = o, o);
 };
@@ -278,6 +351,12 @@ item({ id: 'bug_shell', n: 'Carapaça de Besouro', ico: '🪲', stack: true, sel
 item({ id: 'wolf_paw', n: 'Pata de Lobo', ico: '🐾', stack: true, sell: 65 });
 item({ id: 'spider_silk', n: 'Seda de Aranha', ico: '🕸️', stack: true, sell: 95 });
 item({ id: 'bone', n: 'Osso', ico: '🦴', stack: true, sell: 7 });
+/* despojo de caça: o que a fauna passiva larga. Vale pouco de propósito — caçar
+   bicho manso é sustento e troco, não fonte de renda; quem paga bem é hunt. */
+item({ id: 'pelt', n: 'Pele de Caça', ico: '🟤', stack: true, sell: 14 });
+item({ id: 'antler', n: 'Galhada', ico: '🦌', stack: true, sell: 45 });
+item({ id: 'boar_tusk', n: 'Presa de Javali', ico: '🐗', stack: true, sell: 34 });
+item({ id: 'glow_gland', n: 'Glândula Luminosa', ico: '🟡', stack: true, sell: 20 });
 item({ id: 'skull', n: 'Crânio', ico: '💀', stack: true, sell: 34 });
 item({ id: 'orc_tooth', n: 'Dente de Orc', ico: '🦷', stack: true, sell: 58 });
 item({ id: 'rotten_flesh', n: 'Carne Podre', ico: '🥩', stack: true, sell: 11 });
@@ -668,12 +747,13 @@ function resistOf(def, el) {
 /* loot: [idDoItem, chance, min, max] — cada linha rola sozinha, então um monstro
    pode largar nenhum item, um, ou a lista inteira. min/max = quantidade (empilháveis).
 
-   spd: velocidade sai da NATUREZA do bicho, não do tier. O jogador nasce com 220
-   e passa de 250 no fim, então esta é a régua:
-     190-215  peso morto — besouro, verme, ciclope, esqueleto, carniçal
-     235-270  humanoide de perna — orc, anão, minotauro
-     285-345  caçador e coisa que voa — cobra, lobo, aranha, dragão, demônio
-   Quem está abaixo de 220 o jogador alcança e escapa; acima de 260, não.
+   spd: NÃO se declara aqui. Sai de VEL_BASE[classe] + tier×VEL_TIER, montado no
+   fim deste arquivo. A régua antiga dizia "velocidade sai da natureza, não do
+   tier" e ninguém a seguiu: o lobo de tier 1 tinha 345, o valor mais alto do
+   jogo, e o juggernaut de tier 11 tinha 235 — mais lento que um rato. Natureza
+   E força, as duas, e derivado em vez de escolhido à mão.
+   Quem precisar de exceção declara `spd` e o valor é respeitado; hoje ninguém
+   precisa, e uma exceção sem motivo escrito é a volta do problema.
 
    medo: fração da vida em que a criatura desiste e foge. Ausente = luta até
    morrer. Bicho burro (verme, besouro) não tem noção de perigo, morto-vivo não
@@ -693,83 +773,83 @@ function resistOf(def, el) {
    é o que separa "difícil" de "injusto". */
 const MONSTERS = {
   rat: {
-    n: 'Rato', hp: 20, exp: 5, atk: [1, 6], arm: 0, spd: 250, sz: .5, col: 0x8a7b6a, tier: 0, medo: .4,
+    n: 'Rato', hp: 20, exp: 5, atk: [1, 6], arm: 0, sz: .5, col: 0x8a7b6a, tier: 0, medo: .4,
     loot: [['gold', .8, 1, 10], ['rat_tail', .35, 1, 2], ['meat', .12], ['dagger', .04], ['leather_boots', .02]]
   },
   snake: {
-    n: 'Cobra', hp: 30, exp: 8, atk: [2, 9], arm: 2, spd: 290, sz: .45, col: 0x4f8f3a, tier: 0, medo: .3,
+    n: 'Cobra', hp: 30, exp: 8, atk: [2, 9], arm: 2, sz: .45, col: 0x4f8f3a, tier: 0, medo: .3,
     loot: [['gold', .7, 1, 14], ['snake_hide', .3], ['meat', .1], ['health_potion', .05]]
   },
   bug: {
-    n: 'Besouro Gigante', hp: 45, exp: 12, atk: [3, 12], arm: 4, spd: 195, sz: .55, col: 0x6b4f2a, tier: 0,
+    n: 'Besouro Gigante', hp: 45, exp: 12, atk: [3, 12], arm: 4, sz: .55, col: 0x6b4f2a, tier: 0,
     loot: [['gold', .8, 2, 20], ['bug_shell', .3], ['arrow', .12, 3, 8], ['leather_helmet', .05], ['health_potion', .05]]
   },
   wolf: {
-    n: 'Lobo', hp: 65, exp: 22, atk: [5, 18], arm: 3, spd: 345, sz: .7, col: 0x8f8f96, tier: 1, medo: .35,
+    n: 'Lobo', hp: 65, exp: 22, atk: [5, 18], arm: 3, sz: .7, col: 0x8f8f96, tier: 1, medo: .35,
     loot: [['gold', .85, 4, 30], ['wolf_paw', .25], ['meat', .35, 1, 2], ['bone', .1], ['leather_armor', .06], ['hand_axe', .05]]
   },
   spider: {
-    n: 'Aranha', hp: 55, exp: 20, atk: [4, 16], arm: 5, spd: 305, sz: .6, col: 0x2f2f3a, tier: 1,
+    n: 'Aranha', hp: 55, exp: 20, atk: [4, 16], arm: 5, sz: .6, col: 0x2f2f3a, tier: 1,
     hab: { tipo: 'lento', r: 3, lento: .3, dur: 5000, cd: 13000, col: 0xcfd6e0, grito: 'sssss' },
     loot: [['gold', .8, 3, 26], ['spider_silk', .18], ['arrow', .15, 2, 10], ['studded_helmet', .05], ['health_potion', .08]]
   },
   skeleton: {
-    n: 'Esqueleto', hp: 80, exp: 35, atk: [6, 22], arm: 6, spd: 215, sz: .8, col: 0xdad2bd, tier: 1,
+    n: 'Esqueleto', hp: 80, exp: 35, atk: [6, 22], arm: 6, sz: .8, col: 0xdad2bd, tier: 1,
     loot: [['gold', .9, 5, 38], ['bone', .5, 1, 3], ['skull', .12], ['bolt', .1, 3, 9],
     ['short_sword', .08], ['studded_armor', .06], ['wooden_shield', .07]]
   },
   orc: {
-    n: 'Orc', hp: 100, exp: 45, atk: [8, 26], arm: 7, spd: 250, sz: .85, col: 0x6f8f4a, tier: 1, medo: .15,
+    n: 'Orc', hp: 100, exp: 45, atk: [8, 26], arm: 7, sz: .85, col: 0x6f8f4a, tier: 1, medo: .15,
     loot: [['gold', .9, 8, 48], ['orc_tooth', .25], ['meat', .2], ['arrow', .12, 5, 15],
     ['axe', .06], ['studded_shield', .06], ['studded_legs', .07]]
   },
   orc_spearman: {
-    n: 'Orc Lanceiro', hp: 110, exp: 55, atk: [6, 18], arm: 7, spd: 245, sz: .85, col: 0x8aa05a, tier: 2, medo: .25,
+    n: 'Orc Lanceiro', hp: 110, exp: 55, atk: [6, 18], arm: 7, sz: .85, col: 0x8aa05a, tier: 2, medo: .25,
     ranged: { min: 10, max: 30, range: 5, col: 0xd2b48c, recua: true },
     loot: [['gold', .9, 10, 58], ['orc_tooth', .3], ['spear', .3, 1, 3], ['arrow', .25, 5, 20],
     ['short_bow', .07], ['studded_armor', .07]]
   },
   ghoul: {
-    n: 'Carniçal', hp: 140, exp: 85, atk: [10, 32], arm: 10, spd: 210, sz: .85, col: 0x7d8f6a, tier: 2,
+    n: 'Carniçal', hp: 140, exp: 85, atk: [10, 32], arm: 10, sz: .85, col: 0x7d8f6a, tier: 2,
     hab: { tipo: 'lento', r: 1, lento: .5, dur: 5000, cd: 14000, col: 0x8fbf6a, grito: 'Grrhh...' },
     loot: [['gold', .9, 12, 74], ['rotten_flesh', .35], ['skull', .15], ['white_pearl', .04],
     ['brass_helmet', .05], ['chain_armor', .06], ['strong_health_potion', .05]]
   },
   rotworm: {
-    n: 'Verme Podre', hp: 120, exp: 70, atk: [9, 28], arm: 12, spd: 190, sz: .7, col: 0xa06a4a, tier: 2,
+    n: 'Verme Podre', hp: 120, exp: 70, atk: [9, 28], arm: 12, sz: .7, col: 0xa06a4a, tier: 2,
     loot: [['gold', .9, 10, 62], ['worm_slime', .35], ['meat', .25], ['bone', .15], ['mace', .07], ['brass_legs', .05]]
   },
   dwarf_soldier: {
-    n: 'Anão Soldado', hp: 175, exp: 110, atk: [12, 38], arm: 14, spd: 235, sz: .7, col: 0xb08a4a, tier: 2, medo: .12,
+    n: 'Anão Soldado', hp: 175, exp: 110, atk: [12, 38], arm: 14, sz: .7, col: 0xb08a4a, tier: 2, medo: .12,
     loot: [['gold', .95, 15, 95], ['iron_ore', .25], ['small_ruby', .02], ['health_potion', .1],
     ['battle_axe', .05], ['brass_armor', .06], ['brass_shield', .07],
     ['gg_legs', .01], ['gg_boots', .01], ['gg_sword', .008], ['gg_axe', .008], ['gg_mace', .008]]
   },
   minotaur: {
-    n: 'Minotauro', hp: 200, exp: 130, atk: [14, 44], arm: 15, spd: 270, sz: 1.0, col: 0x8a5a3a, tier: 3,
+    n: 'Minotauro', hp: 200, exp: 130, atk: [14, 44], arm: 15, sz: 1.0, col: 0x8a5a3a, tier: 3,
     loot: [['gold', .95, 20, 115], ['minotaur_leather', .3], ['minotaur_horn', .08], ['ham', .2],
     ['sword', .07], ['plate_legs', .04], ['battle_shield', .05]]
   },
   minotaur_archer: {
-    n: 'Minotauro Arqueiro', hp: 190, exp: 145, atk: [8, 24], arm: 13, spd: 265, sz: 1.0, col: 0x9a6a2a, tier: 3, medo: .2,
+    n: 'Minotauro Arqueiro', hp: 190, exp: 145, atk: [8, 24], arm: 13, sz: 1.0, col: 0x9a6a2a, tier: 3, medo: .2,
     ranged: { min: 18, max: 52, range: 6, col: 0xe0c080, recua: true },
     loot: [['gold', .95, 22, 125], ['minotaur_leather', .3], ['arrow', .4, 10, 30], ['bolt', .15, 5, 15],
     ['bow', .07], ['crossbow', .03], ['strong_mana_potion', .06]]
   },
   cyclops: {
-    n: 'Ciclope', hp: 280, exp: 200, atk: [18, 56], arm: 18, spd: 200, sz: 1.25, col: 0x7a6a5a, tier: 3,
+    n: 'Ciclope', hp: 280, exp: 200, atk: [18, 56], arm: 18, sz: 1.25, col: 0x7a6a5a, tier: 3,
     hab: { tipo: 'area', r: 2, dano: [18, 44], cd: 11000, col: 0xc9a05a, grito: 'ESMAGA!' },
     loot: [['gold', .95, 30, 170], ['cyclops_toe', .25], ['bone', .3, 1, 3], ['ham', .25], ['might_ring', .02],
     ['plate_armor', .05], ['war_hammer', .03], ['steel_helmet', .05]]
   },
   giant_spider: {
-    n: 'Aranha Gigante', hp: 380, exp: 320, atk: [22, 68], arm: 20, spd: 310, sz: 1.15, col: 0x3a2f4a, tier: 4,
+    n: 'Aranha Gigante', hp: 380, exp: 320, atk: [22, 68], arm: 20, sz: 1.15, col: 0x3a2f4a, tier: 4,
     hab: { tipo: 'lento', r: 3, lento: .55, dur: 7000, dano: [10, 25], cd: 11000, col: 0xcfd6e0, grito: 'sssSSS' },
     loot: [['gold', .95, 40, 230], ['spider_silk', .4, 1, 2], ['black_pearl', .06], ['life_ring', .03],
     ['knight_legs', .03], ['tower_shield', .02], ['strong_health_potion', .12]]
   },
   demon_skeleton: {
-    n: 'Esqueleto Demoníaco', hp: 420, exp: 380, atk: [24, 72], arm: 24, spd: 240, sz: .95, col: 0xc45a2a, tier: 4,
+    n: 'Esqueleto Demoníaco', hp: 420, exp: 380, atk: [24, 72], arm: 24, sz: .95, col: 0xc45a2a, tier: 4,
     // já queimou: o fogo que derrete morto-vivo comum não move este
     res: { fire: .5 },
     hab: { tipo: 'cura', val: 90, cd: 15000, col: 0xc98bdd, grito: 'Vita reverto!' },
@@ -777,21 +857,21 @@ const MONSTERS = {
     ['serpent_sword', .05], ['knight_armor', .02], ['war_axe', .02]]
   },
   dragon: {
-    n: 'Dragão', hp: 700, exp: 700, atk: [26, 80], arm: 25, spd: 295, sz: 1.5, col: 0x2f8f4a, tier: 5,
+    n: 'Dragão', hp: 700, exp: 700, atk: [26, 80], arm: 25, sz: 1.5, col: 0x2f8f4a, tier: 5,
     ranged: { min: 40, max: 110, range: 6, col: 0xff8020, el: 'fire' },
     hab: { tipo: 'area', r: 3, dano: [35, 85], cd: 9000, el: 'fire', col: 0xff8020, grito: 'GRAAAWR!' },
     loot: [['gold', .98, 60, 330], ['dragon_scale', .35, 1, 2], ['dragon_ham', .3], ['small_diamond', .04], ['talon', .02],
     ['dragon_necklace', .06], ['knight_sword', .05], ['crown_helmet', .03], ['great_health_potion', .15]]
   },
   dragon_lord: {
-    n: 'Senhor Dragão', hp: 1300, exp: 1500, atk: [38, 120], arm: 30, spd: 315, sz: 1.7, col: 0xc02020, tier: 6,
+    n: 'Senhor Dragão', hp: 1300, exp: 1500, atk: [38, 120], arm: 30, sz: 1.7, col: 0xc02020, tier: 6,
     ranged: { min: 70, max: 180, range: 7, col: 0xff4020, el: 'fire' },
     hab: { tipo: 'area', r: 4, dano: [55, 130], cd: 8000, el: 'fire', col: 0xff4020, grito: 'GRAAAWR!' },
     loot: [['gold', .99, 120, 620], ['red_dragon_scale', .4, 1, 2], ['dragon_ham', .5, 1, 2], ['small_diamond', .1], ['gold_ingot', .08],
     ['dragon_scale_mail', .04], ['royal_helmet', .04], ['fire_sword', .04], ['great_mana_potion', .2]]
   },
   demon: {
-    n: 'Demônio', hp: 2400, exp: 3500, atk: [60, 190], arm: 38, spd: 345, sz: 1.9, col: 0x8a1030, tier: 7,
+    n: 'Demônio', hp: 2400, exp: 3500, atk: [60, 190], arm: 38, sz: 1.9, col: 0x8a1030, tier: 7,
     ranged: { min: 110, max: 260, range: 7, col: 0xff2060, el: 'death' },
     hab: { tipo: 'area', r: 4, dano: [80, 190], cd: 7000, el: 'death', col: 0xff2060, grito: 'MORRA!' },
     loot: [['gold', 1, 300, 1200], ['demon_dust', .5, 1, 3], ['demon_horn', .3], ['gold_ingot', .3], ['talon', .15],
@@ -875,20 +955,54 @@ function mob(id, d) {
   MONSTERS[id].sangue = SANGUE_CLASSE[meta[0]] || SANGUE_PADRAO;
 }
 
+/* FAUNA PASSIVA — o mundo precisa de paz.
+   `passivo` só faz uma coisa: a criatura não liga o encalço por ver você. Todo
+   o resto reaproveita o que já existia — apanhar acorda ela (em `dealDamage`) e
+   `medo: 1` faz fugir ao primeiro golpe, pelo mesmo ramo de fuga que o lobo
+   ferido usa. Encurralada ela vira e luta, o que também já era regra.
+   `noite` some com a criatura de dia (em `refreshSpawns`), usando o ciclo que
+   `ehNoite()` já mantinha sem ninguém consumir.
+   Estes bichos existem para o caminho entre hunts ter vida sem ter briga: eles
+   dão pouca experiência, largam sustento e troco, e não perseguem ninguém. */
+mob('hare', {
+  n: 'Lebre-parda', hp: 12, exp: 3, atk: [1, 3], arm: 0, sz: .35, col: 0xa08a6a, tier: 0,
+  passivo: true,
+  art: { shape: 'quadruped' }, meta: ['Mamífero', 'harmless'],
+  loot: [['gold', .3, 1, 5], ['meat', .5], ['pelt', .3], ['bone', .06]]
+});
+mob('deer', {
+  n: 'Cervo-cinzento', hp: 40, exp: 9, atk: [1, 5], arm: 1, sz: .95, col: 0x8c7355, tier: 0,
+  passivo: true,
+  art: { shape: 'quadruped' }, meta: ['Mamífero', 'harmless'],
+  loot: [['gold', .35, 1, 8], ['meat', .6, 1, 2], ['pelt', .35], ['antler', .12]]
+});
+mob('boar', {
+  n: 'Javali-de-cerdas', hp: 95, exp: 26, atk: [6, 18], arm: 4, sz: .8, col: 0x5d4a3a, tier: 1,
+  passivo: true,
+  art: { shape: 'quadruped' }, meta: ['Mamífero', 'trivial'],
+  loot: [['gold', .4, 2, 14], ['meat', .5, 1, 2], ['ham', .25], ['pelt', .4], ['boar_tusk', .15]]
+});
+mob('firefly', {
+  n: 'Vaga-lume', hp: 8, exp: 2, atk: [1, 2], arm: 0, sz: .3, col: 0xd8e07a, tier: 0,
+  passivo: true, noite: true, luz: 1.8,      // raio do halo em tiles, como o da tocha
+  art: { shape: 'mote' }, meta: ['Inseto', 'harmless'],
+  loot: [['gold', .25, 1, 4], ['glow_gland', .45], ['bug_shell', .1], ['health_potion', .02]]
+});
+
 /* mamíferos */
 mob('cave_rat', {
-  n: 'Rato de Caverna', hp: 28, exp: 9, atk: [2, 8], arm: 1, spd: 255, sz: .5, col: 0x59504a, tier: 0, medo: .4,
+  n: 'Rato de Caverna', hp: 28, exp: 9, atk: [2, 8], arm: 1, sz: .5, col: 0x59504a, tier: 0, medo: .4,
   art: { shape: 'quadruped' }, meta: ['Mamífero', 'harmless'],
   loot: [['gold', .8, 1, 14], ['rat_tail', .4, 1, 2], ['meat', .15], ['bone', .08], ['brown_mushroom', .05]]
 });
 mob('dire_wolf', {
-  n: 'Lobo Atroz', hp: 190, exp: 125, atk: [12, 36], arm: 9, spd: 335, sz: .95, col: 0x4a4a54, tier: 2, medo: .2,
+  n: 'Lobo Atroz', hp: 190, exp: 125, atk: [12, 36], arm: 9, sz: .95, col: 0x4a4a54, tier: 2, medo: .2,
   art: { shape: 'quadruped' }, meta: ['Mamífero', 'easy'],
   loot: [['gold', .9, 12, 70], ['wolf_paw', .35, 1, 2], ['meat', .35, 1, 2], ['bone', .2],
   ['health_potion', .1], ['leather_armor', .05]]
 });
 mob('winter_wolf', {
-  n: 'Lobo Gélido', hp: 260, exp: 195, atk: [16, 46], arm: 12, spd: 330, sz: 1.0, col: 0xb6d0e2, tier: 3, medo: .25,
+  n: 'Lobo Gélido', hp: 260, exp: 195, atk: [16, 46], arm: 12, sz: 1.0, col: 0xb6d0e2, tier: 3, medo: .25,
   hab: { tipo: 'lento', r: 2, lento: .4, dur: 5000, dano: [12, 30], cd: 12000, el: 'ice', col: 0x9fe4ff, grito: 'Auuuuu!' },
   art: { shape: 'quadruped' }, meta: ['Mamífero', 'medium'],
   loot: [['gold', .9, 18, 100], ['wolf_paw', .35, 1, 2], ['meat', .3], ['small_sapphire', .03],
@@ -897,7 +1011,7 @@ mob('winter_wolf', {
 
 /* orcs — a tribo ganha quem cura, quem enlouquece e quem manda */
 mob('orc_shaman', {
-  n: 'Orc Xamã', hp: 95, exp: 78, atk: [5, 16], arm: 5, spd: 245, sz: .8, col: 0x5f7f3a, tier: 2, medo: .3,
+  n: 'Orc Xamã', hp: 95, exp: 78, atk: [5, 16], arm: 5, sz: .8, col: 0x5f7f3a, tier: 2, medo: .3,
   ranged: { min: 16, max: 42, range: 5, col: 0x9f5aff, el: 'death', recua: true },
   hab: { tipo: 'cura', val: 60, cd: 14000, col: 0x8fdc8f, grito: 'Ug rak zul!' },
   art: { shape: 'biped', o: { skin: 0x7a9a4a, weapon: 0x6a4a7a, eyes: 0xc98bdd } }, meta: ['Humanoide', 'easy'],
@@ -905,12 +1019,12 @@ mob('orc_shaman', {
   ['elven_amulet', .03], ['studded_armor', .05]]
 });
 mob('orc_berserker', {
-  n: 'Orc Berserker', hp: 145, exp: 105, atk: [14, 42], arm: 5, spd: 268, sz: .9, col: 0x8a6a3a, tier: 2,
+  n: 'Orc Berserker', hp: 145, exp: 105, atk: [14, 42], arm: 5, sz: .9, col: 0x8a6a3a, tier: 2,
   art: { shape: 'biped', o: { skin: 0x9a8a4a, eyes: 0xff4444, weapon: 0x8a5a3a } }, meta: ['Humanoide', 'easy'],
   loot: [['gold', .9, 12, 70], ['orc_tooth', .35], ['meat', .25], ['battle_axe', .05], ['studded_legs', .07]]
 });
 mob('orc_warlord', {
-  n: 'Senhor da Guerra Orc', hp: 300, exp: 235, atk: [20, 58], arm: 16, spd: 258, sz: 1.05, col: 0x4f6f2a, tier: 3, medo: .12,
+  n: 'Senhor da Guerra Orc', hp: 300, exp: 235, atk: [20, 58], arm: 16, sz: 1.05, col: 0x4f6f2a, tier: 3, medo: .12,
   hab: { tipo: 'area', r: 2, dano: [20, 50], cd: 11000, col: 0xc9a05a, grito: 'PARA A GUERRA!' },
   art: { shape: 'biped', o: { skin: 0x6f8f3a, weapon: 0x9aa0a8, shield: 0x7a5a3a } }, meta: ['Humanoide', 'medium'],
   loot: [['gold', .95, 25, 140], ['orc_tooth', .4, 1, 2], ['iron_ore', .15], ['barbarian_axe', .05],
@@ -919,14 +1033,14 @@ mob('orc_warlord', {
 
 /* mortos-vivos */
 mob('skeleton_warrior', {
-  n: 'Esqueleto Guerreiro', hp: 165, exp: 108, atk: [12, 36], arm: 14, spd: 212, sz: .85, col: 0xc8c0a8, tier: 2,
+  n: 'Esqueleto Guerreiro', hp: 165, exp: 108, atk: [12, 36], arm: 14, sz: .85, col: 0xc8c0a8, tier: 2,
   art: { shape: 'biped', o: { thin: true, skin: 0xe8e2d0, eyes: 0xff4444, weapon: 0x9aa0a8, shield: 0x8a7a4a } },
   meta: ['Morto-vivo', 'easy'],
   loot: [['gold', .9, 12, 70], ['bone', .5, 1, 3], ['skull', .2], ['short_sword', .07],
   ['brass_shield', .05], ['chain_armor', .05]]
 });
 mob('skeleton_archer', {
-  n: 'Esqueleto Arqueiro', hp: 130, exp: 96, atk: [6, 18], arm: 9, spd: 216, sz: .8, col: 0xd8d0b8, tier: 2,
+  n: 'Esqueleto Arqueiro', hp: 130, exp: 96, atk: [6, 18], arm: 9, sz: .8, col: 0xd8d0b8, tier: 2,
   ranged: { min: 14, max: 40, range: 6, col: 0xd9c48a, recua: true },
   art: { shape: 'biped', o: { thin: true, skin: 0xe0dac6, eyes: 0xffee88, weapon: 0x8a6a3a } },
   meta: ['Morto-vivo', 'easy'],
@@ -934,14 +1048,14 @@ mob('skeleton_archer', {
   ['short_bow', .07], ['studded_armor', .05]]
 });
 mob('necrophage', {
-  n: 'Necrófago', hp: 230, exp: 165, atk: [14, 42], arm: 13, spd: 205, sz: .9, col: 0x5f7050, tier: 3,
+  n: 'Necrófago', hp: 230, exp: 165, atk: [14, 42], arm: 13, sz: .9, col: 0x5f7050, tier: 3,
   hab: { tipo: 'lento', r: 2, lento: .45, dur: 6000, dano: [10, 24], cd: 13000, col: 0x8fbf6a, grito: 'Hrrgghh...' },
   art: { shape: 'biped', o: { skin: 0x7a8a60, eyes: 0xffee88 } }, meta: ['Morto-vivo', 'medium'],
   loot: [['gold', .9, 16, 92], ['rotten_flesh', .4], ['skull', .2], ['black_pearl', .04],
   ['brass_armor', .05], ['strong_health_potion', .08]]
 });
 mob('lich', {
-  n: 'Lich', hp: 620, exp: 640, atk: [18, 50], arm: 22, spd: 228, sz: .95, col: 0x6a4a8a, tier: 5,
+  n: 'Lich', hp: 620, exp: 640, atk: [18, 50], arm: 22, sz: .95, col: 0x6a4a8a, tier: 5,
   ranged: { min: 55, max: 140, range: 7, col: 0x9f5aff, el: 'death', recua: true },
   hab: { tipo: 'cura', val: 130, cd: 14000, col: 0xc98bdd, grito: 'Mors non est finis!' },
   art: { shape: 'biped', o: { thin: true, skin: 0xd8d0c0, eyes: 0x9f5aff, weapon: 0x9f5aff } },
@@ -952,25 +1066,25 @@ mob('lich', {
 
 /* aracnídeos e insetos */
 mob('poison_spider', {
-  n: 'Aranha Venenosa', hp: 105, exp: 62, atk: [8, 26], arm: 8, spd: 300, sz: .7, col: 0x4a6a2a, tier: 2,
+  n: 'Aranha Venenosa', hp: 105, exp: 62, atk: [8, 26], arm: 8, sz: .7, col: 0x4a6a2a, tier: 2,
   hab: { tipo: 'lento', r: 2, lento: .35, dur: 6000, dano: [8, 20], cd: 12000, col: 0x8fd14a, grito: 'ssshh' },
   art: { shape: 'arachnid' }, meta: ['Aracnídeo', 'easy'],
   loot: [['gold', .8, 6, 44], ['spider_silk', .22], ['health_potion', .1], ['studded_helmet', .05], ['arrow', .15, 3, 12]]
 });
 mob('tarantula', {
-  n: 'Tarântula', hp: 240, exp: 178, atk: [16, 46], arm: 14, spd: 315, sz: .95, col: 0x6a4a2a, tier: 3,
+  n: 'Tarântula', hp: 240, exp: 178, atk: [16, 46], arm: 14, sz: .95, col: 0x6a4a2a, tier: 3,
   art: { shape: 'arachnid' }, meta: ['Aracnídeo', 'medium'],
   loot: [['gold', .9, 18, 105], ['spider_silk', .3], ['bug_shell', .2], ['white_pearl', .05],
   ['plate_legs', .03], ['strong_health_potion', .08]]
 });
 mob('fire_beetle', {
-  n: 'Besouro de Fogo', hp: 70, exp: 32, atk: [5, 18], arm: 8, spd: 200, sz: .6, col: 0xb0402a, tier: 1,
+  n: 'Besouro de Fogo', hp: 70, exp: 32, atk: [5, 18], arm: 8, sz: .6, col: 0xb0402a, tier: 1,
   hab: { tipo: 'area', r: 1, dano: [10, 26], cd: 12000, el: 'fire', col: 0xff7a20, grito: '*estala*' },
   art: { shape: 'arachnid' }, meta: ['Inseto', 'trivial'],
   loot: [['gold', .8, 3, 26], ['bug_shell', .35], ['meat', .1], ['health_potion', .06], ['rune_explosion', .02]]
 });
 mob('carrion_worm', {
-  n: 'Verme Carniceiro', hp: 300, exp: 195, atk: [16, 48], arm: 18, spd: 185, sz: .95, col: 0x8a4a3a, tier: 3,
+  n: 'Verme Carniceiro', hp: 300, exp: 195, atk: [16, 48], arm: 18, sz: .95, col: 0x8a4a3a, tier: 3,
   art: { shape: 'worm' }, meta: ['Inseto', 'medium'],
   loot: [['gold', .9, 20, 110], ['worm_slime', .4, 1, 2], ['rotten_flesh', .3], ['bone', .2],
   ['ham', .2], ['war_hammer', .02]]
@@ -978,12 +1092,12 @@ mob('carrion_worm', {
 
 /* répteis */
 mob('cobra', {
-  n: 'Naja', hp: 60, exp: 27, atk: [4, 16], arm: 4, spd: 300, sz: .55, col: 0x8a7a2a, tier: 1, medo: .3,
+  n: 'Naja', hp: 60, exp: 27, atk: [4, 16], arm: 4, sz: .55, col: 0x8a7a2a, tier: 1, medo: .3,
   art: { shape: 'serpent' }, meta: ['Réptil', 'trivial'],
   loot: [['gold', .75, 3, 24], ['snake_hide', .35], ['meat', .12], ['health_potion', .07], ['brown_mushroom', .06]]
 });
 mob('serpent_spawn', {
-  n: 'Serpe Anciã', hp: 780, exp: 840, atk: [30, 88], arm: 26, spd: 300, sz: 1.5, col: 0x2a6a5a, tier: 5,
+  n: 'Serpe Anciã', hp: 780, exp: 840, atk: [30, 88], arm: 26, sz: 1.5, col: 0x2a6a5a, tier: 5,
   ranged: { min: 45, max: 120, range: 6, col: 0x7ac24a, el: 'earth' },
   hab: { tipo: 'area', r: 3, dano: [38, 92], cd: 9500, el: 'earth', col: 0x7ac24a, grito: 'SSSHAAAA!' },
   art: { shape: 'serpent' }, meta: ['Réptil', 'hard'],
@@ -993,14 +1107,14 @@ mob('serpent_spawn', {
 
 /* anões */
 mob('dwarf_guard', {
-  n: 'Anão Guardião', hp: 300, exp: 205, atk: [16, 50], arm: 22, spd: 230, sz: .75, col: 0x9a7a3a, tier: 3, medo: .1,
+  n: 'Anão Guardião', hp: 300, exp: 205, atk: [16, 50], arm: 22, sz: .75, col: 0x9a7a3a, tier: 3, medo: .1,
   art: { shape: 'biped', o: { skin: 0xd8b98a, weapon: 0x9aa0a8, shield: 0xb08a4a } }, meta: ['Humanoide', 'medium'],
   loot: [['gold', .95, 22, 130], ['iron_ore', .35], ['small_ruby', .04], ['dwarven_shield', .04],
   ['plate_armor', .04], ['health_potion', .12],
   ['gg_helmet', .01], ['gg_armor', .01], ['gg_shield', .012], ['gg_halberd', .008], ['gg_greatsword', .008]]
 });
 mob('dwarf_geomancer', {
-  n: 'Anão Geomante', hp: 210, exp: 190, atk: [8, 24], arm: 14, spd: 238, sz: .7, col: 0x7a6a9a, tier: 3, medo: .25,
+  n: 'Anão Geomante', hp: 210, exp: 190, atk: [8, 24], arm: 14, sz: .7, col: 0x7a6a9a, tier: 3, medo: .25,
   ranged: { min: 30, max: 80, range: 6, col: 0x8ac24a, el: 'earth', recua: true },
   art: { shape: 'biped', o: { skin: 0xd8b98a, weapon: 0x8ac24a, eyes: 0x8ac24a } }, meta: ['Humanoide', 'medium'],
   loot: [['gold', .95, 20, 120], ['iron_ore', .3], ['small_sapphire', .04], ['dwarven_ring', .03],
@@ -1010,7 +1124,7 @@ mob('dwarf_geomancer', {
 
 /* minotauros e gigantes */
 mob('minotaur_mage', {
-  n: 'Minotauro Mago', hp: 290, exp: 265, atk: [10, 30], arm: 14, spd: 265, sz: 1.0, col: 0x8a4a6a, tier: 4, medo: .25,
+  n: 'Minotauro Mago', hp: 290, exp: 265, atk: [10, 30], arm: 14, sz: 1.0, col: 0x8a4a6a, tier: 4, medo: .25,
   ranged: { min: 35, max: 95, range: 6, col: 0xff7a20, el: 'fire', recua: true },
   hab: { tipo: 'area', r: 2, dano: [28, 66], cd: 11000, el: 'fire', col: 0xff7a20, grito: 'Mor gah!' },
   art: { shape: 'biped', o: { horns: true, skin: 0x9a5a6a, weapon: 0xff7a20, eyes: 0xff7a20 } },
@@ -1019,14 +1133,14 @@ mob('minotaur_mage', {
   ['wand_of_dragonbreath', .03], ['elven_amulet', .05]]
 });
 mob('minotaur_guard', {
-  n: 'Minotauro Guarda', hp: 420, exp: 335, atk: [22, 66], arm: 24, spd: 262, sz: 1.15, col: 0x6a3a2a, tier: 4,
+  n: 'Minotauro Guarda', hp: 420, exp: 335, atk: [22, 66], arm: 24, sz: 1.15, col: 0x6a3a2a, tier: 4,
   art: { shape: 'biped', o: { horns: true, skin: 0x8a4a34, weapon: 0x9aa0a8, shield: 0x7a6a4a } },
   meta: ['Humanoide', 'hard'],
   loot: [['gold', .95, 32, 180], ['minotaur_leather', .35, 1, 2], ['minotaur_horn', .12], ['ham', .3],
   ['spike_sword', .04], ['knight_legs', .03], ['tower_shield', .02]]
 });
 mob('cyclops_smith', {
-  n: 'Ciclope Ferreiro', hp: 420, exp: 335, atk: [22, 66], arm: 26, spd: 198, sz: 1.3, col: 0x5a6a7a, tier: 4,
+  n: 'Ciclope Ferreiro', hp: 420, exp: 335, atk: [22, 66], arm: 26, sz: 1.3, col: 0x5a6a7a, tier: 4,
   hab: { tipo: 'area', r: 2, dano: [26, 60], cd: 11000, col: 0xffa53a, grito: 'MARTELA!' },
   art: { shape: 'biped', o: { skin: 0x7a7a6a, eyes: 0xffcc44, weapon: 0x9aa0a8 } }, meta: ['Gigante', 'hard'],
   loot: [['gold', .95, 40, 220], ['cyclops_toe', .3], ['iron_ore', .3], ['gold_ingot', .03],
@@ -1035,14 +1149,14 @@ mob('cyclops_smith', {
 
 /* dragões e demônios */
 mob('dragon_hatchling', {
-  n: 'Filhote de Dragão', hp: 320, exp: 265, atk: [16, 48], arm: 16, spd: 290, sz: .95, col: 0x4aa05a, tier: 3, medo: .2,
+  n: 'Filhote de Dragão', hp: 320, exp: 265, atk: [16, 48], arm: 16, sz: .95, col: 0x4aa05a, tier: 3, medo: .2,
   ranged: { min: 22, max: 60, range: 5, col: 0xff8020, el: 'fire' },
   art: { shape: 'dragon' }, meta: ['Dragão', 'medium'],
   loot: [['gold', .95, 25, 140], ['dragon_scale', .2], ['dragon_ham', .2], ['meat', .2],
   ['health_potion', .12], ['serpent_sword', .03]]
 });
 mob('frost_dragon', {
-  n: 'Dragão Gélido', hp: 1500, exp: 1750, atk: [40, 126], arm: 32, spd: 310, sz: 1.7, col: 0x7ac4e0, tier: 6,
+  n: 'Dragão Gélido', hp: 1500, exp: 1750, atk: [40, 126], arm: 32, sz: 1.7, col: 0x7ac4e0, tier: 6,
   ranged: { min: 75, max: 190, range: 7, col: 0x9fe4ff, el: 'ice' },
   hab: { tipo: 'area', r: 4, dano: [58, 138], cd: 8000, el: 'ice', col: 0x9fe4ff, grito: 'GRAAAWR!' },
   art: { shape: 'dragon' }, meta: ['Dragão', 'challenging'],
@@ -1050,7 +1164,7 @@ mob('frost_dragon', {
   ['hailstorm_rod', .04], ['tower_shield', .05], ['great_mana_potion', .2]]
 });
 mob('fire_devil', {
-  n: 'Diabrete', hp: 380, exp: 335, atk: [20, 60], arm: 20, spd: 320, sz: .85, col: 0xc04a2a, tier: 4,
+  n: 'Diabrete', hp: 380, exp: 335, atk: [20, 60], arm: 20, sz: .85, col: 0xc04a2a, tier: 4,
   ranged: { min: 30, max: 85, range: 5, col: 0xff7a20, el: 'fire' },
   art: { shape: 'biped', o: { horns: true, wings: true, skin: 0xc0502a, eyes: 0xffdd00, hornCol: 0x2a0a12, weapon: 0xff6a20 } },
   meta: ['Demônio', 'hard'],
@@ -1070,7 +1184,7 @@ const BOSS_PLATE = '#ffb03d';
 const boss = (id, d) => mob(id, Object.assign({ boss: true, plateCol: BOSS_PLATE }, d));
 
 boss('alpha_wolf', {
-  n: 'Presa-Branca, o Alfa', hp: 900, exp: 1400, atk: [22, 62], arm: 14, spd: 340, sz: 1.3, col: 0xe8e4dc, tier: 3,
+  n: 'Presa-Branca, o Alfa', hp: 900, exp: 1400, atk: [22, 62], arm: 14, sz: 1.3, col: 0xe8e4dc, tier: 3,
   hab: { tipo: 'area', r: 2, dano: [24, 58], cd: 10000, col: 0xdfe8f0, grito: 'AUUUUUU!' },
   art: { shape: 'quadruped' }, meta: ['Mamífero', 'boss'],
   /* o Alfa é a porta do Caçador Ancestral: caça de floresta larga equipamento de
@@ -1081,7 +1195,7 @@ boss('alpha_wolf', {
   ['ah_shield', .14], ['ah_amulet', .15], ['ah_ring', .15], ['ah_bow', .12]]
 });
 boss('orc_warchief', {
-  n: 'Gruk, Chefe de Guerra', hp: 1400, exp: 2200, atk: [30, 84], arm: 22, spd: 260, sz: 1.35, col: 0x3f5f1a, tier: 4,
+  n: 'Gruk, Chefe de Guerra', hp: 1400, exp: 2200, atk: [30, 84], arm: 22, sz: 1.35, col: 0x3f5f1a, tier: 4,
   hab: { tipo: 'area', r: 3, dano: [34, 78], cd: 9000, col: 0xc9a05a, grito: 'MATEM TODOS!' },
   art: { shape: 'biped', o: { skin: 0x5f7f2a, eyes: 0xff4444, weapon: 0x9aa0a8, shield: 0x7a5a3a } },
   meta: ['Humanoide', 'boss'],
@@ -1091,7 +1205,7 @@ boss('orc_warchief', {
   ['fs_shield', .12], ['fs_amulet', .13], ['fs_ring', .13], ['fs_bow', .10]]
 });
 boss('bone_lord', {
-  n: 'Osgar, Senhor dos Ossos', hp: 1800, exp: 2900, atk: [32, 92], arm: 26, spd: 210, sz: 1.3, col: 0xb8ae90, tier: 5,
+  n: 'Osgar, Senhor dos Ossos', hp: 1800, exp: 2900, atk: [32, 92], arm: 26, sz: 1.3, col: 0xb8ae90, tier: 5,
   ranged: { min: 50, max: 130, range: 7, col: 0x9f5aff, el: 'death' },
   hab: { tipo: 'cura', val: 260, cd: 13000, col: 0xc98bdd, grito: 'Ossos não morrem!' },
   art: { shape: 'biped', o: { thin: true, skin: 0xe8e2d0, eyes: 0x9f5aff, weapon: 0x9f5aff } },
@@ -1104,7 +1218,7 @@ boss('bone_lord', {
   ['ns_shield', .12], ['ns_amulet', .13], ['ns_ring', .13], ['ns_sword', .10]]
 });
 boss('hive_queen', {
-  n: 'Rainha do Enxame', hp: 1100, exp: 1700, atk: [26, 70], arm: 24, spd: 240, sz: 1.45, col: 0x7a6a1a, tier: 4,
+  n: 'Rainha do Enxame', hp: 1100, exp: 1700, atk: [26, 70], arm: 24, sz: 1.45, col: 0x7a6a1a, tier: 4,
   hab: { tipo: 'lento', r: 3, lento: .5, dur: 7000, dano: [20, 48], cd: 10000, col: 0x8fd14a, grito: 'kkkrrRRK!' },
   art: { shape: 'arachnid' }, meta: ['Inseto', 'boss'],
   loot: [['gold', 1, 300, 800], ['bug_shell', 1, 3, 6], ['spider_silk', .7, 1, 3], ['white_pearl', .4, 1, 2],
@@ -1113,7 +1227,7 @@ boss('hive_queen', {
   ['ai_tome', .14], ['ai_amulet', .15], ['ai_ring', .15], ['ai_staff', .12]]
 });
 boss('dwarf_king', {
-  n: 'Durnak, Rei sob a Pedra', hp: 2200, exp: 3400, atk: [36, 100], arm: 34, spd: 235, sz: 1.1, col: 0xc9a13a, tier: 5,
+  n: 'Durnak, Rei sob a Pedra', hp: 2200, exp: 3400, atk: [36, 100], arm: 34, sz: 1.1, col: 0xc9a13a, tier: 5,
   hab: { tipo: 'area', r: 3, dano: [40, 92], cd: 9000, col: 0xffa53a, grito: 'PELA FORJA!' },
   art: { shape: 'biped', o: { skin: 0xd8b98a, eyes: 0xffcc44, weapon: 0xffd070, shield: 0xc9a13a } },
   meta: ['Humanoide', 'boss'],
@@ -1127,7 +1241,7 @@ boss('dwarf_king', {
   ['gg_halberd', .06], ['gg_maul', .06], ['gg_greatsword', .06], ['gg_greataxe', .06]]
 });
 boss('minotaur_king', {
-  n: 'Amaruk, Rei Minotauro', hp: 2600, exp: 4200, atk: [42, 116], arm: 32, spd: 272, sz: 1.6, col: 0x7a2a1a, tier: 5,
+  n: 'Amaruk, Rei Minotauro', hp: 2600, exp: 4200, atk: [42, 116], arm: 32, sz: 1.6, col: 0x7a2a1a, tier: 5,
   hab: { tipo: 'area', r: 3, dano: [46, 106], cd: 8500, col: 0xff8a3a, grito: 'AJOELHE-SE!' },
   art: { shape: 'biped', o: { horns: true, skin: 0x9a3a24, eyes: 0xff4444, weapon: 0xffd070, hornCol: 0x2a1a12 } },
   meta: ['Humanoide', 'boss'],
@@ -1135,21 +1249,21 @@ boss('minotaur_king', {
   ['giant_sword', .12], ['warrior_helmet', .15], ['knight_armor', .12], ['great_health_potion', .6, 1, 3]]
 });
 boss('cyclops_king', {
-  n: 'Brontes, o Ogro-Rei', hp: 2000, exp: 3000, atk: [40, 110], arm: 30, spd: 205, sz: 1.75, col: 0x6a5a48, tier: 5,
+  n: 'Brontes, o Ogro-Rei', hp: 2000, exp: 3000, atk: [40, 110], arm: 30, sz: 1.75, col: 0x6a5a48, tier: 5,
   hab: { tipo: 'area', r: 3, dano: [44, 100], cd: 9000, col: 0xc9a05a, grito: 'ESMAGA TUDO!' },
   art: { shape: 'biped', o: { skin: 0x8a7a64, eyes: 0xffcc44, weapon: 0x6a5a4a } }, meta: ['Gigante', 'boss'],
   loot: [['gold', 1, 550, 1400], ['cyclops_toe', 1, 2, 5], ['bone', .8, 3, 7], ['gold_ingot', .25], ['guardian_halberd', .18],
   ['thunder_hammer', .08], ['tower_shield', .18], ['royal_helmet', .12], ['great_health_potion', .5, 1, 2]]
 });
 boss('broodmother', {
-  n: 'Mãe das Ninhadas', hp: 3200, exp: 5200, atk: [48, 130], arm: 30, spd: 315, sz: 1.75, col: 0x2a1a34, tier: 6,
+  n: 'Mãe das Ninhadas', hp: 3200, exp: 5200, atk: [48, 130], arm: 30, sz: 1.75, col: 0x2a1a34, tier: 6,
   hab: { tipo: 'lento', r: 4, lento: .6, dur: 8000, dano: [40, 96], cd: 9000, col: 0xcfd6e0, grito: 'SSSSSSS!' },
   art: { shape: 'arachnid' }, meta: ['Aracnídeo', 'boss'],
   loot: [['gold', 1, 800, 2000], ['spider_silk', 1, 4, 8], ['black_pearl', .8, 2, 4], ['talon', .25],
   ['vampire_shield', .1], ['soft_boots', .1], ['life_ring', .3], ['great_health_potion', .7, 1, 3]]
 });
 boss('dragon_matriarch', {
-  n: 'Escamas-de-Fogo, a Matriarca', hp: 4200, exp: 7000, atk: [55, 150], arm: 34, spd: 300, sz: 1.9, col: 0xd8721a, tier: 6,
+  n: 'Escamas-de-Fogo, a Matriarca', hp: 4200, exp: 7000, atk: [55, 150], arm: 34, sz: 1.9, col: 0xd8721a, tier: 6,
   ranged: { min: 90, max: 220, range: 7, col: 0xff6a10, el: 'fire' },
   hab: { tipo: 'area', r: 4, dano: [66, 158], cd: 8000, el: 'fire', col: 0xff6a10, grito: 'GRAAAAAWR!' },
   art: { shape: 'dragon' }, meta: ['Dragão', 'boss'],
@@ -1157,7 +1271,7 @@ boss('dragon_matriarch', {
   ['dragon_scale_mail', .12], ['fire_sword', .15], ['dragon_necklace', .35], ['great_health_potion', .8, 2, 4]]
 });
 boss('demon_lord', {
-  n: 'Zathrax, Senhor do Fosso', hp: 8000, exp: 15000, atk: [80, 240], arm: 44, spd: 340, sz: 2.1, col: 0x5a0820, tier: 7,
+  n: 'Zathrax, Senhor do Fosso', hp: 8000, exp: 15000, atk: [80, 240], arm: 44, sz: 2.1, col: 0x5a0820, tier: 7,
   ranged: { min: 140, max: 320, range: 8, col: 0xff2060, el: 'death' },
   hab: { tipo: 'area', r: 5, dano: [100, 240], cd: 6500, el: 'death', col: 0xff2060, grito: 'AJOELHE-SE OU MORRA!' },
   art: { shape: 'biped', o: { horns: true, wings: true, skin: 0x7a0a24, eyes: 0xffdd00, hornCol: 0x1a050a, weapon: 0xff2060 } },
@@ -1194,20 +1308,20 @@ const elemental = (id, el, oposto, d) => {
 };
 
 elemental('fire_elemental', 'fire', 'ice', {
-  n: 'Elemental de Fogo', hp: 2100, exp: 2900, atk: [66, 190], arm: 30, spd: 300, col: 0xff6a10, tier: 7,
+  n: 'Elemental de Fogo', hp: 2100, exp: 2900, atk: [66, 190], arm: 30, col: 0xff6a10, tier: 7,
   ranged: { min: 80, max: 200, range: 6, col: 0xff8020, el: 'fire' },
   hab: { tipo: 'area', r: 3, dano: [70, 170], cd: 8000, el: 'fire', col: 0xff8020, grito: 'FSSSHHH' },
   loot: [['gold', .95, 300, 900], ['ember_core', .5], ['red_dragon_scale', .12], ['small_ruby', .2],
   ['great_health_potion', .5, 1, 2], ['fire_sword', .04], ['sa_boots', .03], ['void_wand', .05]]
 });
 elemental('ice_elemental', 'ice', 'fire', {
-  n: 'Elemental de Gelo', hp: 3200, exp: 4600, atk: [92, 250], arm: 38, spd: 275, col: 0x9fe4ff, tier: 8,
+  n: 'Elemental de Gelo', hp: 3200, exp: 4600, atk: [92, 250], arm: 38, col: 0x9fe4ff, tier: 8,
   hab: { tipo: 'lento', r: 3, lento: .55, dur: 7000, dano: [70, 180], cd: 9000, el: 'ice', col: 0x9fe4ff, grito: 'krrrrk' },
   loot: [['gold', .95, 450, 1300], ['frozen_core', .5], ['small_sapphire', .25], ['white_pearl', .3],
   ['supreme_health_potion', .4, 1, 2], ['sa_helmet', .03], ['sa_ring', .04], ['glacier_rod', .06]]
 });
 elemental('storm_elemental', 'energy', 'earth', {
-  n: 'Elemental de Tempestade', hp: 5600, exp: 13500, atk: [150, 400], arm: 52, spd: 330, col: 0x7fb8ff, tier: 9, diff: 'nightmare',
+  n: 'Elemental de Tempestade', hp: 5600, exp: 13500, atk: [150, 400], arm: 52, col: 0x7fb8ff, tier: 9, diff: 'nightmare',
   ranged: { min: 170, max: 420, range: 7, col: 0x7fb8ff, el: 'energy' },
   hab: { tipo: 'area', r: 4, dano: [160, 380], cd: 7000, el: 'energy', col: 0x7fb8ff, grito: 'KRAKKKK' },
   loot: [['gold', .95, 1200, 3200], ['storm_core', .5], ['void_shard', .12], ['small_diamond', .3],
@@ -1216,14 +1330,14 @@ elemental('storm_elemental', 'energy', 'earth', {
 
 /* ---- a forja infernal (Abismo, nível 100): o degrau logo acima do demônio -- */
 mob('hellhound', {
-  n: 'Cão do Inferno', hp: 2800, exp: 3400, atk: [72, 210], arm: 36, spd: 335, sz: 1.2, col: 0x8a2a10, tier: 7,
+  n: 'Cão do Inferno', hp: 2800, exp: 3400, atk: [72, 210], arm: 36, sz: 1.2, col: 0x8a2a10, tier: 7,
   ranged: { min: 70, max: 175, range: 5, col: 0xff6a10, el: 'fire' },
   art: { shape: 'quadruped' }, meta: ['Demônio', 'hard'],
   loot: [['gold', .95, 320, 950], ['ember_core', .3], ['demon_dust', .25], ['meat', .4, 1, 3],
   ['great_health_potion', .5, 1, 2], ['talon', .06]]
 });
 mob('hellfire_fighter', {
-  n: 'Lutador do Fogo Infernal', hp: 2300, exp: 3000, atk: [58, 165], arm: 30, spd: 290, sz: 1.15, col: 0xd0421a, tier: 7, medo: .1,
+  n: 'Lutador do Fogo Infernal', hp: 2300, exp: 3000, atk: [58, 165], arm: 30, sz: 1.15, col: 0xd0421a, tier: 7, medo: .1,
   ranged: { min: 90, max: 230, range: 6, col: 0xff8020, el: 'fire', recua: true },
   hab: { tipo: 'area', r: 2, dano: [66, 155], cd: 9000, el: 'fire', col: 0xff8020, grito: 'QUEIME!' },
   art: { shape: 'biped', o: { horns: true, skin: 0xc0381a, eyes: 0xffdd00, weapon: 0xff6a10, hornCol: 0x2a0a08 } },
@@ -1232,7 +1346,7 @@ mob('hellfire_fighter', {
   ['great_mana_potion', .5, 1, 3], ['sa_rod', .02]]
 });
 mob('destroyer', {
-  n: 'Destruidor', hp: 3400, exp: 4200, atk: [95, 265], arm: 48, spd: 260, sz: 1.45, col: 0x5a3a2a, tier: 8,
+  n: 'Destruidor', hp: 3400, exp: 4200, atk: [95, 265], arm: 48, sz: 1.45, col: 0x5a3a2a, tier: 8,
   hab: { tipo: 'area', r: 2, dano: [80, 200], cd: 8500, col: 0xc9a05a, grito: 'DESTRUIR!' },
   art: { shape: 'biped', o: { horns: true, skin: 0x6a4030, eyes: 0xff4444, weapon: 0x8a8a92, hornCol: 0x1a1008 } },
   meta: ['Demônio', 'challenging'],
@@ -1242,14 +1356,14 @@ mob('destroyer', {
 
 /* ---- a cripta gélida (Fenda, nível 130) ----------------------------------- */
 mob('frost_giant', {
-  n: 'Gigante do Gelo', hp: 3800, exp: 5400, atk: [115, 300], arm: 54, spd: 245, sz: 1.7, col: 0xa8c8dd, tier: 8, medo: .1,
+  n: 'Gigante do Gelo', hp: 3800, exp: 5400, atk: [115, 300], arm: 54, sz: 1.7, col: 0xa8c8dd, tier: 8, medo: .1,
   hab: { tipo: 'lento', r: 3, lento: .5, dur: 6000, dano: [90, 220], cd: 9500, el: 'ice', col: 0x9fe4ff, grito: 'CONGELE!' },
   art: { shape: 'biped', o: { skin: 0xb8d4e8, eyes: 0x5aa9ff, weapon: 0x8a8a92 } }, meta: ['Gigante', 'challenging'],
   loot: [['gold', .95, 500, 1500], ['frozen_core', .35], ['bone', .6, 2, 5], ['small_sapphire', .2],
   ['supreme_health_potion', .45, 1, 2], ['sa_maul', .02], ['sa_legs', .03], ['glacier_rod', .05]]
 });
 mob('undead_dragon', {
-  n: 'Dragão Morto-Vivo', hp: 4600, exp: 7200, atk: [125, 335], arm: 50, spd: 285, sz: 1.85, col: 0x6a6a5a, tier: 9,
+  n: 'Dragão Morto-Vivo', hp: 4600, exp: 7200, atk: [125, 335], arm: 50, sz: 1.85, col: 0x6a6a5a, tier: 9,
   ranged: { min: 130, max: 330, range: 7, col: 0x9f5aff, el: 'death' },
   hab: { tipo: 'area', r: 4, dano: [120, 290], cd: 8000, el: 'death', col: 0x9f5aff, grito: 'GRRRAAAAH!' },
   art: { shape: 'dragon' }, meta: ['Morto-vivo', 'challenging'],
@@ -1259,7 +1373,7 @@ mob('undead_dragon', {
 
 /* ---- a necrópole (Fenda, nível 160) --------------------------------------- */
 mob('banshee', {
-  n: 'Banshee', hp: 3000, exp: 5000, atk: [95, 250], arm: 34, spd: 320, sz: 1.15, col: 0xc8b8e8, tier: 8, medo: .2,
+  n: 'Banshee', hp: 3000, exp: 5000, atk: [95, 250], arm: 34, sz: 1.15, col: 0xc8b8e8, tier: 8, medo: .2,
   ranged: { min: 120, max: 300, range: 7, col: 0x9f5aff, el: 'death', recua: true },
   hab: { tipo: 'lento', r: 4, lento: .45, dur: 6000, dano: [80, 190], cd: 10000, el: 'death', col: 0xc8b8e8, grito: 'IIIIIIIH!' },
   art: { shape: 'biped', o: { thin: true, skin: 0xd8c8f0, eyes: 0x9f5aff } }, meta: ['Morto-vivo', 'challenging'],
@@ -1267,7 +1381,7 @@ mob('banshee', {
   ['supreme_mana_potion', .5, 1, 2], ['sa_amulet', .03], ['spectral_bow', .04]]
 });
 mob('vampire_lord', {
-  n: 'Lorde Vampiro', hp: 3600, exp: 5800, atk: [110, 290], arm: 44, spd: 330, sz: 1.25, col: 0x4a1020, tier: 8,
+  n: 'Lorde Vampiro', hp: 3600, exp: 5800, atk: [110, 290], arm: 44, sz: 1.25, col: 0x4a1020, tier: 8,
   hab: { tipo: 'cura', val: 900, cd: 13000, col: 0xff5555, grito: 'Seu sangue é meu.' },
   art: { shape: 'biped', o: { thin: true, skin: 0xd8c0c0, eyes: 0xff2020, weapon: 0x8a1020 } },
   meta: ['Morto-vivo', 'challenging'],
@@ -1275,7 +1389,7 @@ mob('vampire_lord', {
   ['supreme_health_potion', .5, 1, 2], ['sa_ring', .03], ['sa_bow', .02]]
 });
 mob('soul_eater', {
-  n: 'Devorador de Almas', hp: 4400, exp: 7600, atk: [135, 350], arm: 46, spd: 295, sz: 1.5, col: 0x3a1050, tier: 9,
+  n: 'Devorador de Almas', hp: 4400, exp: 7600, atk: [135, 350], arm: 46, sz: 1.5, col: 0x3a1050, tier: 9,
   ranged: { min: 140, max: 340, range: 6, col: 0xc78bff, el: 'death' },
   hab: { tipo: 'mana', val: 220, r: 5, cd: 11000, col: 0xc78bff, grito: 'Dê-me sua mente.' },
   art: { shape: 'biped', o: { thin: true, skin: 0x5a2070, eyes: 0xc78bff } }, meta: ['Aberração', 'challenging'],
@@ -1285,14 +1399,14 @@ mob('soul_eater', {
 
 /* ---- a fenda do vazio (Coração, nível 200) -------------------------------- */
 mob('void_crawler', {
-  n: 'Rastejante do Vazio', hp: 6000, exp: 14000, atk: [160, 420], arm: 62, spd: 320, sz: 1.6, col: 0x2a0a40, tier: 9,
+  n: 'Rastejante do Vazio', hp: 6000, exp: 14000, atk: [160, 420], arm: 62, sz: 1.6, col: 0x2a0a40, tier: 9,
   hab: { tipo: 'lento', r: 3, lento: .6, dur: 7000, dano: [140, 330], cd: 8500, el: 'death', col: 0xc78bff, grito: 'krrKRRK' },
   art: { shape: 'arachnid' }, meta: ['Aberração', 'nightmare'],
   loot: [['gold', .95, 1100, 3000], ['void_shard', .35], ['spider_silk', .6, 2, 5], ['black_pearl', .4, 1, 3],
   ['ultimate_health_potion', .4, 1, 2], ['vz_boots', .02], ['vz_amulet', .02]]
 });
 mob('mind_devourer', {
-  n: 'Devorador de Mentes', hp: 5200, exp: 13000, atk: [145, 385], arm: 55, spd: 300, sz: 1.4, col: 0x50207a, tier: 9,
+  n: 'Devorador de Mentes', hp: 5200, exp: 13000, atk: [145, 385], arm: 55, sz: 1.4, col: 0x50207a, tier: 9,
   ranged: { min: 180, max: 440, range: 7, col: 0xc78bff, el: 'energy', recua: true },
   hab: { tipo: 'mana', val: 400, r: 6, cd: 9000, col: 0xc78bff, grito: 'Sua mente é ruído.' },
   art: { shape: 'biped', o: { thin: true, skin: 0x6a30a0, eyes: 0xffffff } }, meta: ['Aberração', 'nightmare'],
@@ -1300,7 +1414,7 @@ mob('mind_devourer', {
   ['ultimate_mana_potion', .5, 1, 3], ['vz_crown', .015], ['vz_staff', .015]]
 });
 mob('hollow_one', {
-  n: 'O Oco', hp: 6800, exp: 16000, atk: [180, 460], arm: 70, spd: 270, sz: 1.75, col: 0x141018, tier: 10,
+  n: 'O Oco', hp: 6800, exp: 16000, atk: [180, 460], arm: 70, sz: 1.75, col: 0x141018, tier: 10,
   hab: { tipo: 'area', r: 3, dano: [170, 400], cd: 8000, el: 'death', col: 0x9f5aff, grito: '...' },
   art: { shape: 'biped', o: { skin: 0x201828, eyes: 0xff2060, weapon: 0x3a2050 } }, meta: ['Aberração', 'nightmare'],
   loot: [['gold', .95, 1400, 3600], ['void_shard', .4], ['soul_shard', .5, 1, 2], ['gold_ingot', .4, 1, 2],
@@ -1309,7 +1423,7 @@ mob('hollow_one', {
 
 /* ---- a cidadela caída (Coração, nível 250) -------------------------------- */
 mob('dark_paladin', {
-  n: 'Paladino Renegado', hp: 7000, exp: 20000, atk: [195, 500], arm: 78, spd: 285, sz: 1.5, col: 0x2a2a3a, tier: 10, medo: .08,
+  n: 'Paladino Renegado', hp: 7000, exp: 20000, atk: [195, 500], arm: 78, sz: 1.5, col: 0x2a2a3a, tier: 10, medo: .08,
   ranged: { min: 200, max: 480, range: 6, col: 0xfff0b0, el: 'holy' },
   hab: { tipo: 'cura', val: 2200, cd: 14000, col: 0xfff0b0, grito: 'A luz me sustenta.' },
   art: { shape: 'biped', o: { skin: 0x3a3a4a, eyes: 0xfff0b0, weapon: 0xffe9a8, shield: 0x8a8a92 } },
@@ -1318,7 +1432,7 @@ mob('dark_paladin', {
   ['ultimate_health_potion', .5, 1, 3], ['vz_sword', .015], ['vz_maul', .015]]
 });
 mob('fallen_angel', {
-  n: 'Anjo Caído', hp: 7500, exp: 22000, atk: [205, 520], arm: 74, spd: 330, sz: 1.6, col: 0xd8c088, tier: 10,
+  n: 'Anjo Caído', hp: 7500, exp: 22000, atk: [205, 520], arm: 74, sz: 1.6, col: 0xd8c088, tier: 10,
   ranged: { min: 220, max: 520, range: 7, col: 0xfff0b0, el: 'holy' },
   hab: { tipo: 'area', r: 4, dano: [190, 450], cd: 7500, el: 'holy', col: 0xfff0b0, grito: 'CAIA COMIGO!' },
   art: { shape: 'biped', o: { wings: true, skin: 0xe8d0a0, eyes: 0xfff0b0, weapon: 0xffe9a8 } },
@@ -1327,7 +1441,7 @@ mob('fallen_angel', {
   ['ultimate_mana_potion', .5, 1, 3], ['vz_legs', .015], ['vz_bow', .015], ['nature_staff', .03]]
 });
 mob('seraph_guard', {
-  n: 'Guarda Serafim', hp: 8200, exp: 24000, atk: [220, 545], arm: 88, spd: 265, sz: 1.7, col: 0xfff0c0, tier: 10, medo: .05,
+  n: 'Guarda Serafim', hp: 8200, exp: 24000, atk: [220, 545], arm: 88, sz: 1.7, col: 0xfff0c0, tier: 10, medo: .05,
   hab: { tipo: 'area', r: 3, dano: [200, 470], cd: 8000, el: 'holy', col: 0xfff0b0, grito: 'NÃO PASSARÁS.' },
   art: { shape: 'biped', o: { wings: true, skin: 0xfff4d8, eyes: 0xffffff, weapon: 0xffe9a8, shield: 0xffe9a8 } },
   meta: ['Celeste', 'nightmare'],
@@ -1337,7 +1451,7 @@ mob('seraph_guard', {
 
 /* ---- o coração do abismo (Coração, nível 320): o fim da linha ------------- */
 mob('behemoth', {
-  n: 'Beemote', hp: 9500, exp: 30000, atk: [230, 580], arm: 82, spd: 250, sz: 1.95, col: 0x4a3a2a, tier: 11,
+  n: 'Beemote', hp: 9500, exp: 30000, atk: [230, 580], arm: 82, sz: 1.95, col: 0x4a3a2a, tier: 11,
   hab: { tipo: 'area', r: 3, dano: [220, 520], cd: 8000, col: 0xc9a05a, grito: 'RRRRAAAAH!' },
   art: { shape: 'biped', o: { horns: true, skin: 0x5a4a34, eyes: 0xff4444, weapon: 0x8a8a92, hornCol: 0x1a1008 } },
   meta: ['Gigante', 'nightmare'],
@@ -1345,7 +1459,7 @@ mob('behemoth', {
   ['ultimate_health_potion', .6, 2, 4], ['vz_maul', .02], ['vz_axe', .02]]
 });
 mob('hellspawn', {
-  n: 'Prole do Inferno', hp: 10000, exp: 34000, atk: [215, 545], arm: 72, spd: 340, sz: 1.8, col: 0x6a0818, tier: 11,
+  n: 'Prole do Inferno', hp: 10000, exp: 34000, atk: [215, 545], arm: 72, sz: 1.8, col: 0x6a0818, tier: 11,
   ranged: { min: 250, max: 600, range: 8, col: 0xff2060, el: 'death' },
   hab: { tipo: 'area', r: 4, dano: [230, 540], cd: 7000, el: 'fire', col: 0xff6a10, grito: 'ARDA!' },
   art: { shape: 'biped', o: { horns: true, wings: true, skin: 0x8a0a20, eyes: 0xffdd00, hornCol: 0x1a050a, weapon: 0xff2060 } },
@@ -1354,7 +1468,7 @@ mob('hellspawn', {
   ['ultimate_mana_potion', .6, 2, 4], ['vz_staff', .02], ['vz_ring', .025]]
 });
 mob('juggernaut', {
-  n: 'Colosso', hp: 12500, exp: 42000, atk: [265, 640], arm: 100, spd: 235, sz: 2.1, col: 0x3a3a44, tier: 11,
+  n: 'Colosso', hp: 12500, exp: 42000, atk: [265, 640], arm: 100, sz: 2.1, col: 0x3a3a44, tier: 11,
   hab: { tipo: 'area', r: 3, dano: [250, 580], cd: 7500, col: 0x8fb8d8, grito: 'ESMAGAR.' },
   art: { shape: 'biped', o: { skin: 0x4a4a58, eyes: 0xff4444, weapon: 0x9aa0a8, shield: 0x6a6a78 } },
   meta: ['Gigante', 'nightmare'],
@@ -1364,7 +1478,7 @@ mob('juggernaut', {
 
 /* ---- os seis chefes novos ------------------------------------------------- */
 boss('forge_tyrant', {
-  n: 'Ignus, Tirano da Forja', hp: 15000, exp: 30000, atk: [110, 300], arm: 55, spd: 280, sz: 2.0, col: 0xff5a10, tier: 8,
+  n: 'Ignus, Tirano da Forja', hp: 15000, exp: 30000, atk: [110, 300], arm: 55, sz: 2.0, col: 0xff5a10, tier: 8,
   ranged: { min: 150, max: 360, range: 7, col: 0xff8020, el: 'fire' },
   hab: { tipo: 'area', r: 4, dano: [120, 280], cd: 7500, el: 'fire', col: 0xff8020, grito: 'A FORJA NUNCA APAGA!' },
   // metade da vida: para de queimar de longe e vira uma bola de fogo que persegue
@@ -1375,7 +1489,7 @@ boss('forge_tyrant', {
   ['sa_helmet', .2], ['sa_armor', .18], ['sa_axe', .12], ['sa_rod', .12], ['supreme_health_potion', 1, 3, 6]]
 });
 boss('frost_titan', {
-  n: 'Vorgrim, Titã do Gelo', hp: 24000, exp: 60000, atk: [150, 400], arm: 68, spd: 250, sz: 2.2, col: 0x9fe4ff, tier: 9,
+  n: 'Vorgrim, Titã do Gelo', hp: 24000, exp: 60000, atk: [150, 400], arm: 68, sz: 2.2, col: 0x9fe4ff, tier: 9,
   hab: { tipo: 'lento', r: 5, lento: .6, dur: 8000, dano: [140, 330], cd: 8000, el: 'ice', col: 0x9fe4ff, grito: 'O FRIO É PACIENTE.' },
   fase: { hp: .4, grito: 'ENTÃO CONGELE DE VEZ!', hab: { tipo: 'area', r: 5, dano: [190, 430], cd: 5000, el: 'ice', col: 0xa8ecff, grito: 'AVALANCHE!' } },
   art: { shape: 'biped', o: { skin: 0xb8d4e8, eyes: 0x5aa9ff, weapon: 0x8fb8d8, shield: 0x8a8a92 } },
@@ -1384,7 +1498,7 @@ boss('frost_titan', {
   ['sa_shield', .2], ['sa_legs', .18], ['sa_maul', .12], ['sa_bow', .12], ['supreme_health_potion', 1, 4, 8]]
 });
 boss('lich_king', {
-  n: 'Morvhen, o Rei Lich', hp: 32000, exp: 95000, atk: [165, 430], arm: 62, spd: 290, sz: 1.9, col: 0x5a2070, tier: 10,
+  n: 'Morvhen, o Rei Lich', hp: 32000, exp: 95000, atk: [165, 430], arm: 62, sz: 1.9, col: 0x5a2070, tier: 10,
   ranged: { min: 220, max: 520, range: 8, col: 0x9f5aff, el: 'death' },
   hab: { tipo: 'mana', val: 500, r: 7, cd: 8000, col: 0xc78bff, grito: 'SUA MAGIA É MINHA.' },
   fase: { hp: .5, grito: 'LEVANTEM-SE, MEUS MORTOS!', hab: { tipo: 'area', r: 5, dano: [200, 470], cd: 5000, el: 'death', col: 0x9f5aff, grito: 'PARA A COVA!' } },
@@ -1394,7 +1508,7 @@ boss('lich_king', {
   ['sa_amulet', .25], ['sa_ring', .25], ['sa_sword', .12], ['sa_boots', .18], ['spectral_bow', .2], ['spirit_staff', .2], ['supreme_mana_potion', 1, 4, 8]]
 });
 boss('void_maw', {
-  n: 'A Fauce do Vazio', hp: 50000, exp: 210000, atk: [250, 620], arm: 85, spd: 300, sz: 2.3, col: 0x2a0a40, tier: 11,
+  n: 'A Fauce do Vazio', hp: 50000, exp: 210000, atk: [250, 620], arm: 85, sz: 2.3, col: 0x2a0a40, tier: 11,
   ranged: { min: 280, max: 660, range: 8, col: 0xc78bff, el: 'energy' },
   hab: { tipo: 'mana', val: 900, r: 8, cd: 7000, col: 0xc78bff, grito: 'NADA SAI.' },
   fase: { hp: .5, grito: 'ENTÃO SEJA NADA.', hab: { tipo: 'area', r: 6, dano: [280, 640], cd: 4500, el: 'energy', col: 0x7fb8ff, grito: 'COLAPSO!' } },
@@ -1403,7 +1517,7 @@ boss('void_maw', {
   ['vz_boots', .18], ['vz_ring', .2], ['vz_bow', .12], ['vz_staff', .12], ['abyssal_ballista', .18], ['ultimate_mana_potion', 1, 5, 10]]
 });
 boss('fallen_seraph', {
-  n: 'Aurelion, o Serafim Caído', hp: 72000, exp: 420000, atk: [290, 720], arm: 96, spd: 320, sz: 2.4, col: 0xffe9a8, tier: 12,
+  n: 'Aurelion, o Serafim Caído', hp: 72000, exp: 420000, atk: [290, 720], arm: 96, sz: 2.4, col: 0xffe9a8, tier: 12,
   ranged: { min: 320, max: 760, range: 8, col: 0xfff0b0, el: 'holy' },
   hab: { tipo: 'cura', val: 9000, cd: 15000, col: 0xfff0b0, grito: 'A LUZ NÃO SE APAGA.' },
   fase: { hp: .35, grito: 'ENTÃO QUE TUDO QUEIME NA LUZ!', hab: { tipo: 'area', r: 7, dano: [320, 740], cd: 4500, el: 'holy', col: 0xfff0b0, grito: 'JULGAMENTO!' } },
@@ -1413,7 +1527,7 @@ boss('fallen_seraph', {
   ['vz_crown', .2], ['vz_legs', .2], ['vz_sword', .12], ['vz_amulet', .22], ['nature_staff', .18], ['ultimate_health_potion', 1, 6, 12]]
 });
 boss('abyssal_god', {
-  n: 'Nharzul, o Que Dorme no Fundo', hp: 130000, exp: 950000, atk: [340, 860], arm: 115, spd: 300, sz: 2.6, col: 0x1a0810, tier: 12,
+  n: 'Nharzul, o Que Dorme no Fundo', hp: 130000, exp: 950000, atk: [340, 860], arm: 115, sz: 2.6, col: 0x1a0810, tier: 12,
   ranged: { min: 380, max: 900, range: 9, col: 0xff2060, el: 'death' },
   hab: { tipo: 'area', r: 6, dano: [320, 780], cd: 6500, el: 'death', col: 0xff2060, grito: 'EU SOU O FUNDO.' },
   fase: { hp: .3, grito: 'VOCÊ ACORDOU O QUE DORMIA.', hab: { tipo: 'area', r: 9, dano: [420, 980], cd: 4000, el: 'fire', col: 0xff6a10, grito: 'FIM.' } },
@@ -1509,6 +1623,27 @@ const LOOT_RARITY = [
   { min: 0.015, n: 'Muito raro', col: '#c77dff', stage: 2 },
   { min: 0, n: 'Lendário', col: '#ff8b3d', stage: 2 }
 ];
+/* ---- respawn: tempo por FORÇA da criatura, não fixo para todo mundo -------
+   Era 25–60s para tudo. Dois problemas. Rápido demais, primeiro: um Colosso de
+   42 mil de experiência voltava no mesmo meio minuto que um rato. E estreito
+   demais, segundo — matando um núcleo de 8 em meio minuto, os oito voltavam
+   dentro da MESMA janela de 60s, o que lê como "o grupo inteiro renasceu junto"
+   mesmo o relógio sendo individual.
+   A faixa larga é o que dessincroniza sozinho: com 90–150s de base, dois pontos
+   mortos ao mesmo tempo voltam com um minuto de diferença entre si. */
+const RESPAWN_BASE = [90000, 150000];        // faixa do bicho mais fraco
+const RESPAWN_MULT = {
+  harmless: 1, trivial: 1, easy: 1.4, medium: 1.8,
+  hard: 2.4, challenging: 3.2, nightmare: 4.0,
+  /* Chefe sai da MESMA régua, e não de uma faixa fixa à parte. Com faixa fixa
+     (eram 8–15 min) ele deixou de ser o mais demorado assim que o respawn comum
+     subiu: um Colosso voltava em 6–10 min contra os 8 do chefe. Preso ao
+     multiplicador, ele fica sempre o dobro do bicho mais duro, aconteça o que
+     acontecer com a base. */
+  boss: 9
+};
+const AVISO_NASCER = 5000;   // quanto tempo antes o chão avisa que vem coisa
+
 const CHARM_COST = 100;   // pontos de carisma para marcar uma criatura como presa
 const CHARM_BONUS = 0.18; // +18% de dano contra a espécie marcada
 const CHARM_MAX = 3;
@@ -1653,7 +1788,7 @@ const POIS = [
    andar (faixa de distância do templo) porque o problema é o mesmo — bioma
    colado no templo não pode cuspir lobo gélido em cima de um nível 3. */
 const BIOMA_POOLS = {
-  snow: [{ r: [0, 45], mobs: ['wolf', 'cave_rat', 'winter_wolf'] },
+  snow: [{ r: [0, 45], mobs: ['hare', 'deer', 'wolf', 'cave_rat', 'winter_wolf'] },
          { r: [45, 999], mobs: ['winter_wolf', 'dire_wolf', 'minotaur_archer', 'frost_dragon'] }],
   swamp: [{ r: [0, 45], mobs: ['snake', 'cobra', 'poison_spider', 'rotworm'] },
           { r: [45, 999], mobs: ['serpent_spawn', 'tarantula', 'carrion_worm', 'necrophage'] }]
@@ -1661,10 +1796,15 @@ const BIOMA_POOLS = {
 
 /* pools de spawn por andar e faixa de distância do templo */
 const SPAWN_POOLS = {
-  1: [ // superfície: fica mais perigoso longe do templo
-    { r: [10, 28], mobs: ['rat', 'snake', 'bug', 'cobra'] },
-    { r: [28, 50], mobs: ['wolf', 'spider', 'skeleton', 'orc', 'fire_beetle', 'poison_spider'] },
-    { r: [50, 75], mobs: ['orc', 'orc_spearman', 'orc_shaman', 'orc_berserker', 'ghoul', 'rotworm', 'minotaur', 'dire_wolf', 'skeleton_warrior'] },
+  /* superfície: fica mais perigoso longe do templo, e mais VIVO perto dele.
+     A fauna passiva é densa no anel calmo e some conforme o perigo sobe — é o
+     que faz sair do templo parecer campo e não corredor de monstro.
+     Nome repetido = mais chance: o sorteio é uniforme sobre a lista, então
+     duplicar 'hare' dobra o peso dele sem precisar de tabela de pesos. */
+  1: [
+    { r: [10, 28], mobs: ['hare', 'hare', 'deer', 'firefly', 'rat', 'snake', 'bug', 'cobra'] },
+    { r: [28, 50], mobs: ['deer', 'boar', 'firefly', 'wolf', 'spider', 'skeleton', 'orc', 'fire_beetle', 'poison_spider'] },
+    { r: [50, 75], mobs: ['boar', 'orc', 'orc_spearman', 'orc_shaman', 'orc_berserker', 'ghoul', 'rotworm', 'minotaur', 'dire_wolf', 'skeleton_warrior'] },
     { r: [75, 999], mobs: ['minotaur', 'minotaur_archer', 'cyclops', 'giant_spider', 'orc_warlord', 'tarantula', 'winter_wolf'] }
   ],
   // montanha: frio e alto, é onde o que voa e o que gosta de gelo vive
@@ -1684,21 +1824,21 @@ const SPELLS = [
   { id: 'exura', w: 'exura', n: 'Cura Leve', type: 'heal', lvl: 8, mana: 25, cd: 1000, voc: ['knight', 'ranger', 'sorcerer', 'druid'], base: 30, f: 2.2, ico: '💚' },
   { id: 'exura_ico', w: 'exura ico', n: 'Cura do Cavaleiro', type: 'heal', lvl: 8, mana: 40, cd: 1000, voc: ['knight'], base: 55, f: 3.5, ico: '💚' },
   { id: 'exura_gran', w: 'exura gran', n: 'Cura Intensa', type: 'heal', lvl: 20, mana: 70, cd: 1000, voc: ['ranger', 'sorcerer', 'druid'], base: 90, f: 4.5, ico: '💚' },
-  { id: 'exura_vita', w: 'exura vita', n: 'Cura Suprema', type: 'heal', lvl: 32, mana: 160, cd: 1000, voc: ['druid'], base: 200, f: 8, ico: '💚' },
+  { id: 'exura_vita', w: 'exura vita', n: 'Cura Suprema', type: 'heal', lvl: 32, mana: 160, cd: 1000, voc: ['druid'], base: 220, f: 8, ico: '💚' },
   { id: 'exura_san', w: 'exura san', n: 'Cura Sagrada', type: 'heal', lvl: 32, mana: 155, cd: 1000, voc: ['ranger'], base: 170, f: 7, ico: '💚' },
 
   { id: 'exori_vis', w: 'exori vis', n: 'Golpe de Energia', type: 'attack', lvl: 12, mana: 20, cd: 1200, voc: ['sorcerer'], base: 30, f: 3.6, el: 'energy', col: 0x5aa9ff, ico: '⚡' },
   { id: 'exori_flam', w: 'exori flam', n: 'Golpe de Fogo', type: 'attack', lvl: 12, mana: 20, cd: 1200, voc: ['sorcerer', 'druid'], base: 26, f: 3.2, el: 'fire', ico: '🔥' },
-  { id: 'exori_frigo', w: 'exori frigo', n: 'Golpe de Gelo', type: 'attack', lvl: 14, mana: 20, cd: 1200, voc: ['druid'], base: 30, f: 3.6, el: 'ice', ico: '❄️' },
-  { id: 'exori_tera', w: 'exori tera', n: 'Golpe de Terra', type: 'attack', lvl: 13, mana: 20, cd: 1200, voc: ['druid'], base: 28, f: 3.4, el: 'earth', ico: '🌿' },
+  { id: 'exori_frigo', w: 'exori frigo', n: 'Golpe de Gelo', type: 'attack', lvl: 14, mana: 20, cd: 1200, voc: ['druid'], base: 28, f: 3.6, el: 'ice', ico: '❄️' },
+  { id: 'exori_tera', w: 'exori tera', n: 'Golpe de Terra', type: 'attack', lvl: 13, mana: 20, cd: 1200, voc: ['druid'], base: 27, f: 3.4, el: 'earth', ico: '🌿' },
   { id: 'exori_san', w: 'exori san', n: 'Míssil Divino', type: 'attack', lvl: 18, mana: 22, cd: 1100, voc: ['ranger'], base: 30, f: 3.2, el: 'holy', ico: '✨' },
 
   { id: 'exevo_flam_hur', w: 'exevo flam hur', n: 'Onda de Fogo', type: 'wave', lvl: 18, mana: 40, cd: 2000, voc: ['sorcerer'], base: 40, f: 3.4, el: 'fire', col: 0xff6a10, ico: '🌊' },
-  { id: 'exevo_frigo_hur', w: 'exevo frigo hur', n: 'Onda de Gelo', type: 'wave', lvl: 18, mana: 40, cd: 2000, voc: ['druid'], base: 40, f: 3.4, el: 'ice', col: 0x9fe4ff, ico: '🌊' },
+  { id: 'exevo_frigo_hur', w: 'exevo frigo hur', n: 'Onda de Gelo', type: 'wave', lvl: 18, mana: 40, cd: 2000, voc: ['druid'], base: 35, f: 3.4, el: 'ice', col: 0x9fe4ff, ico: '🌊' },
   { id: 'exevo_vis_lux', w: 'exevo vis lux', n: 'Raio de Energia', type: 'beam', lvl: 23, mana: 60, cd: 2200, voc: ['sorcerer'], base: 60, f: 4.6, el: 'energy', ico: '➖' },
   { id: 'exevo_mas_san', w: 'exevo mas san', n: 'Caldeira Divina', type: 'aoe', lvl: 30, mana: 130, cd: 3000, voc: ['ranger'], base: 70, f: 4.2, el: 'holy', col: 0xfff0b0, r: 3, ico: '💥' },
   { id: 'exevo_gran_mas_vis', w: 'exevo gran mas vis', n: 'Explosão Suprema', type: 'aoe', lvl: 45, mana: 300, cd: 6000, voc: ['sorcerer'], base: 190, f: 9, el: 'energy', col: 0x9f7aff, r: 4, ico: '💥' },
-  { id: 'exevo_gran_mas_frigo', w: 'exevo gran mas frigo', n: 'Tempestade de Gelo', type: 'aoe', lvl: 45, mana: 300, cd: 6000, voc: ['druid'], base: 180, f: 8.6, el: 'ice', col: 0xa8ecff, r: 4, ico: '💥' },
+  { id: 'exevo_gran_mas_frigo', w: 'exevo gran mas frigo', n: 'Tempestade de Gelo', type: 'aoe', lvl: 45, mana: 300, cd: 6000, voc: ['druid'], base: 158, f: 8.6, el: 'ice', col: 0xa8ecff, r: 4, ico: '💥' },
 
   { id: 'exori', w: 'exori', n: 'Fúria', type: 'melee_aoe', lvl: 22, mana: 90, cd: 3000, voc: ['knight'], mult: 1.9, r: 1, col: 0xffd070, ico: '💢' },
   { id: 'exori_gran', w: 'exori gran', n: 'Fúria Selvagem', type: 'melee_aoe', lvl: 40, mana: 170, cd: 5000, voc: ['knight'], mult: 3.4, r: 1, col: 0xff9040, ico: '💢' },
@@ -1742,7 +1882,7 @@ SPELLS.push(
   { id: 'exevo_gran_mas_san', w: 'exevo gran mas san', n: 'Chuva de Julgamento', type: 'aoe', lvl: 50, mana: 260, cd: 6000, voc: ['ranger'], base: 175, f: 8.4, el: 'holy', col: 0xffe9a0, r: 4, ico: '💥' },
 
   { id: 'exevo_vis_hur', w: 'exevo vis hur', n: 'Onda de Energia', type: 'wave', lvl: 30, mana: 80, cd: 2200, voc: ['sorcerer'], base: 70, f: 4.4, el: 'energy', ico: '🌊' },
-  { id: 'exevo_tera_hur', w: 'exevo tera hur', n: 'Onda de Terra', type: 'wave', lvl: 26, mana: 70, cd: 2200, voc: ['druid'], base: 62, f: 4.1, el: 'earth', col: 0x8ac24a, ico: '🌊' },
+  { id: 'exevo_tera_hur', w: 'exevo tera hur', n: 'Onda de Terra', type: 'wave', lvl: 26, mana: 70, cd: 2200, voc: ['druid'], base: 55, f: 4.1, el: 'earth', col: 0x8ac24a, ico: '🌊' },
   { id: 'exevo_gran_mas_flam', w: 'exevo gran mas flam', n: 'Fúria dos Céus', type: 'aoe', lvl: 55, mana: 350, cd: 7000, voc: ['sorcerer'], base: 210, f: 9.5, el: 'fire', col: 0xff5a10, r: 4, ico: '☄️' },
   { id: 'utana_vid', w: 'utana vid', n: 'Invisibilidade', type: 'buff', lvl: 35, mana: 150, cd: 5000, voc: ['sorcerer', 'druid'], buff: 'invis', dur: 30000, ico: '👻' },
 
@@ -1765,4 +1905,85 @@ for (const s of SPELLS) if (s.col === undefined && ELEM[s.el]) s.col = ELEM[s.el
 for (const id in ITEMS) {
   const r = ITEMS[id].rune;
   if (r && r.col === undefined && ELEM[r.el]) r.col = ELEM[r.el].cor;
+}
+
+/* Velocidade da criatura: dois eixos que já existem na tabela, e nada de mão.
+   NATUREZA (a classe) diz como o bicho se desloca; FORÇA (o tier, 0 a 12) diz
+   quanto ele acompanha um jogador que ficou mais rápido. Antes só a natureza
+   contava — e nem isso, na prática: lobo de tier 1 a 345 contra juggernaut de
+   tier 11 a 235.
+   A calibragem: o jogador nasce com 220 e chega a 325 (knight) ou 425
+   (sorcerer) no nível 300. Peso morto nunca alcança ninguém e some do encalço
+   cedo; o andarilho segue o jogador até o meio do jogo; só o caçador de tier
+   alto passa a vocação lenta no fim. Escapar a pé continua possível — é assim
+   no Tibia também, onde dragão anda a 86 contra os 220 do jogador — e o perigo
+   mora em ser cercado, não em ser corrido.
+   Roda no fim do arquivo porque depende de `cls`, que os laços de MOB_META e as
+   chamadas de mob()/boss() terminam de escrever acima. */
+const VEL_BASE = {
+  Inseto: 185, Gigante: 185, 'Morto-vivo': 185,                                  // peso morto: arrasta
+  Humanoide: 215, 'Réptil': 215, 'Aberração': 215, Celeste: 215,                 // anda sobre pernas
+  'Mamífero': 245, 'Aracnídeo': 245, 'Dragão': 245, 'Demônio': 245, Elemental: 245  // caça, voa, desliza
+};
+const VEL_TIER = 7;    // ganho por tier; 12 tiers = +84 do mais fraco ao mais forte
+const VEL_CHEFE = 20;  // chefe é a versão perigosa da própria família, inclusive nas pernas
+for (const id in MONSTERS) {
+  const m = MONSTERS[id];
+  if (m.spd === undefined) m.spd = VEL_BASE[m.cls] + m.tier * VEL_TIER + (m.boss ? VEL_CHEFE : 0);
+}
+
+/* Valor do loot: dificuldade × natureza, pelo mesmo princípio da velocidade.
+   Os 79 saques foram escritos à mão e o valor esperado por morte ia de 0.04 a
+   1.50 vez a experiência, sem motivo: `dwarf_king` largava 30.613 em ouro e
+   `juggernaut`, muito mais forte, largava 30.418 — e o `alpha_wolf`, um lobo,
+   largava 7.971 em EQUIPAMENTO. A linha dos anões era a impressora de dinheiro
+   do jogo, e dez minutos nela pagavam a melhor varinha da loja.
+
+   Duas regras e um cuidado:
+     dificuldade  o tier dobra o valor a cada degrau
+     natureza     quem pensa carrega bolsa; bicho larga pedaço de si
+     cuidado      MATERIAL NÃO SE MEXE. Rabo de rato, seda de aranha e osso são
+                  insumo de imbuement, e cortar a chance deles para acertar uma
+                  conta de ouro quebraria a forja em silêncio. Só o TESOURO
+                  (o que tem `slot`, ou seja arma e equipamento) é ajustado, e
+                  o ouro fecha a diferença. Nas 79, o material sozinho nunca
+                  chega ao alvo, então sempre há folga para isso. */
+const LOOT_BASE = 28;      // ouro esperado por morte no tier 0
+const LOOT_TIER = 2;       // quanto o valor multiplica a cada tier
+const LOOT_CHEFE = 5;
+const LOOT_CLASSE = {
+  Humanoide: 1.8, 'Demônio': 1.8, Celeste: 1.5,          // carrega bolsa, veste o que saqueou
+  'Dragão': 1.3, Gigante: 1.1, 'Morto-vivo': 1.0,        // guarda tesouro, ou sobrou dele
+  'Aberração': 0.8, Elemental: 0.8,                      // matéria estranha, pouco ouro
+  'Aracnídeo': 0.6, 'Mamífero': 0.5, 'Réptil': 0.5, Inseto: 0.5   // larga pedaço de si
+};
+const lootAlvo = m => Math.round(LOOT_BASE * Math.pow(LOOT_TIER, m.tier)
+  * LOOT_CLASSE[m.cls] * (m.boss ? LOOT_CHEFE : 1));
+const lootVal = i => i === 'gold' ? 1
+  : ITEMS[i] ? (ITEMS[i].sell !== undefined ? ITEMS[i].sell : Math.round((ITEMS[i].price || 0) * 0.4)) : 0;
+const lootQtd = l => ((l[2] || 1) + (l[3] || l[2] || 1)) / 2;
+const lootEV = m => (m.loot || []).reduce((s, l) => s + l[1] * lootQtd(l) * lootVal(l[0]), 0);
+for (const id in MONSTERS) {
+  const m = MONSTERS[id];
+  if (!m.loot || !m.loot.length) continue;
+  const alvo = lootAlvo(m);
+  const material = m.loot.filter(l => l[0] !== 'gold' && !(ITEMS[l[0]] && ITEMS[l[0]].slot));
+  const tesouro = m.loot.filter(l => ITEMS[l[0]] && ITEMS[l[0]].slot);
+  const evMat = material.reduce((s, l) => s + l[1] * lootQtd(l) * lootVal(l[0]), 0);
+  const evTes = tesouro.reduce((s, l) => s + l[1] * lootQtd(l) * lootVal(l[0]), 0);
+  /* Tesouro só encolhe, nunca cresce: subir a chance de um equipamento raro para
+     fechar a conta transformaria item de sorte em salário. Quem está abaixo do
+     alvo recebe a diferença em ouro. */
+  const folga = Math.max(0, alvo - evMat);
+  if (evTes > folga) for (const l of tesouro) l[1] = Math.max(0.005, +(l[1] * (folga / evTes)).toFixed(4));
+  /* O ouro é a folga: absorve o arredondamento e o que o tesouro não cobre.
+     Só a QUANTIDADE é da régua — a chance de largar ouro fica como a tabela
+     escreveu, porque ela é desenho ("dragão quase sempre larga ouro, rato nem
+     sempre") e não conta de balanceamento. */
+  const faltam = Math.max(0, alvo - evMat - Math.min(evTes, folga));
+  const g = m.loot.find(l => l[0] === 'gold');
+  const ch = g ? g[1] : 0.85;
+  const med = faltam / ch;
+  if (g) { g[2] = Math.max(1, Math.round(med * 0.5)); g[3] = Math.max(g[2], Math.round(med * 1.5)); }
+  else if (faltam >= 1) m.loot.unshift(['gold', ch, Math.max(1, Math.round(med * 0.5)), Math.round(med * 1.5)]);
 }

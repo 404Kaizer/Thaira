@@ -1,16 +1,16 @@
 # Graph Report - Jogo  (2026-08-15)
 
 ## Corpus Check
-- 40 files · ~3,864,650 words
+- 45 files · ~3,871,325 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1003 nodes · 1762 edges · 85 communities (81 shown, 4 thin omitted)
-- Extraction: 88% EXTRACTED · 11% INFERRED · 1% AMBIGUOUS · INFERRED: 194 edges (avg confidence: 0.86)
+- 1054 nodes · 1808 edges · 90 communities (85 shown, 5 thin omitted)
+- Extraction: 89% EXTRACTED · 11% INFERRED · 1% AMBIGUOUS · INFERRED: 191 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e9758477`
+- Built from commit: `18d40755`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -35,11 +35,11 @@
 - Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems)
 - bindInput
 - fixSave
-- Snow Druid Reference Sprite Sheet
+- Energy Sorcerer Front Walk and Idle Reference Sheet
 - Flat Monochrome Glyph Icon Style
 - Knight Veteran Skin (voc_knight_veteran)
 - ui.js
-- renderHotbar
+- updateMobs
 - GG Boots Icon (Golden Lion Greaves)
 - sfx/manifest.json
 - Knight Vocation - Common Skin (Front-Facing Sprite Set)
@@ -100,6 +100,11 @@
 - mob
 - defModificada
 - serve.py
+- Thaira
+- package.json
+- main.js
+- build_icon.py
+- renderStatus
 
 ## God Nodes (most connected - your core abstractions)
 1. `log()` - 33 edges
@@ -116,13 +121,13 @@
 ## Surprising Connections (you probably didn't know these)
 - `Vitrine KayKit (visualizador 3D de personagens)` --references--> `tileTexture()`  [EXTRACTED]
   tools/amostra/kaykit.html → src/art.js
+- `sincronizar()` --indirect_call--> `item()`  [INFERRED]
+  main.js → src/data.js
 - `Thaira — RPG isométrico (shell da aplicação)` --conceptually_related_to--> `graphify`  [AMBIGUOUS]
   index.html → CLAUDE.md
 - `Confirmar antes de implementar` --semantically_similar_to--> `Confirmar antes de implementar`  [EXTRACTED] [semantically similar]
   CLAUDE.md → AGENTS.md
 - `ponytail` --semantically_similar_to--> `ponytail`  [EXTRACTED] [semantically similar]
-  CLAUDE.md → AGENTS.md
-- `headroom` --semantically_similar_to--> `headroom`  [EXTRACTED] [semantically similar]
   CLAUDE.md → AGENTS.md
 
 ## Import Cycles
@@ -162,11 +167,8 @@
 - **Loopable Frame-Sequence Convention (indexed frames cycling in place)** — assets_skins_voc_knight_voc_knight_veteran_idle_back_03_idle_loop_four_frame, assets_skins_voc_knight_voc_knight_veteran_walk_back_02_walk_cycle_alternating_step, assets_skins_voc_knight_voc_knight_veteran_idle_front_02_idle_frame_micro_variation, assets_skins_voc_knight_voc_knight_veteran_idle_front_03_frame_naming_convention [INFERRED 0.85]
 - **Death State Group (single-frame prone poses with blood pool)** — assets_skins_voc_knight_voc_knight_veteran_dead_front_01_dead_front_pose, assets_skins_voc_knight_voc_knight_veteran_dead_back_01_dead_back_pose, assets_skins_voc_knight_voc_knight_veteran_dead_front_01_death_pose_blood_pool, assets_skins_voc_knight_voc_knight_veteran_idle_back_04_back_view_sword_harness [INFERRED 0.75]
 - **Veteran Knight walk animation sprite set (front + back directions, 4-frame cycle, shared character design)** — assets_skins_voc_knight_voc_knight_veteran_walk_front_01_walk_front_animation, assets_skins_voc_knight_voc_knight_veteran_walk_back_03_walk_back_animation, assets_skins_voc_knight_voc_knight_veteran_walk_front_04_four_frame_walk_cycle, assets_skins_voc_knight_voc_knight_veteran_walk_front_03_directional_sprite_set, assets_skins_voc_knight_voc_knight_veteran_walk_front_01_veteran_knight_sprite [INFERRED 0.95]
-- **Thaira Character Sprite Reference Set (tools/amostra)** — tools_amostra_knight_frames_sheet, tools_amostra_black_knight_frames_sheet, tools_amostra_ranger_frames_sheet, tools_amostra_snow_druid_frames_sheet, tools_amostra_energy_sorcerer_front_walk_and_idle_sheet, tools_amostra_black_knight_frames_reference_material_only [INFERRED 0.95]
-- **Class Archetype Roster Covered by the Reference Sheets** — tools_amostra_knight_frames_knight_archetype, tools_amostra_black_knight_frames_black_knight_archetype, tools_amostra_ranger_frames_ranger_archetype, tools_amostra_snow_druid_frames_snow_druid_archetype, tools_amostra_energy_sorcerer_front_walk_and_idle_energy_sorcerer_archetype [INFERRED 0.85]
-- **Sprite Sheet Layout Conventions** — tools_amostra_knight_frames_four_row_directional_grid, tools_amostra_ranger_frames_attack_action_row, tools_amostra_energy_sorcerer_front_walk_and_idle_magenta_chroma_key_background, tools_amostra_knight_frames_hd_pixel_art_style [INFERRED 0.85]
 
-## Communities (85 total, 4 thin omitted)
+## Communities (90 total, 5 thin omitted)
 
 ### Community 0 - "Tela de ajuda / comandos (#help)"
 Cohesion: 0.06
@@ -174,7 +176,7 @@ Nodes (48): Confirmar antes de implementar, graphify, headroom, ponytail, assets
 
 ### Community 1 - "art.js"
 Cohesion: 0.06
-Nodes (54): BORDER_CACHE, borderSprite(), _canvas(), _canvas2(), _chapado(), cloudTexture(), contactShadow(), _cracks() (+46 more)
+Nodes (56): BORDER_CACHE, borderSprite(), _canvas(), _canvas2(), _chapado(), cloudTexture(), contactShadow(), _cracks() (+48 more)
 
 ### Community 2 - "test.js"
 Cohesion: 0.04
@@ -190,7 +192,7 @@ Nodes (33): ambience(), ambNodes, arp(), audioInit(), audioToggle(), audioVol(),
 
 ### Community 5 - "game.js"
 Cohesion: 0.08
-Nodes (31): BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, _corTexto(), cycleVoc(), ENTRY_SCREENS (+23 more)
+Nodes (34): SPELLS, abrirPicker(), BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, cycleVoc() (+26 more)
 
 ### Community 6 - "data.js"
 Cohesion: 0.05
@@ -201,8 +203,8 @@ Cohesion: 0.12
 Nodes (36): bloomPass(), CAM, camadaNuvem(), cloudPass(), creatureSpriteFor(), _criaturaCrua(), dprInt(), drawBlood() (+28 more)
 
 ### Community 8 - "log"
-Cohesion: 0.14
-Nodes (36): addMagic(), addSkillTry(), canEquip(), castSpell(), clickTile(), comer(), CONSUMIVEL(), curar() (+28 more)
+Cohesion: 0.21
+Nodes (26): abalo(), addMagic(), addSkillTry(), castSpell(), clickTile(), comer(), cssCol(), curar() (+18 more)
 
 ### Community 9 - "world.js"
 Cohesion: 0.13
@@ -221,8 +223,8 @@ Cohesion: 0.10
 Nodes (21): atk_axe, mix, n, v, atk_club, mix, n, v (+13 more)
 
 ### Community 13 - "frame"
-Cohesion: 0.12
-Nodes (26): bindMiniMap(), changeFloor(), clamp(), drawMinimap(), empurrar(), finishStart(), frame(), lerpEntity() (+18 more)
+Cohesion: 0.13
+Nodes (27): addExp(), bindMiniMap(), canEquip(), changeFloor(), clamp(), drawMinimap(), empurrar(), equipItem() (+19 more)
 
 ### Community 14 - "Ancestral Hunter Set Sheet (4x4 icon atlas on magenta key)"
 Cohesion: 0.33
@@ -241,16 +243,16 @@ Cohesion: 0.38
 Nodes (15): Golden Guardian Halberd (two-handed polearm skin: dark shaft, gold-filigreed steel axe head with heraldic crest), Golden Guardian Amulet (neck slot skin: braided gold chain, lion-face shield pendant with red gems), Red Gem Accent (ruby inlay used across the set), Golden Guardian Armor (chest slot skin: dark steel cuirass, gold lion breastplate, red tabard), Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems), Lion Head Crest Motif (shared golden guardian emblem), Golden Guardian Backpack (back slot skin: brown leather rucksack with gold lion faceplate and bedroll), Golden Guardian Greaves (feet slot skin: dark plated boots with gold lion knee guards) (+7 more)
 
 ### Community 18 - "bindInput"
-Cohesion: 0.19
-Nodes (17): afterStep(), alvosPerto(), bagAdd(), bindInput(), chaveTile(), chuvaOuvida(), coletaDe(), colher() (+9 more)
+Cohesion: 0.18
+Nodes (18): afterStep(), alvosPerto(), bagAdd(), bindInput(), chaveTile(), chuvaOuvida(), coletaDe(), colher() (+10 more)
 
 ### Community 19 - "fixSave"
-Cohesion: 0.26
-Nodes (15): askConfirm(), charId(), deleteCharacter(), exportarPersonagens(), fixSave(), importarPersonagens(), listCharacters(), load() (+7 more)
+Cohesion: 0.20
+Nodes (17): PREFIXES, SUFFIXES, askConfirm(), charId(), deleteCharacter(), exportarPersonagens(), fixSave(), importarPersonagens() (+9 more)
 
-### Community 20 - "Snow Druid Reference Sprite Sheet"
-Cohesion: 0.31
-Nodes (15): Black Knight Archetype (dark plate melee), Reference Material, Not Shipped Assets, Black Knight Reference Sprite Sheet, Energy Sorcerer Archetype (lightning caster), Magenta Chroma-Key Background, Energy Sorcerer Front Walk and Idle Reference Sheet, Four-Row Directional Frame Grid, High-Detail 2.5D Pixel Art Style (+7 more)
+### Community 20 - "Energy Sorcerer Front Walk and Idle Reference Sheet"
+Cohesion: 0.35
+Nodes (12): Black Knight Archetype (dark plate melee), Reference Material, Not Shipped Assets, Black Knight Reference Sprite Sheet, Energy Sorcerer Archetype (lightning caster), Magenta Chroma-Key Background, Energy Sorcerer Front Walk and Idle Reference Sheet, Four-Row Directional Frame Grid, High-Detail 2.5D Pixel Art Style (+4 more)
 
 ### Community 21 - "Flat Monochrome Glyph Icon Style"
 Cohesion: 0.32
@@ -264,9 +266,9 @@ Nodes (14): Dead Back Pose (knight veteran, single frame), Dead Front Pose (knig
 Cohesion: 0.19
 Nodes (27): IMBUEMENTS, bestDiff(), bestiaryKill(), bestKills(), bestStage(), bindBigMap(), contaMat(), drawBigMap() (+19 more)
 
-### Community 24 - "renderHotbar"
-Cohesion: 0.28
-Nodes (9): SPELLS, abrirPicker(), HOT_KEYS_DEFAULT, hotDefault(), hotEntry(), hotKeyLabel(), knownSpells(), renderHotbar() (+1 more)
+### Community 24 - "updateMobs"
+Cohesion: 0.31
+Nodes (9): lineClear(), noTemplo(), occupied(), passoAte(), passoDeFuga(), reservarVagas(), tapaVista(), tryStep() (+1 more)
 
 ### Community 25 - "GG Boots Icon (Golden Lion Greaves)"
 Cohesion: 0.23
@@ -389,8 +391,8 @@ Cohesion: 0.67
 Nodes (3): hurt, n, v
 
 ### Community 55 - "killMob"
-Cohesion: 0.19
-Nodes (17): abalo(), abrirTesouro(), addExp(), bloodSpray(), congelar(), cssCol(), dealDamage(), fxBurst() (+9 more)
+Cohesion: 0.24
+Nodes (12): abrirTesouro(), bloodSpray(), congelar(), CONSUMIVEL(), killMob(), mkItem(), notify(), playerDeath() (+4 more)
 
 ### Community 56 - "freesound.py"
 Cohesion: 0.80
@@ -473,8 +475,8 @@ Cohesion: 0.67
 Nodes (3): step_grass, n, v
 
 ### Community 78 - "itemStats"
-Cohesion: 0.20
-Nodes (14): PREFIXES, SUFFIXES, blessPrice(), descLoot(), dropItem(), fmtBon(), itemCell(), itemStats() (+6 more)
+Cohesion: 0.24
+Nodes (12): blessPrice(), descLoot(), dropItem(), fmtBon(), itemCell(), itemStats(), renderInv(), renderShop() (+4 more)
 
 ### Community 79 - "step_sand"
 Cohesion: 0.67
@@ -491,6 +493,22 @@ Nodes (3): step_cave, n, v
 ### Community 82 - "mob"
 Cohesion: 0.67
 Nodes (3): boss(), elemental(), mob()
+
+### Community 85 - "Thaira"
+Cohesion: 0.29
+Nodes (6): Detalhes que economizam tempo, Jogar, Mexer no jogo, O que é cada pasta, `src/`, Thaira
+
+### Community 86 - "package.json"
+Cohesion: 0.07
+Nodes (26): electron, electron-builder, author, build, appId, directories, extraResources, files (+18 more)
+
+### Community 87 - "main.js"
+Cohesion: 0.16
+Nodes (14): abrirJanela(), acharProjeto(), { app, BrowserWindow, Menu }, atualizarDoProjeto(), DEV, fs, http, iniciar() (+6 more)
+
+### Community 89 - "renderStatus"
+Cohesion: 0.24
+Nodes (10): _corTexto(), renderCombatStats(), renderResChips(), renderStatus(), statusAtivos(), statusSig(), stepPlayer(), tickStatus() (+2 more)
 
 ## Ambiguous Edges - Review These
 - `graphify` → `Thaira — RPG isométrico (shell da aplicação)`  [AMBIGUOUS]
@@ -517,9 +535,9 @@ Nodes (3): boss(), elemental(), mob()
   tools/amostra/energy_sorcerer_front_walk_and_idle.png · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **281 isolated node(s):** `dia-vila.mp3`, `dia-celta.mp3`, `dia-campina.mp3`, `dia-taverna.mp3`, `dia-menestrel.mp3` (+276 more)
+- **312 isolated node(s):** `dia-vila.mp3`, `dia-celta.mp3`, `dia-campina.mp3`, `dia-taverna.mp3`, `dia-menestrel.mp3` (+307 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_

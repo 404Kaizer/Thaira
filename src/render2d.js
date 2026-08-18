@@ -33,6 +33,13 @@ function resizeCam(canvas) {
 /* ------------------------------------------------------- mundo <-> tela */
 /* A transformação do cliente: o deslocamento por andar é o que dá profundidade. */
 const tpx = () => TS * CAM.scale;
+/* Meia-largura da tela em tiles. A IA usa isto para decidir a que distância a
+   criatura percebe o jogador: o raio era fixo em 8 e a tela mostra 8,2, então
+   bicho na borda aparecia e ficava parado olhando. Como o zoom é fracionário e
+   o jogador pode mexer nele, o número tem de sair da viewport, não de uma
+   constante — só assim a promessa "ela te vê um pouco antes de você ver ela"
+   continua valendo em qualquer zoom. */
+const raioVista = () => Math.ceil(VW / 2 / tpx());
 function w2s(x, y, z) {
   const t = tpx(), dz = (P.z - (z === undefined ? P.z : z)) * t;
   return [(x - camX) * t - dz + VW / 2, (y - camY) * t - dz + VH / 2];
@@ -76,7 +83,8 @@ const evToCanvas = (ev, canvas) => {
 };
 function screenToTile(ev, canvas) {
   const [sx, sy] = evToCanvas(ev, canvas), t = tpx();
-  return [Math.round(camX + (sx - VW / 2) / t), Math.round(camY + (sy - VH / 2) / t)];
+  // câmera SEM tremor: com camX o clique seguia a sacudida e caía no tile errado
+  return [Math.round(P.px + (sx - VW / 2) / t), Math.round(P.py + (sy - VH / 2) / t)];
 }
 /* ------------------------------------------------------------- caches */
 let decoMaps = null, floorVoid = null, cacheSeed = -1;
@@ -98,6 +106,15 @@ function worldCaches() {
 /* fontes de luz do quadro: {x, y, r, cor, a0, a1}. Lava, magia e projétil
    entram aqui do mesmo jeito — a cor é a da própria coisa. */
 const luzes = [];
+/* Chama: cor e tremor num lugar só, porque a tocha na mão e a tocha largada no
+   chão têm de ser a MESMA luz. Laranja-âmbar, não branco-quente — o halo pálido
+   lia como lanterna. Duas senóides incomensuráveis: o tremor nunca fecha ciclo. */
+const CHAMA_COR = '#ffb14a';
+const chamaTremor = () => 1 + Math.sin(G.now * .009) * .035 + Math.sin(G.now * .023) * .02;
+/* Força da chama = escuro da hora: de dia o halo quase não aparece, de noite vai
+   ao cheio. Guardado do quadro porque a tocha do CHÃO é desenhada lá dentro do
+   passe das entidades, longe do `amb`. Subsolo não tem hora: escuro total. */
+let chamaF = 1;
 
 function drawWorld() {
   if (!g2) return;
@@ -107,11 +124,12 @@ function drawWorld() {
   /* Tremor: desloca a CÂMERA, não os sprites — assim chão, bicho e efeito
      sacodem juntos e nada desalinha. Em tiles porque camX é em tiles; a
      amplitude vem em pixel de tela, então divide pelo tamanho do tile.
-     Durante o hitstop G.now não anda: o quadro inteiro congela deslocado, que é
-     justamente o que dá o peso do golpe. */
+     Lê G.real, não G.now: durante o hitstop o mundo para e a câmera continua
+     sacudindo — é a sacudida que dá o peso do golpe. Com o relógio do jogo a
+     câmera congelava deslocada e a pausa lia como travamento. */
   const ab = G.abalo;
   if (ab) {
-    const k = 1 - (G.now - ab.t) / ab.dur;
+    const k = 1 - (G.real - ab.t) / ab.dur;
     if (k <= 0) G.abalo = null;
     else {
       /* Oscilação por seno, não por sorteio: sorteio muda a cada chamada de
@@ -119,11 +137,12 @@ function drawWorld() {
          diferente do corpo. Duas frequências primas entre si para o tremor não
          virar uma linha na diagonal. */
       const a = ab.amp * k * CAM.scale / t;
-      camX += Math.sin(G.now * .091) * a; camY += Math.cos(G.now * .117) * a;
+      camX += Math.sin(G.real * .091) * a; camY += Math.cos(G.real * .117) * a;
     }
   }
   g2.imageSmoothingEnabled = false;
   g2.fillStyle = amb.bg; g2.fillRect(0, 0, VW, VH);
+  chamaF = amb.escuro == null ? 1 : amb.escuro;
   luzes.length = 0;
 
   const cols = Math.ceil(VW / t / 2) + 2, rows = Math.ceil(VH / t / 2) + 3;
@@ -154,8 +173,8 @@ function drawWorld() {
     const raio = luzCarregada();
     if (raio > 0) {
       const [px, py] = w2s(P.px, P.py);
-      const tremor = 1 + Math.sin(G.now * .009) * .035 + Math.sin(G.now * .023) * .02;
-      luzes.push({ x: px, y: py, cor: '#ffd696', a0: .95, a1: .4, tocha: 1, r: raio * t * tremor });
+      luzes.push({ x: px, y: py, cor: CHAMA_COR, a0: .95 * chamaF, a1: .4 * chamaF, tocha: 1,
+        r: raio * t * .85 * chamaTremor() });
     }
     lightPass(amb);
   }
@@ -291,12 +310,25 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
      era pintado DEPOIS do jogador e o cobria. Como chão, fica sempre atrás de
      bicho, boneco, parede e deco. */
   if (bucket) {
+    /* Marca de POI: decalque de chão, o mais fundo da camada — sangue e corpo
+       passam por cima, como qualquer coisa que caia ali depois.
+       Laço sobre os 39 pontos, não sobre os tiles visíveis: `poiAt` varre a
+       lista inteira e chamá-lo por tile faria a mesma busca centenas de vezes
+       por quadro para achar meia dúzia de marcas. */
+    const limP = VW / t + 3;
+    for (const p of WORLD.pois)
+      if (p.z === z && Math.abs(p.x - camX) <= limP && Math.abs(p.y - camY) <= limP)
+        g2.drawImage(poiSprite(p.id, !!(P.seen && P.seen['poi' + p.uid])),
+          telaX(p.x), telaY(p.y), t, t);
     drawBlood(z, t);
+    /* Antes do corpo, pela mesma regra do marcador de alvo: quadro no chão é
+       marca do TILE, não do que está em cima dele — desenhado por último ele
+       riscava o cadáver ao meio. */
+    hoverTile(t);
     const lim = VW / t + 3;
     for (const c of G.corpses)
       if (c.z === z && Math.abs(c.x - camX) <= lim && Math.abs(c.y - camY) <= lim)
         drawEntity({ k: 'corpo', c }, telaX(c.x), telaY(c.y), t);
-    hoverTile(t);
   }
 
   /* 2º passe: o que tem volume, na ordem do pintor */
@@ -425,11 +457,23 @@ function _criaturaCrua(e) {
   return creatureSprite(e.def.shape || 'biped', e.def.col, e.def.sz, e.def.o, facingOf(e), frameOf(e));
 }
 
+/* Proporção do item no chão. O PNG preenche a própria arte, então anel, colar e
+   bota saíam do tamanho de uma calça — anel do tamanho do tile. A régua é o
+   slot; o que não está na tabela ocupa o tile como antes. */
+const CHAO_ESCALA = { ring: .34, amulet: .78, boots: .68, light: .70, helmet: .80 };
+
 function drawEntity(it, sx, sy, t) {
   const S = CAM.scale;
   if (it.k === 'corpo') {
+    /* Corpo morto vai CENTRADO no tile. Vivo se ancora pelos pés, que é o que
+       planta o boneco no chão; deitado não há pé nenhum, e a mesma âncora jogava
+       o corpo pra fora do quadrado — e o clique do saque é por TILE, então corpo
+       torto vira dúvida sobre qual quadrado saquear.
+       O meio sai do DESENHO (primeiro pixel opaco até os pés), não do canvas: a
+       folga vazia por cima do sprite empurraria tudo para baixo de novo. */
+    const mx = sx + t / 2, my = sy + t / 2;
     g2.fillStyle = 'rgba(90,15,15,.55)';
-    g2.beginPath(); g2.ellipse(sx + t / 2, sy + t * .62, t * .34, t * .2, 0, 0, 7); g2.fill();
+    g2.beginPath(); g2.ellipse(mx, my, t * .34, t * .2, 0, 0, 7); g2.fill();
     const c = it.c;
     if (!c.spr) return;
     /* A folha traz o bicho JÁ tombado, então este não gira: girar o desenho de
@@ -438,40 +482,62 @@ function drawEntity(it, sx, sy, t) {
     if (morto) {
       const K = S * morto.k;
       g2.globalAlpha = .9;
-      g2.drawImage(morto, sx + t / 2 - morto.cx * K, sy + t * .62 - morto.feet * K,
-        morto.width * K, morto.height * K);
+      const cm = spriteBox(morto);
+      g2.drawImage(morto, mx - cm.mx * K, my - cm.my * K, morto.width * K, morto.height * K);
       g2.globalAlpha = 1;
       return;
     }
     const s = outlined(creatureSprite(c.spr.shape, c.spr.color, c.spr.size, c.spr.o, DIR_S, 0));
     g2.save();
-    g2.translate(sx + t / 2, sy + t * .6); g2.rotate(Math.PI / 2); g2.globalAlpha = .8;
-    g2.drawImage(s, -s.feet * S * .55, -s.cx * S, s.width * S, s.height * S);
+    /* Girado 90°: os eixos do sprite trocam de papel na tela, mas centrar é
+       centrar — os dois offsets saem do meio da caixa do desenho do mesmo jeito. */
+    const cs = spriteBox(s);
+    g2.translate(mx, my); g2.rotate(Math.PI / 2); g2.globalAlpha = .8;
+    g2.drawImage(s, -cs.mx * S, -cs.my * S, s.width * S, s.height * S);
     g2.restore(); g2.globalAlpha = 1;
     return;
   }
   if (it.k === 'item') {
-    const cor = RARITY[it.d.it.r].color, ico = itemIcon((ITEMS[it.d.it.id] || 0).spr);
-    g2.fillStyle = 'rgba(0,0,0,.4)';
-    g2.beginPath(); g2.ellipse(sx + t / 2, sy + t * .74, t * .22, t * .1, 0, 0, 7); g2.fill();
+    /* Item no chão ocupa o tile inteiro e não passa do quadrado. Ele está
+       DEITADO no chão, então a sombra não sai de uma linha de pé como a do
+       boneco: é a própria silhueta, do mesmo tamanho, deslocada para o sudeste
+       (o sol é fixo no noroeste). Assim a sombra escapa por todas as bordas do
+       desenho, que é o que um objeto largado no chão faz. */
+    const def = ITEMS[it.d.it.id] || 0, ico = itemIcon(def.spr);
     if (!ico) {                                    // PNG ainda carregando
-      g2.fillStyle = cor; g2.fillRect(sx + t * .34, sy + t * .38, t * .32, t * .28);
+      g2.fillStyle = RARITY[it.d.it.r].color;
+      g2.fillRect(sx + t * .34, sy + t * .38, t * .32, t * .28);
       g2.strokeStyle = '#000'; g2.lineWidth = Math.max(1, S * .5);
       g2.strokeRect(sx + t * .34, sy + t * .38, t * .32, t * .28);
       return;
     }
-    const d = t * .72, x = sx + (t - d) / 2, y = sy + t * .78 - d;
-    if (it.d.it.r > 0) {                           // a cor da raridade era o quadrado; agora é o brilho
-      const gr = g2.createRadialGradient(sx + t / 2, sy + t * .5, 0, sx + t / 2, sy + t * .5, t * .46);
-      gr.addColorStop(0, cor); gr.addColorStop(1, 'rgba(0,0,0,0)');
-      g2.globalAlpha = .45; g2.fillStyle = gr;
-      g2.fillRect(sx, sy, t, t); g2.globalAlpha = 1;
+    /* Tocha largada continua acesa — mas só onde ela está: o raio da bolsa é de
+       quem carrega, no chão vira uma poça de dois tiles. `tocha` mantém ela fora
+       do bloom, igual à da mão, senão o chão vira lanterna de dia. */
+    if (def.luz) luzes.push({ x: sx + t / 2, y: sy + t / 2, cor: CHAMA_COR,
+      a0: .9 * chamaF, a1: .3 * chamaF, tocha: 1, r: t * 2 * chamaTremor() });
+    const d = t * (CHAO_ESCALA[def.slot] || .88), x = sx + (t - d) / 2, y = sy + (t - d) / 2;
+    const sil = silhouette(ico), K = d / ico.width, pad = (sil.width - ico.width) / 2 * K;
+    /* Dois passes da mesma silhueta: o curto gruda no contorno — é ele que
+       segura o item quando o chão já está escuro e o deslocamento sumiria — e o
+       longo é a projeção para o sudeste. */
+    for (const [o, a] of [[.02, .5], [.07, .4]]) {
+      g2.globalAlpha = a;
+      g2.drawImage(sil, x - pad + t * o, y - pad + t * o, sil.width * K, sil.height * K);
     }
+    g2.globalAlpha = 1;
     g2.drawImage(ico, x, y, d, d);
     return;
   }
   const e = it.e, spr = creatureSpriteFor(e);
   const ox = (e.px - it.ax) * t, oy = (e.py - it.ay) * t;   // deslocamento do passo, relativo à âncora
+  /* Criatura que acende. Entra no mesmo balde de halos da tocha e da lava, então
+     ela ilumina o terreno de verdade em vez de só ter pixel claro — que é o que
+     faz um vaga-lume valer a pena existir de noite. `luz` é o raio em tiles,
+     igual ao da tocha. */
+  if (e.def && e.def.luz)
+    luzes.push({ x: sx + ox + t / 2, y: sy + oy + t * .5, r: t * e.def.luz,
+      cor: cssCol(e.def.col), a0: .75, a1: .2 });
   /* Marca do alvo: mancha e cantoneiras, as duas no CHÃO, antes do bicho. As
      cantoneiras já foram desenhadas depois do sprite para não serem tapadas — só
      que aí viravam risco vermelho atravessando a criatura. No chão, o corpo tapa
@@ -547,6 +613,46 @@ function drawBlood(z, t) {
 
 function drawEffects(t) {
   const S = CAM.scale;
+  /* Aviso de nascimento: anel que FECHA no tile durante os últimos segundos
+     antes da criatura voltar. Dar aviso é a mesma regra que já vale para a
+     habilidade de monstro — o jogador tem de poder sair dali, senão não é
+     dificuldade, é imposto.
+
+     O alfa começa alto e sobe pouco. A primeira versão subia de .07 a .55 ao
+     longo dos cinco segundos, e na prática eram quase cinco segundos de nada e
+     um lampejo no fim — indistinguível do clarão de nascimento, que é justamente
+     o que ele deveria ANTECIPAR.
+
+     As três lascas girando por fora não são enfeite: movimento é o que o olho
+     pega na periferia. Um anel parado o jogador só nota se já estiver olhando
+     para ele. */
+  for (const n of G.nascendo || []) {
+    const falta = n.ate - Date.now();
+    if (falta <= 0 || falta > AVISO_NASCER) continue;
+    const k = 1 - falta / AVISO_NASCER;                 // 0 = começou, 1 = agora
+    const [x, y] = w2s(n.x, n.y);
+    const pulso = .5 + .5 * Math.sin(G.now * (.005 + k * .014));
+    g2.globalAlpha = (.45 + k * .45) * (.7 + pulso * .3);
+    g2.strokeStyle = '#b98cf0'; g2.lineWidth = (1.6 + k * 2.4) * S;
+    g2.beginPath();
+    g2.ellipse(x, y, t * (.58 - k * .3), t * (.29 - k * .15), 0, 0, 7);
+    g2.stroke();
+    // miolo escuro que cresce: a sombra chega antes da criatura
+    g2.globalAlpha = (.25 + k * k * .5) * (.8 + pulso * .2);
+    g2.fillStyle = '#31104a';
+    g2.beginPath();
+    g2.ellipse(x, y, t * (.14 + .22 * k), t * (.07 + .11 * k), 0, 0, 7);
+    g2.fill();
+    g2.globalAlpha = (.5 + k * .4) * (.6 + pulso * .4);
+    g2.fillStyle = '#d8b4ff';
+    for (let i = 0; i < 3; i++) {
+      const a = G.now * .0022 + i * 2.094, r = t * (.62 - k * .34);
+      g2.beginPath();
+      g2.arc(x + Math.cos(a) * r, y + Math.sin(a) * r * .5, (1.1 + k * 1.4) * S, 0, 7);
+      g2.fill();
+    }
+  }
+  g2.globalAlpha = 1;
   /* Gotas do esguicho: saem do centro, desaceleram e caem. A queda é o seno do
      progresso, o mesmo truque do projétil — sobe e desce sem guardar velocidade.
      Caco de osso é quadrado e não desacelera; sangue é redondo e freia. */

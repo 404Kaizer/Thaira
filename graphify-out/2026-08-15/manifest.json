@@ -40,13 +40,13 @@
     "semantic_hash": ""
   },
   "src/art.js": {
-    "mtime": 1786766959.8276691,
-    "ast_hash": "5c11ceb325f4d8e8fd04592a857aaab9",
+    "mtime": 1786847481.062308,
+    "ast_hash": "cfa73629e05bb30da51f401fb5a24919",
     "semantic_hash": ""
   },
   "src/audio.js": {
-    "mtime": 1786765553.1030395,
-    "ast_hash": "d27d768bd7b1ee3fab3600907f1442a4",
+    "mtime": 1786846179.7698069,
+    "ast_hash": "01830d6634a8ffb88b17019874776b11",
     "semantic_hash": ""
   },
   "src/data.js": {
@@ -55,8 +55,8 @@
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1786821931.7331297,
-    "ast_hash": "dc08747146832c0cc515aa4eb84ea4f6",
+    "mtime": 1786822411.9840088,
+    "ast_hash": "21367418dfc7ec12766f40f6bd36c56e",
     "semantic_hash": ""
   },
   "src/hud.js": {
@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1786821926.5677106,
-    "ast_hash": "d69145008a7cefffdd6f4ca0b2927be4",
+    "mtime": 1786823444.2674935,
+    "ast_hash": "4982e5a1e3d91f5761b5257a7633eb27",
     "semantic_hash": ""
   },
   "src/ui.js": {
@@ -95,8 +95,8 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1786821957.6892166,
-    "ast_hash": "652eea6dfc7e15557d24f58fb7fbd999",
+    "mtime": 1786842619.418147,
+    "ast_hash": "6503ba1e8605295952b58d96e39b39f4",
     "semantic_hash": ""
   },
   "tools/amostra/kaykit.html": {
@@ -105,9 +105,9 @@
     "semantic_hash": "dc3d6a7efa04383e5f8839bbe0e7ca27"
   },
   "tools/amostra/ranger.html": {
-    "mtime": 1786238322.0,
-    "ast_hash": "112d42fe0f8f0ff7c75a72e3e1008579",
-    "semantic_hash": "112d42fe0f8f0ff7c75a72e3e1008579"
+    "mtime": 1786828411.3868425,
+    "ast_hash": "10b4e783ceb92640819c9d51e7c6b808",
+    "semantic_hash": ""
   },
   "tools/amostra/sprite-tester.html": {
     "mtime": 1786248966.0,
@@ -478,11 +478,6 @@
     "mtime": 1786253946.0,
     "ast_hash": "c1fd4dc0218dbaddbed3637d55bf2539",
     "semantic_hash": "c1fd4dc0218dbaddbed3637d55bf2539"
-  },
-  "tools/amostra/ranger_frames.png": {
-    "mtime": 1786238070.0,
-    "ast_hash": "27bab1b04a9497aaf73f3cb812756314",
-    "semantic_hash": "27bab1b04a9497aaf73f3cb812756314"
   },
   "tools/amostra/snow_druid_frames.png": {
     "mtime": 1786255942.0,
@@ -1700,8 +1695,8 @@
     "semantic_hash": ""
   },
   "assets/COMO_ADICIONAR.md": {
-    "mtime": 1786552022.1497688,
-    "ast_hash": "52be4880b85a273c5519c230efa55e52",
+    "mtime": 1786846187.2702353,
+    "ast_hash": "8f4a49632f020653ece720c799598530",
     "semantic_hash": ""
   },
   "assets/icons/ah_amulet.png": {
@@ -3232,6 +3227,41 @@
   "tools/serve.py": {
     "mtime": 1786821901.7466507,
     "ast_hash": "73a2e1d79ad6af1a6afe2744daa31277",
+    "semantic_hash": ""
+  },
+  "main.js": {
+    "mtime": 1786847324.3763187,
+    "ast_hash": "e9c487da5cdd68c8232146ec26e08263",
+    "semantic_hash": ""
+  },
+  "package.json": {
+    "mtime": 1786847330.8472526,
+    "ast_hash": "6cda962f139b1fdc7f22db22efa47f38",
+    "semantic_hash": ""
+  },
+  "tests/test_launcher.js": {
+    "mtime": 1786824270.8886347,
+    "ast_hash": "81886d8e0b25a0b052678de036fffdf9",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1786847662.0568705,
+    "ast_hash": "e702f66846cc2018c812c005c601cd88",
+    "semantic_hash": ""
+  },
+  "assets/icons/app.png": {
+    "mtime": 1786842584.3589704,
+    "ast_hash": "cef69a800814129a8ba9199d398115f3",
+    "semantic_hash": ""
+  },
+  "assets/skins/ranger_frames.png": {
+    "mtime": 1786238070.0,
+    "ast_hash": "27bab1b04a9497aaf73f3cb812756314",
+    "semantic_hash": ""
+  },
+  "tools/build_icon.py": {
+    "mtime": 1786842563.7150838,
+    "ast_hash": "0b9fa0a740037a35ae4afc69187e9bfd",
     "semantic_hash": ""
   }
 }

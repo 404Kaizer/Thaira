@@ -42,6 +42,7 @@ O id é o que torna isto reprodutível: `python tools/freesound.py baixa <som>
 | `coin` | 336573, 336569, 336570, 336567 | Anthousai |
 | `ui_click` | 333430, 333429, 333427 | brandondelehoy (série *UI Series*) |
 | `ui_close` | 584183 | unfa |
+| `bag` | 493468, 493465, 493464 | Joao_Janz (série *Clothes Rustling Movement*) |
 
 ## Trilha — `assets/music/`
 

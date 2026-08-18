@@ -6,7 +6,7 @@ const G = {
   mobs: [], corpses: [], drops: [], proj: [], fx: [], blood: [], plates: new Map(),
   now: 0, target: null, path: [], pendingLoot: null, lootOpen: null,
   keys: {}, walkDir: null, started: false, lastSpawn: 0, lastRegen: 0, lastSave: 0, dead: false,
-  pausa: 0, abalo: null                       // hitstop e tremor de tela
+  pausa: 0, real: 0, abalo: null              // hitstop, relógio real e tremor de tela
 };
 let P = null;
 const $ = s => document.querySelector(s);
@@ -133,7 +133,7 @@ function newPlayer(name, voc) {
 function recalc() {
   const v = VOCATIONS[P.voc];
   const st = {
-    arm: 0, shieldDef: 0, speed: Math.round(220 * (1 + v.spd / 100 * (P.level - 1))), crit: 0.04, lifesteal: 0,
+    def: 0, speed: Math.round(220 * (1 + v.spd / 100 * (P.level - 1))), crit: 0.04, lifesteal: 0,
     maxhp: 150 + (P.level - 1) * v.hp, maxmana: 30 + (P.level - 1) * v.mana,
     // coleta entra em `st.sk` zerada só para o render e o `add()` não tropeçarem;
     // nenhum equipamento dá bônus de minerar, e nem deveria
@@ -149,14 +149,21 @@ function recalc() {
         const e = k.slice(3).toLowerCase();
         st.res[e] = (st.res[e] || 0) + o[k];
       }
+      /* `arm` virou `def` quando os dois contadores viraram um. Afixo
+         (Reforçada, Blindada), degrau de conjunto, imbuement e save antigo
+         continuam falando `arm`, e sem esta linha o bônus sumia em silêncio:
+         `add` só soma chave que já existe em `st`. Onze bônus dependiam disto. */
+      else if (k === 'arm') st.def += o[k];
       else if (k in st) st[k] += o[k];
     }
   };
   for (const slot in P.eq) {
     const it = P.eq[slot]; if (!it) continue;
     const s = itemStats(it);
-    st.arm += s.arm;
-    if (slot === 'shield') st.shieldDef += s.def;
+    /* Um contador: `arm` da armadura e `def` do escudo e da arma caem no mesmo
+       lugar. Antes só o escudo contava `def`, e a defesa da arma — 24 na Espada
+       do Guardião Dourado, 28 na Alabarda — não fazia nada em lugar nenhum. */
+    st.def += s.arm + s.def;
     add(s.bonus);
   }
   /* conjunto: os degraus são cumulativos, então valem todos os que a contagem
@@ -272,7 +279,7 @@ function useRune(it, b) {
   if (G.now < (P.cd.rune || 0)) return;
   if (b.rune.type !== 'heal' && emZonaSegura()) return log(AVISO_SEGURA, 'bad');
   const r = b.rune, ml = skillOf('magic');
-  const pow = v => (v * (1 + ml * 0.1) + P.level * 0.25) * rnd(0.88, 1.12);
+  const pow = v => magPower(v, ml, P.level) * rnd(0.88, 1.12);
   const cor = '#' + (r.col || 0xffffff).toString(16).padStart(6, '0');
   if (r.type === 'heal') {
     curar(pow(r.base), r.n || 'runa'); fxBurst(P.x, P.y, 0x55dd55, 1.2);
@@ -362,10 +369,15 @@ function float(x, y, txt, color) { G.fx.push({ kind: 'text', x, y, txt, color, t
    Guarda o pedido MAIS FORTE em vez de somar: numa área que acerta seis bichos
    o somatório viraria terremoto, e o tremor deixaria de significar "aquele
    golpe foi grande" para significar "acertou muita coisa". */
+/* O tremor anda no relógio REAL (G.real), não no do jogo: era o que fazia o
+   hitstop ler como engasgo. Com os dois no mesmo relógio, congelar o quadro
+   congelava também a câmera — a tela dava um salto de vários pixels e ficava
+   parada ali por um décimo de segundo. Separados, o mundo para e a câmera
+   continua sacudindo: aí a pausa vira peso do golpe em vez de travada. */
 function abalo(amp, dur = 220) {
   const a = G.abalo;
-  if (a && G.now - a.t < a.dur && a.amp * (1 - (G.now - a.t) / a.dur) > amp) return;
-  G.abalo = { amp, dur, t: G.now };
+  if (a && G.real - a.t < a.dur && a.amp * (1 - (G.real - a.t) / a.dur) > amp) return;
+  G.abalo = { amp, dur, t: G.real };
 }
 /* Hitstop: o quadro inteiro para por alguns ms. Só em crítico e em morte — numa
    pancada comum viraria soluço, porque o ataque sai a cada 2 segundos. */
@@ -409,11 +421,23 @@ function bloodSpray(x, y, z, sangue, forca = 1) {
   G.fx.push({ kind: 'blood', x, y, color: c, gotas, seco, t: G.now, dur: 520 });
   // osso não escorre: o caco voa e acabou, sem poça no chão
   if (seco) return;
+  manchaChao(x, y, z, c, forca);
+}
+/* A poça, separada do esguicho, porque quem sangra no GOLPE só quer a poça: o
+   esguicho já é o `impacto`, que sai a cada acerto. Antes só a morte pintava o
+   chão, então uma briga inteira acontecia num terreno limpo e a luta parecia não
+   deixar marca. Agora o piso conta o que houve ali. */
+function manchaChao(x, y, z, cor, forca = 1) {
   const manchas = [];
   for (let i = 0; i < 4 + (Math.random() * 4 | 0); i++)
     manchas.push({ dx: (Math.random() - .5) * .9 * forca, dy: (Math.random() - .5) * .8 * forca,
       rx: (.09 + Math.random() * .2) * forca, ry: (.06 + Math.random() * .14) * forca });
-  G.blood.push({ x, y, z, cor: c, manchas, t: G.now, dur: 70000 });
+  /* 5 min, não 70 s. Quem protege a memória é o teto de SANGUE_MAX manchas, não
+     o relógio — com 70 s o campo de batalha voltava a ficar limpo pouco depois
+     da briga, e o chão deixava de contar o que tinha acontecido ali. Agora as
+     manchas velhas saem por serem EMPURRADAS pelas novas, que é o certo: numa
+     hunt movimentada elas rodam sozinhas, e num canto parado elas ficam. */
+  G.blood.push({ x, y, z, cor, manchas, t: G.now, dur: 300000 });
   // ponytail: teto simples no total de manchas. Cada uma custa ~6 elipses por
   // quadro; sem o corte, uma caçada longa vira engasgo. Se um dia incomodar,
   // pré-desenhar cada mancha num canvas resolve melhor que baixar o limite.
@@ -455,7 +479,9 @@ function removeMob(m, killed) {
      Voltar depois de uma hora e achar a caça repovoada é o certo; voltar e achar
      tudo exatamente como você deixou seria um mundo congelado.
      Chefe volta em minutos, não em segundos: é o que o faz valer a viagem. */
-  m.sp.dead = killed ? Date.now() + (m.sp.boss ? ri(480000, 900000) : ri(25000, 60000)) : 0;
+  const forca = RESPAWN_MULT[(MONSTERS[m.sp.m] || 0).diff] || 1;
+  m.sp.dead = killed ? Date.now() + Math.round(ri(RESPAWN_BASE[0], RESPAWN_BASE[1]) * forca) : 0;
+  m.sp.avisado = 0;                              // o próximo nascimento avisa de novo
   if (killed) m.sp.el = undefined;             // morreu: o próximo sorteia elite de novo
   if (G.target === m) G.target = null;
   const pl = G.plates.get('m' + m.uid); if (pl) { pl.remove(); G.plates.delete('m' + m.uid); }
@@ -502,21 +528,37 @@ function lineClear(x0, y0, x1, y1, z) {
    atrás dele e nunca cercam — era o que fazia os minotauros virarem coluna.
    Quem já está numa vaga reserva a própria (distância 0), então ninguém dança. */
 function reservarVagas() {
+  /* Vagas em ANÉIS, não só nos 8 tiles colados. Com um anel só, do nono bicho em
+     diante todo mundo recebia o tile do próprio jogador como destino — mesmo
+     alvo, mesma rota, e o resultado era fila indiana atrás de quem chegou
+     primeiro. Com três anéis há ~48 destinos distintos, então a horda que não
+     cabe encosta se distribui em volta e cerca, em vez de enfileirar.
+     A ordem importa: o anel de dentro é distribuído primeiro, então quem está
+     mais perto continua ganhando o lugar de bater. */
   const livres = [];
-  for (const [dx, dy] of DIRS) {
-    const x = P.x + dx, y = P.y + dy;
-    if (!isWalkable(x, y, P.z)) continue;
-    livres.push([x, y]);
-  }
+  for (let anel = 1; anel <= 3; anel++)
+    for (let dy = -anel; dy <= anel; dy++) for (let dx = -anel; dx <= anel; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== anel) continue;   // só a casca
+      const x = P.x + dx, y = P.y + dy;
+      if (!isWalkable(x, y, P.z) || noTemplo(x, y, P.z)) continue;
+      livres.push([x, y]);
+    }
   const vagas = new Map();
-  const fila = G.mobs.filter(m => m.hp > 0 && m.chase && m.z === P.z && !m.def.ranged)
-    .sort((a, b) => distT(a.x, a.y, P.x, P.y) - distT(b.x, b.y, P.x, P.y));
-  for (const m of fila) {
-    if (!livres.length) break;                 // mais bicho que lugar: o resto faz fila
+  const fila = G.mobs.filter(m => m.hp > 0 && m.chase && m.z === P.z && !m.def.ranged);
+  /* Percorre as VAGAS e chama a criatura mais próxima de cada uma — não o
+     contrário. A versão anterior percorria as criaturas e dava a cada uma a vaga
+     mais perto DELA, e com três anéis isso quebrava: para quem estava a 3 tiles,
+     a vaga mais próxima era uma do anel 3, muitas vezes o próprio tile onde ela
+     já estava. Ela "chegava" na hora, o passo virava nulo e ela ficava vagando
+     ali — com o anel de dentro vazio e o caminho livre.
+     Como `livres` já vem ordenado de dentro para fora, varrer nesta ordem
+     garante que nenhuma vaga do anel 2 é usada enquanto sobrar uma do anel 1. */
+  for (const vaga of livres) {
+    if (!fila.length) break;                   // mais lugar que bicho: sobra vaga
     let bi = 0;
-    for (let i = 1; i < livres.length; i++)
-      if (distT(livres[i][0], livres[i][1], m.x, m.y) < distT(livres[bi][0], livres[bi][1], m.x, m.y)) bi = i;
-    vagas.set(m, livres.splice(bi, 1)[0]);
+    for (let i = 1; i < fila.length; i++)
+      if (distT(fila[i].x, fila[i].y, vaga[0], vaga[1]) < distT(fila[bi].x, fila[bi].y, vaga[0], vaga[1])) bi = i;
+    vagas.set(fila.splice(bi, 1)[0], vaga);
   }
   return vagas;
 }
@@ -532,8 +574,33 @@ function passoAte(m, gx, gy) {
   // varredura linear). Se um dia houver dezenas perseguindo ao mesmo tempo,
   // guardar o caminho em m.path e só refazer quando o primeiro passo quebrar.
   const bloq = (x, y) => occupied(x, y, m.z, m);
-  const p = findPath(m.x, m.y, gx, gy, m.z, 700, bloq) || findPath(m.x, m.y, gx, gy, m.z, 700);
+  /* Dois orçamentos diferentes de propósito. A busca que desvia de criatura é a
+     cara — numa horda ela abre muito nó e é ela que precisa de teto baixo. A
+     que ignora corpos anda quase em linha reta num mapa aberto, então gasta
+     pouco e pode ter teto alto: é ela que garante que SEMPRE existe resposta
+     quando existe caminho. Com 700 nos dois, um cerco fazia as duas falharem e
+     o bicho travava achando que não dava pra chegar. */
+  const p = findPath(m.x, m.y, gx, gy, m.z, 700, bloq) || findPath(m.x, m.y, gx, gy, m.z, 2600);
   return p && p.length ? p[0] : null;
+}
+
+/* Passo de quem não tem caminho: VAGA em vez de virar estátua. Prefere o tile
+   que não afasta do jogador, então a horda que não cabe fica circulando na
+   borda e escorre para dentro assim que abre vaga — em vez de parar em fileira,
+   que é o que fazia vinte criaturas parecerem cenário. */
+function passoVagar(m) {
+  const opcoes = [];
+  for (const [dx, dy] of DIRS) {
+    const nx = m.x + dx, ny = m.y + dy;
+    if (!isWalkable(nx, ny, m.z) || occupied(nx, ny, m.z, m)) continue;
+    if (noTemplo(nx, ny, m.z)) continue;
+    opcoes.push([nx, ny, distT(nx, ny, P.x, P.y)]);
+  }
+  if (!opcoes.length) return false;
+  const dAtual = distT(m.x, m.y, P.x, P.y);
+  const perto = opcoes.filter(o => o[2] <= dAtual);
+  const alvo = (perto.length ? perto : opcoes)[ri(0, (perto.length ? perto : opcoes).length - 1)];
+  return tryStep(m, alvo[0], alvo[1]);
 }
 
 /* Um passo para LONGE do jogador. Só serve o tile que aumenta a distância; sem
@@ -550,6 +617,19 @@ function passoDeFuga(m) {
   return best;
 }
 
+/* Acordar não é bater. `nextAtk` nasce em 0 e passa o jogo inteiro vencido, então
+   o primeiro golpe saía no mesmo quadro em que a criatura te via — sair do templo
+   para perto de um bicho parado custava dano antes de você virar a tela.
+   O atraso é SORTEADO, não fixo, porque descer uma escada acorda a sala toda de
+   uma vez: fixo só trocaria "todos batem agora" por "todos batem juntos meio
+   segundo depois". Espalhado, a primeira leva vira leque — e como o cooldown
+   seguinte é fixo (2000ms), cada um fica defasado do vizinho para sempre. */
+const acordar = m => {
+  if (m.chase) return;
+  m.chase = true;
+  m.nextAtk = Math.max(m.nextAtk, G.now + ri(500, 1200));
+};
+
 function updateMobs(dt) {
   const vagas = reservarVagas();
   const abrigado = noTemplo(P.x, P.y, P.z);   // vale pro quadro todo, não por criatura
@@ -557,11 +637,18 @@ function updateMobs(dt) {
     if (m.hp <= 0) continue;
     lerpEntity(m);
     const d = distT(m.x, m.y, P.x, P.y);
+    const dA = distAcao(m, P);              // d é para andar e encalçar; dA é para agir
     const provocado = m.taunt > G.now;
-    if (!G.dead && !P.buffs.invis && d <= 8 && G.now > (m.desistiu || 0) && lineClear(m.x, m.y, P.x, P.y, m.z)) m.chase = true;
-    if (provocado) m.chase = true;
+    /* A criatura tem de perceber você UM POUCO ANTES de entrar na sua tela —
+       senão ela aparece parada olhando pro nada, e o jogador escolhe cada briga
+       com uma vantagem que a criatura nunca teve. O piso de 11 é o que impede o
+       contrário também: sem ele, dava para fugir do aggro só apertando o zoom. */
+    const vista = Math.max(11, raioVista() + 2);
+    // fauna passiva não encalça por ver: ela só repara em você depois de apanhar
+    if (!G.dead && !P.buffs.invis && !m.def.passivo && d <= vista && G.now > (m.desistiu || 0) && lineClear(m.x, m.y, P.x, P.y, m.z)) acordar(m);
+    if (provocado) acordar(m);
     // templo depois do taunt de propósito: zona segura ganha até de exeta res
-    if ((d > 14 || G.dead || abrigado || (P.buffs.invis && !provocado))) m.chase = false;
+    if ((d > vista + 6 || G.dead || abrigado || (P.buffs.invis && !provocado))) m.chase = false;
     if (!m.chase) {
       if (G.now > m.nextStep && Math.random() < 0.01) {
         const [dx, dy] = DIRS[ri(0, 7)];
@@ -573,12 +660,17 @@ function updateMobs(dt) {
        não tem `medo` na tabela luta até morrer — bicho burro não avalia perigo,
        morto-vivo não teme e brutamontes não recua. Provocado (exeta res) ignora o
        medo: é para isso que a magia serve. Encurralado, vira e luta. */
-    if (m.def.medo && m.hp < m.def.medo * m.maxhp && !provocado) {
+    /* Bicho manso foge ao primeiro arranhão: ser passivo JÁ é o limiar de medo,
+       e escrever `medo: 1` na ficha de cada um repetiria aqui o que `passivo`
+       diz — além de furar a régua de que medo é fração sensata (< .6), que
+       continua valendo para quem luta de verdade. */
+    const limiarMedo = m.def.passivo ? 1 : m.def.medo;
+    if (limiarMedo && m.hp < limiarMedo * m.maxhp && !provocado) {
       const fuga = passoDeFuga(m);
       // tem para onde correr: corre e não ataca. Encurralado: cai para o normal e luta
       if (fuga) { if (G.now > m.nextStep) tryStep(m, fuga[0], fuga[1]); continue; }
     }
-    if (m.def.hab) habilidade(m, d);
+    if (m.def.hab) habilidade(m, dA);
     /* Tiro e recuo são coisas separadas. Todo mundo com `ranged` atira quando tem
        alcance e linha; só quem tem `recua` é ATIRADOR e mantém distância — se o
        jogador entra dentro do alcance, abre espaço em vez de trocar soco, e sem
@@ -588,7 +680,7 @@ function updateMobs(dt) {
        bicho — arqueiro atrás da parede de minotauros continua acertando. */
     const r = m.def.ranged;
     if (r) {
-      if (d <= r.range && d > 1 && lineClear(m.x, m.y, P.x, P.y, m.z) && G.now > m.nextAtk) {
+      if (dA <= r.range && dA > 1 && lineClear(m.x, m.y, P.x, P.y, m.z) && G.now > m.nextAtk) {
         m.nextAtk = G.now + 2200; m.atkT = G.now;
         const dmg = ri(r.min, r.max);
         shoot(m.px, m.py, P.px, P.py, r.col, () => hitPlayer(dmg, m.n, r.el), 22, r.el);
@@ -601,7 +693,7 @@ function updateMobs(dt) {
         if (d > 1 && d <= r.range) continue;     // na distância boa: fica e atira
       }
     }
-    if (d <= 1) {
+    if (dA <= 1) {
       if (G.now > m.nextAtk) { m.nextAtk = G.now + 2000; m.atkT = G.now; hitPlayer(ri(m.def.atk[0], m.def.atk[1]), m.n); }
       continue;
     }
@@ -616,12 +708,29 @@ function updateMobs(dt) {
          cima da água e continua caçando dali mesmo.
          O `desistiu` é o que segura a desistência: sem ele a linha de vista, que
          a box não corta, reacenderia a perseguição no quadro seguinte. */
+      /* Sem caminho NENHUM — o jogador está em box, ou a multidão fechou tudo.
+         Antes o corpo a corpo desistia aqui (`chase = false` por 6 s) e virava
+         estátua: é isso que fazia uma horda inteira parar em fileira olhando pro
+         nada. Agora só o ATIRADOR fica parado, e só se tiver linha para atirar —
+         parar é o ofício dele. Todo o resto vaga e continua tentando, então
+         escorre para dentro assim que abre uma brecha. */
       if (!passo) {
-        if (!r) { m.chase = false; m.desistiu = G.now + 6000; }
-        m.nextStep = G.now + 800;
+        const mirando = r && d <= r.range && lineClear(m.x, m.y, P.x, P.y, m.z);
+        if (!mirando) passoVagar(m);
+        m.nextStep = G.now + ri(450, 850);
         continue;
       }
-      if (!tryStep(m, passo[0], passo[1])) m.nextStep = G.now + 400;
+      /* O passo saiu, mas o tile está ocupado por um companheiro. ESTE é o caso
+         comum do amontoado, e não a falta de caminho: a busca que ignora corpos
+         sempre acha rota, então `passo` quase nunca vem nulo — o que trava é o
+         `tryStep` falhar aqui e a criatura ficar esperando a fila andar.
+         Vagar em vez de esperar é o que desmancha a fila indiana: ela sai da
+         linha, tenta por outro lado, e quem estava atrás passa. */
+      if (!tryStep(m, passo[0], passo[1])) {
+        const mirando = r && d <= r.range && lineClear(m.x, m.y, P.x, P.y, m.z);
+        if (!mirando && !passoVagar(m)) m.nextStep = G.now + 400;
+        else m.nextStep = G.now + ri(300, 600);
+      }
     }
   }
 }
@@ -714,20 +823,33 @@ function tryStep(e, nx, ny) {
   if (e.z === P.z) passo(nx, ny, e.z);
   return true;
 }
+/* Onde a entidade ESTÁ, não onde ela reservou. `tryStep` joga `x/y` no destino
+   já no primeiro quadro do passo — precisa, senão dois bichos reservam o mesmo
+   tile —, mas isso fazia toda AÇÃO medida por `x/y` valer um tile antes da hora:
+   o bicho batia ao COMEÇAR a entrar no vizinho e o saque abria com o boneco no
+   meio do caminho. Movimento, ocupação, rota e encalço seguem lendo `x/y`, que
+   é o destino e é o certo lá; só os portões de ação passam por aqui. */
+const tileDe = e => e.stepD ? [e.fx, e.fy] : [e.x, e.y];
+const distAcao = (a, b) => distT(...tileDe(a), ...tileDe(b));
 function lerpEntity(e) {
   if (e.stepD) {
     const k = clamp((G.now - e.stepT) / e.stepD, 0, 1);
     e.px = e.fx + (e.x - e.fx) * k; e.py = e.fy + (e.y - e.fy) * k;
-    if (k >= 1) e.stepD = 0;
+    // chegou de verdade: é AQUI que a chegada acontece, não no tryStep
+    if (k >= 1) { e.stepD = 0; if (e === P) afterStep(); }
   } else { e.px = e.x; e.py = e.y; }
 }
 const atkPhase = e => { const k = (G.now - (e.atkT || -9e9)) / 320; return k > 0 && k < 1 ? k : 0; };
 
 /* ---------------------------------------------------------------- combate */
-function damageFormula(atk, skill) {
+/* `medio` devolve a média em vez de sortear. É para a interface: número que
+   dança a cada vez que o tooltip abre lê como defeito, e recalcular a média por
+   fora seria a mesma fórmula escrita duas vezes — a segunda envelhecendo em
+   silêncio no dia em que a primeira mudar. */
+function damageFormula(atk, skill, medio) {
   const max = 0.09 * atk * (skill + 4) + P.level / 5;
   const mult = STANCE[P.stance || 'bal'].dmg * (1 + (P.buffs.rage ? P.buffs.rage.val / 100 : 0));
-  return rnd(P.level / 5, max) * mult;
+  return (medio ? (P.level / 5 + max) / 2 : rnd(P.level / 5, max)) * mult;
 }
 function dealDamage(m, raw, el, color) {
   if (m.hp <= 0) return;
@@ -749,11 +871,24 @@ function dealDamage(m, raw, el, color) {
   sfx(crit ? 'crit' : 'hit', m.x, m.y);
   // o carimbo do clarão: o render pinta a silhueta branca por cima por ~90ms
   m.hitT = G.now;
-  if (crit) { congelar(70); abalo(5); } else abalo(1.6);
+  if (crit) { congelar(45); abalo(5); } else abalo(1.6);
   // `el` diz de que é o golpe: físico espirra o sangue da espécie, elemento
   // solta a partícula da própria tabela — cor, forma e queda saem todas dali
   impacto(m.x, m.y, el ? 'magico' : 'fisico', el ? (color || 0x8ad4ff) : (m.def.sangue || SANGUE_PADRAO).cor, el);
+  /* Poça no golpe, não só na morte. Um em três acertos, e pequena: a cada acerto
+     encheria o teto de SANGUE_MAX em meia dúzia de trocas e as manchas da morte
+     — que são as que importam — seriam empurradas para fora da lista.
+     Golpe elemental não pinta o chão de sangue, e quem é seco (osso, elemental)
+     também não: raio não faz o esqueleto sangrar. */
+  const sg = m.def.sangue || SANGUE_PADRAO;
+  if (!el && !sg.seco && Math.random() < .34)
+    manchaChao(m.x, m.y, m.z, cssCol(sg.cor), (crit ? .55 : .35) + m.def.sz * .25);
   m.hp -= dmg;
+  /* Apanhar acorda o bicho manso. Só ele: quem é hostil já ligou o encalço por
+     ver o jogador, e ligar aqui para todos furaria a invisibilidade — hoje
+     atacar invisível não entrega a posição, e isso é regra, não descuido.
+     Com `chase` ligado e `medo: 1`, o ramo de fuga que já existe faz o resto. */
+  if (m.def.passivo) acordar(m);
   /* A seta é a única coisa que ensina o sistema. Resistência sem marca visível
      não é mecânica, é dano que varia sozinho — o jogador nunca descobre que
      trocar de magia resolve. */
@@ -772,10 +907,12 @@ function dealDamage(m, raw, el, color) {
 }
 function killMob(m) {
   // a morte é o golpe que mais merece ênfase: pausa maior e tremor pelo tamanho
-  congelar(95); abalo(4 + m.def.sz * 3, 300);
+  congelar(60); abalo(4 + m.def.sz * 3, 300);
   const xp = Math.round(m.def.exp * XP_MULT);
   addExp(xp); P.kills++;
-  float(m.x, m.y, '+' + xp + ' exp', '#ffd166');
+  // sobe no JOGADOR, não na criatura: quem ganhou a experiência foi ele. Em cima
+  // do corpo o número se confundia com o dano e o "imune" que saem ali
+  float(P.x, P.y, '+' + xp + ' exp', '#ffd166');
   bestiaryKill(m.id);
   log(`Você matou ${m.n} (+${xp} exp).`, 'good');
   if (m.def.boss) notify('👑', m.def.n, `chefe abatido — +${xp} exp`);
@@ -811,15 +948,42 @@ function playerAttack() {
   if (emZonaSegura()) return;
   const m = G.target;
   if (!m || m.hp <= 0 || m.z !== P.z) { G.target = null; return; }
-  const w = weaponInfo(), d = distT(P.x, P.y, m.x, m.y);
+  const w = weaponInfo(), d = distAcao(P, m);
   if (d > w.range || (w.range > 1 && !lineClear(P.x, P.y, m.x, m.y, P.z))) return;
   if (G.now < P.nextAtk) return;
-  P.nextAtk = G.now + 2000; P.atkT = G.now;
+  /* Varinha consome mana. Pouco — ~0,8% da barra por tiro, uns 120 tiros com o
+     manancial cheio —, mas não zero: sem custo nenhum o mago tinha uma fonte de
+     dano infinita e gratuita, e mana virava recurso só de magia.
+     Sem mana ele não atira: é o que faz poção de mana ser suprimento de verdade
+     para quem conjura, do mesmo jeito que poção de vida é para quem apanha. */
+  if (w.wt === 'wand') {
+    const custo = Math.max(2, Math.round(P.level * .25));
+    if (P.mana < custo) {
+      P.nextAtk = G.now + 400;                       // tenta de novo já, sem travar a mira
+      if (G.now > (G.avisoMana || 0)) {              // avisa no máximo a cada 3 s: roda todo quadro
+        G.avisoMana = G.now + 3000;
+        log('Mana insuficiente para canalizar a varinha.', 'bad');
+        impacto(P.x, P.y, 'erro');
+      }
+      return;
+    }
+    P.mana -= custo; renderBars();
+  }
+  P.nextAtk = G.now + ATAQUE_MS; P.atkT = G.now;
   P.dir = Math.atan2(m.x - P.x, m.y - P.y);
   P.lastDir = [Math.sign(m.x - P.x), Math.sign(m.y - P.y)];
   if (w.wt === 'wand') {
     sfx('atk_wand', P.x, P.y);
-    const base = rnd(w.dmg[0], w.dmg[1]) * (1 + skillOf('magic') * 0.035);
+    /* Varinha é FIXA: a faixa da arma, sem magic level. É o modelo do Tibia, onde
+       a varinha nunca escala com ML nem com nível — ela é o tiro de encher tempo
+       entre magias, e quem progride é o mago que COMPRA a varinha do próximo
+       degrau (a linha vai de 14 a 104 de dano médio, do nível 6 ao 76).
+       O multiplicador antigo (× (1 + ML×0.035)) era uma terceira escada de dano
+       sem teto, e a maior delas: no nível 76 a varinha sozinha batia 359 contra
+       280 da melhor magia, custando 0,8% da barra de mana e nenhum treino.
+       O castSpell de tipo 'melee' já usava a faixa crua — o ataque básico era o
+       único fora do padrão. */
+    const base = rnd(w.dmg[0], w.dmg[1]);
     shoot(P.px, P.py, m.px, m.py, w.col, () => dealDamage(m, base, w.el, '#c08bff'), 22, w.el);
     addMagic(6);   // no Tibia varinha não treina ML; aqui treina, senão mago que só ataca não evolui em nada
   } else if (w.wt === 'distance') {
@@ -841,20 +1005,17 @@ function playerAttack() {
 function hitPlayer(raw, src, el) {
   if (G.dead) return;
   const mag = !!el && el !== 'physical';
-  let dmg = raw;
   const guarda = STANCE[P.stance || 'bal'].def * (1 + (P.buffs.guard ? P.buffs.guard.val / 100 : 0));
-  if (P.st.shieldDef && Math.random() < Math.min(0.8, P.st.shieldDef * (skillOf('shielding') + 4) / 900 * guarda)) {
-    addSkillTry('shielding', 2);
-    /* Golpe que não passa vira FUMAÇA, não texto. Eram três "BLOQ" e um "0"
-       empilhados sobre a cabeça, tapando o próprio boneco — e a informação de
-       quem bloqueou o quê já está escrita no log de combate, com hora e nome. */
-    impacto(P.x, P.y, 'erro');
-    sfx('block', P.x, P.y);
-    log(`Você bloqueia o ataque de ${src}.`, 'cbt mana');
-    return;
-  }
   addSkillTry('shielding');
-  dmg = Math.max(0, Math.round(dmg - rnd(P.st.arm / 2, P.st.arm) * (0.6 + guarda * 0.4)));
+  /* Uma conta só (ver DEF_K em data.js). A postura entra INTEIRA e não
+     amortecida: com o amortecimento antigo (0.6 + guarda*0.4) a defensiva dava
+     só 1.36 contra 0.82 da ofensiva, o que somado à curva deixava as três
+     posturas a um ou dois golpes de distância — e defensiva custa 55% do seu
+     dano. Postura tem de pagar o que cobra. */
+  const defEf = P.st.def * guarda * (1 + skillOf('shielding') / 100);
+  const red = defEf / (defEf + DEF_K);
+  // sem sorteio aqui: `raw` já chega sorteado da faixa de ataque de quem bateu
+  let dmg = Math.max(Math.round(raw * DANO_MIN), Math.round(raw * (1 - red)));
   /* Resistência do jogador, depois da armadura: a armadura para o golpe, a
      resistência para o ELEMENTO do golpe, e as duas se somam em vez de brigar.
      Teto de 75% — sem ele, empilhar afixo do mesmo elemento vira imunidade, e
@@ -886,60 +1047,126 @@ function hitPlayer(raw, src, el) {
    jogo, e ela cobra em três moedas:
      exp     pode DERRUBAR o nível — é o que faz uma hunt acima da sua faixa ser
              uma aposta e não uma tentativa de graça;
-     ida     todo consumível da mochila queima. O custo da viagem contra o loot
-             da volta é o que torna uma caçada difícil, não o dano do bicho;
-     peça    sem NENHUMA bênção, um equipamento aleatório fica pra trás.
-   E a bênção é a saída paga: gasta ouro (o único sumidouro grande do jogo) para
-   comprar de volta a segurança. Quem caça bem sempre tem as cinco. */
+     carga   a mochila fica no corpo. O custo da viagem contra o loot da volta é
+             o que torna uma caçada difícil, não o dano do bicho;
+     peça    sem NENHUMA bênção e de mochila vazia, a peça equipada mais cara
+             fica pra trás — morrer sem nada a perder não pode sair de graça;
+     skill   a mesma fração some do treino de cada habilidade. Sem isso, o
+             cavaleiro que morre dez vezes volta batendo igual — e é a skill, não
+             o nível, que decide o quanto ele acerta.
+   A bênção é a saída paga: gasta ouro (o único sumidouro grande do jogo) para
+   comprar de volta a segurança, e ela é PROPORCIONAL — cada uma segura um quinto
+   da mochila (as mais valiosas primeiro), as cinco seguram tudo. Uma só não pode
+   valer o mesmo que o conjunto, senão ninguém compraria a segunda. */
 const BENCAOS = 5;
 /* ponytail: curva calibrada na mão contra o ouro que as hunts largam — as cinco
-   bênçãos custam mais ou menos uma sessão de caça na faixa do jogador (45k no
-   nível 60, 100k no 100, 550k no 300). Se o ouro inflacionar, mexa no 40. */
-const blessPrice = lvl => Math.round(2000 + Math.pow(Math.max(30, lvl) - 20, 1.4) * 40);
-const CONSUMIVEL = it => !!(ITEMS[it.id].use || ITEMS[it.id].rune || ITEMS[it.id].food);
+   bênçãos custam mais ou menos uma sessão e meia de caça na faixa do jogador
+   (71k no nível 60, 172k no 100, 943k no 300). O 70 subiu de 40 quando a bênção
+   passou a segurar a mochila inteira: seguro que cobre o loot da hunt tem de
+   custar perto do que a hunt rende, senão a morte volta a ser de graça.
+   Se o ouro inflacionar, mexa no 70. */
+const blessPrice = lvl => Math.round(2000 + Math.pow(Math.max(30, lvl) - 20, 1.4) * 70);
 
 function playerDeath(src) {
   G.dead = true; P.hp = 0;
   const b = P.bless || 0;
   const perdas = [];
+  let corpo = '';
 
   // exp: 10% sem bênção, 3% com as cinco — e o nível cai junto se for o caso
   const perda = 0.10 * (1 - (b / BENCAOS) * 0.7);
-  const antes = P.level;
+  const antes = P.level, expAntes = P.exp;
   P.exp = Math.max(0, Math.round(P.exp * (1 - perda)));
   while (P.level > 1 && P.exp < expForLevel(P.level)) P.level--;
-  perdas.push(`${(perda * 100).toFixed(1)}% da experiência`);
-  if (P.level < antes) perdas.push(`<b style="color:#e0705f">caiu para o nível ${P.level}</b> (era ${antes})`);
+  const expPerdida = expAntes - P.exp;
+  perdas.push(`${expPerdida.toLocaleString('pt-BR')} de experiência`);
+  if (P.level < antes) perdas.push(`<b style="color:var(--bad)">caiu para o nível ${P.level}</b> (era ${antes})`);
+  /* Skill regride como a exp: a fração sai do treino ACUMULADO desde o piso, não
+     só do progresso do nível atual — assim ela também derruba nível, que é o que
+     faz a morte doer em quem já não sobe de nível há tempo. Piso 10 (onde todo
+     mundo começa) para as skills; o magic level começa em 0 e o piso dele é 0. */
+  const regride = (o, piso, need) => {
+    let acc = o.t;
+    for (let l = piso; l < o.l; l++) acc += need(l);
+    acc = Math.round(acc * (1 - perda));
+    let l = piso, n;
+    while (acc >= (n = need(l))) { acc -= n; l++; }
+    o.l = l; o.t = acc;
+  };
+  const skAntes = {};
+  for (const k in P.sk) skAntes[k] = P.sk[k].l;
+  for (const k in P.sk) regride(P.sk[k], 10, l => triesFor(k, l, P.voc));
+  const mlAntes = P.ml.l;
+  regride(P.ml, 0, l => manaForML(l, P.voc));
+  const caiu = Object.keys(skAntes).filter(k => P.sk[k].l < skAntes[k])
+    .map(k => `${SKILL_NAMES[k]} ${skAntes[k]}→${P.sk[k].l}`)
+    .concat(P.ml.l < mlAntes ? [`${SKILL_NAMES.magic} ${mlAntes}→${P.ml.l}`] : []);
+  if (caiu.length) perdas.push(caiu.join(', '));
 
-  // suprimento: poção, runa e comida da mochila queimam junto
-  const queimou = P.bag.filter(CONSUMIVEL);
-  if (queimou.length) {
-    P.bag = P.bag.filter(it => !CONSUMIVEL(it));
-    perdas.push(`${queimou.length} ${queimou.length > 1 ? 'suprimentos' : 'suprimento'} da mochila`);
-  }
+  /* A perda de exp em número seco não diz nada — "12.480" é muito ou pouco? A
+     mesma barra do topo diz na hora: é o quanto do nível sobrou. Reusa a classe
+     `.bar` do HUD, então ela é a barra do jogo, não um desenho novo desta tela. */
+  const need = expForLevel(P.level + 1), prev = expForLevel(P.level);
+  const barra = `<div class="bar" style="height:14px;margin:8px 0 10px">`
+    + `<i class="xp-fill" style="width:${clamp((P.exp - prev) / (need - prev) * 100, 0, 100)}%"></i>`
+    + `<span style="line-height:12px">Nível ${P.level} · −${expPerdida.toLocaleString('pt-BR')} exp</span></div>`;
 
-  // equipamento: só quem morreu sem nenhuma bênção deixa uma peça pra trás
-  if (!b) {
+  /* A mochila é o resultado da caça, então é ela que a bênção segura: cada uma
+     salva um quinto dos itens, começando pelos mais caros. Salvar os caros
+     primeiro é o que faz a bênção parcial valer alguma coisa — protegendo por
+     sorteio, perder o único item bom com quatro bênçãos pagas seria pior que
+     não ter comprado nenhuma. */
+  const salvos = new Set([...P.bag].sort((x, y) => sellPrice(y) - sellPrice(x))
+    .slice(0, Math.round(P.bag.length * (b / BENCAOS))));
+  const caidos = P.bag.filter(it => !salvos.has(it));
+  P.bag = P.bag.filter(it => salvos.has(it));
+  let equipado = null;
+  /* Mochila vazia (ou toda protegida) não pode virar morte de graça: aí vai a
+     peça equipada mais cara, que é a que dói. Uma bênção que seja já segura o
+     equipamento. */
+  if (!caidos.length && !b) {
     const vestido = Object.keys(P.eq).filter(s => P.eq[s]);
     if (vestido.length) {
-      const slot = vestido[ri(0, vestido.length - 1)];
-      perdas.push(`<b style="color:#e0705f">${itemStats(P.eq[slot]).name}</b> (equipado)`);
+      const slot = vestido.reduce((a, c) => sellPrice(P.eq[c]) > sellPrice(P.eq[a]) ? c : a);
+      caidos.push(equipado = P.eq[slot]);
       P.eq[slot] = null;
     }
   }
-  if (b) perdas.push(`<span style="color:#9fd4a0">${b} ${b > 1 ? 'bênçãos protegeram' : 'bênção protegeu'} o resto</span>`);
+  /* Nada some: o que você perdeu fica no seu corpo, no tile onde caiu, por dez
+     minutos. A exp é a perda definitiva; o item é uma viagem de volta. Sem marca
+     no mapa de propósito — lembrar onde morreu faz parte do preço. */
+  const lista = caidos.map(it => {
+    const s = itemStats(it);
+    return `<span style="color:${s.color}">${s.name}${it.count > 1 ? ' x' + it.count : ''}</span>`
+      + (it === equipado ? ' <i style="color:var(--dim)">(equipado)</i>' : '');
+  }).join(', ');
+  if (lista) perdas.push(lista);
+  if (caidos.length) {
+    const cor = it => it ? _num(itemStats(it).color) : null;
+    spawnCorpse(P.x, P.y, P.z, P.name, caidos,
+      { shape: 'biped', color: _num(VOCATIONS[P.voc].color), size: 1,
+        o: { skin: 0xe8c39e, weapon: cor(P.eq.weapon), shield: cor(P.eq.shield) } },
+      { player: 1, ttl: 600000 });
+    corpo = 'Seu corpo guarda o que caiu por 10 minutos. Nada marca o lugar.';
+  }
+  if (b) perdas.push(`<span style="color:var(--good)">${b} ${b > 1 ? 'bênçãos protegeram' : 'bênção protegeu'} o resto${salvos.size ? ` (${salvos.size} na mochila)` : ''}</span>`);
   P.bless = 0;
 
   recalc();
   log(`Você foi morto por ${src}. Perdeu: ${perdas.join(', ').replace(/<[^>]+>/g, '')}.`, 'bad');
+  if (corpo) log(corpo, 'bad');
   sfx('death');
-  $('#death-loss').innerHTML = perdas.map(p => '· ' + p).join('<br>');
+  $('#death-loss').innerHTML = barra
+    + (P.level < antes ? `· <b style="color:var(--bad)">caiu para o nível ${P.level}</b> (era ${antes})<br>` : '')
+    + (caiu.length ? `· habilidades: <b style="color:var(--bad)">${caiu.join(', ')}</b><br>` : '')
+    + (lista ? `<div style="margin-top:6px">Você dropou: ${lista}</div>` : '')
+    + (corpo ? `<div style="margin-top:8px;color:var(--good)">${corpo}</div>` : '');
   $('#death-screen').style.display = 'flex';
   $('#death-src').textContent = src;
 }
 function respawn() {
   G.dead = false;
-  P.x = P.px = WORLD.temple.x; P.y = P.py = WORLD.temple.y + 2; P.z = SURF;
+  P.x = P.px = WORLD.temple.x; P.y = P.py = WORLD.temple.y + 2; P.z = SURF; P.stepD = 0;
   P.hp = P.st.maxhp; P.mana = P.st.maxmana; P.buffs = {}; G.target = null; G.path = [];
   refreshSpawns(true);
   $('#death-screen').style.display = 'none';
@@ -957,20 +1184,34 @@ function castSpell(sp) {
   if (!sp.voc.includes(P.voc)) return log('Sua vocação não conhece essa magia.', 'bad');
   if (P.level < sp.lvl) return log(`Precisa de nível ${sp.lvl}.`, 'bad');
   if (G.now < (P.cd[sp.id] || 0) || G.now < (P.cd.gcd || 0)) return;
+  /* Relógio ÚNICO de dano. O piso de cdDe() é por magia, e o mago tem três de
+     ataque: ele alternava entre elas e conjurava a cada 900 ms do GCD, não a
+     cada 2 s. Medido antes disto: 167 de dano por segundo contra 31 do
+     guerreiro. O GCD segue curto de propósito — cura e utilidade não competem
+     por dano e travá-las em 2 s tiraria a defesa de quem conjura. */
+  if (DANO_TIPOS.includes(sp.type) && G.now < (P.cd.dano || 0)) return;
   if (P.mana < sp.mana) return log('Mana insuficiente.', 'bad');
   if (sp.type === 'attack' || sp.type === 'melee') {
     const m = G.target, alc = sp.type === 'melee' ? weaponInfo().range : 6;
     if (!m || m.hp <= 0 || m.z !== P.z || distT(P.x, P.y, m.x, m.y) > alc) return log('Sem alvo válido.', 'bad');
   }
   if (sp.type === 'conjure' && P.bag.length >= BAG_SLOTS) return log('Mochila cheia.', 'bad');
-  P.mana -= sp.mana; P.cd[sp.id] = G.now + sp.cd; P.cd.gcd = G.now + 900;
+  P.mana -= sp.mana; P.cd[sp.id] = G.now + cdDe(sp); P.cd.gcd = G.now + 900;
+  /* O relógio do GRUPO é ATAQUE_MS fixo, não o cooldown cheio da magia: o
+     cooldown longo é da própria magia (P.cd[sp.id]) e já a segura. Travar o
+     grupo pelo tempo da magia fazia uma AoE de 6 s calar TODAS as magias por
+     6 s, o que punia quem vive de área — medido: ranger 605 de dano por
+     segundo contra 380 do sorcerer no nível 320, invertendo quem é o mago de
+     dano. É assim que o Tibia faz: grupo de ataque em ~2 s, cooldown próprio
+     por cima. */
+  if (DANO_TIPOS.includes(sp.type)) P.cd.dano = G.now + ATAQUE_MS;
   say(P, sp.w);
   addMagic(sp.mana);
   // magia soa no lugar de quem conjura; o nome carrega o elemento, então dá para
   // ter gelo diferente de fogo sem tocar em nenhuma tabela de magia
   sfx(sp.type === 'heal' ? 'heal' : sp.type === 'buff' ? 'buff' : 'spell_' + (sp.el || 'energy'), P.x, P.y);
   const ml = skillOf('magic');
-  const power = (v) => v * (1 + ml * 0.11) + P.level * 0.25;
+  const power = (v) => magPower(v, ml, P.level);
 
   if (sp.type === 'heal') {
     curar(power(sp.base) * rnd(0.9, 1.1), sp.n); fxBurst(P.x, P.y, 0x55dd55, 1.2);
@@ -991,7 +1232,7 @@ function castSpell(sp) {
     fxBurst(m.x, m.y, sp.col, 1);
   } else if (sp.type === 'taunt') {
     const alvos = G.mobs.filter(m => m.z === P.z && distT(m.x, m.y, P.x, P.y) <= sp.r);
-    alvos.forEach(m => { m.taunt = G.now + 9000; m.chase = true; fxBurst(m.x, m.y, sp.col, 0.8); });
+    alvos.forEach(m => { m.taunt = G.now + 9000; acordar(m); fxBurst(m.x, m.y, sp.col, 0.8); });
     log(alvos.length ? `Você provocou ${alvos.length} monstro(s).` : 'Ninguém te ouviu.');
   } else if (sp.type === 'conjure') {
     const it = mkItem(sp.item);
@@ -1044,8 +1285,8 @@ function spellTiles(sp) {
    `corpseAt` (mais abaixo) é quem garante que o saque acha o de baixo — antes
    dela existir, empilhar escondia loot, e daí o desvio pra tile vizinho fazia
    sentido; agora ele só espalhava os corpos sem necessidade. */
-function spawnCorpse(x, y, z, name, items, spr) {
-  G.corpses.push({ x, y, z, name, items, spr, t: G.now });
+function spawnCorpse(x, y, z, name, items, spr, extra) {
+  G.corpses.push({ x, y, z, name, items, spr, t: G.now, ...extra });
 }
 function spawnDrop(x, y, z, it) {
   G.drops.push({ x, y, z, it });
@@ -1071,21 +1312,37 @@ function abrirTesouro(p) {
     spawnDrop(x, y, p.z, it); n++;
   }
   fxBurst(p.x, p.y, 0xffd166, 2.2);
-  sfx('loot', p.x, p.y); congelar(60);
+  sfx('loot', p.x, p.y);
   log(`${p.ico} Você saqueia ${p.n}: ${n} ${n === 1 ? 'item cai' : 'itens caem'} no chão.`, 'good');
   notify('💰', 'Tesouro saqueado', `${p.n} — ${n} ${n === 1 ? 'item' : 'itens'} no chão`);
 }
 function openLoot(c) {
+  // clicar de novo no corpo já aberto reabre a mesma janela: o som é da ABERTURA,
+  // senão cada clique de mira em cima do corpo vira um couro rasgando
+  if (G.lootOpen !== c) sfx('bag', c.x, c.y);   // couro revirado, não o 'loot' de pegar item
   G.lootOpen = c;
   const win = $('#loot-win'); win.style.display = 'flex';
-  $('#loot-title').textContent = 'Corpo de ' + c.name;
+  $('#loot-title').textContent = c.player ? 'Seu corpo' : 'Corpo de ' + c.name;
   renderLoot();
+}
+/* Quanto falta para o corpo sumir. Só o SEU corpo tem prazo que interessa — o do
+   bicho você saqueia na hora, e um relógio em cada cadáver seria ruído. Fica no
+   rodapé da janela, não no mundo: o mapa continua sem marca nenhuma. */
+function lootTempo() {
+  const c = G.lootOpen, el = $('#loot-time');
+  if (!c || !c.ttl) return void (el.style.display = 'none');
+  const resta = Math.max(0, c.t + c.ttl - G.now);
+  el.style.display = 'inline';
+  el.style.color = resta < 60000 ? 'var(--bad)' : 'var(--dim)';
+  el.textContent = resta >= 60000 ? `some em ${Math.ceil(resta / 60000)} min` : `some em ${Math.ceil(resta / 1000)}s`;
 }
 function renderLoot() {
   const c = G.lootOpen; if (!c) return;
-  const box = $('#loot-items'); box.innerHTML = '';
-  if (!c.items.length) box.innerHTML = '<div class="empty">vazio</div>';
-  c.items.forEach(it => box.appendChild(itemCell(it, () => {
+  const box = $('#loot-items');
+  $('#loot-all').disabled = !c.items.length;
+  lootTempo();
+  if (!c.items.length) { box.innerHTML = '<div class="empty">vazio</div>'; return; }
+  const cells = c.items.map(it => itemCell(it, () => {
     if (bagAdd(it)) {
       c.items.splice(c.items.indexOf(it), 1);
       const s = itemStats(it);
@@ -1093,7 +1350,31 @@ function renderLoot() {
       sfx('loot');
       renderLoot();
     }
-  })));
+  }));
+  // slots vazios até fechar a fileira: o corpo lê como recipiente, igual à mochila
+  syncCells(box, cells.concat(cellsVazias(box, Math.max(10, Math.ceil(cells.length / 5) * 5) - cells.length)));
+}
+/* Arrastar a janela pelo cabeçalho. Ela nasce centrada por `transform`, então o
+   primeiro movimento troca isso por left/top absolutos — mantendo o transform, a
+   janela andaria meia largura fora do ponteiro. O clamp segura o cabeçalho
+   dentro da tela: janela arrastada pra fora não tem como voltar. */
+function arrastaJanela(win) {
+  const h = win.querySelector('h3');
+  h.style.cursor = 'move';
+  h.addEventListener('mousedown', e => {
+    if (e.button || e.target.closest('button')) return;   // ✕ e ações têm clique próprio
+    const r = win.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    const move = ev => {
+      // botão solto fora da janela não gera mouseup: sem isto ela fica no cursor
+      if (!ev.buttons) return solta();
+      win.style.transform = 'none';
+      win.style.left = clamp(ev.clientX - dx, 0, innerWidth - r.width) + 'px';
+      win.style.top = clamp(ev.clientY - dy, 0, innerHeight - r.height) + 'px';
+    };
+    const solta = () => { removeEventListener('mousemove', move); removeEventListener('mouseup', solta); };
+    addEventListener('mousemove', move); addEventListener('mouseup', solta);
+    e.preventDefault();
+  });
 }
 function lootAll() {
   const c = G.lootOpen; if (!c) return;
@@ -1103,12 +1384,61 @@ function lootAll() {
 
 /* --------------------------------------------------------------- spawns */
 function refreshSpawns(force) {
+  const agora = Date.now();
+  /* Pontos prestes a nascer, para o chão avisar. Sai daqui e não de um laço
+     próprio no render porque este já percorre os spawns, e são ~2 mil deles:
+     varrer tudo a cada quadro para achar meia dúzia seria desperdício.
+     A lista é curta e o render só desenha o que está nela. */
+  G.nascendo = [];
   for (const sp of WORLD.spawns) {
     if (sp.z !== P.z) { if (sp.live) removeMob(sp.live, false); continue; }
     const d = distT(sp.x, sp.y, P.x, P.y);
     if (sp.live) { if (d > 55) removeMob(sp.live, false); continue; }
-    if (sp.dead > Date.now()) continue;
-    if (d < 42 && d > 6 && !occupied(sp.x, sp.y, sp.z, null)) spawnMob(sp);
+    /* Criatura noturna não nasce de dia. Só o NASCIMENTO é barrado — a que já
+       está viva fica até o jogador se afastar, pelo mesmo `d > 55` de sempre.
+       Sumir da tela ao amanhecer no meio de uma briga seria pior que o ganho. */
+    if (MONSTERS[sp.m].noite && !ehNoite()) continue;
+    if (d >= 42) continue;                       // longe demais para existir
+    /* `esperando` separa RENASCER de INSTANCIAR, e a diferença muda a regra de
+       distância. Instanciar é o bicho que já estava lá entrando em cena quando
+       você chega perto — esse tem de aparecer longe, senão brota do nada ao seu
+       lado. Renascer NÃO tem restrição de distância nenhuma: foi avisado por
+       cinco segundos, então nasce colado em você se for o caso — você viu o
+       aviso e escolheu ficar ali. O único tile impossível é um já ocupado, e
+       disso cuida o `occupied` logo abaixo.
+       Sem essa distinção o aviso se contradizia: ele chamava sua atenção para o
+       tile, e chegar perto era exatamente o que impedia o nascimento — o efeito
+       sumia e a criatura só vinha quando você se afastava sete tiles. */
+    const esperando = sp.dead > 0;
+    if (sp.dead > agora) {
+      if (d < 24 && sp.dead - agora <= AVISO_NASCER) {
+        sp.avisado = 1;                          // a janela de aviso foi de fato exibida
+        G.nascendo.push({ x: sp.x, y: sp.y, ate: sp.dead });
+      }
+      continue;
+    }
+    /* O relógio venceu: a criatura está de volta, com ou sem jogador por perto.
+       Distância NUNCA adia o respawn — ela só decide se houve espetáculo.
+
+       `aVista` = o relógio venceu com o jogador olhando, então o anel de aviso
+       chegou a ser exibido. Só esse caso ganha clarão e som, e só ele pode
+       materializar colado no jogador: ele viu os cinco segundos e ficou ali.
+
+       Sem aviso (venceu enquanto ele estava longe) a criatura simplesmente JÁ
+       ESTÁ lá quando ele chega, e entra em cena pela mesma regra de carga do
+       mundo — de longe, sem estardalhaço. É isso que impede o que ele viu:
+       atravessar um lugar limpo e a hunt inteira brotar na cara dele. */
+    const aVista = esperando && sp.avisado;
+    if (!aVista && d < 7) continue;
+    if (occupied(sp.x, sp.y, sp.z, null)) {
+      // tile ocupado na hora: adia um pouco e MANTÉM o aviso aceso, em vez de
+      // apagar e a criatura aparecer muito depois, sem nada explicando por quê
+      if (aVista) sp.dead = agora + 1200;
+      continue;
+    }
+    spawnMob(sp);
+    if (aVista && d < 24) { fxBurst(sp.x, sp.y, 0x6a3a8a, 1.1); sfx('buff', sp.x, sp.y); }
+    sp.dead = 0; sp.avisado = 0;
   }
 }
 
@@ -1156,8 +1486,7 @@ function renderCombatStats() {
   const atkEl = $('#stat-atk'); if (!atkEl) return;
   const w = weaponInfo();
   atkEl.textContent = w.wt === 'wand' ? `${w.dmg[0]}-${w.dmg[1]}` : Math.round(0.09 * w.atk * (skillOf(w.wt === 'fist' ? 'fist' : w.wt) + 4) + P.level / 5);
-  $('#stat-arm').textContent = P.st.arm;
-  $('#stat-def').textContent = P.st.shieldDef;
+  $('#stat-def').textContent = P.st.def;
   $('#stat-spd').textContent = P.st.speed;
   renderResChips();
 }
@@ -1260,17 +1589,41 @@ function tickStatus() {
   });
   if (tipDono && tipDono._tip) $('#tooltip').innerHTML = tipDono._tip();
 }
-function itemCell(it, onClick, extra) {
+/* A célula pertence ao item e sobrevive aos renders. Refazer o nó a cada ação
+   obrigava o navegador a rasterizar de novo ícone, gradiente e sombras, e o
+   frame saía antes disso ficar pronto: era o piscar de TODOS os ícones (mochila,
+   loot, equipamento) toda vez que se usava, equipava ou pegava qualquer coisa. */
+const CELULA = new WeakMap();
+function itemCell(it, onClick) {
   const s = itemStats(it);
-  const d = document.createElement('div');
-  d.className = 'cell';
+  let d = CELULA.get(it);
+  if (!d) {
+    d = document.createElement('div');
+    d.innerHTML = `<span class="ico">${s.ico}</span><span class="cnt"></span>`;
+    d.onmouseenter = e => showTip(e, it);
+    d.onmouseleave = hideTip;
+    d.oncontextmenu = e => { e.preventDefault(); if (P.bag.includes(it)) { dropItem(it); hideTip(); } };
+    CELULA.set(it, d);
+  }
+  d.className = 'cell';                       // some com o .eq de quando estava equipado
+  d.style.left = d.style.top = '';            // e com a posição absoluta do paperdoll
   d.style.borderColor = s.color + '88';
-  d.innerHTML = `<span class="ico">${s.ico}</span>` + (it.ch ? `<span class="cnt">${it.ch}</span>` : it.count > 1 ? `<span class="cnt">${it.count}</span>` : '') + (extra || '');
-  d.onmouseenter = e => showTip(e, it);
-  d.onmouseleave = hideTip;
+  d.lastChild.textContent = it.ch || (it.count > 1 ? it.count : '');
   d.onclick = onClick;
-  d.oncontextmenu = e => { e.preventDefault(); if (P.bag.includes(it)) { dropItem(it); hideTip(); } };
   return d;
+}
+/* Põe `cells` na ordem dentro de `box` mexendo só em quem saiu do lugar — quem já
+   está certo não é tocado, então não repinta. */
+function syncCells(box, cells) {
+  cells.forEach((c, i) => { if (box.children[i] !== c) box.insertBefore(c, box.children[i] || null); });
+  while (box.children.length > cells.length) box.children[box.children.length - 1].remove();
+}
+/* Slot vazio não tem estado: um punhado por caixa, reaproveitado. */
+const VAZIAS = new WeakMap();
+function cellsVazias(box, n, cls) {
+  let p = VAZIAS.get(box); if (!p) VAZIAS.set(box, p = []);
+  while (p.length < n) { const d = document.createElement('div'); d.className = cls || 'cell empty'; p.push(d); }
+  return p.slice(0, n);
 }
 const SLOT_LABEL = { helmet: 'Elmo', amulet: 'Amuleto', armor: 'Armadura', weapon: 'Arma', shield: 'Escudo', legs: 'Pernas', boots: 'Botas', ring: 'Anel', light: 'Luz' };
 /* Paperdoll clássico: corpo no centro e acessórios deslocados meio slot para baixo.
@@ -1281,22 +1634,24 @@ const SLOT_POS = {
   helmet: [61, 0], armor: [61, 61], legs: [61, 122], boots: [61, 183],
   amulet: [0, 25], weapon: [0, 86], ring: [0, 147], shield: [122, 86], light: [122, 147]
 };
+const EQ_VAZIO = {};
 function renderInv() {
-  const eq = $('#eq-slots'); eq.innerHTML = '';
+  const cells = [];
   for (const slot in SLOT_POS) {
     const it = P.eq[slot];
     let d;
     if (it) { d = itemCell(it, () => unequip(slot)); d.classList.add('eq'); }
-    else {
-      d = document.createElement('div');
+    else if (!(d = EQ_VAZIO[slot])) {
+      d = EQ_VAZIO[slot] = document.createElement('div');
       d.className = 'cell eq empty'; d.innerHTML = `<span class="lbl">${SLOT_LABEL[slot]}</span>`;
     }
     d.style.left = SLOT_POS[slot][0] + 'px'; d.style.top = SLOT_POS[slot][1] + 'px';
-    eq.appendChild(d);
+    cells.push(d);
   }
-  const bag = $('#bag'); bag.innerHTML = '';
-  P.bag.forEach(it => bag.appendChild(itemCell(it, () => useItem(it))));
-  for (let i = P.bag.length; i < BAG_SLOTS; i++) { const d = document.createElement('div'); d.className = 'cell empty'; bag.appendChild(d); }
+  syncCells($('#eq-slots'), cells);
+  const bag = $('#bag');
+  syncCells(bag, P.bag.map(it => itemCell(it, () => useItem(it)))
+    .concat(cellsVazias(bag, BAG_SLOTS - P.bag.length)));
   $('#gold-val').textContent = P.gold.toLocaleString('pt-BR');
 }
 function renderSkills() {
@@ -1315,6 +1670,82 @@ function renderSkills() {
     box.appendChild(d);
   }
 }
+/* ---------------------------------------------------- descrição de magia
+   Os números saem das FÓRMULAS de verdade, para o personagem atual — nada é
+   lido da tabela. `sp.base` não é dano: é a entrada de `magPower`, e mostrar
+   ele cru diria 26 para uma magia que bate 600. O cooldown sai de `cdDe`, que
+   é o que o jogo respeita, e não de `sp.cd` cru.
+   A descrição também é DERIVADA da ficha, e não escrita à mão nas 49: texto
+   fixo vira mentira no dia seguinte — a última leva trocou a fórmula de 27
+   magias, e nenhuma frase decorada teria acompanhado. */
+const MAG_ALVO = {
+  attack: () => 'Atinge um alvo à distância.',
+  beam: () => 'Atravessa uma linha, acertando todos no caminho.',
+  wave: () => 'Varre um cone à sua frente.',
+  aoe: sp => `Estoura em área, num raio de ${sp.r} tiles em volta do alvo.`,
+  melee: () => 'Golpe corpo a corpo: o dano vem da ARMA, não do magic level.',
+  melee_aoe: sp => `Gira a arma e acerta tudo a ${sp.r || 1} de distância. O dano vem da ARMA.`,
+  heal: () => 'Restaura sua vida na hora.',
+  buff: () => 'Efeito sobre você mesmo.',
+  taunt: sp => `Obriga tudo num raio de ${sp.r} tiles a vir atrás de você.`,
+  conjure: sp => `Cria ${ITEMS[sp.item] ? ITEMS[sp.item].n : 'runas'} na sua mochila.`
+};
+const MAG_BUFF = {
+  haste: v => `+${v}% de velocidade`, guard: v => `+${v}% de defesa na postura`,
+  rage: v => `+${v}% de dano`, regen: v => `+${v} de regeneração`,
+  shield: v => `escudo mágico de ${v}`, invis: () => 'invisibilidade',
+  light: v => `luz de raio ${v}`, aim: v => `+${v}% de acerto à distância`
+};
+function magiaInfo(sp) {
+  const ml = skillOf('magic'), w = weaponInfo();
+  const i = { cd: cdDe(sp), mana: sp.mana, lvl: sp.lvl, tipo: sp.type, el: sp.el || null, raio: sp.r || 0 };
+  if (DANO_TIPOS.includes(sp.type) && sp.type !== 'melee' && sp.type !== 'melee_aoe')
+    i.dano = magPower(sp.base, ml, P.level);
+  else if (sp.type === 'melee' || sp.type === 'melee_aoe') {
+    const base = w.wt === 'wand' ? (w.dmg[0] + w.dmg[1]) / 2 : damageFormula(w.atk, skillOf(w.wt), true);
+    i.dano = base * sp.mult; i.viaArma = true;
+  } else if (sp.type === 'heal') i.cura = magPower(sp.base, ml, P.level);
+  if (i.dano) i.dps = i.dano / (i.cd / 1000);
+  if (sp.buff) { i.buff = sp.buff; i.val = sp.val || 0; i.dur = sp.dur || 0; }
+  i.podeVoc = sp.voc.includes(P.voc);
+  i.podeNivel = P.level >= sp.lvl;
+  i.temMana = P.mana >= sp.mana;
+  return i;
+}
+const seg = ms => (ms / 1000).toFixed(ms % 1000 ? 1 : 0).replace('.', ',') + ' s';
+function magiaHTML(sp, completo) {
+  const i = magiaInfo(sp);
+  let h = `<b>${sp.ico} ${sp.n}</b> <span class="dim">${sp.w}</span>`;
+  h += `<div class="dim">nível ${sp.lvl} · ${sp.mana} de mana · ${seg(i.cd)}` +
+       (i.el ? ` · ${ELEM[i.el].n}` : '') + `</div>`;
+  if (i.dano) h += `<div>Dano médio: <b>${Math.round(i.dano)}</b>` +
+    `<span class="dim"> · ${Math.round(i.dps)}/s</span></div>`;
+  if (i.cura) h += `<div>Cura: <b>${Math.round(i.cura)}</b></div>`;
+  if (i.buff) h += `<div class="bon">${(MAG_BUFF[i.buff] || (v => i.buff + ' ' + v))(i.val)}` +
+    (i.dur ? ` por ${seg(i.dur)}` : '') + `</div>`;
+  if (completo) {
+    h += `<div style="margin-top:6px">${(MAG_ALVO[sp.type] || (() => ''))(sp)}</div>`;
+    if (i.viaArma) h += `<div class="dim">Com a arma de agora: ${weaponInfo().n || 'punhos'}.</div>`;
+    if (DANO_TIPOS.includes(sp.type))
+      h += `<div class="dim">Magia de dano compartilha um relógio único: depois desta,
+        nenhuma outra de dano sai por ${seg(ATAQUE_MS)}.</div>`;
+  }
+  if (!i.podeVoc) h += `<div class="bad">Sua vocação não conjura esta magia.</div>`;
+  else if (!i.podeNivel) h += `<div class="bad">Precisa do nível ${sp.lvl}.</div>`;
+  else if (!i.temMana) h += `<div class="bad">Mana insuficiente.</div>`;
+  return h;
+}
+const showSpellTip = (e, sp) => tipEm(e, magiaHTML(sp, false));
+function abrirMagia(sp) {
+  const w = $('#spell-win');
+  $('#spell-body').innerHTML = magiaHTML(sp, true);
+  const b = $('#spell-cast');
+  const i = magiaInfo(sp);
+  b.disabled = !(i.podeVoc && i.podeNivel);
+  b.onclick = () => { castSpell(sp); $('#spell-body').innerHTML = magiaHTML(sp, true); };
+  w.style.display = 'flex';
+}
+
 function renderSpells() {
   const box = $('#tab-spells'); box.innerHTML = '';
   for (const sp of SPELLS.filter(s => s.voc.includes(P.voc))) {
@@ -1324,7 +1755,14 @@ function renderSpells() {
     d.innerHTML = `<span class="ico">${sp.ico}</span>
       <span class="sp-n">${sp.n}<i>${sp.w}</i></span>
       <span class="sp-c">${sp.mana}<small>mana</small><br><small>nv ${sp.lvl}</small></span>`;
-    if (ok) d.onclick = () => castSpell(sp);
+    /* clique ABRE a ficha, não conjura: era o único lugar do jogo que conjurava
+       por clique, e ler o que a magia faz antes de gastar mana é o pedido.
+       Nada se perde — a ficha tem botão de conjurar, e hotbar e chat continuam
+       lançando direto. Magia travada também abre: saber o que vem no próximo
+       nível é metade da razão de olhar a lista. */
+    d.onclick = () => abrirMagia(sp);
+    d.onmouseenter = e => showSpellTip(e, sp);
+    d.onmouseleave = hideTip;
     box.appendChild(d);
   }
 }
@@ -1368,22 +1806,30 @@ function renderHotbar() {
   const bar = $('#hotbar');
   if (!P.hotbar || P.hotbar.length !== HOT_SLOTS) P.hotbar = hotDefault();
   if (!P.hotkeys || P.hotkeys.length !== HOT_SLOTS) P.hotkeys = HOT_KEYS_DEFAULT.slice();
-  bar.innerHTML = '';
+  /* mesmo motivo da mochila (ver itemCell): o slot é reaproveitado e só volta a
+     ser remontado quando o conteúdo muda de verdade, senão o ícone pisca a cada
+     magia lançada. */
   for (let i = 0; i < HOT_SLOTS; i++) {
     const e = hotEntry(P.hotbar[i]);
-    const d = document.createElement('div');
+    const d = bar.children[i] || bar.appendChild(document.createElement('div'));
+    const html = `<b>${hotKeyLabel(P.hotkeys[i])}</b><span>${e ? e.ico : '+'}</span><i>${e ? e.n : 'vazio'}</i><u></u>`;
     d.className = 'hk' + (e ? '' : ' vazio');
-    d.innerHTML = `<b>${hotKeyLabel(P.hotkeys[i])}</b><span>${e ? e.ico : '+'}</span><i>${e ? e.n : 'vazio'}</i><u></u>`;
+    if (d._html !== html) {
+      d._html = html; d.innerHTML = html; delete d.dataset.q;   // tickHotbar reescreve a quantidade
+      const key = d.firstChild;
+      key.title = 'clique e aperte uma tecla para trocar o atalho';
+      key.onclick = ev => {
+        ev.stopPropagation();
+        G.rebindSlot = i; key.textContent = '…'; d.classList.add('rebind');
+      };
+    } else d.firstChild.textContent = hotKeyLabel(P.hotkeys[i]);   // desfaz o '…' do rebind
     d.onclick = () => e ? hotUse(i) : abrirPicker(i);
     d.oncontextmenu = ev => { ev.preventDefault(); P.hotbar[i] = null; renderHotbar(); };
     d.title = e ? `${e.n} — ${hotKeyLabel(P.hotkeys[i])} · botão direito limpa` : 'clique para escolher';
-    const key = d.firstChild;
-    key.title = 'clique e aperte uma tecla para trocar o atalho';
-    key.onclick = ev => {
-      ev.stopPropagation();
-      G.rebindSlot = i; key.textContent = '…'; d.classList.add('rebind');
-    };
-    bar.appendChild(d);
+    /* magia no slot ganha o balão rico; item continua no `title` do navegador,
+       que já basta para poção e runa */
+    d.onmouseenter = e && e.sp ? ev => showSpellTip(ev, e.sp) : null;
+    d.onmouseleave = e && e.sp ? hideTip : null;
   }
 }
 /* só o cooldown/mana muda a cada frame — remontar a barra inteira em 60fps é desperdício */
@@ -1393,7 +1839,11 @@ function tickHotbar() {
     const d = bar.children[i], e = hotEntry(P.hotbar && P.hotbar[i]);
     if (!d || !e) continue;
     if (e.sp) {
-      d.lastChild.style.height = Math.max(0, ((P.cd[e.sp.id] || 0) - G.now) / e.sp.cd * 100) + '%';
+      /* o que vale é o relógio que terminar por último: com o relógio único de
+         dano a magia pode ter o próprio cooldown vencido e ainda não sair, e
+         barra vazia em magia que não lança mente para o jogador */
+      const fim = Math.max(P.cd[e.sp.id] || 0, DANO_TIPOS.includes(e.sp.type) ? (P.cd.dano || 0) : 0);
+      d.lastChild.style.height = Math.max(0, (fim - G.now) / cdDe(e.sp) * 100) + '%';
       d.classList.toggle('nomana', P.mana < e.sp.mana);
     } else {
       const tem = P.bag.some(b => b.id === e.itemId);
@@ -1447,8 +1897,8 @@ function showTip(e, it) {
   html += `<div class="dim">${RARITY[it.r].name}${s.slot ? ' · ' + SLOT_LABEL[s.slot] : ''}</div>`;
   if (s.atk) html += `<div>Ataque: <b>${s.atk}</b></div>`;
   if (s.dmg) html += `<div>Dano mágico: <b>${s.dmg[0]}-${s.dmg[1]}</b></div>`;
-  if (s.def) html += `<div>Defesa: <b>${s.def}</b></div>`;
-  if (s.arm) html += `<div>Armadura: <b>${s.arm}</b></div>`;
+  // uma linha só: quem veste não precisa saber se o número veio de `arm` ou `def`
+  if (s.def + s.arm) html += `<div>Defesa: <b>${s.def + s.arm}</b></div>`;
   const u = ITEMS[it.id].use;
   if (u) html += `<div>Restaura <b>${u.hp || u.mp}</b> de ${u.hp ? 'vida' : 'mana'}</div>`;
   const ru = ITEMS[it.id].rune;
@@ -1477,9 +1927,15 @@ function tipEm(e, html) {
   t.innerHTML = html;
   t.style.display = 'block';
   tipDono = e.currentTarget;
-  const r = e.currentTarget.getBoundingClientRect();
-  t.style.left = Math.min(innerWidth - 250, r.left - 240) + 'px';
-  t.style.top = Math.min(innerHeight - t.offsetHeight - 8, r.top) + 'px';
+  /* O balão nasce à esquerda do elemento, que é onde ele não cobre o slot. Perto
+     da borda esquerda não há espaço lá, então ele vira para o outro lado; o clamp
+     final segura os quatro lados dentro da tela. Mede o próprio balão em vez dos
+     240/250 cravados: a largura vive no CSS, e os números aqui ficavam para trás. */
+  const r = e.currentTarget.getBoundingClientRect(), m = 8;
+  const w = t.offsetWidth, h = t.offsetHeight;
+  const x = r.left - w - 4 < m ? r.right + 4 : r.left - w - 4;
+  t.style.left = Math.max(m, Math.min(innerWidth - w - m, x)) + 'px';
+  t.style.top = Math.max(m, Math.min(innerHeight - h - m, r.top)) + 'px';
 }
 const hideTip = () => { tipDono = null; $('#tooltip').style.display = 'none'; };
 /* O tooltip vive preso ao mouseleave da célula. Quando a célula some sem o mouse
@@ -1504,11 +1960,18 @@ function coletaDe(tt) {
   }
   return COLETA_POR_TILE[tt] || null;
 }
-/* Tile gasto: chave "z:x:y" -> quando volta. Vive só na sessão de propósito —
-   ponytail: um Map em memória; se o jogador reclamar que a mina reabre ao
-   recarregar a página, isto vira campo de P e passa a ser salvo. */
-const COLHIDO = new Map();
+/* Tile gasto: chave "z:x:y" -> quando volta (relógio de parede, como o respawn).
+   Vive em `P.colhido`, então atravessa o save: antes era um Map de sessão e
+   recarregar a página reabria TODA mina do mundo — na prática, F5 era minério
+   infinito. Só as entradas ainda em descanso são gravadas (ver `podarColhido`),
+   senão o save cresceria com cada tile já colhido na vida do personagem. */
 const chaveTile = (x, y, z) => z + ':' + x + ':' + y;
+const colhidoEm = k => (P.colhido && P.colhido[k]) || 0;
+function podarColhido() {
+  if (!P.colhido) return;
+  const agora = Date.now();
+  for (const k in P.colhido) if (P.colhido[k] <= agora) delete P.colhido[k];
+}
 
 /* Colhe o tile vizinho. É o Ctrl + clique, o mesmo do saque: se não tem corpo
    nem item no chão, a pergunta seguinte é "dá pra tirar alguma coisa daqui?" —
@@ -1519,7 +1982,7 @@ function colher(x, y) {
   /* Recurso é tile que NÃO dá pé (pedra, árvore, água), então não dá para pedir
      caminho até ele — o pathfinding recusa o destino. Anda até um vizinho e
      deixa marcado; `afterStep` colhe ao chegar, do mesmo jeito que o saque. */
-  if (distT(P.x, P.y, x, y) > 1) {
+  if (distT(...tileDe(P), x, y) > 1) {
     const v = DIRS.map(([dx, dy]) => [x + dx, y + dy])
       .filter(([nx, ny]) => isWalkable(nx, ny, P.z))
       .sort((a, b) => distT(P.x, P.y, a[0], a[1]) - distT(P.x, P.y, b[0], b[1]))[0];
@@ -1528,13 +1991,14 @@ function colher(x, y) {
     return true;
   }
   if (G.now < (G.colheitaCd || 0)) return true;                    // uma ação por vez
-  const k = chaveTile(x, y, P.z), volta = COLHIDO.get(k) || 0;
+  const k = chaveTile(x, y, P.z), volta = colhidoEm(k);
   if (Date.now() < volta) {
     log(`Aqui já foi ${c.n === 'pescar' ? 'pescado' : 'colhido'} — volte em ${Math.ceil((volta - Date.now()) / 1000)}s.`);
     return true;
   }
   G.colheitaCd = G.now + 1200;
-  COLHIDO.set(k, Date.now() + c.seg * 1000);
+  P.colhido = P.colhido || {};
+  P.colhido[k] = Date.now() + c.seg * 1000;
   const nivel = skillOf(c.skill);
   /* Uma linha por colheita, sorteada entre as que o nível já alcança e SÓ entre
      elas: subir a skill não deixa o comum mais raro, abre linha nova. Peso pela
@@ -1562,6 +2026,19 @@ function sellPrice(it) {
   return Math.max(1, Math.round(s.sell * (1 + it.r * 0.6))) * (it.count || 1);
 }
 function shopNear() { return P.z === SURF && distT(P.x, P.y, WORLD.temple.x, WORLD.temple.y) <= 8; }
+/* Lista de linhas (`.srow2`) reaproveitando os nós: só remonta a linha cujo texto
+   mudou. Zerar a lista inteira a cada compra/venda recriava as <img> dos ícones e
+   fazia a loja piscar toda — mesmo motivo do itemCell. */
+function syncRows(box, rows, cls) {
+  rows.forEach((r, i) => {
+    let d = box.children[i];
+    if (!d) { d = document.createElement('div'); box.appendChild(d); }
+    d.className = cls || 'srow2';
+    if (d._html !== r.html) { d._html = r.html; d.innerHTML = r.html; if (r.liga) r.liga(d); }
+    d.onclick = r.click || null;
+  });
+  while (box.children.length > rows.length) box.children[rows.length].remove();
+}
 function renderShop() {
   /* Bênção fica no topo da loja e não na lista de itens porque não é item: não
      ocupa mochila, não se vende e some quando você morre. Comprar de uma vez
@@ -1572,7 +2049,7 @@ function renderShop() {
     + `<div class="srow2" ${falta ? '' : 'style="opacity:.5"'}>`
     + `<span>✨ ${falta ? `Comprar ${falta} bênção${falta > 1 ? 's' : ''}` : 'Você está abençoado'}</span>`
     + `<b>${falta ? falta * preco + ' 🪙' : '—'}</b></div>`
-    + `<div style="font-size:11px;opacity:.7;padding:2px 4px 6px">Reduz a perda de exp de 10% para 3% e impede que você largue equipamento ao morrer. Somem todas na morte.</div>`;
+    + `<div style="font-size:11px;opacity:.7;padding:2px 4px 6px">Reduz a perda de exp de 10% para 3%, protege o equipamento e salva um quinto da mochila por bênção — as cinco salvam tudo. Somem todas na morte.</div>`;
   if (falta) bl.lastElementChild.previousElementSibling.onclick = () => {
     const custo = falta * preco;
     if (P.gold < custo) return log('Ouro insuficiente para as bênçãos.', 'bad');
@@ -1581,28 +2058,25 @@ function renderShop() {
     notify('✨', 'Abençoado', `${BENCAOS}/${BENCAOS} — a morte custa menos agora`);
     sfx('coin'); renderShop(); renderBars();
   };
-  const buy = $('#shop-buy'); buy.innerHTML = '';
-  SHOP_STOCK.forEach(id => {
+  syncRows($('#shop-buy'), SHOP_STOCK.map(id => {
     const b = ITEMS[id];
-    const d = document.createElement('div'); d.className = 'srow2';
-    d.innerHTML = `<span>${b.ico} ${b.n}</span><b>${b.price} 🪙</b>`;
-    d.onclick = () => {
-      if (P.gold < b.price) return log('Ouro insuficiente.', 'bad');
-      const it = mkItem(id, 0, 1);
-      if (!bagAdd(it)) return;
-      P.gold -= b.price; log(`Comprou ${b.n}.`); sfx('coin'); renderShop(); renderInv(); renderBars();
+    return {
+      html: `<span>${b.ico} ${b.n}</span><b>${b.price} 🪙</b>`,
+      click: () => {
+        if (P.gold < b.price) return log('Ouro insuficiente.', 'bad');
+        const it = mkItem(id, 0, 1);
+        if (!bagAdd(it)) return;
+        P.gold -= b.price; log(`Comprou ${b.n}.`); sfx('coin'); renderShop(); renderInv(); renderBars();
+      }
     };
-    buy.appendChild(d);
-  });
-  const sell = $('#shop-sell'); sell.innerHTML = '';
-  P.bag.forEach(it => {
-    const s = itemStats(it);
-    const price = sellPrice(it);
-    const d = document.createElement('div'); d.className = 'srow2';
-    d.innerHTML = `<span style="color:${s.color}">${s.ico} ${s.name}${it.count > 1 ? ' x' + it.count : ''}</span><b>${price} 🪙</b>`;
-    d.onclick = () => { P.gold += price; P.bag.splice(P.bag.indexOf(it), 1); log(`Vendeu por ${price} moedas.`); sfx('coin'); renderShop(); renderInv(); renderBars(); };
-    sell.appendChild(d);
-  });
+  }));
+  syncRows($('#shop-sell'), P.bag.map(it => {
+    const s = itemStats(it), price = sellPrice(it);
+    return {
+      html: `<span style="color:${s.color}">${s.ico} ${s.name}${it.count > 1 ? ' x' + it.count : ''}</span><b>${price} 🪙</b>`,
+      click: () => { P.gold += price; P.bag.splice(P.bag.indexOf(it), 1); log(`Vendeu por ${price} moedas.`); sfx('coin'); renderShop(); renderInv(); renderBars(); }
+    };
+  }));
 }
 
 /* ------------------------------------------------------------- entrada */
@@ -1636,7 +2110,7 @@ function lootTile(x, y) {
   const c = corpseAt(x, y);
   const dr = G.drops.find(d => d.z === P.z && d.x === x && d.y === y);
   if (!c && !dr) { colher(x, y); return; }   // nada pra saquear: talvez dê pra colher
-  if (distT(P.x, P.y, x, y) <= 1) { if (c) openLoot(c); else if (bagAdd(dr.it)) G.drops.splice(G.drops.indexOf(dr), 1); return; }
+  if (distT(...tileDe(P), x, y) <= 1) { if (c) openLoot(c); else if (bagAdd(dr.it)) G.drops.splice(G.drops.indexOf(dr), 1); return; }
   // fora de alcance: anda até ficar ADJACENTE, nunca em cima do corpo — corta o
   // último passo do caminho, igual ao alcance de corpo a corpo faz com o alvo.
   // afterStep() abre sozinho quando chegar perto.
@@ -1658,7 +2132,7 @@ function stepPlayer() {
   if (G.walkDir) {
     const [dx, dy] = G.walkDir;
     P.lastDir = [dx, dy];
-    if (tryStep(P, P.x + dx, P.y + dy)) { G.path = []; afterStep(); }
+    if (tryStep(P, P.x + dx, P.y + dy)) G.path = [];
     else P.nextStep = G.now + 120;
     return;
   }
@@ -1672,7 +2146,7 @@ function stepPlayer() {
   if (!G.path.length) return;
   const [nx, ny] = G.path[0];
   P.lastDir = [Math.sign(nx - P.x), Math.sign(ny - P.y)];
-  if (tryStep(P, nx, ny)) { G.path.shift(); afterStep(); }
+  if (tryStep(P, nx, ny)) G.path.shift();
   else { G.path = []; P.nextStep = G.now + 150; }
 }
 /* bebe a melhor poção que o nível permite — sobreviver puxando várias exige isso */
@@ -1771,6 +2245,18 @@ const KEYDIR = { w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0], arrowup: [0, -1],
    do andar inteiro, mirava um bicho a 60 tiles fora da tela e nada acontecia. */
 const ALVO_R = 8;
 const alvosPerto = () => G.mobs.filter(m => m.hp > 0 && m.z === P.z && distT(m.x, m.y, P.x, P.y) <= ALVO_R);
+/* Virar sem andar. Até aqui a direção só mudava por passo ou por ataque, então
+   não havia como encarar um lado sem se deslocar para ele — e quem atira ou
+   conjura em linha precisa disso.
+   Função própria (e não duas linhas dentro do keydown) porque no harness de
+   teste o `addEventListener` global é no-op: o handler nunca chega a rodar, e
+   lógica que só existe lá dentro é lógica sem verificação possível. */
+function virarPara(d) {
+  if (G.dead || !d) return false;
+  P.lastDir = [d[0], d[1]];
+  P.dir = Math.atan2(d[0], d[1]);   // mesma convenção do ataque
+  return true;
+}
 function bindInput(canvas) {
   canvas.addEventListener('mousedown', e => {
     const t = tileUnderMouse(e, canvas); if (!t) return;
@@ -1784,7 +2270,7 @@ function bindInput(canvas) {
     // clique esquerdo puro — corpo no meio do caminho parava de travar passagem.
     if (e.button === 0 && e.ctrlKey) {
       const c = corpseAt(t[0], t[1]);
-      if (c && distT(P.x, P.y, c.x, c.y) <= 1) G.dragCorpse = c;
+      if (c && distAcao(P, c) <= 1) G.dragCorpse = c;
       else lootTile(t[0], t[1]);
       return;
     }
@@ -1792,7 +2278,7 @@ function bindInput(canvas) {
     // criatura viva ao alcance: começa arrasto pro empurrão. Clique simples
     // (solta no mesmo tile) ainda mira — é o mouseup que decide qual foi.
     const m = G.mobs.find(mo => mo.hp > 0 && mo.z === P.z && mo.x === t[0] && mo.y === t[1]);
-    if (m && distT(P.x, P.y, m.x, m.y) <= 1) { G.dragMob = m; return; }
+    if (m && distAcao(P, m) <= 1) { G.dragMob = m; return; }
     clickTile(t[0], t[1]);
   });
   canvas.addEventListener('mouseup', e => {
@@ -1842,7 +2328,14 @@ function bindInput(canvas) {
       return;
     }
     const k = e.key.toLowerCase();
-    if (KEYDIR[k]) { G.keys[k] = 1; G.walkDir = KEYDIR[k]; e.preventDefault(); }
+    /* Ctrl + direção VIRA sem andar. Vem antes do ramo de andar de propósito:
+       é o mesmo KEYDIR, e deixar passar poria o passo em marcha.
+       Serve WASD e setas. Ctrl+A ("selecionar tudo") e Ctrl+S ("salvar página")
+       morrem no preventDefault; Ctrl+W ("fechar aba") o navegador NÃO entrega à
+       página, então quem quiser virar para o norte usa Ctrl+↑ — por isso as
+       setas entram aqui e não só o WASD. */
+    if (KEYDIR[k] && e.ctrlKey) { e.preventDefault(); virarPara(KEYDIR[k]); }
+    else if (KEYDIR[k]) { G.keys[k] = 1; G.walkDir = KEYDIR[k]; e.preventDefault(); }
     else if (P.hotkeys && P.hotkeys.indexOf(k) >= 0) { e.preventDefault(); hotUse(P.hotkeys.indexOf(k)); }
     else if (k === ' ') {
       e.preventDefault();
@@ -1850,12 +2343,12 @@ function bindInput(canvas) {
       if (near) { G.target = near; renderBattle(); }
     }
     else if (k === 'f') {
-      const perto = G.corpses.filter(c => c.z === P.z && distT(c.x, c.y, P.x, P.y) <= 1);
+      const perto = G.corpses.filter(c => c.z === P.z && distAcao(c, P) <= 1);
       const c = perto[perto.length - 1];   // LIFO, igual corpseAt
       if (c) { openLoot(c); lootAll(); }
     }
     else if (k === 'g') {
-      const dr = G.drops.find(d => d.z === P.z && distT(d.x, d.y, P.x, P.y) <= 1);
+      const dr = G.drops.find(d => d.z === P.z && distAcao(d, P) <= 1);
       if (dr && bagAdd(dr.it)) G.drops.splice(G.drops.indexOf(dr), 1);
     }
     // as poções novas entram na frente da lista: X e C sempre bebem a MELHOR que
@@ -1911,7 +2404,7 @@ function updateOverlay() {
   const ov = $('#overlay'), seen = new Set();
   const cvW = gcv ? gcv.clientWidth : 0, cvH = gcv ? gcv.clientHeight : 0;
   const naTela = ([sx, sy]) => sx > -24 && sx < cvW + 24 && sy > -24 && sy < cvH + 24;
-  const ents = [{ key: 'p', ent: P, n: P.name, hp: P.hp, max: P.st.maxhp, col: VOCATIONS[P.voc].color, anchor: plateAnchor(P) }];
+  const ents = [{ key: 'p', ent: P, n: P.name, hp: P.hp, max: P.st.maxhp, col: '#fff', anchor: plateAnchor(P) }];
   // nome/vida só pra quem está de fato na tela: `distT < 22` valia até pra bicho
   // fora do andar (x/y se repete entre andares, o raio não olhava `z`) e pra
   // bicho dentro do raio mas fora da área visível de verdade, dependendo do zoom
@@ -1970,27 +2463,34 @@ function updateFx() {
     if (G.now - G.blood[i].t > G.blood[i].dur) G.blood.splice(i, 1);
   for (let i = G.corpses.length - 1; i >= 0; i--) {
     const c = G.corpses[i];
-    if (G.now - c.t > 120000) {
+    if (G.now - c.t > (c.ttl || 120000)) {
       if (G.lootOpen === c) { G.lootOpen = null; $('#loot-win').style.display = 'none'; }
       G.corpses.splice(i, 1);
     }
   }
 }
-/* ox/oy: pan em tiles a partir do jogador (dbl-click recentra). R: metade da
-   janela visível em tiles — o zoom do minimapa, menor R = mais perto. */
-const miniView = { ox: 0, oy: 0, R: 34 };
+/* ox/oy: pan em tiles a partir do jogador (dbl-click recentra). ppt: pixels por
+   tile — o zoom. Era R (metade da janela em tiles), que amarrava o alcance ao
+   tamanho do canvas: alargar o painel só esticava os mesmos tiles. Com px/tile
+   fixo, painel maior = mais mundo à vista, que é o ponto de um minimapa. */
+const miniView = { ox: 0, oy: 0, ppt: 190 / 68 };
 let miniDragMoved = false;
 function drawMinimap() {
   const cv = $('#minimap'), ctx = cv.getContext('2d'), src = miniCanvas[P.z];
-  const cx = P.x + miniView.ox, cy = P.y + miniView.oy, R = miniView.R;
+  // o buffer segue o tamanho real na tela, senão o navegador reamostra e borra.
+  // clientWidth 0 = painel escondido: manter o buffer para não desenhar em zero
+  if (cv.clientWidth && (cv.width !== cv.clientWidth || cv.height !== cv.clientHeight)) {
+    cv.width = cv.clientWidth; cv.height = cv.clientHeight;
+  }
+  const cx = P.x + miniView.ox, cy = P.y + miniView.oy, sc = miniView.ppt;
+  const Rx = cv.width / (2 * sc), Ry = cv.height / (2 * sc);
   ctx.imageSmoothingEnabled = false;
   // fundo = o que existe fora do mapa, senão a borda do mundo fica transparente
   ctx.fillStyle = corFora(P.z); ctx.fillRect(0, 0, cv.width, cv.height);
-  ctx.drawImage(src, cx - R, cy - R, R * 2, R * 2, 0, 0, cv.width, cv.height);
-  const sc = cv.width / (R * 2);
-  const dot = (x, y, c, s) => { ctx.fillStyle = c; ctx.fillRect((x - cx + R) * sc - s / 2, (y - cy + R) * sc - s / 2, s, s); };
+  ctx.drawImage(src, cx - Rx, cy - Ry, Rx * 2, Ry * 2, 0, 0, cv.width, cv.height);
+  const dot = (x, y, c, s) => { ctx.fillStyle = c; ctx.fillRect((x - cx + Rx) * sc - s / 2, (y - cy + Ry) * sc - s / 2, s, s); };
   G.mobs.forEach(m => m.hp > 0 && dot(m.x, m.y, G.target === m ? '#ff4444' : '#ff9a4a', 3));
-  G.corpses.forEach(c => dot(c.x, c.y, '#8a3a3a', 3));
+  G.corpses.forEach(c => !c.player && dot(c.x, c.y, '#8a3a3a', 3));
   if (P.z === SURF) dot(WORLD.temple.x, WORLD.temple.y, '#ffe08a', 5);
   dot(P.x, P.y, '#ffffff', 4);
 }
@@ -2006,15 +2506,15 @@ function bindMiniMap(cv) {
     if (!dragging) return;
     const dx = e.clientX - lastX, dy = e.clientY - lastY;
     if (Math.abs(dx) > 2 || Math.abs(dy) > 2) miniDragMoved = true;
-    const sc = cv.width / (miniView.R * 2);
-    miniView.ox -= dx / sc; miniView.oy -= dy / sc;
+    miniView.ox -= dx / miniView.ppt; miniView.oy -= dy / miniView.ppt;
     lastX = e.clientX; lastY = e.clientY;
   });
   addEventListener('mouseup', () => { dragging = false; cv.style.cursor = 'grab'; });
   cv.addEventListener('dblclick', e => { e.preventDefault(); miniView.ox = 0; miniView.oy = 0; });
   cv.addEventListener('wheel', e => {
     e.preventDefault();
-    miniView.R = clamp(miniView.R * (e.deltaY > 0 ? 1.15 : .87), 10, 90);
+    // px/tile é o inverso de R: rolar para baixo afasta, então diminui a escala
+    miniView.ppt = clamp(miniView.ppt * (e.deltaY > 0 ? .87 : 1.15), 1, 10);
   }, { passive: false });
 }
 
@@ -2057,6 +2557,7 @@ function fixSave(d) {
   // save anterior às skills de coleta: sem isto `skillOf('mining')` estoura no
   // primeiro clique numa pedra com um personagem antigo
   for (const k of SKILLS_COLETA) if (!d.p.sk[k]) d.p.sk[k] = { l: 10, t: 0 };
+  d.p.colhido = d.p.colhido || {};   // save anterior à persistência da colheita
   d.drops = (d.drops || []).filter(dr => dr && dr.it);
   d.drops.forEach(dr => fixAf(dr.it));
   return d;
@@ -2129,6 +2630,7 @@ function load() {
    atualizado para compatibilidade com ferramentas antigas. */
 function save() {
   if (!P) return;
+  podarColhido();                     // não grava tile que já reabriu
   const { st, ...rest } = P;
   const agora = Date.now();
   const d = {
@@ -2157,6 +2659,7 @@ let lastT = 0;
 function frame(t) {
   requestAnimationFrame(frame);
   const passo = Math.min(50, t - lastT); lastT = t;
+  G.real = t;                       // relógio de parede: anda mesmo durante o hitstop
   /* G.now é o relógio DO JOGO: ele acumula em vez de copiar o carimbo do
      requestAnimationFrame. É isso que torna o hitstop possível — passo, ataque,
      quadro de animação e efeito leem todos G.now, então segurar este número
@@ -2167,8 +2670,8 @@ function frame(t) {
   G.now += passo; const dt = G.dt = passo;
   if (!G.started) return;
 
+  lerpEntity(P);   // antes do passo: é o lerp que detecta a chegada e chama afterStep
   stepPlayer();
-  lerpEntity(P);
   updateMobs(dt);
   playerAttack();
   updateFx();
@@ -2177,9 +2680,10 @@ function frame(t) {
   if (G.now - G.lastSpawn > 700) {
     G.lastSpawn = G.now; refreshSpawns(); renderBattle();
     const c = G.lootOpen;                       // saiu de perto do corpo: fecha o saque
-    if (c && (c.z !== P.z || distT(P.x, P.y, c.x, c.y) > 1)) {
+    if (c && (c.z !== P.z || distAcao(P, c) > 1)) {
       G.lootOpen = null; $('#loot-win').style.display = 'none';
     }
+    else if (c) lootTempo();                    // relógio do próprio corpo correndo à vista
   }
   if (G.now - G.lastRegen > 3000) {
     G.lastRegen = G.now;
@@ -2438,7 +2942,7 @@ function renderVocGrid() {
     const v = VOCATIONS[k];
     const card = document.createElement('button');
     card.className = 'voc-card';
-    card.style.setProperty('--voc', v.art);
+    card.style.setProperty('--voc', v.color);
     card.style.backgroundImage = `url("assets/vocations/card/${k}.png")`;
     card.setAttribute('aria-label', v.name);
     card.onclick = () => { vocIndex = i; renderVoc(); };
@@ -2459,7 +2963,7 @@ function renderVoc() {
   $('#voc-mana').textContent = '+' + v.mana;
   $('#voc-hpreg').textContent = v.hpReg;
   $('#voc-mpreg').textContent = v.mpReg;
-  $('.voc-info').style.setProperty('--voc', v.art);
+  $('.voc-info').style.setProperty('--voc', v.color);
 }
 
 function cycleVoc(delta) {
@@ -2469,6 +2973,7 @@ function cycleVoc(delta) {
 
 addEventListener('DOMContentLoaded', () => {
   $('#loot-all').onclick = lootAll;
+  arrastaJanela($('#loot-win'));
   $('#loot-close').onclick = () => { $('#loot-win').style.display = 'none'; G.lootOpen = null; };
   $('#respawn-btn').onclick = respawn;
   $('#shop-btn').onclick = () => { $('#shop-win').style.display = 'flex'; renderShop(); };

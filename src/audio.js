@@ -124,6 +124,7 @@ const SFX = {
   levelup:  () => arp([523, 659, 784, 1047, 1319], .085, 'triangle', .2),
   skillup:  () => arp([784, 988, 1175], .06, 'sine', .14),
   loot:     () => { tone({ f: 1200, d: .06, type: 'square', v: .1 }); tone({ f: 1700, d: .07, delay: .05, type: 'square', v: .09 }); },
+  bag:      () => { noise({ d: .22, f: 1100, f2: 320, v: .1, filter: 'bandpass' }); },
   coin:     () => arp([1568, 2093], .045, 'square', .12),
   equip:    () => { noise({ d: .1, f: 2200, f2: 600, v: .16 }); tone({ f: 420, f2: 260, d: .09, type: 'square', v: .1 }); },
   unequip:  () => { tone({ f: 260, f2: 420, d: .08, type: 'square', v: .09 }); },

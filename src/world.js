@@ -14,20 +14,20 @@ const DEEP = 4;   // a partir daqui é endgame: mais lava, mais elite, sem meio-
 const T = { VOID: 0, GRASS: 1, DIRT: 2, SAND: 3, WATER: 4, ROCK: 5, TREE: 6, CFLOOR: 7, CWALL: 8, LAVA: 9, DOWN: 10, UP: 11, TEMPLE: 12, SNOW: 13, SWAMP: 14 };
 const TILE = {
   [T.VOID]:   { c: 0x000000, top: 0,    walk: false, hide: true },
-  [T.GRASS]:  { c: 0x4a7a3a, top: 0,    walk: true,  tex: 'grass' },
-  [T.DIRT]:   { c: 0x6d5738, top: 0,    walk: true,  tex: 'dirt' },
-  [T.SAND]:   { c: 0xc9b477, top: 0,    walk: true,  tex: 'sand' },
-  [T.WATER]:  { c: 0x2a5a8c, top: -0.28, walk: false, tex: 'water' },
-  [T.ROCK]:   { c: 0x6e6e72, top: 1.1,  walk: false, tex: 'rock' },
-  [T.TREE]:   { c: 0x3d6630, top: 0,    walk: false, tex: 'grass' },
-  [T.CFLOOR]: { c: 0x554d45, top: 0,    walk: true,  tex: 'cave' },
-  [T.CWALL]:  { c: 0x38332d, top: 1.1,  walk: false, tex: 'rock' },
-  [T.LAVA]:   { c: 0xd1441a, top: -0.1, walk: false, tex: 'lava' },
-  [T.DOWN]:   { c: 0x3a332c, top: 0,    walk: true,  tex: 'cave' },
-  [T.UP]:     { c: 0x9a9185, top: 0,    walk: true,  tex: 'stone' },
-  [T.TEMPLE]: { c: 0xb9ae94, top: 0,    walk: true,  tex: 'stone' },
-  [T.SNOW]:   { c: 0xd6e2ea, top: 0,    walk: true,  tex: 'snow' },
-  [T.SWAMP]:  { c: 0x3c4a2e, top: -0.06, walk: true, tex: 'swamp' }
+  [T.GRASS]:  { c: 0x55913a, top: 0,    walk: true,  tex: 'grass' },
+  [T.DIRT]:   { c: 0x7a5c30, top: 0,    walk: true,  tex: 'dirt' },
+  [T.SAND]:   { c: 0xd8bd6e, top: 0,    walk: true,  tex: 'sand' },
+  [T.WATER]:  { c: 0x1f5f9e, top: -0.28, walk: false, tex: 'water' },
+  [T.ROCK]:   { c: 0x5a6674, top: 1.1,  walk: false, tex: 'rock' },
+  [T.TREE]:   { c: 0x27512f, top: 0,    walk: false, tex: 'grass' },
+  [T.CFLOOR]: { c: 0x63543f, top: 0,    walk: true,  tex: 'cave' },
+  [T.CWALL]:  { c: 0x2c2822, top: 1.1,  walk: false, tex: 'rock' },
+  [T.LAVA]:   { c: 0xe64a18, top: -0.1, walk: false, tex: 'lava' },
+  [T.DOWN]:   { c: 0x2f2a22, top: 0,    walk: true,  tex: 'cave' },
+  [T.UP]:     { c: 0xa89778, top: 0,    walk: true,  tex: 'stone' },
+  [T.TEMPLE]: { c: 0xc9b892, top: 0,    walk: true,  tex: 'stone' },
+  [T.SNOW]:   { c: 0xdcecf7, top: 0,    walk: true,  tex: 'snow' },
+  [T.SWAMP]:  { c: 0x5f682a, top: -0.06, walk: true, tex: 'swamp' }
 };
 
 const WORLD = { floors: [], temple: { x: W >> 1, y: H >> 1, z: SURF }, spawns: [], hunts: [], pois: [], seed: 0 };
@@ -272,14 +272,9 @@ function genWorld(seed) {
       if (!TILE[tt].walk || tt === T.DOWN || tt === T.UP) continue;
       const d = distT(x, y, tx, ty);
       if (z === SURF && d < 14) continue;                   // zona segura do templo
-      // dentro de hunt: só a família dela, e bem mais denso (é onde se fecha box)
-      const hunt = huntAt(x, y, z);
-      if (hunt) {
-        if (x === hunt.x && y === hunt.y) continue;   // o centro é do chefe, ver abaixo
-        if (r3() > 0.075) continue;
-        WORLD.spawns.push({ x, y, z, m: hunt.mobs[Math.floor(r3() * hunt.mobs.length)], dead: 0, live: null, hunt: hunt.id });
-        continue;
-      }
+      // dentro de hunt não se sorteia por tile: a hunt é povoada em bloco, depois
+      // deste laço, para que o spawn saia em NÚCLEOS e não espalhado (ver abaixo)
+      if (huntAt(x, y, z)) continue;
       // POI: guarda temático em volta do tesouro, denso mas num raio pequeno
       const poi = poiAt(x, y, z);
       if (poi) {
@@ -305,6 +300,77 @@ function genWorld(seed) {
      respawn (chefe demora minutos, não segundos) e o sorteio de elite, que não
      roda aqui: chefe já é o extremo da espécie, empilhar modificador em cima
      seria pedir uma parede de vida que ninguém derruba. */
+  /* ---- povoamento da hunt: NÚCLEOS, não chuvisco ---------------------------
+     A regra antiga era um dado por tile dentro do círculo. Isso produzia duas
+     coisas ruins. Primeiro, densidade uniforme: nenhum ponto da hunt valia mais
+     que outro, então não havia razão para se posicionar, e a fila de corpo a
+     corpo e o `exeta res` — que já existem no código — quase nunca importavam.
+     Segundo, e pior, a quantidade saía do acaso: o dado rodava sobre quantos
+     tiles andáveis calhavam de cair no círculo, e caverna funda tem menos chão
+     que superfície. Medido, isso dava de 3 a 20 bichos por hunt — a Fenda do
+     Vazio, de nível 200, nascia com TRÊS.
+
+     Agora o orçamento sai do raio (previsível, igual para hunts de mesmo porte)
+     e é distribuído em poucos núcleos densos, com o resto da hunt quase vazio.
+     É o que permite puxar um grupo, recuar até um gargalo e fechar box — e é o
+     que faz andar de núcleo em núcleo ser a habilidade que a hunt cobra. */
+  const HUNT_DENS = 0.5;    // bichos por r² — a única régua de densidade de hunt
+  const POR_NUCLEO = 8;     // alvo por núcleo; é o que cabe em volta de um jogador
+  const hSeed = (id) => { let n = 0; for (let i = 0; i < id.length; i++) n = (n * 31 + id.charCodeAt(i)) | 0; return n; };
+
+  for (const h of WORLD.hunts) {
+    const rH2 = mulberry32(seed + 7000 + hSeed(h.id));
+    // tiles onde cabe um ponto de spawn: andáveis, fora do centro (é do chefe) e
+    // fora de escada, que não pode nascer bloqueada
+    const livres = [];
+    for (let j = -h.r; j <= h.r; j++) for (let i2 = -h.r; i2 <= h.r; i2++) {
+      const x = h.x + i2, y = h.y + j;
+      if (i2 * i2 + j * j > h.r * h.r) continue;
+      if (x === h.x && y === h.y) continue;
+      const tt = tileAt(x, y, h.z);
+      if (!TILE[tt].walk || tt === T.DOWN || tt === T.UP) continue;
+      livres.push([x, y]);
+    }
+    if (!livres.length) continue;
+
+    const orcamento = Math.min(livres.length, Math.round(h.r * h.r * HUNT_DENS));
+    const nNucleos = Math.max(2, Math.min(5, Math.round(orcamento / POR_NUCLEO)));
+    const usados = new Set();
+    const mobAleatorio = () => h.mobs[Math.floor(rH2() * h.mobs.length)];
+
+    // núcleos afastados entre si: dois colados viram um só e some o corredor
+    const centros = [];
+    for (let n = 0; n < nNucleos * 40 && centros.length < nNucleos; n++) {
+      const c = livres[Math.floor(rH2() * livres.length)];
+      if (centros.some(o => distT(c[0], c[1], o[0], o[1]) < 5)) continue;
+      centros.push(c);
+    }
+
+    const cota = Math.floor(orcamento / Math.max(1, centros.length));
+    for (const [cx, cy] of centros) {
+      const perto = livres.filter(([x, y]) => distT(x, y, cx, cy) <= 2 && !usados.has(x + ':' + y));
+      for (let k = perto.length - 1; k > 0; k--) {          // embaralha
+        const j = Math.floor(rH2() * (k + 1)); [perto[k], perto[j]] = [perto[j], perto[k]];
+      }
+      for (const [x, y] of perto.slice(0, cota)) {
+        usados.add(x + ':' + y);
+        WORLD.spawns.push({ x, y, z: h.z, m: mobAleatorio(), dead: 0, live: null, hunt: h.id });
+      }
+    }
+
+    /* Alguns poucos vagando fora dos núcleos. Servem de aviso — você sabe que
+       entrou na hunt antes de encostar no primeiro grupo — e impedem que o
+       espaço entre núcleos vire corredor completamente morto. */
+    let vagantes = 2 + Math.floor(rH2() * 3);
+    for (let n = 0; n < 200 && vagantes > 0; n++) {
+      const [x, y] = livres[Math.floor(rH2() * livres.length)];
+      if (usados.has(x + ':' + y)) continue;
+      if (centros.some(c => distT(x, y, c[0], c[1]) <= 3)) continue;   // fora dos núcleos
+      usados.add(x + ':' + y); vagantes--;
+      WORLD.spawns.push({ x, y, z: h.z, m: mobAleatorio(), dead: 0, live: null, hunt: h.id });
+    }
+  }
+
   for (const h of WORLD.hunts)
     if (h.boss) WORLD.spawns.push({ x: h.x, y: h.y, z: h.z, m: h.boss, dead: 0, live: null, hunt: h.id, boss: true });
 
@@ -436,8 +502,12 @@ function ambienteAgora(z, ms = Date.now()) {
   if (a.amb) return a;
   const f = 1 - .4 * climaAgora(z, ms).nublado;   // céu fechado escurece o dia inteiro
   const [r, g, b] = corDoCeu(horaDoDia(ms)).map(v => Math.round(v * f));
+  /* `escuro` (0..1) é o quanto a hora está fechando a luz: é ele que segura o
+     halo da tocha de dia, quando o passe de luz mal escurece e o glow estourava.
+     No subsolo a tabela manda e o escuro é total, por isso ele só sai aqui. */
   // meio-dia pleno dispensa o passe: multiplicar a cena inteira por branco é trabalho à toa
-  return { bg: a.bg, amb: Math.min(r, g, b) > 246 ? null : `rgb(${r},${g},${b})` };
+  return { bg: a.bg, amb: Math.min(r, g, b) > 246 ? null : `rgb(${r},${g},${b})`,
+    escuro: 1 - Math.min(r, g, b) / 255 };
 }
 
 /* ------------------------------------------------------------- minimapa */

@@ -19,11 +19,11 @@
   "17": "Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems)",
   "18": "bindInput",
   "19": "fixSave",
-  "20": "Snow Druid Reference Sprite Sheet",
+  "20": "Energy Sorcerer Front Walk and Idle Reference Sheet",
   "21": "Flat Monochrome Glyph Icon Style",
   "22": "Knight Veteran Skin (voc_knight_veteran)",
   "23": "ui.js",
-  "24": "renderHotbar",
+  "24": "updateMobs",
   "25": "GG Boots Icon (Golden Lion Greaves)",
   "26": "sfx/manifest.json",
   "27": "Knight Vocation - Common Skin (Front-Facing Sprite Set)",
@@ -83,5 +83,10 @@
   "81": "step_cave",
   "82": "mob",
   "83": "defModificada",
-  "84": "serve.py"
+  "84": "serve.py",
+  "85": "Thaira",
+  "86": "package.json",
+  "87": "main.js",
+  "88": "build_icon.py",
+  "89": "renderStatus"
 }

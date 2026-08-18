@@ -1,0 +1,15 @@
+{
+  "name": "thaira",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Thaira — RPG isométrico",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node tests/test.js && node tests/test_launcher.js"
+  },
+  "devDependencies": {
+    "electron": "^36.9.5"
+  }
+}

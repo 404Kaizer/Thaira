@@ -1,0 +1,1615 @@
+<title>Expansão de Thaira</title>
+<style>
+  :root{
+    --ink:#0b0c0f; --surface:#15151a; --surface2:#1e1c18; --raise:#26241f;
+    --line:#3a352b; --line-soft:#2a261f;
+    --txt:#ddd5c2; --dim:#8f8874; --mute:#6b6558;
+    --gold:#d9a441; --gold2:#f0cd7a;
+    --done:#7fd08a; --wait:#e0a05a; --warn:#e0705f;
+    --serif:"Cinzel","Trajan Pro",Georgia,"Times New Roman",serif;
+    --sans:"Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:ui-monospace,"Cascadia Code",Consolas,"DejaVu Sans Mono",monospace;
+    --measure:74ch;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+      --line:#bdb6a6; --line-soft:#cdc7b9;
+      --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+      --gold:#7d5a15; --gold2:#5e430f;
+      --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+    }
+  }
+  :root[data-theme="light"]{
+    --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+    --line:#bdb6a6; --line-soft:#cdc7b9;
+    --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+    --gold:#7d5a15; --gold2:#5e430f;
+    --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--txt);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px 96px}
+  .col{max-width:var(--measure)}
+  h1,h2,h3,h4{text-wrap:balance;margin:0}
+  a{color:var(--gold2)}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+  header{padding:64px 0 36px;border-bottom:1px solid var(--line)}
+  .eyebrow{font:600 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin-bottom:18px}
+  h1{font:400 clamp(32px,5.5vw,50px)/1.08 var(--serif);letter-spacing:.03em;color:var(--gold2)}
+  .lede{margin-top:20px;color:var(--dim);font-size:17px}
+  .lede b{color:var(--txt);font-weight:600}
+
+  section{padding:48px 0;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:0}
+  h2{font:600 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+     margin-bottom:22px;display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  h3{font:600 17px/1.4 var(--sans);color:var(--txt);margin:26px 0 8px}
+  h3:first-child{margin-top:0}
+  h4{font:600 14px var(--sans);color:var(--gold2);margin:18px 0 6px}
+  p{margin:0 0 14px;max-width:var(--measure)}
+  p:last-child{margin-bottom:0}
+  strong{color:var(--gold2);font-weight:600}
+  code{font:0.87em var(--mono);background:var(--surface2);border:1px solid var(--line-soft);
+       border-radius:3px;padding:1px 5px;color:var(--txt);white-space:nowrap}
+  ul,ol{max-width:var(--measure);margin:0 0 14px;padding-left:20px}
+  li{margin-bottom:6px}
+
+  .band{overflow-x:auto;margin:0 -4px 8px}
+  table{border-collapse:collapse;width:100%;min-width:540px;font-variant-numeric:tabular-nums}
+  caption{text-align:left;color:var(--mute);font-size:13px;padding-bottom:10px}
+  th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  thead th{font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);
+           border-bottom:1px solid var(--line)}
+  tbody th{font:400 14px var(--sans);color:var(--txt);font-weight:500}
+  td{font-size:14px;color:var(--dim)}
+  td.n{font-family:var(--mono);font-size:13.5px}
+  td.now{color:var(--gold2);font-family:var(--mono);font-size:13.5px}
+  td.delta{color:var(--done);font-size:13px}
+
+  .fases{display:grid;gap:2px;background:var(--line-soft);border:1px solid var(--line-soft);margin-bottom:8px}
+  .fase{background:var(--surface);padding:20px 22px;display:grid;grid-template-columns:auto 1fr;gap:18px}
+  .num{font:400 13px var(--mono);color:var(--gold);padding:3px 18px 0 0;border-right:1px solid var(--line-soft)}
+  .fase p,.fase li{color:var(--dim);font-size:14.5px}
+  .why{margin-top:10px;padding-left:14px;border-left:2px solid var(--line);color:var(--mute);
+       font-size:13.5px;font-style:italic}
+
+  .fix{background:var(--surface);border:1px solid var(--line-soft);border-left:2px solid var(--done);
+       padding:16px 20px;margin-bottom:2px}
+  .fix h4{margin-top:0}
+  .fix p{font-size:14px;color:var(--dim);margin-bottom:8px}
+  .causa{font-size:13.5px;color:var(--mute)}
+  .causa b{color:var(--warn);font-weight:600}
+
+  .grupo{margin-bottom:28px}
+  .gtitle{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+  ul.itens{list-style:none;margin:0;padding:0;display:grid;gap:2px;max-width:none}
+  ul.itens li{background:var(--surface);border-left:2px solid var(--wait);padding:13px 18px;
+              display:grid;gap:4px;margin:0}
+  ul.itens li.debt{border-left-color:var(--mute)}
+  .it-n{font:600 15px var(--sans);color:var(--txt)}
+  .it-d{font-size:13.5px;color:var(--dim)}
+  .it-t{font-size:12.5px;color:var(--mute);font-family:var(--mono)}
+
+  .aviso{background:var(--surface2);border:1px solid var(--line);border-left:3px solid var(--warn);
+         padding:18px 20px;margin-bottom:14px;max-width:var(--measure)}
+  .aviso h4{color:var(--warn);margin-top:0}
+  .aviso p{font-size:14px;color:var(--dim)}
+
+  footer{padding:36px 0 0;color:var(--mute);font-size:13px;border-top:1px solid var(--line)}
+
+  @media (max-width:640px){
+    .fase{grid-template-columns:1fr;gap:10px}
+    .num{border-right:0;border-bottom:1px solid var(--line-soft);padding:0 0 8px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Thaira · documento de repasse</div>
+  <h1>Expansão de Thaira</h1>
+  <div class="lede col">
+    Estado técnico do RPG 2D dark-fantasy depois da expansão, das duas levas de balanceamento e da
+    primeira leva de mundo e apresentação: o que foi construído, com quais identificadores e
+    constantes, quais decisões não devem ser desfeitas, e o que segue pendente.
+    Escrito para ser lido por quem não acompanhou a conversa — humano ou agente.
+    <b>600 verificações</b> passando em <code>tests/test.js</code>.
+  </div>
+  <div class="lede col" style="margin-top:14px;font-size:15px">
+    <b>Se você só tem cinco minutos:</b> leia <em>Regras que não devem ser quebradas</em> e
+    <em>Armadilhas conhecidas</em>. Em seguida, os quatro casos em que a medição contrariou o
+    diagnóstico escrito aqui — #26, #27, #38 e #38b —, porque são o melhor argumento contra confiar
+    em impressão de jogo sem medir. O que está aberto está em <em>Pendente</em>, e o balanceamento
+    está em pausa por decisão do dono do projeto.
+  </div>
+</header>
+
+<section>
+  <h2>Como o projeto é montado</h2>
+  <div class="col">
+    <p>
+      Jogo 2D dark-fantasy em JavaScript puro, sem build e sem dependências. Roda abrindo
+      <code>index.html</code> por HTTP (o arquivo <code>JOGAR.bat</code> sobe um
+      <code>python -m http.server 8765</code>). Não há framework, bundler nem pacote npm.
+    </p>
+  </div>
+  <div class="band">
+    <table>
+      <caption>Arquivos em <code>src/</code>, carregados nesta ordem por <code>index.html</code>.</caption>
+      <thead><tr><th scope="col">Arquivo</th><th scope="col">Linhas</th><th scope="col">Responsabilidade</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><code>audio.js</code></th><td class="n">460</td><td>Trilha, ambiência e efeitos sonoros posicionais.</td></tr>
+        <tr><th scope="row"><code>icones.js</code></th><td class="n">9</td><td>GERADO. Conjuntos <code>ICONES</code> e <code>ICONES2X</code>: todo id de item que tem PNG próprio. Refeito por <code>assets/build_skins.py --aplicar</code>.</td></tr>
+        <tr><th scope="row"><code>data.js</code></th><td class="n">1983</td><td>Só tabelas e fórmulas puras, sem dependência. Vocações, itens, afixos, conjuntos, monstros, magias, hunts, POIs, coleta, imbuements, e as réguas de dano/velocidade/loot (<code>magPower</code>, <code>cdDe</code>, <code>VEL_BASE</code>, <code>LOOT_CLASSE</code>).</td></tr>
+        <tr><th scope="row"><code>art.js</code></th><td class="n">910</td><td>Desenho procedural em canvas: texturas de tile (<code>TEX_DRAW</code>), bonecos de criatura (<code>creatureSprite</code>, 7 formas em <code>SHAPE_DRAW</code>) e marcas de POI no chão (<code>POI_DRAW</code>).</td></tr>
+        <tr><th scope="row"><code>world.js</code></th><td class="n">527</td><td>Geração do mundo (<code>genWorld</code>), pathfinding A* (<code>findPath</code>), luz por andar, minimapa.</td></tr>
+        <tr><th scope="row"><code>render2d.js</code></th><td class="n">816</td><td>Câmera, desenho do mundo, efeitos, sangue de chão, clima.</td></tr>
+        <tr><th scope="row"><code>game.js</code></th><td class="n">2777</td><td>Estado do jogador, combate, IA de criatura, inventário, loja, forja, coleta, save.</td></tr>
+        <tr><th scope="row"><code>ui.js</code></th><td class="n">464</td><td>Bestiário, contratos de caça, forja (imbuements), mapa expandido.</td></tr>
+        <tr><th scope="row"><code>hud.js</code></th><td class="n">211</td><td>Posicionamento e visibilidade dos painéis.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <h3>Testes</h3>
+    <p>
+      <code>node tests/test.js</code>. Roda sem navegador: carrega os fontes num contexto <code>vm</code>
+      com stubs mínimos de DOM e THREE. Não usa framework. Saída é uma contagem e a lista de falhas.
+      É a única rede de segurança do projeto — <strong>toda mudança de lógica deve deixar uma verificação</strong>.
+    </p>
+    <h3>Grafo de conhecimento</h3>
+    <p>
+      Há um grafo em <code>graphify-out/</code>. O <code>CLAUDE.md</code> do projeto exige rodar
+      <code>graphify update .</code> ao terminar qualquer implementação que mexa em código, antes de
+      dar a tarefa por concluída.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>Estado em números</h2>
+  <div class="band">
+    <table>
+      <caption>Antes e depois da expansão. Medido no código, não estimado.</caption>
+      <thead><tr><th scope="col">Eixo</th><th scope="col">Antes</th><th scope="col">Depois</th><th scope="col">Nota</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Andares</th><td class="n">4</td><td class="now">6</td><td class="delta">Fenda (−3) e Coração do Abismo (−4)</td></tr>
+        <tr><th scope="row">Mapa</th><td class="n">160 × 160</td><td class="now">224 × 224</td><td class="delta">+96% de área</td></tr>
+        <tr><th scope="row">Criaturas</th><td class="n">53</td><td class="now">83</td><td class="delta">+30; 16 chefes, 4 de fauna passiva</td></tr>
+        <tr><th scope="row">Hunts</th><td class="n">10</td><td class="now">16</td><td class="delta">do nível 8 ao 320</td></tr>
+        <tr><th scope="row">Itens</th><td class="n">202</td><td class="now">257</td><td class="delta">+55; 4 de despojo de caça</td></tr>
+        <tr><th scope="row">Conjuntos</th><td class="n">5</td><td class="now">7</td><td class="delta">+ <code>sa</code> (nv 55) e <code>vz</code> (nv 75)</td></tr>
+        <tr><th scope="row">Magias</th><td class="n">49</td><td class="now">49</td><td class="delta">não mudou; ver #23</td></tr>
+        <tr><th scope="row">Classes de criatura</th><td class="n">9</td><td class="now">12</td><td class="delta">+ Elemental, Aberração, Celeste</td></tr>
+        <tr><th scope="row">Pontos de interesse</th><td class="n">0</td><td class="now">39</td><td class="delta">5 tipos</td></tr>
+        <tr><th scope="row">Imbuements</th><td class="n">0</td><td class="now">11</td><td class="delta">forja</td></tr>
+        <tr><th scope="row">Verificações</th><td class="n">339</td><td class="now">600</td><td class="delta">+261</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <p>
+      O mundo tem por volta de <strong>2100 pontos de spawn</strong>, e a divisão varia com a
+      semente do mapa. Medido em cinco sementes: total de 2071 a 2142, sendo 509–521 dentro de
+      hunts, 346–390 guardando POIs e 1146–1264 no mundo aberto. Os 39 POIs e as 16 hunts são
+      colocados com sucesso em todas elas. Ponto de spawn não é criatura viva — é um lugar onde
+      uma criatura nasce, com relógio de respawn próprio.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>O diagnóstico que motivou tudo</h2>
+  <div class="col">
+    <p>
+      O relato inicial foi de quatro sintomas: nível 60 com tudo fácil, falta de conteúdo, mapa
+      pequeno, poucas hunts. O jogo já tinha cerca de 50 criaturas, 195 itens e 10 hunts — o
+      problema não era volume.
+    </p>
+    <p>
+      A causa era estrutural: <strong>o jogador escalava e o mundo não.</strong> As tabelas de
+      monstro são fixas, enquanto o poder do personagem é multiplicativo e sem teto — nível, skill,
+      afixos de raridade, charm do bestiário e maestria se somam. O teto de conteúdo era o Fosso
+      Demoníaco, sugerido para nível 80. Morrer custava 10% de experiência com o nível travado,
+      então não havia risco real. E não existia objetivo além de subir de nível: zero NPC, zero
+      missão, zero craft.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>As quatro fases</h2>
+  <div class="fases">
+
+    <div class="fase">
+      <div class="num">01</div>
+      <div>
+        <h4>Endgame e risco real</h4>
+        <p>
+          Dois andares novos e 26 criaturas. Onze delas estão em três classes novas, que resolvem
+          o combate de formas que não existiam; as outras quinze reforçam famílias que já
+          existiam (Demônio, Morto-vivo, Gigante, Humanoide).
+          <strong>Elemental</strong> (3 criaturas) é imune ao próprio elemento e frágil ao oposto —
+          é a família em que trocar de magia importa mais que bater mais. <strong>Aberração</strong>
+          (5 criaturas) tem a habilidade <code>tipo: 'mana'</code>, que drena mana e derruba o escudo mágico;
+          é a resposta ao mago que atravessava o jogo com essa muleta.
+          <strong>Celeste</strong> (3 criaturas) é o espelho do morto-vivo: sagrado quase não
+          arranha, morte rasga.
+        </p>
+        <p>
+          Seis hunts de nível 100 a 320 e seis chefes com o campo <code>fase</code>, que troca a
+          habilidade abaixo de uma fração de vida. Dois conjuntos de endgame
+          (<code>sa</code> Sentinela do Abismo, nv 55; <code>vz</code> Regalia do Vazio, nv 75) e
+          quatro poções acima da Suprema.
+        </p>
+        <p>
+          A morte foi reescrita em <code>playerDeath</code>: perde percentual da experiência
+          <em>sem piso de nível</em>, então o nível cai; queima todo consumível da mochila; e sem
+          bênção larga uma peça equipada aleatória. As bênçãos (<code>BENCAOS = 5</code>) são
+          compradas no templo por <code>blessPrice(nível)</code>.
+        </p>
+        <div class="why">
+          A progressão virou vertical porque descer é o que separa o nível 60 do 300. As bênçãos
+          deram ao ouro o primeiro sumidouro grande do jogo — antes ele só acumulava.
+        </div>
+      </div>
+    </div>
+
+    <div class="fase">
+      <div class="num">02</div>
+      <div>
+        <h4>Contratos de caça</h4>
+        <p>
+          Em <code>ui.js</code>: <code>taskOfertas</code>, <code>taskAceitar</code>,
+          <code>taskReceber</code>, <code>renderTasks</code>. Aceita no templo, caça longe, volta
+          ao templo para receber. Pagamento em ouro, experiência e carisma.
+        </p>
+        <p>
+          O contador é o mesmo <code>P.best</code> do bestiário, com uma marca <code>base</code>
+          gravada na hora do aceite — sem ela, quem já matou 500 minotauros ganharia o contrato de
+          200 já cumprido.
+        </p>
+        <div class="why">
+          Sem isso nenhuma hunt tinha razão de existir depois que você passava dela. O carisma NÃO
+          escala com a quantidade de propósito: só dá para ter 3 presas marcadas, e um contrato de
+          200 bichos pagando proporcional estouraria o teto na primeira entrega.
+        </div>
+      </div>
+    </div>
+
+    <div class="fase">
+      <div class="num">03</div>
+      <div>
+        <h4>Mapa, biomas e pontos de interesse</h4>
+        <p>
+          Mapa de 160² para 224². Dois tiles de bioma novos (<code>T.SNOW</code>,
+          <code>T.SWAMP</code>) com rotina de desenho em <code>TEX_DRAW</code> e fauna própria
+          via <code>BIOMA_POOLS</code>. Um terceiro ruído (<code>nBio</code>) de frequência bem
+          mais baixa que os de elevação e umidade — bioma é região, não mancha.
+        </p>
+        <p>
+          Trinta e nove POIs de cinco tipos, saqueáveis <strong>uma vez só</strong> por personagem
+          (marca em <code>P.seen['poi' + uid]</code>). O tesouro cai no chão, não na mochila:
+          mochila cheia comendo um tesouro que nunca mais volta seria o pior jeito de perder item.
+        </p>
+        <div class="why">
+          A taxa de spawn de mundo aberto na superfície foi cortada pela metade (de 0.008 para
+          0.004 por tile andável), o que hoje dá <strong>112 pontos</strong> numa área quase duas
+          vezes maior. Perigo concentrado em hunt e POI; o caminho entre eles virou caminho, não
+          briga a cada dez passos.
+        </div>
+      </div>
+    </div>
+
+    <div class="fase">
+      <div class="num">04</div>
+      <div>
+        <h4>Coleta e forja</h4>
+        <p>
+          Três skills de coleta (<code>mining</code>, <code>woodcut</code>, <code>fishing</code>)
+          no botão direito, em tiles de pedra, árvore e água que já estavam no mapa sem servir para
+          nada. O tile se esgota e volta depois; o estado vive em <code>P.colhido</code> e é salvo.
+          Nenhuma vocação colhe melhor que outra — é verificado por teste.
+        </p>
+        <p>
+          Onze imbuements na forja do templo. Gastam despojo de monstro mais ouro e aplicam um bônus
+          fixo numa peça equipada. Entram como afixo em <code>it.af</code>, que é a estrutura que o
+          <code>recalc</code>, o tooltip e o save já leem — nenhum caminho novo. Um por peça: trocar
+          apaga o anterior.
+        </p>
+        <div class="why">
+          Metade do loot era lixo de vender. Rabo de rato, pata de lobo e seda de aranha viraram o
+          preço de um atributo. <strong>Cuidado</strong>: <code>fixSave</code> descarta afixo que
+          não reconhece, então a busca em <code>IMBUEMENTS</code> lá dentro é obrigatória — sem ela
+          o bônus some em silêncio a cada carregamento.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Constantes de balanceamento</h2>
+  <div class="col">
+    <p>
+      Os botões de ajuste, com valor atual e arquivo. Mexer em qualquer um deles muda o jogo de
+      forma ampla; vários têm teste que trava a relação entre eles.
+    </p>
+  </div>
+  <div class="band">
+    <table>
+      <thead><tr><th scope="col">Constante</th><th scope="col">Valor</th><th scope="col">Onde</th><th scope="col">O que governa</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><code>XP_MULT</code></th><td class="n">6</td><td class="n">data.js</td><td>Multiplicador global de experiência. 1 = ritmo clássico de Tibia.</td></tr>
+        <tr><th scope="row"><code>SKILL_RATE</code></th><td class="n">4</td><td class="n">data.js</td><td>Aceleração da curva de skill.</td></tr>
+        <tr><th scope="row"><code>ATAQUE_MS</code></th><td class="n">2000</td><td class="n">data.js</td><td>Intervalo do ataque básico E piso de cooldown de toda magia de dano, via <code>cdDe(sp)</code>.</td></tr>
+        <tr><th scope="row"><code>RESPAWN_BASE</code></th><td class="n">[90000, 150000]</td><td class="n">data.js</td><td>Faixa de respawn da criatura mais fraca, em ms. Multiplicada por <code>RESPAWN_MULT[diff]</code>.</td></tr>
+        <tr><th scope="row"><code>RESPAWN_MULT</code></th><td class="n">1 → 4, chefe 9</td><td class="n">data.js</td><td>Multiplicador por dificuldade. Resulta em 1,5–2,5 min para trivial e 13,5–22,5 min para chefe.</td></tr>
+        <tr><th scope="row"><code>AVISO_NASCER</code></th><td class="n">5000</td><td class="n">data.js</td><td>Quanto tempo antes o chão avisa que uma criatura vai nascer.</td></tr>
+        <tr><th scope="row"><code>HUNT_DENS</code></th><td class="n">0.5</td><td class="n">world.js</td><td>Bichos por r² da hunt. Única régua de densidade; produz 20 a 43 por hunt.</td></tr>
+        <tr><th scope="row"><code>POR_NUCLEO</code></th><td class="n">8</td><td class="n">world.js</td><td>Alvo de pontos por núcleo de spawn — o que cabe em volta de um jogador.</td></tr>
+        <tr><th scope="row"><code>BENCAOS</code></th><td class="n">5</td><td class="n">game.js</td><td>Bênçãos máximas. Reduzem a perda de exp de 10% para 3% e protegem o equipamento.</td></tr>
+        <tr><th scope="row"><code>SANGUE_MAX</code></th><td class="n">60</td><td class="n">game.js</td><td>Teto de manchas de sangue simultâneas. É ele que protege a memória, não o tempo de vida (300000 ms).</td></tr>
+        <tr><th scope="row"><code>DEF_K</code></th><td class="n">400</td><td class="n">data.js</td><td>Meia-vida da curva de defesa: <code>redução = defEf/(defEf+K)</code>. Menor = jogador mais duro. Governa a dificuldade do jogo inteiro de uma vez.</td></tr>
+        <tr><th scope="row"><code>DANO_MIN</code></th><td class="n">0.12</td><td class="n">data.js</td><td>Fração do golpe bruto que sempre passa. Rede de segurança: com a curva percentual ele nunca chega a valer hoje.</td></tr>
+        <tr><th scope="row"><code>MAG_K</code></th><td class="n">0.39</td><td class="n">data.js</td><td>Ganho de magia e cura por ponto de magic level, via <code>magPower</code>: <code>base + ML×MAG_K×√base</code>. A raiz é o que limita o espalhamento entre a magia mais fraca e a mais forte em 4×. Governa mago, druida, ranger e a cura do cavaleiro de uma vez.</td></tr>
+        <tr><th scope="row"><code>VEL_BASE</code></th><td class="n">185 / 215 / 245</td><td class="n">data.js</td><td>Base de velocidade por classe: peso morto, andarilho, caçador.</td></tr>
+        <tr><th scope="row"><code>VEL_TIER</code></th><td class="n">7</td><td class="n">data.js</td><td>Ganho de velocidade por tier (0 a 12). Chefe leva <code>VEL_CHEFE</code> = 20 a mais.</td></tr>
+        <tr><th scope="row"><code>VOCATIONS[].spd</code></th><td class="n">0.16 a 0.31</td><td class="n">data.js</td><td>% de velocidade por nível do jogador. Eram 0.65 a 1.25 — linear e sem teto.</td></tr>
+        <tr><th scope="row"><code>LOOT_BASE</code></th><td class="n">28</td><td class="n">data.js</td><td>Ouro esperado por morte no tier 0. Ancora a economia inteira.</td></tr>
+        <tr><th scope="row"><code>LOOT_TIER</code></th><td class="n">2</td><td class="n">data.js</td><td>Quanto o valor do saque multiplica a cada tier. Chefe leva <code>LOOT_CHEFE</code> = 5.</td></tr>
+        <tr><th scope="row"><code>LOOT_CLASSE</code></th><td class="n">0.5 a 1.8</td><td class="n">data.js</td><td>Quem pensa carrega bolsa, bicho larga pedaço de si. É o eixo de sabor do loot.</td></tr>
+        <tr><th scope="row"><code>CHARM_COST</code></th><td class="n">100</td><td class="n">data.js</td><td>Carisma por presa marcada; máximo de 3 presas, bônus de 18% de dano.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Correções depois das fases</h2>
+  <div class="col">
+    <p>
+      Esta seção é a mais importante para quem for continuar. São defeitos encontrados jogando, e
+      quase todos tinham uma <strong>causa diferente da aparente</strong>. Cada correção está
+      travada por teste; desfazer sem entender vai reintroduzir o sintoma.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>Armas de nível alto inexistentes</h4>
+    <p>
+      Cinco varinhas e uma besta estavam declaradas em <code>ITEMS</code> e fora de toda loja e de
+      toda tabela de loot — não existiam no jogo. A loja vendia apenas as duas varinhas iniciais de
+      nível 6, o que prendia um druida de nível 25 no cajado inicial. A varredura achou mais quatro
+      armas órfãs de corpo a corpo que ninguém sabia que existiam.
+    </p>
+    <p class="causa">
+      Havia ainda uma regressão introduzida na fase 1: o Arco da Sentinela (nv 56) tinha ataque
+      <b>44</b> contra os <b>45</b> da Besta Real (nv 50) — um downgrade disfarçado de upgrade.
+      Corrigido para 47. Sete armas novas fecharam as faixas 36–76 de tiro e 46–66 de conjuração,
+      e 14 varinhas ganharam arte recortada das folhas do próprio projeto.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>Spawn de hunt uniforme e acidental</h4>
+    <p>
+      A regra antiga sorteava um dado por tile dentro do círculo da hunt. Isso dava densidade
+      uniforme — nenhum ponto valia mais que outro, então não havia razão para se posicionar, e a
+      fila de corpo a corpo e o <code>exeta res</code>, que já existiam no código, quase nunca
+      importavam.
+    </p>
+    <p class="causa">
+      E pior: a quantidade saía do acaso. O dado rodava sobre quantos tiles andáveis calhavam de
+      cair no círculo, e caverna funda tem menos chão que superfície. Medido, ia de <b>3 a 20</b>
+      bichos por hunt — a Fenda do Vazio, de nível 200, nascia com <b>três criaturas</b>. Agora o
+      orçamento sai do raio e é distribuído em poucos núcleos densos, com corredor vazio entre eles.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>Criaturas amontoadas em fila indiana</h4>
+    <p>
+      Este voltou três vezes, cada vez por uma causa diferente. A primeira: sem caminho,
+      o corpo a corpo fazia <code>chase = false</code> por 6 s e virava estátua. A segunda, mais
+      escondida: <code>tryStep</code> falhava num tile ocupado por um companheiro e a criatura
+      simplesmente <b>esperava</b> — o caminho existia, então o ramo de "sem caminho" nunca rodava.
+    </p>
+    <p class="causa">
+      A terceira foi regressão da própria correção. Ao criar vagas em três anéis
+      (<code>reservarVagas</code>), a distribuição antiga foi mantida: para cada criatura, a vaga
+      mais próxima <b>dela</b>. Para quem estava a 3 tiles, a vaga mais próxima era do anel 3,
+      às vezes o tile onde já estava — chegava na hora e ficava vagando com o anel de dentro vazio.
+      A varredura foi invertida: percorre as <b>vagas</b>, de dentro para fora, e chama a criatura
+      mais próxima de cada uma.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>Criaturas visíveis que não reagiam</h4>
+    <p>
+      O raio de perseguição era fixo em 8 tiles e a tela mostra 8,2 na horizontal. Empate exato —
+      por isso a criatura aparecia na borda e ficava parada olhando.
+    </p>
+    <p class="causa">
+      Agora deriva da viewport: <code>Math.max(11, raioVista() + 2)</code>. O piso de 11 impede o
+      inverso — sem ele, dava para fugir do aggro só apertando o zoom.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>Respawn: rápido, sincronizado e sem aviso</h4>
+    <p>
+      Eram 25–60 s para tudo, então um Colosso de 42 mil de experiência voltava no mesmo meio
+      minuto que um rato. E a faixa era estreita demais: matando um núcleo de 8 em meio minuto, os
+      oito voltavam dentro da mesma janela — o que lê como "o grupo renasceu junto" mesmo o relógio
+      sendo individual. Com 90–150 s de base, cinco criaturas mortas no mesmo instante voltam
+      espalhadas por 95 s.
+    </p>
+    <p class="causa">
+      Regra de ouro estabelecida depois de duas tentativas erradas: <b>distância nunca adia o
+      respawn</b>. O relógio corre no tempo de parede, com ou sem jogador por perto. A distância só
+      decide se houve espetáculo — se o relógio venceu com o jogador olhando, há anel de aviso por
+      5 s, clarão e som, e a criatura nasce a qualquer distância, inclusive colada. Se venceu com
+      ele longe, a criatura já está lá quando ele chega e entra em cena pela regra normal de carga
+      do mundo (7+ tiles), sem estardalhaço.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>Sangue que não aparecia</h4>
+    <p>
+      O sistema funcionava e desenhava na ordem certa. Duas causas somadas: <code>bloodSpray</code>
+      só era chamado em <code>killMob</code>, então uma briga inteira acontecia em chão limpo; e a
+      mancha durava 70 s, então pouco depois o campo de batalha voltava a ficar limpo.
+    </p>
+    <p class="causa">
+      A poça foi extraída para <code>manchaChao</code> e ligada ao golpe — um em três acertos, e
+      pequena. A cada acerto encheria o teto de 60 manchas em meia dúzia de trocas e empurraria
+      para fora as manchas da morte, que são as que importam. Duração para 300 s: quem protege a
+      memória é o teto, não o relógio.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>Magia mais rápida que o ataque básico</h4>
+    <p>
+      O ataque básico é fixo em 2000 ms e havia magia de dano em 1100–1400 ms. Com mana e poção
+      bastando, conjurar sem parar batia mais que qualquer arma — e conseguir arma boa deixava de
+      valer a pena.
+    </p>
+    <p class="causa">
+      <code>cdDe(sp)</code> aplica <code>Math.max(sp.cd, ATAQUE_MS)</code> apenas aos tipos de
+      dano (<code>DANO_TIPOS</code>). Cura e utilidade ficam de fora: não competem por dano, e
+      travar <code>exura</code> em 2 s tiraria a defesa de quem conjura. A barra de cooldown da
+      hotbar também usa <code>cdDe</code> — usar <code>sp.cd</code> cru mentiria para o jogador.
+      Junto: varinha passou a consumir mana (~0,8% da barra por tiro), então poção de mana virou
+      suprimento de verdade.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>Experiência subindo no lugar errado</h4>
+    <p>
+      O texto flutuante de experiência saía sobre a criatura morta, disputando espaço com o dano e
+      o aviso de imunidade. Passou a sair sobre o jogador — quem ganhou a experiência foi ele.
+      Os outros onze <code>float</code> do jogo foram conferidos e estão corretos.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>Balanceamento</h2>
+  <div class="col">
+    <p>
+      Fechou #26, #27, #28 e #36 na primeira leva, e #38a–d na segunda. Todos saíram de medição,
+      não de impressão — e em <strong>quatro</strong> deles a medição contrariou o diagnóstico que
+      estava escrito aqui. Vale ler os quatro antes de confiar em qualquer impressão de jogo:
+      a #26 mostrou que a fórmula não era o problema, a #27 que a velocidade era; o #38 mostrou que
+      a skill de arma <em>já</em> pesava 5,6× e que o defeito estava no magic level; e o #38b
+      mostrou que uma medição minha estava errada por medir um caminho de dano só.
+    </p>
+    <p>
+      <strong>Efeito acumulado do #38a–d</strong>, mago contra guerreiro, somando varinha e magia:
+      <code>6,2× → 3,4×</code> no nível 50 e <code>5,8× → 2,2×</code> no 320.
+      Cada uma das quatro mudanças foi verificada por <em>teste de mutação</em>: desfeita uma por
+      vez, com a suíte confirmando que pega a volta. Cinco das seis alterações estão protegidas
+      assim; a exceção está anotada no #38d e é deliberada.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>#36 · Defesa virou um contador só</h4>
+    <p>
+      Armadura e escudo eram dois sistemas empilhados, e <strong>cada um criava o próprio limiar de
+      imunidade</strong>. A armadura era subtração plana, então zerava todo golpe menor que ela; o
+      bloqueio era tudo-ou-nada e saturava no teto com um escudo de bronze de nível 1, anulando 60%
+      dos golpes de qualquer jogador para sempre. Agora toda peça vestida — inclusive a defesa da
+      arma, que antes não fazia nada em lugar nenhum — soma em <code>P.st.def</code>, e a conta é:
+    </p>
+    <p>
+      <code>defEf = DEFESA × postura × (1 + skillEscudo/100)</code> ·
+      <code>redução = defEf / (defEf + DEF_K)</code>
+    </p>
+    <p class="causa">
+      Percentual e não subtração: a curva nunca chega a 1, então <b>imunidade deixou de ser possível
+      por construção</b>. Resultado medido: 23 a 41 golpes para morrer em postura defensiva do nível
+      8 ao 320, contra os 646 do nível 8 de antes. A postura voltou a ser decisão — no nível 40,
+      defensiva aguenta 41 golpes contra 29 da ofensiva.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>#26 · A raiz era um número de percentual usado como subtração</h4>
+    <p>
+      O diagnóstico original culpava a fórmula. A pesquisa mostrou outra coisa: a fórmula moderna do
+      Tibia é <code>dano = a − b·d·(e/100) − (a/100)·c</code>, e nela <strong>a armadura é percentual
+      do ataque</strong> — é por isso que no Tibia a armadura total fica na casa dos 30-40, já que em
+      percentual puro 100 seria imunidade. THAIRA tinha copiado a fórmula <em>antiga</em>
+      (<code>rnd(arm/2, arm)</code>, subtração plana) com valores de armadura de 26 a 81.
+      Números pensados para percentual, aplicados como subtração.
+    </p>
+    <p class="causa">
+      A postura também: no Tibia ela entra inteira (fator 5/7/10). Aqui havia um amortecimento
+      (<code>0.6 + guarda*0.4</code>) que dava 1.36 para a defensiva contra 0.82 da ofensiva, o que
+      deixava as três a um ou dois golpes de distância — enquanto a defensiva cobra 55% do seu dano.
+      <b>Cuidado ao mexer em <code>add()</code> de <code>recalc()</code></b>: ele só soma chave que
+      já existe em <code>st</code>, então ao renomear <code>arm</code>→<code>def</code> os 11 bônus
+      que concedem <code>arm</code> (afixos Reforçada e Blindada, degraus de 2 e 6 de todos os
+      conjuntos, imbuements, saves antigos) viraram letra morta em silêncio. A tradução
+      <code>arm</code>→<code>def</code> lá dentro é obrigatória.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>#27 · Velocidade deixou de ser escolhida à mão</h4>
+    <p>
+      Os 79 campos <code>spd</code> saíram da tabela. Velocidade agora é derivada de
+      <code>VEL_BASE[classe] + tier×VEL_TIER (+VEL_CHEFE)</code> no fim do <code>data.js</code>, com
+      exceção manual ainda possível para quem declarar <code>spd</code> explicitamente.
+      E a progressão do jogador caiu para ~1/4: era linear e sem teto, então um sorcerer passava a
+      criatura mais rápida do jogo no nível 47 e no 300 andava a 1042 — três vezes o lobo.
+    </p>
+    <p class="causa">
+      <code>wolf</code> 345→252, <code>rat</code> 250→185, <code>juggernaut</code> 235→262,
+      <code>abyssal_god</code> 300→349. Treze criaturas ficaram abaixo dos 220 do jogador base, e
+      só <code>abyssal_god</code> passa um knight nível 300. O modelo é o do Tibia, onde dragão anda
+      a 86 contra os 220 do jogador: <b>escapar a pé é permitido, e o perigo mora em ser cercado</b>.
+      Nota de desenho: tier 10 saiu mais lento que tier 8 porque tier 10 não tem nenhuma classe
+      caçadora — é a natureza pesando mais que a força, e é intencional.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>#28 · Loot virou dificuldade × natureza</h4>
+    <p>
+      O valor esperado por morte tinha spread de 20× sem motivo: <code>dwarf_king</code> (tier 5)
+      largava 30.613 e <code>juggernaut</code> (tier 11), muito mais forte, largava 30.418. E o
+      <code>alpha_wolf</code>, um lobo, largava 7.971 em <em>equipamento</em>. A linha dos anões era
+      a impressora de dinheiro do jogo. Agora:
+      <code>valor = 28 × 2^tier × classe × (5 se chefe)</code>, com Humanoide e Demônio em 1.8,
+      Celeste 1.5, Dragão 1.3, Gigante 1.1, Morto-vivo 1.0, Aberração e Elemental 0.8,
+      Aracnídeo 0.6, e Mamífero, Réptil e Inseto em 0.5.
+    </p>
+    <p>
+      <code>orc</code> 76→101, <code>minotaur</code> 302→403, <code>dwarf_king</code> 30.613→8.069,
+      <code>alpha_wolf</code> 7.971→561, <code>juggernaut</code> 30.418→63.078,
+      <code>abyssal_god</code> 434.050→1.032.192. Todas caem a 1,13× do próprio alvo.
+    </p>
+    <p class="causa">
+      <b>A armadilha que quase quebrou a forja em silêncio:</b> os imbuements consomem 28 materiais
+      de monstro. Se a régua ajustasse a chance de material para fechar a conta, rabo de rato e osso
+      ficariam raros e a forja pararia — sem erro e sem teste, só o jogador descobrindo. A régua
+      mexe apenas em <b>tesouro</b> (o que tem <code>slot</code>) e na <b>quantidade de ouro</b>;
+      material não se toca, e há teste travando isso. Duas outras regras de desenho: tesouro só
+      encolhe, nunca cresce — subir a chance de um equipamento raro transformaria item de sorte em
+      salário; e a <em>chance</em> de largar ouro fica como a tabela escreveu, porque "dragão quase
+      sempre larga ouro" é desenho, não balanceamento.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>#38a · O GCD de 900 ms anulava o piso de 2000 ms</h4>
+    <p>
+      O piso do #23 (<code>cdDe()</code> = <code>Math.max(sp.cd, ATAQUE_MS)</code>) é <strong>por
+      magia</strong>, e o GCD global é 900 ms. O sorcerer tem três magias de ataque: ele alternava
+      entre elas e, quando voltava na primeira, os 2 s dela já tinham passado.
+      <b>Conjurava a cada 896 ms, não a cada 2000.</b> O piso nunca chegou a valer para quem tem
+      mais de uma magia — que é todo mundo a partir do nível 12.
+    </p>
+    <p>
+      Corrigido com um relógio único para <code>DANO_TIPOS</code> (<code>P.cd.dano</code>), separado
+      do GCD. Medido no nível 50 com ML 45, pelo <code>castSpell</code> real:
+    </p>
+    <p>
+      cadência <code>896 → 2000 ms</code> · dano por segundo <code>167 → 99</code> ·
+      vantagem sobre o guerreiro <code>5,4× → 3,2×</code> · demônio <code>15 s → 25 s</code>
+      (guerreiro: 78 s). <b>Ressalva:</b> esses números contam só magia. A varinha dispara em
+      paralelo e era a metade maior do dano do mago — ver #38b logo abaixo, que refaz o total.
+      Os números de cada bloco #38 são o delta <em>daquele</em> passo; o acumulado das quatro está
+      no topo da seção.
+    </p>
+    <p class="causa">
+      <b>Correção posterior, na própria correção.</b> A primeira versão travava o grupo com o
+      cooldown <em>cheio</em> da magia (<code>P.cd.dano = P.cd[sp.id]</code>), então uma AoE de 6 s
+      calava <strong>todas</strong> as magias por 6 s — quem vive de área se punia por usá-la.
+      No Tibia o grupo de ataque trava ~2 s e o cooldown longo vale só para a própria magia.
+      Agora é <code>P.cd.dano = G.now + ATAQUE_MS</code>: depois de uma Explosão Suprema a próxima
+      magia de dano sai em 2000 ms em vez de 6000, e a magia grande continua presa aos 6 s dela.
+      A trava original contra encadeamento continua valendo — o teste que alterna magias segue
+      medindo 2000 ms de intervalo mínimo, e 900 ms se o guard for removido.
+    </p>
+    <p class="causa">
+      <b>O GCD continua em 900 ms de propósito</b> — cura e utilidade não competem por dano, e
+      travá-las em 2 s tiraria a defesa de quem conjura. Há teste afirmando as duas metades: que a
+      magia de dano não sai antes de <code>ATAQUE_MS</code> <em>alternando magias</em>, e que a cura
+      sai durante o cooldown de dano. A primeira metade só pega o defeito se o teste alternar —
+      lançar a mesma magia repetidas vezes passa mesmo com o defeito presente.
+      A barra da hotbar passou a ler <code>max(relógio próprio, relógio de dano)</code>: mostrar
+      magia pronta que não lança seria mentir para o jogador, o mesmo motivo pelo qual ela já usava
+      <code>cdDe</code> em vez de <code>sp.cd</code> cru.
+      <b>Fora do escopo, registrado:</b> a runa tem relógio próprio de 1000 ms e não consulta o GCD
+      nem o novo relógio de dano. Ela se limita por cargas e por ouro, então não é fonte infinita —
+      mas se um dia virar, é por aí.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>#38b · A varinha era a maior das escadas de dano, e a mais escondida</h4>
+    <p>
+      O ataque básico de varinha fazia <code>rnd(dmg) × (1 + ML×0.035)</code> — um terceiro
+      multiplicador de magic level sem teto, <strong>fora do <code>castSpell</code></strong>, que é
+      por onde toda análise de magia passa. Por isso escapou do #38a.
+      No nível 76 a varinha sozinha batia <b>359</b> contra 280 da melhor magia, custando 0,8% da
+      barra de mana e <em>nenhum</em> treino de skill.
+    </p>
+    <p>
+      Corrigido para a faixa crua da arma, que é o modelo do Tibia: lá a varinha nunca escala com
+      ML nem com nível. Quem progride é o mago que <b>compra a varinha do próximo degrau</b> — a
+      linha já existia e é boa, de 14 a 104 de dano médio do nível 6 ao 76.
+      Reforço de que era desvio e não desenho: o <code>castSpell</code> de tipo <code>melee</code>
+      <em>já</em> usava a faixa crua (<code>game.js:1097</code>); só o ataque básico multiplicava.
+    </p>
+    <p class="causa">
+      <b>Isto corrige um número publicado antes:</b> a medição do #38a dizia que o mago ficara em
+      3,2× o guerreiro. Aquela conta somava <em>só magias</em> — a varinha dispara em paralelo, a
+      cada 2 s, e era a metade maior. O total verdadeiro era <b>6,0×</b> no nível 76.
+      Com a varinha fixa: <code>8,0× → 7,1×</code> no nível 13, <code>6,2× → 4,4×</code> no 50,
+      <code>6,0× → 3,6×</code> no 76, <code>5,8× → 3,1×</code> no 320.
+      O que sobra da vantagem é a inclinação de ML das magias, que é o item 1 do #38 pendente.
+      <b>Regra de medição que sai daqui:</b> o dano do mago tem três caminhos independentes
+      (<code>castSpell</code>, ataque de varinha em <code>playerAttack</code>, e runa em
+      <code>useRune</code>) — medir um só sempre vai subestimar.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>#38c · A inclinação de magic level era proporcional à base</h4>
+    <p>
+      <code>power(v) = v × (1 + ML×0.11)</code> fazia o ganho por ponto de ML ser
+      <code>0.11 × base</code> — proporcional ao tamanho da magia. O espalhamento entre a mais fraca
+      e a mais forte era <b>16,2×</b> (Faísca 1,43 por ponto, Fúria dos Céus 23,10) e crescia em
+      valor absoluto para sempre. No Tibia o ganho por ML é escrito à mão em cada magia e as strikes
+      ficam todas entre 1,4 e 2,2: o jogo <em>escolhe</em> a distância.
+    </p>
+    <p>
+      Trocado por <code>magPower(base, ml, nível) = base + ML × MAG_K × √base + nível×0.25</code>,
+      com <code>MAG_K = 0.39</code>. A raiz mantém "magia maior escala mais", mas sublinearmente:
+      espalhamento <b>16,2× → 4,0×</b>. <code>MAG_K</code> foi calibrado para deixar as magias
+      iniciais <strong>idênticas</strong> (corte de 1%) e cortar só o topo — a ponta de baixo já
+      estava certa, como a #29 também havia concluído por outro caminho.
+    </p>
+    <p>
+      Corte no fim de curva (nível 320, ML 253): Golpe de Fogo <code>830 → 609</code>,
+      Lança Etérea <code>1666 → 867</code>, Fúria dos Céus <code>6134 → 1720</code>.
+      Mago contra guerreiro, somando varinha e magia: <code>5,8× → 2,2×</code> no 320 e
+      <code>6,2× → 3,4×</code> no 50.
+    </p>
+    <p class="causa">
+      <b>Achado que veio de brinde:</b> a cura usa a mesma <code>power()</code>, e com a escala
+      antiga a maior cura restaurava <b>151% a 335% da vida máxima</b> por conjuração — cura total
+      sempre, em qualquer nível, para qualquer vocação. Passou a 46–96% no fim de curva.
+      O teste afirma a forma certa do invariante: <b>a cura não pode crescer mais rápido que a
+      vida</b>, medido nas quatro vocações — a antiga era plana em 332%/335% do nível 50 ao 320,
+      a nova encolhe.
+      <b>Escolha deliberada:</b> nenhum campo novo nas 27 magias. Se uma precisar fugir da régua, o
+      caminho é <code>sp.mlk ?? MAG_K × √base</code>; criar 27 campos antes de precisar seria
+      trocar um número por uma tabela.
+      <b>A runa entrou junto</b> (<code>useRune</code> tinha a própria escala em 0.10, quase igual
+      por acidente): deixá-la de fora só mudaria o exagero de lugar.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>#38d · Druida e sorcerer eram o mesmo personagem com outra cor</h4>
+    <p>
+      Descoberto ao conferir o alcance do #38c por vocação: em <code>VOCATIONS</code> os dois eram
+      <strong>numericamente idênticos</strong> — mesma vida por nível (5), mesma mana (30), mesma
+      regeneração, mesmas skills. Só divergiam em velocidade e cor. A tag do druida,
+      "Cura pesada · Aguenta a caçada", dependia inteiramente de ele ser o único dono da Cura
+      Suprema; nada na tabela sustentava a promessa.
+    </p>
+    <p>
+      Identidade escrita nos números, a pedido do dono do projeto — o druida bate menos e aguenta
+      mais. <code>hp</code> de 5 para <b>7 por nível</b>; bases exclusivas do druida cortadas ~12%
+      (<code>Tempestade de Gelo</code> 180→158, <code>Onda de Terra</code> 62→55,
+      <code>Onda de Gelo</code> 40→35); <code>Cura Suprema</code> 200→220.
+      O sorcerer não mudou: o contraste vem de um lado só, para não desfazer o corte de dano que o
+      #38a–c acabou de fazer.
+    </p>
+    <p>
+      Medido — nível 50: dano <code>416</code> contra <code>471</code> do sorcerer (88%), vida
+      <code>493</code> contra <code>395</code>, cura <code>522</code> contra <code>287</code>.
+      Nível 320: dano 86%, vida <code>2383</code> contra <code>1745</code>, cura
+      <code>1758</code> contra <code>1102</code>.
+    </p>
+    <p class="causa">
+      <b>Dois cuidados que mudaram os números escolhidos.</b> O corte cheio de 12% levaria
+      <code>Golpe de Terra</code> (nv13) e <code>Golpe de Gelo</code> (nv14) para <em>abaixo</em> do
+      <code>Golpe de Fogo</code> (nv12), que é compartilhado com o sorcerer e não podia se mover —
+      seria o defeito do Arco da Sentinela outra vez, degrau que anda para trás. Os dois foram
+      cortados só até 27 e 28, onde a ordem se preserva, e há teste travando isso para as quatro
+      vocações. E a <code>Lasca de Gelo</code> ficou em 13, igual à Faísca e ao Dardo Sagrado: a
+      diferença de classe deve aparecer conforme o personagem cresce, não no nível 1.
+      <b>De quebra</b>, a vida a mais derrubou o resíduo do #38c — a Cura Suprema saiu de 124% da
+      barra para 106% no nível 50, e de 96% para 74% no 320. Ainda passa de 100% no meio do jogo;
+      quem resolve isso é vida, não a fórmula.
+    </p>
+    <p class="causa">
+      <b>O que NÃO está travado por teste, de propósito:</b> o valor exato da base da Cura Suprema
+      (200→220). O teste de mutação confirmou: desfazer esse número sozinho não derruba a suíte, e
+      não deveria — travar valor de ajuste fino faz o teste virar cópia do dado, e aí toda
+      recalibragem passa a exigir editar dois lugares que dizem a mesma coisa.
+      O que <em>está</em> travado é a forma da identidade, que é o que não pode mudar sem decisão:
+      dano do druida no máximo 92% do sorcerer, vida maior, cura maior, e a hierarquia de
+      curandeiro druida &gt; ranger &gt; sorcerer &gt; knight. As outras cinco alterações do #38
+      têm mutação que a suíte pega.
+    </p>
+  </div>
+
+  <div class="aviso">
+    <h4>A defesa congela no nível 76</h4>
+    <p>
+      <code>vz_aegis</code> é a última peça defensiva do jogo, então a DEFESA trava em 181 e de 80 a
+      320 a única coisa que cresce é a vida — que cresce quase no mesmo ritmo do dano das criaturas.
+      É isso que mantém a curva plana em 23-24 golpes no endgame. Se um dia entrar peça acima do
+      nível 76, o endgame fica mais fácil na mesma proporção, e a calibragem de <code>DEF_K</code>
+      precisa ser refeita junto.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>Fauna passiva — #6</h2>
+  <div class="col">
+    <p>
+      O princípio era antigo e estava só no papel: <strong>o perigo se concentra, não se
+      espalha</strong>. A fase 3 já tinha cortado o spawn de superfície pela metade, mas isso deixou
+      o caminho entre hunts <em>vazio</em>, não <em>tranquilo</em>. Agora ele tem bicho.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>Quatro criaturas que não atacam ninguém</h4>
+    <p>
+      <code>hare</code> (Lebre-parda), <code>deer</code> (Cervo-cinzento), <code>boar</code>
+      (Javali-de-cerdas) e <code>firefly</code> (Vaga-lume). Largam sustento e troco —
+      <code>meat</code>, <code>ham</code> e três despojos novos (<code>pelt</code>,
+      <code>antler</code>, <code>boar_tusk</code>) — de valor baixo de propósito: caçar bicho manso
+      é comida e troco, não renda. Quem paga é hunt.
+    </p>
+    <p class="causa">
+      <b>O campo <code>passivo</code> faz uma coisa só:</b> a criatura não liga o encalço por ver o
+      jogador. Todo o resto reaproveita mecânica que já existia — apanhar acorda ela
+      (<code>dealDamage</code>), e o limiar de medo vira 1, o que faz fugir ao primeiro golpe pelo
+      mesmo ramo de fuga que o lobo ferido usa. Encurralada, vira e luta, que também já era regra.
+      O limiar mora no código e não na ficha: escrever <code>medo: 1</code> em cada bicho repetiria
+      o que <code>passivo</code> já diz, e furaria a régua de que medo é fração sensata
+      (&lt; 0,6) — régua que continua valendo para quem luta.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>O anel calmo, e a noite que enfim serve para alguma coisa</h4>
+    <p>
+      A faixa de 10 a 28 tiles do templo passou a ser <strong>metade fauna</strong>
+      (<code>hare</code>, <code>hare</code>, <code>deer</code>, <code>firefly</code> contra
+      <code>rat</code>, <code>snake</code>, <code>bug</code>, <code>cobra</code>), e a fauna some
+      conforme a distância cresce — a faixa mais distante não tem nenhuma. Peso por repetição do
+      nome na lista, que é o que o sorteio uniforme já permitia sem tabela de pesos.
+    </p>
+    <p class="causa">
+      O ciclo dia/noite existia em <code>ehNoite()</code> e <b>nenhum sistema o consumia</b> além da
+      cor do céu e da trilha. Agora <code>noite: true</code> impede a criatura de nascer de dia, em
+      uma linha do <code>refreshSpawns</code>. Só o nascimento é barrado: a que já está viva fica
+      até o jogador se afastar, porque sumir da tela ao amanhecer no meio de uma briga seria pior
+      que o ganho.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>A forma que faltava: <code>mote</code></h4>
+    <p>
+      O vaga-lume nasceu sem <code>shape</code> e caiu no <code>biped</code> padrão — virou uma
+      criança humanoide de trinta centímetros, e <strong>nenhum teste pegou</strong>, porque "sem
+      forma" era considerado válido. Foi encontrado jogando.
+    </p>
+    <p class="causa">
+      Entrou a sexta... sétima forma em <code>SHAPE_DRAW</code>: <code>mote</code>, bicho pequeno
+      que <em>voa</em> — as outras plantam o corpo no chão pelos pés, esta paira, e é isso que a
+      distingue de longe. Ganhou também <code>luz</code>, raio de halo em tiles como o da tocha,
+      emitido em <code>drawEntity</code> pelo mesmo balde de luzes da lava e do fogo: o vaga-lume
+      <b>acende o terreno de verdade</b>, não é só pixel claro.
+      <b>A trava contra a repetição:</b> a lista de formas do teste era uma cópia à mão das seis —
+      agora sai de <code>Object.keys(SHAPE_DRAW)</code>, e há verificação de que toda fauna passiva
+      declara a própria forma. Era a duplicata que deixava o defeito passar.
+    </p>
+  </div>
+  <div class="fix">
+    <h4>#34 · Virar sem andar (Ctrl + WASD ou setas)</h4>
+    <p>
+      A direção do personagem (<code>P.lastDir</code>, <code>P.dir</code>) só mudava por passo ou
+      por ataque — não havia como encarar um lado sem se deslocar para ele, o que quem atira ou
+      conjura em linha precisa. <code>Ctrl</code> + direção agora vira no lugar.
+    </p>
+    <p class="causa">
+      <b>As setas entram junto por necessidade, não por conveniência:</b> <code>Ctrl+W</code> é
+      "fechar aba" e o navegador <em>não entrega</em> essa combinação à página, então sem
+      <code>Ctrl+↑</code> o norte ficaria inalcançável. <code>Ctrl+A</code> e <code>Ctrl+S</code>
+      morrem no <code>preventDefault</code> e funcionam normal.
+      A lógica virou a função <code>virarPara(d)</code> em vez de duas linhas dentro do
+      <code>keydown</code>, porque no harness de teste o <code>addEventListener</code> global é
+      no-op: o handler nunca roda ali, e o que só existe dentro dele não tem como ser verificado.
+      Conferido também no navegador de verdade — Ctrl+D, Ctrl+↑ e Ctrl+A viram sem mover, e
+      <code>d</code> puro continua andando.
+    </p>
+  </div>
+  <div class="fix">
+    <h4>#21 · As últimas cores cravadas no código</h4>
+    <p>
+      Oito hexadecimais soltos em <code>ui.js</code> — resistências do bestiário, presa marcada,
+      círculo de hunt, tarjas, escadas, templo e o ponto do jogador. Mesma violação que os painéis
+      novos já tinham resolvido, sobrevivendo em código anterior. Agora tudo passa por
+      <code>tok()</code>, com seis tokens novos (<code>--hunt</code>, <code>--temple</code>,
+      <code>--stair-up</code>, <code>--stair-down</code>, <code>--player</code>,
+      <code>--alert</code>) mais <code>--scrim</code> para as tarjas.
+      <b>Há teste afirmando que não sobrou nenhuma</b>: a varredura roda no fonte, então cor nova
+      cravada quebra a suíte no mesmo dia.
+    </p>
+  </div>
+
+  <div class="fix">
+    <h4>Revitalização da paleta: cor voltou a ser informação</h4>
+    <p>
+      Pedido do dono do projeto junto com o #21 — o jogo estava sem vida. Medido antes de mexer:
+      <strong>saturação média do terreno em 29%</strong>, com a caverna praticamente em escala de
+      cinza (rocha em <b>2%</b>, chão 10%, parede 11%). E um defeito de leitura escondido atrás
+      disso: <code>GRASS</code>, <code>TREE</code> e <code>SWAMP</code> eram três verdes barrentos
+      com separação de 47 e 56 — abaixo do limiar em que dois tiles lado a lado deixam de ser
+      distinguíveis.
+    </p>
+    <p>
+      Os 15 tiles foram repigmentados à mão, não por filtro: grama mais quente, copa mais escura e
+      azulada, pântano puxado para o oliva doentio, rocha ganhou azul, chão de caverna ganhou terra,
+      areia e templo ficaram dourados. Saturação média <code>29% → 40%</code>; separação dos verdes
+      <code>47/56/100 → 145/92/88</code>. Nos tokens de interface, painel, linha, ouro e os três
+      semânticos subiram de saturação sem sair do dark-fantasy.
+    </p>
+    <p class="causa">
+      <b>Três invariantes travadas por teste</b>, porque paleta é exatamente o tipo de coisa que
+      alguém "ajusta" e degrada sem perceber: seis pares de terreno vizinho precisam de separação
+      mínima de 60; a saturação média não pode cair abaixo de 33%; e nenhum tile pode ficar abaixo
+      de 10% (cinza morto) <em>nem acima de 90%</em> — o §23 do CLAUDE.md veta cor gritante, e um
+      teste que só empurrasse saturação para cima convidaria o neon.
+      <b>Nota de método:</b> o julgamento final foi visual, no jogo rodando e com o relógio fixado
+      ao meio-dia — de noite a iluminação mascara a paleta e qualquer avaliação de cor sai errada.
+    </p>
+  </div>
+  <div class="fix">
+    <h4>#12 · Os 39 POIs agora existem no chão</h4>
+    <p>
+      O minimapa já desenhava os pontos de interesse desde a fase 3 — losango com ícone, apagado
+      quando saqueado. O terreno, não: o jogador via a marca no mapa, andava até lá e chegava num
+      quadrado igual a todos os outros. <strong>Isso é informação faltando, não enfeite.</strong>
+      Cinco marcas novas em <code>POI_DRAW</code>, uma por tipo, cada uma tirada da própria
+      <code>dica</code> da tabela para o que se vê no chão e o que se lê no mapa contarem a mesma
+      história: roda de pedras com lenha cruzada (acampamento), coluna quebrada tomada pelo mato
+      (ruína), teia com casulo (ninho), laje empurrada sobre cova aberta (túmulo) e monte de moedas
+      (tesouro). Saqueado desenha a 35–45% da opacidade, medido — o chão concorda com o mapa.
+    </p>
+    <p class="causa">
+      <b>Procedural, e não recorte de <code>assets/scenario/tiles_01.png</code>.</b> A folha tem
+      célula fracionária e fundo chroma, que é o risco catalogado no #19 — e adereço não precisa
+      costurar com o vizinho, então o custo de acertar a extração não se paga aqui. Segue o idioma
+      do <code>stairSprite</code>, que já existia.
+      <b>Correção de rumo no próprio item:</b> o texto dizia que <code>T.DOWN</code>/<code>T.UP</code>
+      eram cor chapada — estava desatualizado, o <code>stairSprite</code> já desenhava as escadas.
+      Só o POI faltava.
+      <b>Detalhe de custo:</b> o laço roda sobre os 39 pontos, não sobre os tiles visíveis —
+      <code>poiAt</code> varre a lista inteira, e chamá-lo por tile repetiria a busca centenas de
+      vezes por quadro para achar meia dúzia de marcas.
+      <b>Limite do teste em node:</b> o <code>getImageData</code> do harness devolve buffer zerado,
+      então contar pixel lá é impossível; a suíte afirma que cada marca emite operações de canvas e
+      que os dois estados são sprites distintos, e a opacidade do saqueado foi medida no navegador.
+    </p>
+  </div>
+  <div class="fix">
+    <h4>#25 · Ficha de magia: tooltip na hotbar, janela no clique</h4>
+    <p>
+      Não havia onde ler o que uma magia faz. Agora a hotbar e a lista de magias mostram balão ao
+      passar o mouse, e o clique na lista abre a <em>Ficha da Magia</em> — nome, palavra, nível,
+      mana, cooldown, elemento, dano ou cura, dano por segundo, o que a magia acerta, e por que ela
+      não sai quando não sai (vocação, nível ou mana).
+    </p>
+    <p class="causa">
+      <b>Nada é lido da tabela.</b> <code>sp.base</code> não é dano — é a entrada de
+      <code>magPower</code>, e mostrá-lo cru diria 26 para uma magia que bate 600. Tudo passa pelas
+      fórmulas reais e pelo personagem de agora: <code>magiaInfo()</code> chama
+      <code>magPower</code> para magia, <code>damageFormula</code> para as de arma, e o cooldown sai
+      de <code>cdDe(sp)</code>, que é o que o jogo respeita.
+      <b>A descrição também é derivada</b> (<code>MAG_ALVO</code> por tipo), não escrita à mão nas
+      49: a última leva trocou a fórmula de 27 magias, e frase decorada não teria acompanhado.
+      Há teste afirmando que todo tipo de magia sabe se descrever — tipo novo sem texto sairia como
+      ficha muda e ninguém veria até um jogador abrir.
+      <b>Detalhe que evitou fórmula duplicada:</b> <code>damageFormula</code> ganhou um parâmetro
+      <code>medio</code>. A interface precisa da média, não de um sorteio — número que dança a cada
+      abertura lê como defeito —, e recalcular por fora seria a mesma conta em dois lugares, a
+      segunda envelhecendo no dia em que a primeira mudasse.
+      <b>Mudança de comportamento:</b> clicar na lista de magias abre a ficha em vez de conjurar.
+      Era o único lugar do jogo que conjurava por clique; nada se perde, a ficha tem botão de
+      conjurar, e hotbar e chat continuam lançando direto. Magia travada também abre — saber o que
+      vem no próximo nível é metade da razão de olhar a lista.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>Regras que não devem ser quebradas</h2>
+  <div class="col">
+    <p>
+      Invariantes travadas por teste. Cada uma nasceu de um defeito real; se uma delas falhar,
+      é regressão e não ajuste.
+    </p>
+    <ul>
+      <li><strong>Toda arma tem como ser obtida</strong> — loja ou tabela de loot. Foi esta que
+        encontrou as quatro armas órfãs.</li>
+      <li><strong>Nenhum buraco maior que 12 níveis</strong> na linha de arma de cada vocação.</li>
+      <li><strong>Arma de conjunto de endgame</strong> (<code>sa</code>, <code>vz</code>) ganha de
+        tudo que vem abaixo dela no mesmo tipo. Não vale para os conjuntos do meio do jogo, onde a
+        peça ser mais fraca é intencional — ela paga em bônus de conjunto e há alternativa fora dele.</li>
+      <li><strong>A morte custa um número exato de níveis</strong> em 60, 100 e 200, com e sem
+        bênção, e o nível resultante é sempre o que a experiência restante vale.</li>
+      <li><strong>Hunts de mesmo raio têm população parecida</strong> (isto pega a volta ao dado por
+        tile), <strong>toda hunt tem um núcleo de 6+</strong> e <strong>sobra corredor vazio</strong>.
+        As três juntas, porque só uma delas passaria com densidade uniforme.</li>
+      <li><strong>Renascimento avisado acontece a qualquer distância</strong>; ponto frio nunca
+        instancia perto do jogador; distância nunca adia o relógio.</li>
+      <li><strong>Multidão cerca, poucos encostam</strong> — 14 criaturas terminam a 3 tiles sem
+        enfileirar, e 5 em campo aberto terminam todas coladas. As duas réguas convivem porque
+        cobrem defeitos opostos.</li>
+      <li><strong>Box fechada</strong>: quem bate de perto não desiste do alvo e vaga em vez de
+        virar estátua; quem atira fica parado e acerta por cima.</li>
+      <li><strong>POI se saqueia uma vez só</strong> e o tesouro cai em tile andável.</li>
+      <li><strong>O imbuement sobrevive ao save</strong>.</li>
+      <li><strong>Os 28 materiais da forja continuam caindo</strong>, e nenhum com chance irrisória.
+        É a trava contra a régua de loot cortar insumo de imbuement para fechar conta de ouro —
+        quebra que não daria erro nenhum, só um jogador descobrindo que não dá mais para forjar.</li>
+      <li><strong>Todo saque bate a régua</strong> de dificuldade × natureza, e no mesmo tier
+        humanoide larga mais que bicho. A segunda sem a primeira permitiria uma tabela de números
+        sem sabor; a primeira sem a segunda permitiria a bagunça voltar por dentro da classe.</li>
+      <li><strong>Nenhuma criatura de Pesadelo</strong> nasce na superfície ou na montanha.</li>
+      <li><strong>Nada é imune</strong> — por maior que seja a DEFESA, todo golpe passa alguma coisa,
+        e mais defesa sempre corta mais. As duas juntas, porque só a primeira passaria com um teto
+        rígido.</li>
+      <li><strong>A postura muda o quanto se apanha, e de forma visível</strong> — não basta ordenar
+        ofensiva &gt; equilíbrio &gt; defensiva, a diferença tem de ser grande o bastante para pagar
+        os 55% de dano que a defensiva cobra.</li>
+      <li><strong>Toda criatura segue a régua de velocidade</strong>, a régua cobre todas as classes
+        que existem, e dentro de uma classe mais forte nunca é mais lento.</li>
+      <li><strong>Um knight nível 300 escapa de tudo até tier 5</strong>, e só caçador de tier alto
+        o alcança. As duas metades juntas: uma sozinha permitiria um mundo onde nada corre.</li>
+
+      <li><strong>Magia de dano não sai mais rápido que o ataque básico</strong> — e o teste
+        <em>alterna</em> as magias, porque lançar a mesma repetidas vezes passava mesmo com o
+        defeito presente. Junto: <strong>a cura sai durante o cooldown de dano</strong>, senão a
+        próxima simplificação joga tudo no mesmo relógio e tira a defesa de quem conjura.</li>
+      <li><strong>A varinha não escala com magic level</strong>, o dano dela é a faixa da própria
+        arma, e <strong>a linha de varinhas cresce 5×+</strong> do primeiro ao último degrau. A
+        terceira sem as duas primeiras deixaria alguém achatar a tabela e matar a progressão.</li>
+      <li><strong>O ganho por ponto de ML tem espalhamento limitado</strong> (teto de 6×; era 16,2×)
+        e <strong>magia de base maior ainda escala mais</strong> — a régua achata, não iguala.
+        Junto: <strong>a magia mais fraca sobreviveu à mudança</strong>, porque a ponta de baixo já
+        estava certa.</li>
+      <li><strong>A cura não cresce mais rápido que a vida</strong>, medido nas quatro vocações. Era
+        plana em 332% da barra do nível 50 ao 320 — cura total garantida em qualquer nível.</li>
+      <li><strong>O druida bate menos, cura mais e aguenta mais</strong> que o sorcerer, com faixa
+        nos dois extremos (dano no máximo 92%, sobrevivência no mínimo 140%). Só o sinal passava
+        com 96%, que era a diferença acidental de antes de haver identidade.
+        E <strong>a hierarquia de curandeiro</strong> druida &gt; ranger &gt; sorcerer &gt; knight.</li>
+      <li><strong>Nenhuma magia é mais fraca que uma de nível menor</strong> do mesmo tipo e
+        vocação — só nível estritamente menor conta, porque duas do mesmo nível são escolha de
+        elemento, não degrau.</li>
+      <li><strong>Bicho manso não encalça, foge ao apanhar e não revida</strong> enquanto tem para
+        onde correr. As três juntas: só "não persegue" faz saco de pancada; só "foge" não impede o
+        coelho de caçar o jogador.</li>
+      <li><strong>Toda fauna passiva declara a própria forma</strong> e <strong>só criatura noturna
+        acende</strong>. A primeira nasceu de um defeito real: o vaga-lume sem <code>shape</code>
+        caiu no <code>biped</code> padrão e virou uma criança humanoide sem quebrar teste nenhum.</li>
+      <li><strong>Criatura noturna nasce de noite e não de dia</strong>, verificado no
+        <code>refreshSpawns</code> de verdade e não só na ficha.</li>
+      <li><strong>Nenhuma cor crua em <code>ui.js</code></strong> — a varredura roda no fonte, então
+        hexadecimal novo quebra a suíte no mesmo dia.</li>
+      <li><strong>Terreno vizinho é distinguível</strong> (separação mínima de 60 em seis pares),
+        <strong>a saturação média do terreno fica acima de 33%</strong> e
+        <strong>nenhum tile sai da faixa 10–90%</strong>. O teto importa tanto quanto o piso: uma
+        régua que só empurrasse saturação para cima convidaria o neon que o §23 veta.</li>
+      <li><strong>Todo tipo de POI tem marca no chão</strong>, sem desenho órfão, e os dois estados
+        (intacto e saqueado) são sprites distintos.</li>
+      <li><strong>O número mostrado na ficha de magia sai da fórmula</strong>, para o personagem
+        de agora — acompanha o magic level, e o cooldown exibido é o de <code>cdDe</code>, não o
+        cru. Junto: <strong>todo tipo de magia sabe se descrever</strong>.</li>
+      <li><strong>Virar não move o personagem</strong>, as quatro direções são alcançáveis e
+        <strong>morto não vira</strong>.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Pendente</h2>
+
+  <div class="grupo">
+    <div class="gtitle">Design de mundo</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">#5 · Diversificar topologia dos andares</span>
+        <span class="it-d">Cada andar é uma malha contígua, então todo buraco cai no mesmo lugar. Proposta: flood-fill em componentes conexos, identidade por região, escada pareada a região específica. Isso entrega de graça o buraco que não leva a nada e a hunt secreta. Alta alavancagem, alto risco — mexe em <code>genWorld</code> e em várias verificações de mundo.</span>
+        <span class="it-t">esforço alto · retorno muito alto</span>
+      </li>
+      <li>
+      </li>
+    </ul>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Sistemas</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">#8 · Mochila, slots e peso</span>
+        <span class="it-d">Slot de mochila; sem ela o personagem não carrega nada. Containers com slots, peso em quilos crescendo com o nível, abas por mochila aberta e mochila dentro de mochila. Ressalva registrada: 8 slots é apertado demais para o volume de loot do jogo — recomendado peso como restrição real e slots generosos. E precisa de um depot, que não existe: peso sem armazém é punição, não tensão.</span>
+        <span class="it-t">esforço muito alto · precisa de depot junto</span>
+      </li>
+      <li>
+        <span class="it-n">#11 · Armas de uma e de duas mãos</span>
+        <span class="it-d">Não existe acoplamento entre slots hoje — <code>equipItem</code> só faz <code>P.eq[slot] = it</code>. Junto vem um defeito: a defesa está invertida no par. Espada do Guardião Dourado tem atk 31/def 24 contra a Espada Longa com atk 39/def 26 — a de duas mãos tem mais ataque E mais defesa. Trancar o escudo sem rebalancear seria perda pura. <b>Ficou mais urgente depois do #36</b>: a defesa da arma agora entra no contador único, então esses números pararam de ser decorativos.</span>
+        <span class="it-t">esforço médio · decisão pendente sobre mão secundária</span>
+      </li>
+      <li>
+        <span class="it-n">#18 · NPCs e vila do templo</span>
+        <span class="it-d">Loja, contratos e forja são painéis que aparecem do nada ao apertar uma tecla, presos a <code>shopNear()</code>. Modelo recomendado: NPC dirigido por palavra-chave — posição, nome, retrato e um mapa palavra→resposta, sem árvore de diálogo. Melhora retroativamente as fases 2 e 4. Risco baixo: é código novo.</span>
+        <span class="it-t">esforço médio-alto · risco baixo</span>
+      </li>
+      <li>
+        <span class="it-n">#20 · Domesticar animais</span>
+        <span class="it-d">Não é fauna, é companheiro. O custo escondido: o código não tem conceito de entidade amiga — <code>updateMobs</code>, <code>occupied</code>, <code>dealDamage</code> e a seleção de alvo presumem que tudo em <code>G.mobs</code> é hostil. Decisão aberta que muda a ordem de grandeza: seguidor não-combatente (barato) ou aliado de combate (caro).</span>
+        <span class="it-t">esforço alto · escopo indefinido</span>
+      </li>
+      <li>
+        <span class="it-n">#23 · Revisar cooldown de todas as magias</span>
+        <span class="it-d">O piso resolveu o pior caso. Falta passar a tabela inteira: cura ainda em 1000 ms, GCD fixo de 900 ms para tudo, e comparação de dano por segundo entre magia e arma em cada faixa. Se o ataque básico virar variável por arma (ver #11), o piso precisa acompanhar.</span>
+        <span class="it-t">esforço médio · é balanceamento, precisa de teste em jogo</span>
+      </li>
+      <li>
+        <span class="it-n">#24 · Habilidades e mecânicas de criatura</span>
+        <span class="it-d">79 criaturas dividem quatro tipos de habilidade (area, lento, cura, mana), com no máximo uma por criatura. Quase toda briga é "sai do raio quando ele gritar". Ideias registradas: mais de uma habilidade, tipos novos (invocar, puxar, empurrar, silenciar, campo no chão), comportamento de grupo, reação ao estado do jogador. Os campos <code>medo</code> e <code>recua</code> já existem e estão subaproveitados.</span>
+        <span class="it-t">esforço médio-alto · alto impacto no combate</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Ferramental</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">#35 · Editor de dados fora do jogo</span>
+        <span class="it-d">
+          Página separada (<code>editor.html</code>) para ajustar constantes, loot, experiência,
+          cooldown e propriedades, e para criar criatura, magia e item sem abrir o código.
+          <strong>O barato:</strong> <code>data.js</code> é carregado como script global, então o
+          editor carrega os mesmos fontes e já enxerga <code>MONSTERS</code>, <code>SPELLS</code>,
+          <code>HUNTS</code>, <code>COLETA</code>, <code>IMBUEMENTS</code> e <code>ITEMS</code> em
+          memória — nada de parser, e uma grade genérica derivada das chaves da primeira entrada
+          cobre quase toda tabela. Criar item pode chamar o próprio <code>item()</code>/<code>conjunto()</code>.
+          <strong>O caro é gravar de volta.</strong> Rota recomendada: overlay
+          (<code>src/dados_edit.js</code> com atribuições, carregado depois de <code>data.js</code>
+          em <code>index.html</code> e em <code>tests/test.js</code>), escrito por
+          <code>showSaveFilePicker</code> — nativo do Chrome, sem dependência. Dois obstáculos reais:
+          <code>ITEMS</code> não é literal (nasce vazio em <code>data.js:120</code> e é montado por
+          <code>item()</code>, <code>conjunto()</code> e <code>GG()</code>), então não faz round-trip
+          como tabela; e as constantes globais são <code>const</code>, que overlay não sobrescreve —
+          ou viram <code>let</code>, ou esse punhado é gravado por emenda no próprio arquivo.
+          <strong>Risco central:</strong> as 11 invariantes travadas por teste passam a poder ser
+          quebradas por formulário. O editor tem de validar antes de gravar, ou no mínimo lembrar de
+          rodar <code>node tests/test.js</code> depois.
+          <strong>Sinergia:</strong> é o que torna barato o bloco #26–#29, que hoje custa caro
+          justamente por exigir teste em jogo a cada ajuste.
+        </span>
+        <span class="it-d">
+          <strong>Fatiamento proposto:</strong> (1) as ~11 constantes numéricas — sozinha já destrava
+          #26–#29; (2) grade genérica sobre as tabelas literais; (3) criação de entidade nova, sendo
+          criatura e magia baratas e item o caso difícil.
+        </span>
+        <span class="it-d">
+          <strong>Decisão aberta 1 — overlay ou emenda no <code>data.js</code>?</strong>
+          Overlay não corrompe o fonte, mas cria segunda fonte de verdade e não alcança as
+          <code>const</code>. Emenda mantém fonte única e mexe no arquivo que os testes leem.
+          Recomendado: overlay.
+        </span>
+        <span class="it-d">
+          <strong>Decisão aberta 2 — o editor valida ou só avisa?</strong>
+          Validar exige portar as 11 invariantes de <code>tests/test.js</code>, que é node-only, para
+          o navegador. Avisar é ordens de grandeza mais barato e deixa o <code>node tests/test.js</code>
+          na mão. Recomendado: só avisa.
+        </span>
+        <span class="it-t">esforço alto · duas decisões abertas, resolver antes de escrever código</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Arte e conformidade com o CLAUDE.md</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">#14 · Trocar emoji por ícones próprios</span>
+        <span class="it-d">O <code>CLAUDE.md</code> §17 proíbe emoji como ícone de gameplay e §23 lista "Emoji UI" entre as práticas vetadas. Os botões <code>task-btn</code> (📜) e <code>forja-btn</code> (🔨) são emoji cru ao lado de quatro botões que usam PNG. Também em emoji: 5 tipos de POI, 11 imbuements e ~15 itens de coleta. O pipeline já existe — PNG em <code>assets/icons</code> com o nome do id, e <code>build_skins.py --aplicar</code>.</span>
+        <span class="it-t">esforço baixo · parte depende de arte a produzir</span>
+      </li>
+      <li>
+        <span class="it-n">#40 · Segunda passada na paleta</span>
+        <span class="it-d">
+          A revitalização subiu a saturação média do terreno de 29% para 40% e separou os três
+          verdes, e o dono do projeto confirmou jogando que melhorou — mas achou que
+          <strong>ainda dá para melhorar</strong> (2026-08-17). Ficou para depois, sem direção
+          definida ainda.
+        </span>
+        <span class="it-d">
+          O que já está medido e pode guiar a próxima passada: a caverna continua sendo a parte mais
+          apagada do jogo (rocha em 13%, parede em 13%, escada em 16%) porque foi a que subiu menos;
+          os andares profundos (Abismo, Fenda, Coração) não foram tocados e herdam a mesma paleta de
+          caverna, então os seis andares se parecem demais entre si; e as cores de criatura
+          (<code>col</code> em 83 fichas) e as de elemento (<code>ELEM</code>) <b>não entraram
+          nesta passada</b> — só terreno e interface.
+          <b>Antes de mexer:</b> três invariantes travam a paleta por teste (separação mínima de 60
+          entre terrenos vizinhos, saturação média ≥ 33%, nenhum tile fora da faixa 10–90%), e a
+          avaliação tem de ser feita com o relógio fixado ao meio-dia — de noite a iluminação
+          mascara tudo.
+        </span>
+        <span class="it-t">esforço baixo · precisa da direção do dono do projeto</span>
+      </li>
+      <li>
+        <span class="it-n">#19 · Texturas de terreno</span>
+        <span class="it-d">Parte cara e arriscada. TESTAR A COSTURA ANTES de qualquer pipeline: os tiles parecem quadrados isolados com borda escurecida e podem mostrar grade lado a lado. A célula não é inteira (1254 ÷ 9 = 139,33) e o fundo é chroma magenta (211,4,201). O render já mistura borda entre terrenos e faz espuma na água — trocar sem preservar isso piora o resultado mesmo com arte melhor.</span>
+        <span class="it-t">esforço médio-alto · pode ser invalidada pelo teste de costura</span>
+      </li>
+      <li>
+        <span class="it-n">#13 · Bonecos procedurais de criatura</span>
+        <span class="it-d">79 criaturas dividem seis formas (biped, quadruped, arachnid, serpent, worm, dragon), então a leitura de longe depende quase só de cor e tamanho. As 29 criaturas novas pioraram isso: Elemental, Aberração e Celeste usam <code>biped</code> como todo mundo. O ganho barato é acrescentar silhuetas, não refinar sombreado. Trabalho descartável de propósito — o caminho para sprite sheet já existe via <code>MOB_ART.sheet</code>.</span>
+        <span class="it-t">esforço médio · descartável quando a arte chegar</span>
+      </li>
+      <li>
+        <span class="it-n">#16 · Revisão visual das janelas Contratos e Forja</span>
+        <span class="it-d">As duas foram construídas sem o ciclo que o §26 exige (inspecionar, identificar reuso, definir hierarquia) e sem a revisão do §32. Pontos concretos: <code>.task-card</code> foi criada nova quando <code>.best-card</code> já existia; falta conferir hover, pressed e focus; e a contagem de material na forja é verde/vermelho puro, o que o §20 proíbe (indicador não pode depender só de cor).</span>
+        <span class="it-t">esforço baixo-médio</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Balanceamento — a economia da caçada</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">#39 · Aproximar o dano das quatro vocações</span>
+        <span class="it-d">
+          <strong>Princípio de desenho, do dono do projeto (2026-08-16):</strong> vocação se
+          diferencia <b>principalmente pelo estilo de jogo</b>, e os números acompanham o papel —
+          não o contrário. É esperado e necessário que difiram: o knight não vai dar muito mais
+          dano que o sorcerer, o ranger não vai curar mais que o druida. Cada vocação deve ser a
+          melhor no eixo dela.
+          <b>O que não pode é a diferença ser TANTA que uma vocação vire inútil.</b>
+          A régua não é "todo mundo igual" — é "ninguém dispensável". Vale para qualquer ajuste
+          futuro de vocação, e é por ela que este item existe.
+        </span>
+        <span class="it-d">
+          <b>O desvio medido</b>, com rotação real (cooldown por magia, relógio de grupo, mana e
+          regeneração, alvo único, 5 minutos), depois do #38a–d. Dano por segundo no nível 320:
+          <b>ranger 606</b>, sorcerer 380, druida 361, <b>knight 172</b>.
+          Dois problemas distintos aqui, e só o segundo é grave:
+          o ranger passar o sorcerer em <em>dano</em> inverte os papéis (o mago deveria liderar esse
+          eixo), mas 1,6× ainda é faixa; já o <b>ranger em 3,5× o knight</b> é a distância que torna
+          uma vocação dispensável.
+          No nível 50 a razão já é 84 contra 29 — o desvio não nasce no fim de curva, existe desde
+          cedo.
+        </span>
+        <span class="it-d">
+          <b>A causa não é fórmula, é a tabela de magias.</b> Melhor magia de alvo único por
+          vocação: ranger <code>Lança Etérea</code> base <b>55</b>, sorcerer
+          <code>Golpe de Energia</code> base 30, druida <code>Golpe de Gelo</code> base 28 — mesmo
+          cooldown de 2 s e mana equivalente. O knight não tem nenhuma: ele só tem magia de dano por
+          arma. O mago só ganha em onda e área, e essas <em>não se sustentam</em>: Onda de Energia
+          rende 443 por segundo custando 36,4 de mana por segundo contra 8 de regeneração; a Lança
+          Etérea rende 433 custando 12,5. Em luta longa quem sustenta ganha.
+          Some-se que o arco do ranger escala com skill (via <code>damageFormula</code>) enquanto a
+          varinha ficou fixa no #38b — certo pelo modelo do Tibia, mas o efeito é que o ranger
+          acumula duas fontes que crescem e o mago só uma.
+        </span>
+        <span class="it-d">
+          <b>Reenquadramento que o princípio obriga.</b> A pergunta não é "quem bate mais" nem
+          "como igualar todo mundo" — é <b>qual a faixa aceitável em cada eixo</b>. A ordem por
+          papel deve continuar existindo (sorcerer bate mais, druida cura mais, knight aguenta
+          mais, ranger alcança mais); o que precisa de teto é a <em>distância</em>.
+          O trabalho provável é <em>comprimir a faixa</em> e <em>afastar os estilos</em>: hoje as
+          quatro vocações jogam quase igual e só diferem no número, que é exatamente a troca errada.
+          Eixos de estilo que o jogo já tem e estão subaproveitados: alcance e recuo (ranger),
+          área contra alvo único (sorcerer), sustento e cura (druida), segurar a linha e a multidão
+          (knight).
+        </span>
+        <span class="it-d">
+          <b>Como transformar isso em número, quando revisitar.</b> Duas medidas, porque dano por
+          segundo sozinho é o que produziu a leitura enganosa:
+          (1) <em>faixa por eixo</em> — a razão entre o melhor e o pior de cada eixo (dano, cura,
+          sobrevivência) precisa de um teto acordado; 3,5× em dano é claramente demais, e o valor
+          aceitável é decisão de desenho.
+          (2) <em>rendimento efetivo</em> — quanto conteúdo cada vocação limpa por minuto
+          <em>sobrevivendo</em>, não dano no vácuo. É o que separa "bate menos" de "é inútil": o
+          knight bate 3,5× menos que o ranger mas tem quase 3× a vida, e nenhuma medição feita até
+          agora combinou as duas coisas. Sem isso, é bem possível que o knight já esteja mais perto
+          do aceitável do que o número cru de dano sugere.
+          <b>Medir também contra um grupo de 5</b>: alvo único é metade do jogo, e hoje só a metade
+          que favorece o ranger foi medida.
+        </span>
+        <span class="it-d">
+          <b>O que o princípio NÃO condena:</b> o #38d colocou o druida em 88% do dano do sorcerer
+          de propósito, com teste travando o teto em 92%. Isso é diferença por papel, dentro da
+          faixa — o druida paga 12% de dano e recebe 25–37% de vida e a maior cura do jogo.
+          Fica como está; é exatamente o formato que o princípio pede.
+          O caso fora da faixa é o par <b>knight × ranger</b>, em 3,5×.
+        </span>
+        <span class="it-t">a revisitar · esforço baixo de código, alto de decisão · descoberto auditando o #38</span>
+      </li>
+      <li>
+        <span class="it-n">#37 · Sem progressão de equipamento acima do nível 76</span>
+        <span class="it-d">
+          Descoberto medindo o #29. <code>Ceifadeira do Vazio</code> (atk 66) e
+          <code>Égide do Vazio</code> (def 60) são nível 76 e são as últimas peças do jogo, então
+          <strong>ataque trava em 66 e defesa em 181</strong>. Do 76 ao 320 o jogador cresce só por
+          nível: dano vai de 126 a 268, o dobro. No mesmo trecho a vida das criaturas vai de 7.500
+          (tier 10) a 130.000 (tier 12), <strong>17 vezes</strong>. Consequência medida: matar um
+          <code>abyssal_god</code> leva 717 golpes, quase 24 minutos.
+          <b>Decisão tomada pelo dono do projeto (2026-08-16): não entra equipamento novo agora</b> —
+          o jogo está em fase de teste e aprimoramento, e não é hora de mexer no teto de itens.
+          Sobra a outra ponta: baixar a vida das criaturas de tier alto.
+        </span>
+        <span class="it-d">
+          <b>Números remedidos depois do #38a–d</b>, com rotação real e alvo único. Tempo para matar
+          <code>Nharzul</code> (130.000 de vida) no nível 320: knight <b>12,6 min</b>, druida 6,0,
+          sorcerer 5,7, ranger 3,6. O 24 minutos do texto original vinha de uma conta de skill mais
+          baixa; a ordem de grandeza continua.
+          Para um chefe morrer em 90 s nas mãos do knight, o teto de vida seria <b>~16.000</b> —
+          o que significa Nharzul a 0,12× do que é hoje. Em 180 s, ~32.000 (0,25×).
+          <b>Cuidado ao escolher o alvo:</b> a mesma vida dá tempos 3,5× diferentes conforme a
+          vocação (ver #39), então calibrar pelo knight faz o ranger derrubar chefe em 1 minuto.
+          O #39 provavelmente precisa vir antes.
+          <b>Bloqueia o #29</b>: enquanto o tempo de uma morte variar assim, qualquer alvo de ritmo
+          é arbitrário.
+        </span>
+        <span class="it-t">esforço médio · bloqueia o #29</span>
+      </li>
+      <li>
+        <span class="it-n">#38 · Escala de dano, peso da skill e chance de erro</span>
+        <span class="it-d">
+          <strong>Pedido de revisão geral do par dano/defesa.</strong> O #36 arrumou o lado de
+          <em>apanhar</em>; o lado de <em>bater</em> nunca foi revisto. Relato do dono do projeto:
+          personagem nível 30 causando <b>300 de dano</b> com magia básica de golpe de fogo, e
+          nível 50 matando demônio com folga. A escalada está alta demais e a skill não está
+          fazendo diferença suficiente para o jogador <em>querer</em> treinar.
+        </span>
+        <span class="it-d">
+          <strong>Análise Tibia/RuneScape: FEITA.</strong> A parte mais grave saiu junto e está
+          fechada acima (#38a, o GCD anulando o piso). O que segue aqui é o resto, em ordem de
+          tamanho. Fórmulas de referência, para não precisar pesquisar de novo:
+          <b>Tibia corpo a corpo</b> <code>max = 0.085×f×atk×(skill+4) + nível/5</code>, sorteio
+          uniforme — THAIRA é cópia quase literal disto, com <code>0.09</code>.
+          <b>Tibia magia</b> <code>min/max = nível/5 + ML×k + c</code>, <em>aditivo</em>, com
+          <code>k</code> escolhido por magia e todas as strikes entre 1,4 e 2,2.
+          <b>Tibia defesa</b>: bloqueio é tudo-ou-nada e vale para no máximo 2 ataques físicos por
+          turno — escudo forte no 1×1, inútil cercado.
+          <b>OSRS</b>: dois sorteios separados — primeiro <em>se</em> acertou
+          (<code>attackRoll</code> vs <code>defenceRoll</code>), depois <em>quanto</em>
+          (uniforme 0..maxHit). Três skills distintas: Ataque = acerto, Força = dano, Defesa = o
+          acerto do inimigo.
+        </span>
+        <span class="it-d">
+          <b>1. Inclinação de ML — RESOLVIDO no #38c</b> (<code>magPower</code>, espalhamento de
+          16,2× para 4,0×), e a identidade do druida no #38d. Resíduo que sobra: a Cura Suprema
+          ainda restaura <b>106% da vida no nível 50</b> (era 332%, depois 124%). No 320 está em 74%
+          e encolhendo, então o invariante travado por teste — cura não cresce mais rápido que vida
+          — passa. Fechar os últimos 6% é mais vida para as vocações mágicas no meio do jogo, ou
+          aceitar. <b>Decisão de desenho, não de fórmula.</b>
+        </span>
+        <span class="it-d">
+          <b>2. Chance de erro de ataque.</b> Não existe: <code>game.js:672</code> chama
+          <code>hitPlayer(...)</code> direto, sem sorteio — <b>toda criatura acerta todo golpe,
+          sempre</b>, e o jogador também. Copiar o modelo do OSRS (rolo de acerto separado do rolo
+          de dano), não o do Tibia. <code>impacto(x, y, 'erro')</code> e <code>float</code> já
+          existem e dão o retorno visual sem nada novo.
+          <b>Cuidado:</b> não tirar a chance de erro da mesma DEFESA que já reduz o dano — o mesmo
+          ponto pagaria duas vezes e a curva de 23–41 golpes travada pelo #36 cai junto. Precisa de
+          eixo novo (destreza por classe, ou valor por criatura).
+          <b>E não conte com isso para resolver cerco:</b> medido, 14 criaturas matam um knight
+          nível 50 em 1 s hoje e em 2 s com 25% de erro. Quem resolve multidão é teto de atacantes
+          simultâneos, como o Tibia faz.
+        </span>
+        <span class="it-d">
+          <b>3. A skill de arma já pesa — o problema é percepção, não peso.</b> Medido: skill 100
+          causa <b>5,6× o dano</b> de skill 10 com a mesma arma, praticamente a proporção do Tibia.
+          O diagnóstico original de que "a skill não importa" <strong>não se confirmou</strong>.
+          Três causas reais da sensação: o golpe sorteia de quase zero ao teto (coeficiente de
+          variação 0,577), então skill alta lê como "às vezes bate muito"; a skill sobe sozinha
+          batendo, e nada que sobe sozinho parece conquista; e a arma congela no nível 76 (#37).
+          Proposta barata: estreitar o sorteio para <code>rnd(max×0.5, max)</code> — mesmo dano
+          médio, muito menos ruído — e mostrar o dano médio na ficha, que hoje não existe em lugar
+          nenhum. É polimento; entra por último.
+        </span>
+        <span class="it-d">
+          <b>Números de contexto, medidos.</b> Do nível 30 ao 320 o dano do jogador cresce
+          <b>9,7×</b> (35 → 341) e a vida das criaturas cresce <b>6.500×</b> (20 → 130.000). No OSRS
+          o dano cresce 37× no jogo inteiro (11× de skill, 3,4× de equipamento) contra ~300× de
+          vida. É a mesma doença do #37 vista pelo outro lado — e é por isso que
+          <b>o #37 continua bloqueando o #29</b>.
+          Sobre os 300 de dano relatados: com Golpe de Fogo (base 26) isso sai em ML ~60–70 com rolo
+          alto e presa marcada (219 × 1,15 × 1,18 = 298). O relato reproduz.
+        </span>
+        <span class="it-t">esforço médio · análise feita · a parte grave saiu no #38a · toca #36 e #37</span>
+      </li>
+      <li>
+        <span class="it-n">#29 · Experiência por dificuldade</span>
+        <span class="it-d">
+          <strong>Deixado deliberadamente por último</strong>, por decisão do dono do projeto: é o
+          coração do jogo, e a meta é algo lógico, recompensador e difícil ao mesmo tempo — nem
+          chegar ao endgame em uma hora, nem levar um ano.
+          A regra é simples e já está definida: <b>cada criatura tem uma experiência baseada na
+          dificuldade dela, e só</b> — nada de escalar por posição no mapa, e nada de derivar de
+          alvo de mortes por nível. A pesquisa do Tibia bate com isso: lá a exp por criatura é fixa,
+          e o que multiplica é sempre circunstancial (stamina, criatura impulsionada do dia, XP
+          boost, evento). A curva de nível do Tibia <em>já é</em> a que o jogo usa:
+          <code>50/3(L³−6L²+17L−12)</code>, idêntica, com teste que afirma isso.
+        </span>
+        <span class="it-d">
+          O que a medição acrescentou, e que ainda não virou decisão, é a <strong>inclinação</strong>.
+          Razão experiência/vida — quanto se ganha por tempo de luta:
+          no Tibia sobe de 0.25 (Rat) até ~0.70 (Dragon) e <b>estaciona</b> — Behemoth 0.63,
+          Demon 0.73, Juggernaut 0.62, com 18× mais vida.
+          Em THAIRA ela <b>nunca estaciona</b>: <code>rat</code> 0.25, <code>orc</code> 0.45,
+          <code>dragon</code> 1.00, <code>seraph_guard</code> 2.93, <code>abyssal_god</code>
+          <strong>7.31</strong>. Média dos 20 mais fracos 0.51, dos 20 mais fortes 2.99. O
+          <code>rat</code> é cópia exata do Tibia (20 hp / 5 exp): a ponta de baixo foi copiada e a
+          de cima foi inventada. <b>Descer é 6× mais eficiente por tempo de luta</b>, e mexer só em
+          <code>XP_MULT</code> não toca nisso — muda a velocidade geral, não a inclinação.
+          Faltam dois números: o novo multiplicador, e se a razão deve achatar como a do Tibia.
+        </span>
+        <span class="it-t">esforço baixo de código, alto de decisão · decidir junto com #28</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Combate: estados elementais</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">#32 · Status elemental no corpo</span>
+        <span class="it-d">
+          Hoje o elemento só decide cor de partícula e multiplicador de resistência — nada queima,
+          nada envenena. Pedido: chance de aplicar estado ao acertar (queimando, envenenado,
+          eletrocutado, congelado), com dano ao longo do tempo, valendo para jogador e criatura.
+          Metade do pedido é <strong>visual</strong>: o corpo afetado mostra o estado, e o jogador
+          ganha indicador na barra de status. Reaproveitar <code>P.buffs</code>, que já é um mapa de
+          efeito com relógio e já hospeda um efeito ruim (<code>lento</code>), mais
+          <code>BUFF_LABEL</code>/<code>BUFF_ICO</code> e a tabela <code>ELEM</code>, que já tem cor
+          e forma de partícula por elemento. Criatura não tem estrutura equivalente e vai precisar
+          de uma. Regra de acúmulo: reaplicar reseta a duração, nunca empilha.
+        </span>
+        <span class="it-t">esforço médio-alto · destrava #24</span>
+      </li>
+      <li>
+        <span class="it-n">#33 · Efeito elemental no chão</span>
+        <span class="it-d">
+          Magia de área deixa o chão afetado — fogo queimando, por exemplo — por um tempo, até
+          enfraquecer e apagar. Quem passa por cima recebe dano e o status.
+          <strong>Regra explícita: passar de novo reseta, nunca acumula.</strong>
+          <code>G.blood</code> serve de molde pronto: lista de marcas de chão com posição, andar,
+          tempo e duração, desenhada entre o piso e os volumes, com teto de quantidade protegendo a
+          memória. Vale para criatura também, o que vira ferramenta tática — empurrar a horda para
+          dentro do fogo. Decisão aberta: criatura deve desviar de campo? Se sim, mexe em
+          <code>passoAte</code>, e criatura que desvia de fogo é bem mais difícil de encurralar.
+        </span>
+        <span class="it-t">esforço médio · depende de #32</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Coleta e controles</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">#30 · Ferramenta obrigatória para colher</span>
+        <span class="it-d">
+          <code>colher()</code> hoje só exige proximidade e nível de skill — qualquer personagem
+          minera com as mãos. Pedido: picareta para minerar, machado para lenhar, vara para pescar.
+          Provável campo <code>ferramenta</code> em cada entrada de <code>COLETA</code>. Decisão
+          aberta: a ferramenta precisa estar <em>equipada</em>, competindo com a arma (o que é uma
+          escolha de jogo interessante), ou basta estar na mochila? E o <code>axe</code> que já
+          existe como arma serve de machado de lenhador, ou é item separado? Encaixa com #8: a
+          ferramenta ocupa espaço e peso.
+        </span>
+        <span class="it-t">esforço baixo</span>
+      </li>
+      <li>
+        <span class="it-n">#31 · Pontos de coleta e taxa de êxito</span>
+        <span class="it-d">
+          Dois problemas. <strong>Pontos:</strong> lenha e mineração já têm limite natural (árvore e
+          pedra não existem em todo lugar), mas <em>pesca não</em> — qualquer tile de água serve, e
+          o mapa tem oceano na borda inteira, então dá para pescar infinitamente, vender e ter
+          regeneração de graça. <strong>Taxa de êxito:</strong> colher sempre rende; o sorteio
+          decide o que sai, nunca se sai. Nas palavras do usuário, o jogador não "tenta executar",
+          ele "consegue executar". O esgotamento por tile já existe (<code>P.colhido</code>), então
+          a estrutura de ponto com recarga está pronta. Falha deve consumir o tempo da ação mas
+          <em>não</em> esgotar o ponto. Com taxa de êxito, a curva de skill passa a significar algo:
+          hoje o nível só abre linhas melhores na tabela.
+        </span>
+        <span class="it-t">esforço médio · alimenta a economia junto com #28</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Defeito residual conhecido</div>
+    <ul class="itens">
+      <li class="debt">
+        <span class="it-n">#41 · Três testes probabilísticos instáveis</span>
+        <span class="it-d">
+          <code>provocado, o lobo volta mesmo ferido</code>, <code>dragão fecha a distância em vez
+          de fugir</code> e <code>a multidão CERCA em vez de enfileirar</code> falham sozinhos entre
+          1 em 6 e 1 em 10 execuções. Todos <b>pré-existentes</b> — conferido em <code>HEAD</code> —
+          e nenhum tem relação com o que foi mexido no #38 ou no #6.
+        </span>
+        <span class="it-d">
+          Hoje são ruído tolerável, mas o custo real é outro: <b>uma suíte que às vezes falha treina
+          quem a lê a ignorar a falha</b>, e é assim que uma regressão de verdade passa. A seção
+          <em>Armadilhas conhecidas</em> já documenta a causa da família — assertiva probabilística
+          precisa de estado inicial igual, e aumentar a amostra não resolve viés. O caminho é o
+          mesmo dos que já foram corrigidos: achar o viés (personagem morto de um bloco anterior,
+          skill treinada pela própria medição, RNG compartilhado), não afrouxar o limiar.
+        </span>
+        <span class="it-t">baixa prioridade · dívida de confiança na suíte</span>
+      </li>
+      <li class="debt">
+        <span class="it-n">#22 · Criatura oscilando na vaga reservada</span>
+        <span class="it-d">Com 14 criaturas cercando um jogador encostado numa parede, uma delas a 2 tiles ficou imóvel por 9,6 s com 4 vizinhos livres. Hipótese: oscilação entre <code>reservarVagas</code> e <code>passoVagar</code> — chega na vaga, o passo vira nulo, ela vaga para fora e o quadro seguinte a manda de volta. Pode ter sido resolvido pela inversão da varredura de vagas; não foi reverificado. Impacto de 1 em 14, e não é mais o congelamento em massa.</span>
+        <span class="it-t">baixa prioridade · precisa de reverificação</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Armadilhas conhecidas</h2>
+
+  <div class="aviso">
+    <h4>O navegador cacheia o índice de ícones</h4>
+    <p>
+      Depois de rodar <code>build_skins.py --aplicar</code>, o navegador continua servindo o
+      <code>src/icones.js</code> antigo, inclusive em aba nova e após reiniciar o servidor.
+      O efeito é arte nova aparecendo como emoji, o que parece falha do pipeline e não é.
+      Um <strong>Ctrl+F5</strong> resolve. Foi diagnosticado comparando o que o servidor entrega
+      via <code>fetch</code> com o que a página tem em memória.
+    </p>
+  </div>
+
+  <div class="aviso">
+    <h4>Medir efeito visual comparando quadros exige timestamp fixo</h4>
+    <p>
+      Duas medições foram invalidadas por isto. Comparar dois quadros com timestamps diferentes faz
+      nuvem, água, tocha e quadro de animação entrarem na conta como se fossem o efeito medido.
+      O método correto é chamar <code>frame(T)</code> com o <strong>mesmo</strong> <code>T</code>
+      nos dois quadros, e confirmar com um controle que dois quadros idênticos dão diferença zero.
+    </p>
+  </div>
+
+  <div class="aviso">
+    <h4>refreshSpawns reescreve G.nascendo</h4>
+    <p>
+      <code>frame()</code> chama <code>refreshSpawns()</code> a cada 700 ms, e ele reconstrói
+      <code>G.nascendo</code> do zero. Definir esse array à mão para testar o indicador de
+      nascimento não funciona — o valor é apagado antes do desenho. O caminho é ajustar
+      <code>sp.dead</code> e deixar o próprio <code>refreshSpawns</code> popular.
+    </p>
+  </div>
+
+  <div class="aviso">
+    <h4>Assertivas probabilísticas precisam de estado inicial igual</h4>
+    <p>
+      Um teste de postura de combate falhava sozinho cerca de 1 vez em 6. A causa não era variância:
+      <code>hitPlayer</code> começa com <code>if (G.dead) return</code>, então quando um bloco
+      anterior deixava o personagem morto as duas somas davam zero, e <code>0 &lt; 0</code> é falso.
+      Havia um segundo viés real — <code>hitPlayer</code> treina Escudo a cada golpe, então a
+      primeira postura medida treinava o personagem e a segunda era medida com mais escudo.
+      Aumentar a amostra não resolvia nenhum dos dois.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>Próximo passo recomendado</h2>
+  <div class="col">
+    <p>
+      <strong>O balanceamento entrou em pausa por decisão do dono do projeto (2026-08-16).</strong>
+      O <strong>#37</strong> perdeu uma das duas saídas — não entra equipamento novo agora, porque o
+      jogo está em fase de teste e aprimoramento — e a saída que resta, baixar a vida do tier alto,
+      depende de um alvo de ritmo que ainda não existe. O <strong>#39</strong> ficou para
+      revisitar. Os dois são pré-requisito do <strong>#29</strong>, então a fila de balanceamento
+      está parada por escolha, não por bloqueio técnico.
+    </p>
+    <p>
+      Quando voltar, a ordem provável é <b>#39 antes de #37</b>: hoje a mesma vida de criatura dá
+      tempos <b>3,5× diferentes</b> conforme a vocação (Nharzul no nível 320: knight 12,6 min,
+      ranger 3,6), então calibrar vida antes de nivelar vocação é calibrar contra um alvo que se
+      move.
+    </p>
+    <p>
+      O bloco de balanceamento caiu inteiro, menos ele: <strong>#26, #27 e #36</strong> resolveram o
+      <em>perigo</em> — nada é imune, a postura decide, a velocidade acompanha a criatura;
+      <strong>#28</strong> resolveu o <em>loot</em>; e <strong>#38a–d</strong> resolveram a
+      <em>escala de dano</em> — relógio único de magia, varinha sem magic level, inclinação de ML
+      sublinear e a identidade do druida. Mago contra guerreiro saiu de 6,2× para 3,4× no nível 50.
+    </p>
+    <p>
+      <strong>Com o balanceamento em pausa, o próximo passo é o #6 — zonas calmas e fauna
+      passiva.</strong> É a mais barata da lista e a que mais muda a sensação do mundo, não depende
+      de nenhuma decisão em aberto, e tem sinergia direta com o que foi corrigido: agora que as
+      criaturas percebem o jogador a 11 tiles e cercam de verdade, atravessar o mapa ficou mais
+      hostil do que era — zonas calmas passaram a ser mais necessárias, não menos.
+      Alternativas igualmente destravadas, se a preferência for fechar dívida em vez de abrir
+      sistema: <strong>#12</strong> (marcadores de POI) e <strong>#14</strong> (trocar emoji por
+      ícone próprio).
+    </p>
+    <p>
+      Do <strong>#38</strong> sobram três coisas, todas menores que o que já saiu: a chance de erro
+      de ataque (ninguém erra um golpe hoje, nos dois sentidos), o estreitamento do sorteio de dano
+      (polimento de percepção, não de peso), e o resíduo da Cura Suprema do druida em 106% da barra
+      no meio do jogo. Nenhuma bloqueia nada.
+    </p>
+    <p>
+      Depois deles, <strong>#12</strong> (marcadores de POI) e <strong>#14</strong> (emoji), que são
+      pequenas e fecham dívida de conformidade. As estruturais — #5 e #8 — devem esperar o
+      balanceamento assentar.
+    </p>
+    <p>
+      Duas decisões travam itens da fila: o escopo da <strong>#20</strong> (seguidor simples ou
+      aliado de combate) e a rota de arte em <strong>#12/#19</strong> (adereços primeiro, terreno
+      depois — recomendado).
+    </p>
+  </div>
+</section>
+
+<footer>
+  Thaira · RPG 2D dark-fantasy em JavaScript sem dependências ·
+  600 verificações passando em <code>tests/test.js</code> ·
+  23 tarefas pendentes.
+</footer>
+
+</div>
