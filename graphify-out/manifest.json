@@ -55,8 +55,8 @@
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1787071690.7518036,
-    "ast_hash": "7e75650212a9b89c603ed074ecc96e0f",
+    "mtime": 1787076724.3233144,
+    "ast_hash": "d4257b4f226ab3c5526f6e9b613b05b5",
     "semantic_hash": ""
   },
   "src/hud.js": {
@@ -80,8 +80,8 @@
     "semantic_hash": ""
   },
   "tests/test.js": {
-    "mtime": 1787071614.4472532,
-    "ast_hash": "055e8b0653a44a4cab96f35a8344866b",
+    "mtime": 1787076787.6086304,
+    "ast_hash": "fdbd050556809656707deda95be6266c",
     "semantic_hash": ""
   },
   "CLAUDE.md": {

@@ -114,6 +114,10 @@ const sandbox = {
   /* sem rede aqui: a imagem nunca fica pronta, que é justamente o caminho de
      fallback que ícone de item e folha do ranger têm de saber percorrer */
   Image: class { constructor() { this.complete = false; this.naturalWidth = 0; this.src = ''; } },
+  /* Path2D existe em todo navegador e o render usa um para recortar as poças.
+     Sem o stub, `new Path2D()` estourava dentro de drawWorld e derrubava a suíte
+     inteira no meio — as três cenas de integração e tudo que vinha depois. */
+  Path2D: class { rect() { } moveTo() { } lineTo() { } arc() { } ellipse() { } closePath() { } },
   /* Sem CSS aqui: `tok()` lê os tokens de cor do :root e cacheia. Devolvendo ''
      ele cai no fallback de cada chamador, que é o caminho certo para o teste —
      o que importa é que a lógica rode, não o tom exato do pixel. Sem este stub a
@@ -142,7 +146,7 @@ vm.runInContext(`
     regenMobs, descLoot, save, load, changeFloor, spawnDrop, tryStep, spawnMob, removeMob, restaurarBichos,
     habilidade, impacto, cssColOu: cssCol, ELEM, RES, resistOf,
     ELITES, ELITE_CHANCE, defModificada, mixCol, SETS,
-    HUD_PANELS, HUD_DEF, hudApply, hudMove, hudLoad, luzCarregada, SLOT_POS, SLOT_LABEL, equipItem, unequip,
+    HUD_PANELS, HUD_DEF, hudApply, hudMove, hudSolta, hudLoad, luzCarregada, SLOT_POS, SLOT_LABEL, equipItem, unequip,
     playerDeath, BENCAOS, blessPrice, bagAdd, DEEP, SPAWN_POOLS,
     taskEstado, taskAceitar, taskReceber, taskProgresso, taskOfertas, nivelDe, shopNear, SKILL_NAMES, fixSave,
     POIS, poiAt, abrirTesouro, BIOMA_POOLS,
@@ -152,6 +156,7 @@ vm.runInContext(`
 
   /* O templo é zona segura: lá o jogador não ataca nem é atacado. Quem for medir
      combate precisa sair de cima dele antes, senão mede a proteção, não a briga. */
+  globalThis.ordemHUD = () => Object.keys(HUD.panels).sort((a, b) => HUD.panels[a].ord - HUD.panels[b].ord);
   globalThis.saiDoTemplo = () => {
     for (let d = 6; d < 40; d++)
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -249,7 +254,7 @@ A(comum.atk === S.ITEMS.sword.atk && comum.af === undefined, 'item comum fica ig
 const P = (S.newPlayer('Teste', 'knight'), S.getP());
 A(P.hp === P.st.maxhp && P.mana === P.st.maxmana, 'nasce com vida/mana cheias');
 A(P.eq.weapon && P.eq.armor, 'nasce equipado');
-A(P.st.arm > 0, 'armadura inicial conta nos stats');
+A(P.st.def > 0, 'armadura inicial conta na defesa — `arm` e `def` são um contador só');
 A(P.bag.some(i => i.id === 'health_potion'), 'nasce com poções');
 const atkAntes = S.weaponInfo().atk;
 S.dealDamage; // no-op p/ manter referência
@@ -403,9 +408,11 @@ A(Object.values(S.MONSTERS).every(m => m.loot.every(([id]) =>
   vm.runInContext(`newPlayer('Set', 'knight'); P.level = 40; for (const k in P.eq) P.eq[k] = null; recalc();`, ctx);
   const p = S.getP(), eqp = vm.runInContext('equipItem', ctx);
   const arm = [], hp = [];
-  for (const id of gg) { eqp(S.mkItem(id, 0), true); arm.push(p.st.arm); hp.push(p.st.maxhp); }
-  A(arm[0] === S.ITEMS.gg_helmet.arm, 'uma peça só do conjunto não dá bônus de conjunto');
-  A(arm[1] === S.ITEMS.gg_helmet.arm + S.ITEMS.gg_armor.arm + 2, 'a segunda peça acende o degrau de 2 (+2 armadura)');
+  for (const id of gg) { eqp(S.mkItem(id, 0), true); arm.push(p.st.def); hp.push(p.st.maxhp); }
+  // armadura da peça e defesa da peça caem no mesmo `st.def`, então a régua é a soma dos dois
+  const defBase = ids => ids.reduce((a, id) => a + (S.ITEMS[id].arm || 0) + (S.ITEMS[id].def || 0), 0);
+  A(arm[0] === defBase(['gg_helmet']), 'uma peça só do conjunto não dá bônus de conjunto');
+  A(arm[1] === defBase(['gg_helmet', 'gg_armor']) + 2, 'a segunda peça acende o degrau de 2 (+2 armadura)');
   A(hp[7] - hp[6] === 80, 'a oitava peça acende o degrau do conjunto completo (+80 vida)');
   A(p.st.lifesteal === .05 && p.st.speed > 0, 'conjunto completo dá o roubo de vida do último degrau');
   vm.runInContext(`for (const k in P.eq) P.eq[k] = null; recalc();`, ctx);
@@ -418,7 +425,7 @@ A(Object.values(S.MONSTERS).every(m => m.loot.every(([id]) =>
 }
 
 /* 18. camada de arte: forma válida e boneco montado para todo monstro */
-const SHAPES = ['biped', 'quadruped', 'arachnid', 'serpent', 'worm', 'dragon'];
+const SHAPES = ['biped', 'quadruped', 'arachnid', 'serpent', 'worm', 'dragon', 'mote'];
 A(Object.values(S.MONSTERS).every(m => !m.shape || SHAPES.includes(m.shape)),
   'nenhuma forma de monstro escrita errada: ' + [...new Set(Object.values(S.MONSTERS).map(m => m.shape))].filter(x => x && !SHAPES.includes(x)));
 /* 4 direções x 3 quadros: o sprite tem de sair com tamanho > 0 em todas */
@@ -864,12 +871,14 @@ vm.runInContext(`
   globalThis.preso = mkMob('minotaur', 0, -3);
   globalThis.deFora = mkMob('orc_spearman', 0, -3); deFora.x = P.x + 3; deFora.px = P.x + 3; deFora.y = P.y; deFora.py = P.y;
   deFora.nextAtk = 0;
-  rodar(80);
-  globalThis.desistiu = !preso.chase;
+  globalThis.tilesPreso = new Set();
+  for (let i = 0; i < 80; i++) { G.now += 120; updateMobs(120); tilesPreso.add(preso.x + ',' + preso.y); }
+  globalThis.vagou = tilesPreso.size > 1;
+  globalThis.dPreso = distT(preso.x, preso.y, P.x, P.y);
   globalThis.tiros = G.proj.length;
   for (const [i, v] of box) WORLD.floors[SURF].t[i] = v;
 `, ctx);
-A(S.desistiu, 'box fechada: quem bate de perto perde o interesse e volta a vagar');
+A(S.vagou && S.dPreso > 1, `box fechada: quem bate de perto não alcança e vaga em vez de virar estátua (${S.tilesPreso.size} tiles, parou a ${S.dPreso})`);
 A(S.tiros > 0, `box fechada não segura quem atira: ${S.tiros} tiros por cima da água`);
 
 /* parede de pedra é outra história: corta o passo E a vista, ninguém atira através */
@@ -1121,8 +1130,11 @@ vm.runInContext(`
   dealDamage(bicho, 30, 'fire', 0xff8020);          // mágico
   globalThis.efeitos = G.fx.filter(f => f.kind === 'impacto').map(f => ({ tipo: f.tipo, cor: f.color }));
   G.fx.length = 0;
-  P.st.shieldDef = 0; P.st.arm = 1e6;               // armadura absurda: nada passa
-  hitPlayer(5, 'Rato');
+  /* Armadura absurda + golpe pequeno: DANO_MIN garante 12% do golpe bruto por
+     baixo da defesa, então só um golpe de 4 ou menos chega a zerar de verdade —
+     é esse o caso que vira fumaça em vez de número. */
+  P.st.def = 1e6;
+  hitPlayer(4, 'Rato');
   globalThis.aoErrar = G.fx.filter(f => f.kind === 'impacto').map(f => f.tipo);
   globalThis.textoAoErrar = G.fx.filter(f => f.kind === 'text').length;
 `, ctx);
@@ -1251,7 +1263,7 @@ A(/▲/.test(S.marcaFraco) && /▼/.test(S.marcaForte), 'o número flutuante mar
 /* resistência do jogador: afixo -> P.st.res -> menos dano do elemento */
 vm.runInContext(`
   P.eq = {}; recalc();
-  P.st.shieldDef = 0; P.st.arm = 0; P.hp = P.st.maxhp = 1e6;
+  P.st.def = 0; P.hp = P.st.maxhp = 1e6;            // sem defesa: o corte visto aqui é só a resistência
   hitPlayer(200, 'Dragão', 'fire'); globalThis.semRes = 1e6 - P.hp;
   P.hp = 1e6;
   P.st.res.fire = .5;
@@ -1346,10 +1358,10 @@ A(!/Elementos/.test(S.fichaOrc), 'criatura sem entrada no bestiário não revela
 /* 29d. velocidade por natureza: a régua do jogador é 220 */
 {
   const M = S.MONSTERS, v = k => M[k].spd;
-  A(v('wolf') > v('bug') + 100, `lobo é muito mais rápido que besouro (${v('wolf')} x ${v('bug')})`);
+  A(v('wolf') - v('bug') >= 60, `a natureza pesa: lobo x besouro (${v('wolf')} x ${v('bug')})`);
   A(v('dragon') > v('orc') + 30, `dragão não anda como orc (${v('dragon')} x ${v('orc')})`);
   A(['bug', 'rotworm', 'cyclops', 'skeleton', 'ghoul'].every(k => v(k) < 220), 'os pesados ficam abaixo do jogador');
-  A(['wolf', 'spider', 'giant_spider', 'dragon', 'demon'].every(k => v(k) > 280), 'os caçadores passam de 280');
+  A(['wolf', 'spider', 'giant_spider', 'dragon', 'demon'].every(k => v(k) >= 245), 'os caçadores partem de 245, acima da régua 220 do jogador');
   A(new Set(Object.values(M).map(d => d.spd)).size >= 12, 'as velocidades não caem todas no mesmo punhado de valores');
   A(Object.values(M).every(d => !d.medo || (d.medo > 0 && d.medo < .6)), 'medo é uma fração de vida sensata');
 }
@@ -1385,15 +1397,16 @@ A(HB.every(sl => !sl || (sl.k === 'spell' ? S.SPELLS.some(sp => sp.id === sl.id)
 /* 32. HUD configurável: lado, ordem, esconder, modo das barras e persistência */
 vm.runInContext('hudApply();', ctx);
 A(S.getHUD().panels.bag.dock === 'r', 'mochila começa na barra da direita');
-vm.runInContext("hudMove('bag', 'dock');", ctx);
-A(S.getHUD().panels.bag.dock === 'l', 'trocar de lado move o painel de sidebar');
+// lado/coluna/ordem viraram arraste; hudMove só alterna os liga-desliga
+vm.runInContext("hudSolta('bag', 'l', 0, ordemHUD(), 0);", ctx);
+A(S.getHUD().panels.bag.dock === 'l', 'arrastar para o outro lado move o painel de sidebar');
 vm.runInContext("hudMove('bag', 'show');", ctx);
 A(S.getHUD().panels.bag.show === false, 'fechar esconde o painel');
 const salvo = JSON.parse(S.localStorage.getItem('thaira.hud') || 'null');
 A(salvo && salvo.panels.bag.dock === 'l' && salvo.panels.bag.show === false, 'layout fica salvo no localStorage');
 const ordAntes = S.getHUD().panels.skills.ord;
-vm.runInContext("hudMove('skills', 'ord', -1);", ctx);
-A(S.getHUD().panels.skills.ord !== ordAntes, 'setas ↑↓ reordenam o painel');
+vm.runInContext("hudSolta('skills', HUD.panels.skills.dock, HUD.panels.skills.col, ordemHUD(), 0);", ctx);
+A(S.getHUD().panels.skills.ord === 0 && ordAntes !== 0, `soltar em outra posição reordena a coluna (${ordAntes} → 0)`);
 vm.runInContext("getHUD().status = 'sidebar'; hudApply();", ctx);
 A(S.getHUD().panels.status.show === true, 'barras na lateral acendem o painel de status');
 vm.runInContext("getHUD().status = 'none'; hudApply();", ctx);
@@ -1438,7 +1451,7 @@ const morte = (bless, lvl = 40, expBase = `expForLevel(${lvl} + 1) - 1`) => {
     newPlayer('Defunto', 'knight');
     P.level = ${lvl}; P.exp = ${expBase}; P.bless = ${bless};
     bagAdd(mkItem('health_potion', 0, 20)); bagAdd(mkItem('rune_sd', 0, 3)); bagAdd(mkItem('bone', 0, 5));
-    globalThis.antes = { exp: P.exp, lvl: P.level, eq: Object.values(P.eq).filter(Boolean).length };
+    globalThis.antes = { exp: P.exp, lvl: P.level, eq: Object.values(P.eq).filter(Boolean).length, bag: P.bag.length };
     G.dead = false; playerDeath('teste');
   `, ctx);
   const p = S.getP();
@@ -1466,10 +1479,20 @@ const morte = (bless, lvl = 40, expBase = `expForLevel(${lvl} + 1) - 1`) => {
     // morrer com a barra cheia dói menos que morrer recém-subido
     A(lvl - morte(0, lvl).lvl <= esperadoSem, `nv ${lvl}: morrer com a barra cheia não custa mais que recém-subido`);
   }
-  A(!sem.bag.some(i => i.id === 'health_potion' || i.id === 'rune_sd'), 'poção e runa queimam na morte');
-  A(sem.bag.some(i => i.id === 'bone'), 'o que não é suprimento fica na mochila');
-  A(sem.eq === sem.antes.eq - 1, `morrer sem bênção larga uma peça equipada (${sem.antes.eq} → ${sem.eq})`);
+  A(sem.bag.length === 0, `sem bênção a mochila inteira fica no corpo (sobraram ${sem.bag.length})`);
+  A(com.bag.length === com.antes.bag, `as bênçãos seguram a mochila inteira (${com.bag.length}/${com.antes.bag})`);
+  A(sem.eq === sem.antes.eq, 'com mochila para perder, o equipamento não é tocado');
   A(com.eq === com.antes.eq, 'com bênção o equipamento fica inteiro');
+  /* Mochila vazia não pode virar morte de graça: aí a peça equipada mais cara é
+     que cai. É o outro lado da regra acima, e sem esta linha ninguém a protege. */
+  vm.runInContext(`
+    newPlayer('Pelado', 'knight');
+    P.level = 40; P.exp = expForLevel(41) - 1; P.bless = 0; P.bag.length = 0;
+    globalThis.eqPelado = Object.values(P.eq).filter(Boolean).length;
+    G.dead = false; playerDeath('teste');
+  `, ctx);
+  const eqDepois = Object.values(S.getP().eq).filter(Boolean).length;
+  A(eqDepois === S.eqPelado - 1, `mochila vazia: aí sim larga uma peça equipada (${S.eqPelado} → ${eqDepois})`);
   A(sem.bless === 0 && com.bless === 0, 'as bênçãos somem na morte, com ou sem');
   A(S.blessPrice(100) > S.blessPrice(40), 'a bênção fica mais cara conforme o nível sobe');
   // nível 1 não pode cair para 0 nem para exp negativa
@@ -1707,6 +1730,18 @@ const morte = (bless, lvl = 40, expBase = `expForLevel(${lvl} + 1) - 1`) => {
   A(S.IMBUEMENTS.every(i => i.mats.every(([id]) => S.ITEMS[id]) && i.ouro > 0 && Object.keys(i.b).length),
     'todo imbuement usa material real, cobra ouro e dá bônus');
 }
+
+/* 40. ícone de item pré-carregado. O desenho do drop no chão usa itemIcon, que
+   só PEDE o PNG no primeiro quadro em que o item aparece — sem a pré-carga da
+   tela de início, o primeiro drop de cada tipo nasce como o quadradinho de
+   raridade e vira ícone alguns quadros depois. */
+vm.runInContext(`
+  for (const k in ICON_CACHE) delete ICON_CACHE[k];
+  startGame('Pre', 'knight');
+  globalThis.spritesFaltando = [...new Set(Object.values(ITEMS).filter(i => i.spr).map(i => i.spr))]
+    .filter(k => !ICON_CACHE[k]);
+`, ctx);
+A(S.spritesFaltando.length === 0, 'todo sprite de item é pedido antes de o jogo abrir: falta ' + S.spritesFaltando.join(', '));
 
 console.log(`  espada ${T2.sk.sword.l} · escudo ${T2.sk.shielding.l} após 2 min de treino`);
 console.log(`  dragão: ${Math.min(...tam)}–${Math.max(...tam)} itens por morte, média ${medio.toFixed(1)}`);

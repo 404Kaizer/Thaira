@@ -2803,6 +2803,11 @@ function frame(t) {
 const LOADING_FADE = 550; // igual à transition do #loading-screen
 const LOADING_MIN = 1200; // genWorld é rápido: sem um piso a tela só piscaria
 function startGame(name, voc, saved, charIdArg) {
+  /* Aquece o cache de ícones enquanto a tela de carregamento está de pé. O
+     itemIcon só pede o PNG no primeiro desenho, então o primeiro drop de cada
+     tipo nascia como o quadradinho de raridade e só virava ícone quando a
+     imagem chegava — alguns quadros depois de o bicho morrer. */
+  for (const id in ITEMS) if (ITEMS[id].spr) itemIcon(ITEMS[id].spr);
   const tela = $('#loading-screen');
   tela.classList.remove('fade');
   tela.style.display = 'flex';

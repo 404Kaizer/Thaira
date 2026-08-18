@@ -40,8 +40,8 @@
     "semantic_hash": ""
   },
   "src/art.js": {
-    "mtime": 1787071690.7487893,
-    "ast_hash": "70b869e9cd46bbc8afb644fa1d889b9a",
+    "mtime": 1787072394.815429,
+    "ast_hash": "d1fb56299e788b50d87986aa68b91ad7",
     "semantic_hash": ""
   },
   "src/audio.js": {
@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1787071690.7496817,
-    "ast_hash": "c2ff6afd0fbecbe4eb647f06a2d58c86",
+    "mtime": 1787072215.1731784,
+    "ast_hash": "d0b9c81ef05a90a676b358384d21e06f",
     "semantic_hash": ""
   },
   "src/ui.js": {
@@ -95,8 +95,8 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1787071481.8368154,
-    "ast_hash": "5818c7e07117ff05cbc248035f94088f",
+    "mtime": 1787071885.810135,
+    "ast_hash": "f9727f2c44c088b65b42a31f406dac9f",
     "semantic_hash": ""
   },
   "tools/amostra/kaykit.html": {
@@ -3482,6 +3482,11 @@
   "assets/sfx/bag.mp3": {
     "mtime": 1787017813.8247232,
     "ast_hash": "314273078b83eb0c2f5f67fafb6fc42b",
+    "semantic_hash": ""
+  },
+  "assets/skins/creatures/diabrete/diabrete.png": {
+    "mtime": 1787071914.2307062,
+    "ast_hash": "ba2e6e79171fd0de9491653f847521fd",
     "semantic_hash": ""
   }
 }
