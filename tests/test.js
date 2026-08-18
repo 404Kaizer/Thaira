@@ -1742,6 +1742,11 @@ vm.runInContext(`
     .filter(k => !ICON_CACHE[k]);
 `, ctx);
 A(S.spritesFaltando.length === 0, 'todo sprite de item é pedido antes de o jogo abrir: falta ' + S.spritesFaltando.join(', '));
+/* O chão desenha o PNG quando existe e o emoji quando não existe — item sem
+   nenhum dos dois viraria um vazio no tile. */
+A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
+  'todo item tem PNG ou emoji para o chão desenhar: ' +
+  Object.values(S.ITEMS).filter(i => !i.spr && (!i.ico || i.ico[0] === '<')).map(i => i.id).join(', '));
 
 console.log(`  espada ${T2.sk.sword.l} · escudo ${T2.sk.shielding.l} após 2 min de treino`);
 console.log(`  dragão: ${Math.min(...tam)}–${Math.max(...tam)} itens por morte, média ${medio.toFixed(1)}`);

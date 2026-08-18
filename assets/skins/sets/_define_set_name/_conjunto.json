@@ -1,0 +1,4 @@
+{
+  "_nota": "Pasta de FOLHAS, não de ícones: cada png aqui é uma folha com 6 variantes por peça. Quem corta é o build_folhas.py, com o <folha>.json ao lado.",
+  "pular": true
+}

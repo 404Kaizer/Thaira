@@ -427,7 +427,7 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
   }
 
   /* 2º passe: o que tem volume, na ordem do pintor */
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+  for (let y = y0; y <= y1; y++) { for (let x = x0; x <= x1; x++) {
     const tt = tileAt(x, y, z), def = TILE[tt];
     if (def.hide && !bucket) continue;                    // buraco ainda pode ter alguém em cima
     const sx = telaX(x), sy = telaY(y);
@@ -460,12 +460,22 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
         g2.restore();
       }
     }
-    if (bucket) {
-      const lista = bucket.get(y * W + x);
-      if (lista) for (const it of lista) drawEntity(it, sx, sy, t);
-    }
+  }
+  /* A fileira inteira de bichos sai DEPOIS dos tiles dela, e em ordem do PÉ
+     desenhado — não do x do tile. Quem está no meio de um passo diagonal está
+     entre duas fileiras: pelo tile ele é da de baixo, mas na tela já subiu meio
+     quadrado, e desenhar pelo x fazia o boneco que sobe passar por cima do bicho
+     que está mais à frente — some meio ciclope atrás do jogador. */
+  if (bucket) {
+    const fila = [];
+    for (let x = x0; x <= x1; x++) { const l = bucket.get(y * W + x); if (l) fila.push(...l); }
+    if (fila.length > 1) fila.sort((a, b) => peY(a) - peY(b));
+    for (const it of fila) drawEntity(it, telaX(it.bx), telaY(it.by), t);
+  }
   }
 }
+/* pé desenhado: quem anda está entre dois tiles, o resto está no tile mesmo */
+const peY = it => it.k === 'bicho' ? it.e.py : it.by;
 
 /* Transição entre terrenos. Sem isto a grama encosta na areia numa reta de 90°,
    que é o que mais denuncia um mapa de tiles. Cada vizinho de prioridade maior
@@ -508,7 +518,7 @@ function tileBorders(x, y, z, def, sx, sy, t) {
    canto no passo diagonal, e se o canto for parede o boneco passa por cima dela. */
 function entityBucket() {
   const b = new Map();
-  const add = (x, y, e) => { const k = y * W + x, l = b.get(k); l ? l.push(e) : b.set(k, [e]); };
+  const add = (x, y, e) => { e.bx = x; e.by = y; const k = y * W + x, l = b.get(k); l ? l.push(e) : b.set(k, [e]); };
   const andante = e => {
     let ax = e.x, ay = e.y;
     if (e.stepD) {
@@ -551,7 +561,9 @@ function _criaturaCrua(e) {
   /* criatura com arte própria sai da folha; enquanto o PNG não chega cai no
      procedural, como o ranger faz */
   if (e.def.sheet) {
-    const s = creatureSheet(e.def.sheet, facingOf(e), frameOf(e), CAM.scale, e.def.sz);
+    const dir = facingOf(e);
+    const q = criaQuadro(e.def.sheet, dir, !!e.stepD, e.stepD ? (G.now - e.stepT) / e.stepD : 0, G.now, e.uid);
+    const s = creatureSheet(e.def.sheet, dir, q, CAM.scale, e.def.sz);
     if (s) return s;
   }
   return creatureSprite(e.def.shape || 'biped', e.def.col, e.def.sz, e.def.o, facingOf(e), frameOf(e));
@@ -561,6 +573,28 @@ function _criaturaCrua(e) {
    bota saíam do tamanho de uma calça — anel do tamanho do tile. A régua é o
    slot; o que não está na tabela ocupa o tile como antes. */
 const CHAO_ESCALA = { ring: .34, amulet: .78, boots: .68, light: .70, helmet: .80 };
+/* Despojo e comida não têm slot, então todos caíam do MESMO tamanho: ovo igual a
+   cabeça de dragão, pérola igual a tronco. A régua aqui é o tamanho da coisa no
+   mundo, em fração do tile — só entra quem foge do padrão, o resto continua .88.
+   Quatro faixas, para não virar um número por item:
+     .30 miudeza que cabe na mão fechada (gema, pérola, dente)
+     .45 objeto de uma mão (poção, ovo, fruta, naco de minério)
+     .70 coisa de carregar com as duas (peixe grande, pele, crânio)
+    1.05 o que não cabe no colo (cabeça de dragão, tora, chifre de minotauro) */
+const CHAO_ITEM = {
+  small_ruby: .30, small_sapphire: .30, small_diamond: .30, green_gem: .30, blue_gem: .30,
+  white_pearl: .30, black_pearl: .30, shimmering_pearl: .32, orc_tooth: .30, spider_silk: .38,
+  talon: .40, feather: .42, seraph_feather: .45, rat_tail: .38, glow_gland: .34, soul_shard: .40,
+  void_shard: .40, frozen_core: .42, ember_core: .42, storm_core: .42,
+  apple: .42, egg: .40, bread: .48, cheese: .45, grapes: .45, honeycomb: .48, brown_mushroom: .40,
+  worm_slime: .45, resin: .40, coal: .48, copper_ore: .50, iron_ore: .50, silver_ore: .50,
+  mithril_ore: .50, gold_ingot: .50, gold: .50, cyclops_eye: .45, arrow: .45, bolt: .45,
+  meat: .60, ham: .62, fish: .55, big_fish: .75, skull: .60, demon_skull: .66, pelt: .70,
+  minotaur_leather: .70, snake_hide: .70, wolf_paw: .55, boar_tusk: .55, bug_shell: .60,
+  dragon_scale: .55, red_dragon_scale: .55, primordial_heart: .60, demon_horn: .62, demon_wing: .80,
+  tentacle: .75, antler: .85, wood: .95, hard_wood: 1.0, minotaur_horn: .95, dragon_head: 1.10,
+  dragon_ham: .85, spear: 1.05
+};
 
 function drawEntity(it, sx, sy, t) {
   const S = CAM.scale;
@@ -578,11 +612,18 @@ function drawEntity(it, sx, sy, t) {
     if (!c.spr) return;
     /* A folha traz o bicho JÁ tombado, então este não gira: girar o desenho de
        quem está deitado o põe de lado no chão. */
-    const morto = c.spr.sheet && outlined(creatureSheet(c.spr.sheet, CRIA_MORTO, 0, S, c.spr.size));
+    const morto = c.spr.sheet && outlined(creatureSheet(c.spr.sheet, CRIA_MORTO,
+      criaMorto(c.spr.sheet, c, G.now, c.ttl), S, c.spr.size));
     if (morto) {
-      const K = S * morto.k;
-      g2.globalAlpha = .9;
       const cm = spriteBox(morto);
+      /* Deitado tem o comprimento de quem estava EM PÉ: a arte do tombado vem com
+         braço e porrete esparramados e sozinha ela cobria quatro tiles, mas um
+         teto em tile fixo encolhia o ciclope até virar rato. A régua é a altura
+         do próprio bicho vivo — cada criatura acha a sua. */
+      const pe = creatureSheet(c.spr.sheet, DIR_S, 0, S, c.spr.size);
+      const alvo = pe ? (spriteBox(pe).y1 - spriteBox(pe).y0 + 1) * S * pe.k : t * 2;
+      const K = S * morto.k * Math.min(1, alvo / ((cm.x1 - cm.x0 + 1) * S * morto.k));
+      g2.globalAlpha = .9;
       g2.drawImage(morto, mx - cm.mx * K, my - cm.my * K, morto.width * K, morto.height * K);
       g2.globalAlpha = 1;
       return;
@@ -604,11 +645,24 @@ function drawEntity(it, sx, sy, t) {
        (o sol é fixo no noroeste). Assim a sombra escapa por todas as bordas do
        desenho, que é o que um objeto largado no chão faz. */
     const def = ITEMS[it.d.it.id] || 0, ico = itemIcon(def.spr);
-    if (!ico) {                                    // PNG ainda carregando
-      g2.fillStyle = RARITY[it.d.it.r].color;
-      g2.fillRect(sx + t * .34, sy + t * .38, t * .32, t * .28);
-      g2.strokeStyle = '#000'; g2.lineWidth = Math.max(1, S * .5);
-      g2.strokeRect(sx + t * .34, sy + t * .38, t * .32, t * .28);
+    if (!ico) {
+      /* Sem PNG o item continua sendo o emoji da mochila: o mesmo item não pode
+         ter duas caras, uma no inventário e um quadradinho no chão. O quadrado
+         da raridade sobrou para quem TEM arte e ainda não recebeu o arquivo —
+         hoje só antes da pré-carga do início. */
+      g2.save();
+      if (!def.spr) {
+        g2.font = `${Math.round(t * .58)}px serif`;
+        g2.textAlign = 'center'; g2.textBaseline = 'middle';
+        g2.fillStyle = '#fff';
+        g2.fillText(def.ico, sx + t / 2, sy + t / 2);
+      } else {
+        g2.fillStyle = RARITY[it.d.it.r].color;
+        g2.fillRect(sx + t * .34, sy + t * .38, t * .32, t * .28);
+        g2.strokeStyle = '#000'; g2.lineWidth = Math.max(1, S * .5);
+        g2.strokeRect(sx + t * .34, sy + t * .38, t * .32, t * .28);
+      }
+      g2.restore();
       return;
     }
     /* Tocha largada continua acesa — mas só onde ela está: o raio da bolsa é de
@@ -616,7 +670,7 @@ function drawEntity(it, sx, sy, t) {
        do bloom, igual à da mão, senão o chão vira lanterna de dia. */
     if (def.luz) luzes.push({ x: sx + t / 2, y: sy + t / 2, cor: CHAMA_COR,
       a0: .9 * chamaF, a1: .3 * chamaF, tocha: 1, r: t * 2 * chamaTremor() });
-    const d = t * (CHAO_ESCALA[def.slot] || .88), x = sx + (t - d) / 2, y = sy + (t - d) / 2;
+    const d = t * (CHAO_ITEM[def.id] || CHAO_ESCALA[def.slot] || .88), x = sx + (t - d) / 2, y = sy + (t - d) / 2;
     const sil = silhouette(ico), K = d / ico.width, pad = (sil.width - ico.width) / 2 * K;
     /* Dois passes da mesma silhueta: o curto gruda no contorno — é ele que
        segura o item quando o chão já está escuro e o deslocamento sumiria — e o

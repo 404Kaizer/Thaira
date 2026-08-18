@@ -1,0 +1,18 @@
+{
+  "_nota": "grade 9x6. Números vêm de: python assets/build_folhas.py assets/skins/loot/loot_03.png",
+  "ids": {
+    "wolf_paw": 1,
+    "boar_tusk": 3,
+    "cyclops_eye": 4,
+    "primordial_heart": 5,
+    "talon": 9,
+    "snake_hide": 28,
+    "rotten_flesh": 53,
+    "demon_horn": 22,
+    "dragon_scale": 43,
+    "red_dragon_scale": 24,
+    "demon_wing": 52,
+    "tentacle": 20,
+    "dragon_head": 51
+  }
+}

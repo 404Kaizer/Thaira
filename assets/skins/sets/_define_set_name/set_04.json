@@ -1,0 +1,15 @@
+{
+  "_nota": "Folha do mago de fogo. Vira a Chama Abissal (ch). Bota vem em par: os dois pés saem em recortes separados, daí o [19, 20].",
+  "ids": {
+    "ch_hood": 1,
+    "ch_armor": 7,
+    "ch_legs": 13,
+    "ch_boots": [
+      19,
+      20
+    ],
+    "ch_staff": 29,
+    "ch_shield": 33,
+    "ch_tome": 34
+  }
+}

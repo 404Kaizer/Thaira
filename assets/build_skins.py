@@ -49,6 +49,9 @@ Três cuidados que não são opcionais:
 import sys, os, json, glob
 import numpy as np
 from PIL import Image, ImageFilter
+from build_folhas import sombra_do_fundo
+
+MAGENTA = (255, 0, 255)   # o fundo dessas folhas; a sombra delas é ele escurecido
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 SKINS = os.path.join(AQUI, 'skins')
@@ -102,6 +105,10 @@ def id_do_arquivo(arquivo, pasta, cfg):
 
 def recorta(p):
     a = np.array(Image.open(p).convert('RGBA'))
+    # Metade da arte avulsa foi exportada da folha magenta com a sombra junto, e
+    # ela chega aqui como pixel opaco cor-de-rosa embaixo do item. Mesma regra do
+    # build_folhas, um import só para as duas não descolarem.
+    a[:, :, 3] = np.where(sombra_do_fundo(a[:, :, :3], MAGENTA, a[:, :, 3]), 0, a[:, :, 3])
     ys, xs = np.where(a[:, :, 3] > 40)
     if not len(ys):
         return None

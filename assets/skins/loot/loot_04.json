@@ -1,0 +1,33 @@
+{
+  "_nota": "grade 11x7. Números vêm de: python assets/build_folhas.py assets/skins/loot/loot_04.png",
+  "ids": {
+    "gold": 1,
+    "gold_ingot": 7,
+    "mithril_ore": 11,
+    "iron_ore": 12,
+    "copper_ore": 13,
+    "silver_ore": 14,
+    "small_diamond": 16,
+    "blue_gem": 19,
+    "green_gem": 21,
+    "worm_slime": 24,
+    "glow_gland": 26,
+    "antler": 43,
+    "pelt": 45,
+    "minotaur_leather": 47,
+    "meat": 49,
+    "ham": 50,
+    "fish": 51,
+    "cheese": 52,
+    "bread": 53,
+    "apple": 54,
+    "grapes": 55,
+    "brown_mushroom": 59,
+    "egg": 64,
+    "wood": 40,
+    "hard_wood": 41,
+    "void_shard": 71,
+    "soul_shard": 72,
+    "demon_skull": 36
+  }
+}

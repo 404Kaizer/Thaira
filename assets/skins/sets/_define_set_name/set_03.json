@@ -1,0 +1,15 @@
+{
+  "_nota": "Folha do cavaleiro de aço negro com brasão de leão. Cada linha traz 6 variantes da MESMA peça — aqui sai uma de cada, a que fecha o visual do conjunto. Vira a arte da Sentinela do Abismo (sa), que já existia no data.js sem desenho nenhum. Bota vem em par: os dois pés saem em recortes separados, daí o [19, 20].",
+  "ids": {
+    "sa_helmet": 3,
+    "sa_armor": 7,
+    "sa_legs": 14,
+    "sa_boots": [
+      19,
+      20
+    ],
+    "sa_sword": 23,
+    "sa_maul": 24,
+    "sa_shield": 25
+  }
+}

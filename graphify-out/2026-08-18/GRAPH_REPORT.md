@@ -1,16 +1,16 @@
 # Graph Report - Jogo  (2026-08-18)
 
 ## Corpus Check
-- 43 files · ~6,087,077 words
+- 60 files · ~5,558,493 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1096 nodes · 1922 edges · 90 communities (86 shown, 4 thin omitted)
-- Extraction: 90% EXTRACTED · 10% INFERRED · 1% AMBIGUOUS · INFERRED: 189 edges (avg confidence: 0.86)
+- 1124 nodes · 1964 edges · 94 communities (89 shown, 5 thin omitted)
+- Extraction: 90% EXTRACTED · 9% INFERRED · 1% AMBIGUOUS · INFERRED: 181 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f4e3ab50`
+- Built from commit: `b98e811f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -34,13 +34,13 @@
 - Weapon Equipment Slot
 - Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems)
 - bindInput
-- fixSave
+- log
 - Energy Sorcerer Front Walk and Idle Reference Sheet
 - Flat Monochrome Glyph Icon Style
 - Knight Veteran Skin (voc_knight_veteran)
 - ui.js
 - killMob
-- GG Boots Icon (Golden Lion Greaves)
+- Axe Icon (Double-Bladed Wood Axe)
 - sfx/manifest.json
 - Knight Vocation - Common Skin (Front-Facing Sprite Set)
 - hud.js
@@ -53,7 +53,7 @@
 - .constructor
 - build_icons.py
 - Áudio — procedência e licença
-- Druid Vocation Icon (leafy wooden staff)
+- fixSave
 - item
 - heal
 - potion
@@ -64,13 +64,13 @@
 - buff
 - coin
 - _corpo_forte
-- frame
+- recalc
 - energy
 - equip
 - error
 - fire
 - hurt
-- renderHotbar
+- weaponInfo
 - freesound.py
 - loot
 - ui_click
@@ -91,7 +91,6 @@
 - laco (render loop do visualizador 3D)
 - death
 - build_skins.py
-- build_folhas.py
 - step_grass
 - rune
 - step_sand
@@ -104,7 +103,12 @@
 - package.json
 - main.js
 - lootEV
-- log
+- castSpell
+- criaturas.js
+- _canvas
+- _canvas2
+- decoSprite
+- criaLinhas
 
 ## God Nodes (most connected - your core abstractions)
 1. `log()` - 34 edges
@@ -149,14 +153,11 @@
 - **Thaira sound toggle: on state, off state, and the mute-toggle control they form** — assets_green_background__juntos_ui_sound_on___ui_sound_off_sheet, assets_green_background__juntos_ui_sound_on___ui_sound_off_ui_sound_on, assets_green_background__juntos_ui_sound_on___ui_sound_off_ui_sound_off, assets_green_background__juntos_ui_sound_on___ui_sound_off_audio_mute_toggle [INFERRED 0.85]
 - **GG Golden Lion Legendary Equipment Set** — assets_icons_gg_amulet_ggamuleticon, assets_icons_gg_armor_ggarmoricon, assets_icons_gg_axe_ggaxeicon, assets_icons_gg_boots_ggbootsicon [INFERRED 0.95]
 - **Weapon Slot Icon Family** — assets_icons_axe_axeicon, assets_icons_bow_bowicon, assets_icons_dagger_daggericon, assets_icons_gg_axe_ggaxeicon [INFERRED 0.85]
-- **Boots Slot Rarity Ladder** — assets_icons_boots_leather_leatherbootsicon, assets_icons_boots_bootsicon, assets_icons_gg_boots_ggbootsicon [INFERRED 0.85]
 - **Ornate Gold Lion Armor Set (helmet, legs, shield, ring share black/gold/red palette and lion motif)** — assets_icons_gg_helmet_helmeticon, assets_icons_gg_legs_legsicon, assets_icons_gg_shield_shieldicon, assets_icons_gg_ring_ringicon [INFERRED 0.85]
 - **Two-Handed Weapon Icon Family (greataxe, greatsword, halberd, maul, mace)** — assets_icons_gg_greataxe_greataxeicon, assets_icons_gg_greatsword_greatswordicon, assets_icons_gg_halberd_halberdicon, assets_icons_gg_maul_maulicon, assets_icons_gg_mace_maceicon [INFERRED 0.85]
 - **Thaira Combat Stance Icon Set (attack / balanced / defense)** — assets_icons_stance_attack_stanceattackicon, assets_icons_stance_balanced_stancebalancedicon, assets_icons_stance_defense_stancedefenseicon [INFERRED 0.95]
 - **Thaira Equipment / Inventory Item Icon Set** — assets_icons_sword_swordicon, assets_icons_shield_shieldicon, assets_icons_rune_fire_runefireicon [INFERRED 0.85]
 - **Thaira UI Control Button Icon Set (bestiary, follow, map, settings, shop, sound)** — assets_icons_ui_bestiary_uibestiaryicon, assets_icons_ui_follow_uifollowicon, assets_icons_ui_map_uimapicon, assets_icons_ui_settings_uisettingsicon, assets_icons_ui_shop_uishopicon, assets_icons_ui_sound_off_uisoundofficon [INFERRED 0.95]
-- **Thaira vocation icon set (knight, ranger, druid, sorcerer)** — assets_icons_voc_knight_icon, assets_icons_voc_ranger_icon, assets_icons_voc_druid_icon, assets_icons_voc_sorcerer_icon [INFERRED 0.95]
-- **Thaira flat monochrome UI glyph family** — assets_icons_ui_sound_on_icon, assets_icons_ui_stand_icon, assets_icons_voc_knight_icon [AMBIGUOUS 0.30]
 - **Ancestral Hunter Set — all equipment pieces** — assets_skins_sets_ancestral_hunter_set_ancestral_hunter_amulet_icon, assets_skins_sets_ancestral_hunter_set_ancestral_hunter_armor_icon, assets_skins_sets_ancestral_hunter_set_ancestral_hunter_backpack_icon, assets_skins_sets_ancestral_hunter_set_ancestral_hunter_boots_icon, assets_skins_sets_ancestral_hunter_set_ancestral_hunter_bow_icon, assets_skins_sets_ancestral_hunter_set_ancestral_hunter_hood_icon, assets_skins_sets_ancestral_hunter_set_ancestral_hunter_legs_icon, assets_skins_sets_ancestral_hunter_set_ancestral_hunter_quiver_icon, assets_skins_sets_ancestral_hunter_set_ancestral_hunter_ring_icon, assets_skins_sets_ancestral_hunter_set_ancestral_hunter_shield_icon, assets_skins_sets_ancestral_hunter_set_ancestral_hunter_set_ancestral_hunter_set_theme [EXTRACTED 1.00]
 - **Golden Guardian set pieces (armor slots plus weapon variants sharing lion-and-gold heraldry)** — assets_skins_sets_golden_guardian_set_golden_guardian_helmet_helmet, assets_skins_sets_golden_guardian_set_golden_guardian_armor_armor, assets_skins_sets_golden_guardian_set_golden_guardian_legs_legs, assets_skins_sets_golden_guardian_set_golden_guardian_graves_graves, assets_skins_sets_golden_guardian_set_golden_guardian_backpack_backpack, assets_skins_sets_golden_guardian_set_golden_guardian_amulet_amulet, assets_skins_sets_golden_guardian_set_golden_guardian_ring_ring, assets_skins_sets_golden_guardian_set_golden_guardian_alabard_alabard, assets_skins_sets_golden_guardian_set_golden_guardian_mace_mace, assets_skins_sets_golden_guardian_set_golden_guardian_maul_maul, assets_skins_sets_golden_guardian_set_golden_guardian_ohaxe_ohaxe, assets_skins_sets_golden_guardian_set_golden_guardian_ohsword_ohsword [EXTRACTED 1.00]
 - **Golden Guardian Set: individual piece sprites cut from the master reference sheet** — assets_skins_sets_golden_guardian_set_golden_guardian_set_sheet, assets_skins_sets_golden_guardian_set_golden_guardian_shield_shield, assets_skins_sets_golden_guardian_set_golden_guardian_thaxe_thaxe, assets_skins_sets_golden_guardian_set_golden_guardian_thsword_thsword [EXTRACTED 1.00]
@@ -168,15 +169,15 @@
 - **Death State Group (single-frame prone poses with blood pool)** — assets_skins_voc_knight_voc_knight_veteran_dead_front_01_dead_front_pose, assets_skins_voc_knight_voc_knight_veteran_dead_back_01_dead_back_pose, assets_skins_voc_knight_voc_knight_veteran_dead_front_01_death_pose_blood_pool, assets_skins_voc_knight_voc_knight_veteran_idle_back_04_back_view_sword_harness [INFERRED 0.75]
 - **Veteran Knight walk animation sprite set (front + back directions, 4-frame cycle, shared character design)** — assets_skins_voc_knight_voc_knight_veteran_walk_front_01_walk_front_animation, assets_skins_voc_knight_voc_knight_veteran_walk_back_03_walk_back_animation, assets_skins_voc_knight_voc_knight_veteran_walk_front_04_four_frame_walk_cycle, assets_skins_voc_knight_voc_knight_veteran_walk_front_03_directional_sprite_set, assets_skins_voc_knight_voc_knight_veteran_walk_front_01_veteran_knight_sprite [INFERRED 0.95]
 
-## Communities (90 total, 4 thin omitted)
+## Communities (94 total, 5 thin omitted)
 
 ### Community 0 - "Tela de ajuda / comandos (#help)"
 Cohesion: 0.06
 Nodes (48): Confirmar antes de implementar, graphify, headroom, ponytail, assets/build_sfx.py (montador de efeitos), Kenney (fonte de pacotes de áudio CC0), assets/music/manifest.json, OpenGameArt (fonte de SFX e trilha CC0) (+40 more)
 
 ### Community 1 - "art.js"
-Cohesion: 0.05
-Nodes (61): BORDER_CACHE, borderSprite(), _canvas(), _canvas2(), _chapado(), CLOUD_CACHE, cloudTexture(), contactShadow() (+53 more)
+Cohesion: 0.06
+Nodes (29): BORDER_CACHE, CRIA_CACHE, CRIA_PADRAO, criaImg, DECO_CACHE, EDGE_CACHE, FLOW_CACHE, FOAM_CACHE (+21 more)
 
 ### Community 2 - "test.js"
 Cohesion: 0.04
@@ -191,16 +192,16 @@ Cohesion: 0.08
 Nodes (35): ambience(), ambNodes, arp(), audioInit(), audioToggle(), audioVol(), audioVolReset(), _avisarSemSom() (+27 more)
 
 ### Community 5 - "game.js"
-Cohesion: 0.07
-Nodes (33): bloodSpray(), BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, CLIMA_AVISO, cycleVoc() (+25 more)
+Cohesion: 0.06
+Nodes (44): SPELLS, abrirPicker(), BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, CLIMA_AVISO (+36 more)
 
 ### Community 6 - "data.js"
 Cohesion: 0.04
-Nodes (39): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, BIOMA_POOLS, cdDe(), COLETA (+31 more)
+Nodes (43): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, BIOMA_POOLS, BO, CH (+35 more)
 
 ### Community 7 - "render2d.js"
 Cohesion: 0.10
-Nodes (40): bloomPass(), CAM, camadaNuvem(), chamaTremor(), CHAO_ESCALA, cloudPass(), creatureSpriteFor(), _criaturaCrua() (+32 more)
+Nodes (42): bloomPass(), CAM, camadaNuvem(), chamaTremor(), CHAO_ESCALA, CHAO_ITEM, cloudPass(), creatureSpriteFor() (+34 more)
 
 ### Community 8 - "_corpo_morte"
 Cohesion: 0.40
@@ -223,8 +224,8 @@ Cohesion: 0.10
 Nodes (21): atk_axe, mix, n, v, atk_club, mix, n, v (+13 more)
 
 ### Community 13 - "updateMobs"
-Cohesion: 0.24
-Nodes (14): lineClear(), noTemplo(), occupied(), passoAte(), passoDeFuga(), passoVagar(), renderStatus(), reservarVagas() (+6 more)
+Cohesion: 0.19
+Nodes (18): acordar(), bindMiniMap(), changeFloor(), finishStart(), noTemplo(), occupied(), passoAte(), passoDeFuga() (+10 more)
 
 ### Community 14 - "Ancestral Hunter Set Sheet (4x4 icon atlas on magenta key)"
 Cohesion: 0.33
@@ -243,12 +244,12 @@ Cohesion: 0.38
 Nodes (15): Golden Guardian Halberd (two-handed polearm skin: dark shaft, gold-filigreed steel axe head with heraldic crest), Golden Guardian Amulet (neck slot skin: braided gold chain, lion-face shield pendant with red gems), Red Gem Accent (ruby inlay used across the set), Golden Guardian Armor (chest slot skin: dark steel cuirass, gold lion breastplate, red tabard), Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems), Lion Head Crest Motif (shared golden guardian emblem), Golden Guardian Backpack (back slot skin: brown leather rucksack with gold lion faceplate and bedroll), Golden Guardian Greaves (feet slot skin: dark plated boots with gold lion knee guards) (+7 more)
 
 ### Community 18 - "bindInput"
-Cohesion: 0.13
-Nodes (26): afterStep(), alvosPerto(), bagAdd(), bindInput(), cellsVazias(), CELULA, chaveTile(), coletaDe() (+18 more)
+Cohesion: 0.11
+Nodes (27): afterStep(), alvosPerto(), arrastaJanela(), bindInput(), chuvaOuvida(), clamp(), clickTile(), corpseAt() (+19 more)
 
-### Community 19 - "fixSave"
-Cohesion: 0.20
-Nodes (18): PREFIXES, SUFFIXES, askConfirm(), charId(), deleteCharacter(), exportarPersonagens(), fixSave(), importarPersonagens() (+10 more)
+### Community 19 - "log"
+Cohesion: 0.13
+Nodes (28): abrirTesouro(), bagAdd(), blessPrice(), canEquip(), cellsVazias(), chaveTile(), coletaDe(), colher() (+20 more)
 
 ### Community 20 - "Energy Sorcerer Front Walk and Idle Reference Sheet"
 Cohesion: 0.35
@@ -263,16 +264,16 @@ Cohesion: 0.25
 Nodes (14): Dead Back Pose (knight veteran, single frame), Dead Front Pose (knight veteran, single frame), Death Pose with Blood Pool (terminal state art), Idle Back Animation (knight veteran, 4 frames), Two-Direction Sprite Set (front / back only), Four-Frame Idle Loop, Back-View Sword Harness and Cross Straps, Idle Front Animation (knight veteran, 4 frames) (+6 more)
 
 ### Community 23 - "ui.js"
-Cohesion: 0.18
-Nodes (28): IMBUEMENTS, bestDiff(), bestiaryKill(), bestKills(), bestStage(), bindBigMap(), contaMat(), drawBigMap() (+20 more)
+Cohesion: 0.17
+Nodes (29): IMBUEMENTS, LOOT_RARITY, bestDiff(), bestiaryKill(), bestKills(), bestStage(), bindBigMap(), contaMat() (+21 more)
 
 ### Community 24 - "killMob"
-Cohesion: 0.13
-Nodes (23): abrirTesouro(), acordar(), blessPrice(), changeFloor(), congelar(), descLoot(), fmtBon(), itemStats() (+15 more)
+Cohesion: 0.25
+Nodes (9): addExp(), bloodSpray(), congelar(), descLoot(), killMob(), manchaChao(), notify(), rollRarity() (+1 more)
 
-### Community 25 - "GG Boots Icon (Golden Lion Greaves)"
-Cohesion: 0.23
-Nodes (12): Armor Icon (Steel Plate Cuirass), Axe Icon (Double-Bladed Wood Axe), Bone Icon (Loot Material), Boots Icon (Buckled Travel Boots), Leather Boots Icon (Plain Tan Boots), Bow Icon (Recurve Wooden Bow), Dagger Icon (Gold-Hilted Dagger), Gem Icon (Faceted Blue Gemstone) (+4 more)
+### Community 25 - "Axe Icon (Double-Bladed Wood Axe)"
+Cohesion: 0.24
+Nodes (11): Armor Icon (Steel Plate Cuirass), Axe Icon (Double-Bladed Wood Axe), Bone Icon (Loot Material), Boots Icon (Buckled Travel Boots), Bow Icon (Recurve Wooden Bow), Dagger Icon (Gold-Hilted Dagger), Gem Icon (Faceted Blue Gemstone), GG Amulet Icon (Golden Lion Shield Pendant) (+3 more)
 
 ### Community 26 - "sfx/manifest.json"
 Cohesion: 0.13
@@ -299,8 +300,8 @@ Cohesion: 0.39
 Nodes (8): Audio Mute Toggle (two-state UI control), Chroma-Key Green Background Convention, Combined Two-State Sprite Sheet Packing, Flat White Monochrome Glyph Style, Thaira Sound Toggle Icon Sheet (on + off), Thaira Browser RPG HUD / Settings Controls, ui_sound_off (speaker with X / muted), ui_sound_on (speaker with sound waves)
 
 ### Community 32 - "build_criaturas.py"
-Cohesion: 0.16
-Nodes (15): main(), confere(), folha(), linha(), main(), quadros(), Monta a folha de animação de uma criatura a partir dos quadros soltos. python…, [parado, passo, passo] em caminho de arquivo, já com os remendos. (+7 more)
+Cohesion: 0.11
+Nodes (25): main(), alinha(), cabe(), confere(), eixo(), _erode(), folha(), linha() (+17 more)
 
 ### Community 33 - "Knight Veteran Walk-Back Animation"
 Cohesion: 0.48
@@ -322,9 +323,9 @@ Nodes (4): main(), paletiza(), Tira o fundo verde de assets/green_background/*.p
 Cohesion: 0.40
 Nodes (4): Como trocar um som, Efeitos — `assets/sfx/`, Trilha — `assets/music/`, Áudio — procedência e licença
 
-### Community 38 - "Druid Vocation Icon (leafy wooden staff)"
-Cohesion: 1.00
-Nodes (4): Druid Vocation Icon (leafy wooden staff), Knight Vocation Icon (sword crossed over heraldic shield), Ranger Vocation Icon (bow crossed with arrows), Sorcerer Vocation Icon (arcane wand with purple orb)
+### Community 38 - "fixSave"
+Cohesion: 0.20
+Nodes (18): PREFIXES, SUFFIXES, askConfirm(), charId(), deleteCharacter(), exportarPersonagens(), fixSave(), importarPersonagens() (+10 more)
 
 ### Community 39 - "item"
 Cohesion: 0.29
@@ -366,9 +367,9 @@ Nodes (4): coin, ext, n, v
 Cohesion: 0.67
 Nodes (3): _corpo_forte, n, v
 
-### Community 49 - "frame"
-Cohesion: 0.11
-Nodes (23): arrastaJanela(), bindMiniMap(), chuvaOuvida(), clamp(), clickTile(), empurrar(), finishStart(), frame() (+15 more)
+### Community 49 - "recalc"
+Cohesion: 0.23
+Nodes (13): CELULA, fmtBon(), itemCell(), itemStats(), playerDeath(), recalc(), renderAll(), renderStance() (+5 more)
 
 ### Community 50 - "energy"
 Cohesion: 0.67
@@ -390,9 +391,9 @@ Nodes (3): fire, n, v
 Cohesion: 0.67
 Nodes (3): hurt, n, v
 
-### Community 55 - "renderHotbar"
-Cohesion: 0.13
-Nodes (21): DANO_TIPOS, SPELLS, abrirMagia(), abrirPicker(), _corTexto(), HOT_KEYS_DEFAULT, hotDefault(), hotEntry() (+13 more)
+### Community 55 - "weaponInfo"
+Cohesion: 0.36
+Nodes (8): cdDe(), DANO_TIPOS, abrirMagia(), magiaHTML(), magiaInfo(), seg(), tickHotbar(), weaponInfo()
 
 ### Community 56 - "freesound.py"
 Cohesion: 0.80
@@ -463,12 +464,8 @@ Cohesion: 0.67
 Nodes (3): death, n, v
 
 ### Community 75 - "build_skins.py"
-Cohesion: 0.20
-Nodes (15): conjuntos(), disponiveis(), encaixa(), escreve_lista(), id_do_arquivo(), main(), Transforma a arte de assets/skins/ nos ícones que o jogo usa, sozinho. python…, Todo ícone que existe em assets/icons, e se ele tem par @2x. (+7 more)
-
-### Community 76 - "build_folhas.py"
-Cohesion: 0.50
-Nodes (4): main(), Corta as folhas de arte (vários itens numa imagem só) em PNGs separados. python…, Devolve [(x, y, w, h, imagem_rgba)] na ordem de leitura., separa()
+Cohesion: 0.11
+Nodes (27): chaveia(), corta_metade(), junta(), main(), Corta as folhas de arte (vários itens numa imagem só) em PNGs separados. python…, Cola vários recortes num só, guardando a posição que tinham na folha. Bota é…, Fica com metade do recorte e reaperta no alfa., Máscara do que é SOMBRA do fundo, não desenho. A sombra vem pintada como o… (+19 more)
 
 ### Community 77 - "step_grass"
 Cohesion: 0.67
@@ -510,9 +507,25 @@ Nodes (11): abrirJanela(), { app, BrowserWindow, Menu }, DEV, fs, http, iniciar(
 Cohesion: 0.67
 Nodes (3): lootEV(), lootQtd(), lootVal()
 
-### Community 89 - "log"
+### Community 89 - "castSpell"
 Cohesion: 0.20
-Nodes (31): abalo(), addExp(), addMagic(), addSkillTry(), canEquip(), castSpell(), comer(), cssCol() (+23 more)
+Nodes (25): abalo(), addMagic(), addSkillTry(), castSpell(), cssCol(), curar(), damageFormula(), dealDamage() (+17 more)
+
+### Community 91 - "_canvas"
+Cohesion: 0.21
+Nodes (14): borderSprite(), _canvas(), CLOUD_CACHE, cloudTexture(), contactShadow(), edgeMask(), edgeShadow(), flowTexture() (+6 more)
+
+### Community 92 - "_canvas2"
+Cohesion: 0.22
+Nodes (10): _canvas2(), _chapado(), creatureSheet(), creatureSprite(), OUT_CACHE, outlined(), poiSprite(), rangerSprite() (+2 more)
+
+### Community 93 - "decoSprite"
+Cohesion: 0.25
+Nodes (9): _cracks(), decoSprite(), _el(), _poly(), _rc(), _rgb(), shade(), _speckle() (+1 more)
+
+### Community 94 - "criaLinhas"
+Cohesion: 0.50
+Nodes (4): criaLinhas(), criaMorto(), criaQuadro(), criaTombado()
 
 ## Ambiguous Edges - Review These
 - `graphify` → `Thaira — RPG isométrico (shell da aplicação)`  [AMBIGUOUS]
@@ -539,9 +552,9 @@ Nodes (31): abalo(), addExp(), addMagic(), addSkillTry(), canEquip(), castSpell(
   tools/amostra/energy_sorcerer_front_walk_and_idle.png · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **324 isolated node(s):** `dia-vila.mp3`, `dia-celta.mp3`, `dia-campina.mp3`, `dia-taverna.mp3`, `dia-menestrel.mp3` (+319 more)
+- **333 isolated node(s):** `dia-vila.mp3`, `dia-celta.mp3`, `dia-campina.mp3`, `dia-taverna.mp3`, `dia-menestrel.mp3` (+328 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_

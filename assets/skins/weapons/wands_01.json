@@ -1,0 +1,25 @@
+{
+  "_nota": "A folha traz 20 varinhas com legenda embaixo de cada uma (nome e elemento) — foi por ela que o pareamento saiu, não por semelhança de pixel. Os quatro que faltam do jogo (as varinhas iniciais) vêm do novice_set. As seis últimas fecham a escada de conjurador entre o nível 46 e o 76.",
+  "ids": {
+    "wand_of_dragonbreath": 1,
+    "moonlight_rod": 2,
+    "nature_staff": 3,
+    "wand_of_decay": 4,
+    "wand_of_cosmic_energy": 13,
+    "hailstorm_rod": 14,
+    "void_wand": 26,
+    "wand_of_inferno": 27,
+    "glacier_rod": 28,
+    "springsprout_rod": 29,
+    "spirit_staff": 38,
+    "terra_rod": 39,
+    "wind_rod": 15,
+    "soul_wand": 40,
+    "blood_staff": 41,
+    "celestial_rod": 51,
+    "plague_rod": 52,
+    "storm_staff": 53,
+    "light_staff": 16,
+    "time_staff": 54
+  }
+}

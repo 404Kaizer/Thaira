@@ -1,0 +1,23 @@
+{
+  "_nota": "grade 12x9. Números vêm de: python assets/build_folhas.py assets/skins/loot/loot_02.png",
+  "ids": {
+    "bug_shell": 17,
+    "minotaur_horn": 22,
+    "seraph_feather": 26,
+    "frozen_core": 16,
+    "ember_core": 12,
+    "storm_core": 65,
+    "small_sapphire": 41,
+    "small_ruby": 43,
+    "resin": 15,
+    "demon_dust": 48,
+    "white_pearl": 56,
+    "black_pearl": 57,
+    "shimmering_pearl": 47,
+    "dragon_ham": 93,
+    "big_fish": 94,
+    "honeycomb": 55,
+    "void_shard": 44,
+    "skull": 79
+  }
+}

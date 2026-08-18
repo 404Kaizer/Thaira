@@ -1,0 +1,14 @@
+{
+  "_nota": "Folha do arcano de tempestade (azul/raio). Uma variante por peça. Vira a arte da Regalia do Vazio (vz), que já existia no data.js sem desenho. Bota vem em par: os dois pés saem em recortes separados, daí o [19, 20].",
+  "ids": {
+    "vz_crown": 3,
+    "vz_armor": 7,
+    "vz_legs": 13,
+    "vz_boots": [
+      19,
+      20
+    ],
+    "vz_staff": 29,
+    "vz_aegis": 34
+  }
+}

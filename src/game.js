@@ -1324,7 +1324,11 @@ function spellTiles(sp) {
    dela existir, empilhar escondia loot, e daí o desvio pra tile vizinho fazia
    sentido; agora ele só espalhava os corpos sem necessidade. */
 function spawnCorpse(x, y, z, name, items, spr, extra) {
-  G.corpses.push({ x, y, z, name, items, spr, t: G.now, ...extra });
+  /* A pose do tombado é sorteada AQUI e fica com o corpo. Antes saía da posição,
+     que é o mesmo enquanto ninguém mexe — só que corpo que muda de tile trocava
+     de desenho no caminho. Sorteado na morte, o corpo é aquele corpo. */
+  const pose = spr && spr.sheet ? criaTombado(spr.sheet, x, y) : 0;
+  G.corpses.push({ x, y, z, name, items, spr, pose, t: G.now, ...extra });
 }
 function spawnDrop(x, y, z, it) {
   G.drops.push({ x, y, z, it });

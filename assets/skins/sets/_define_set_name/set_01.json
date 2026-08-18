@@ -1,0 +1,14 @@
+{
+  "_nota": "Folha do druida de folhas e galhada. Seis variantes por peça; sai uma de cada. Vira o conjunto Bosque Ancião (bo). Bota vem em par: os dois pés saem em recortes separados, daí o [19, 20].",
+  "ids": {
+    "bo_hood": 1,
+    "bo_armor": 7,
+    "bo_legs": 13,
+    "bo_boots": [
+      19,
+      20
+    ],
+    "bo_staff": 31,
+    "bo_shield": 34
+  }
+}

@@ -38,8 +38,61 @@ from PIL import Image
 AQUI = os.path.dirname(os.path.abspath(__file__))
 SAIDA = os.path.join(AQUI, 'skins', '_recortes')
 TOL = 60          # distância da cor de fundo que ainda conta como fundo
+CHAVE_BAIXO, CHAVE_ALTO = 24, 90   # faixa em que o pixel vai de fundo puro a tinta pura
+# Quão perto da MATIZ do fundo um pixel escuro ainda é sombra dele. Medido na
+# folha: sombra de maçã dá .22, e a tinta roxa mais próxima (o cristal do vazio)
+# dá .35 — .26 separa os dois sem comer nenhum item roxo.
+CHAVE_MATIZ = .26
 MIN_AREA = 400    # blob menor que isso é sujeira, não desenho
 FOLGA = 3         # borda de respiro em volta do recorte
+
+
+def sombra_do_fundo(rgb, fundo, alfa=None):
+    """Máscara do que é SOMBRA do fundo, não desenho.
+
+    A sombra vem pintada como o fundo escurecido; como cor ela passa longe do
+    fundo puro, então escapa da chave e sai um borrão magenta colado no item.
+    Achar pela cor sozinha não serve: pixel quase preto tem matiz instável (R≈B,
+    G≈0, que é a do magenta) e o preto do couro da bota ia junto. Então a cor só
+    diz quem é CANDIDATO, e a geometria decide: sombra é candidato que se alcança
+    a partir da borda da imagem, andando por fundo e por sombra. O que está
+    cercado pelo desenho é desenho, por mais roxo que pareça.
+    O limite de matiz foi medido na folha: sombra de maçã dá .22 e a tinta roxa
+    mais próxima (cristal do vazio) dá .35."""
+    rgb = rgb.astype(np.float32)
+    b = np.asarray(fundo, dtype=np.float32)
+    mx = np.maximum(rgb.max(axis=2), 1)
+    dif = np.abs(rgb / mx[:, :, None] - b / max(b.max(), 1)).max(axis=2)
+    cand = (dif < CHAVE_MATIZ) & (mx < b.max() * .8)
+    # por onde o "lado de fora" passa: fundo puro, transparente e a própria sombra
+    fora = cand | (np.abs(rgb - b).max(axis=2) <= TOL)
+    if alfa is not None:
+        fora |= alfa < 40
+    fora = np.pad(fora, 1, constant_values=True)      # moldura, caso a sombra encoste na borda
+    n, rot = cv2.connectedComponents(fora.astype(np.uint8), 4)
+    return cand & (rot[1:-1, 1:-1] == rot[0, 0])
+
+
+def chaveia(pedaco, fundo):
+    """Tira o fundo do recorte, inclusive de quem está MISTURADO com ele.
+
+    Zerar o alfa só onde a cor é exatamente o fundo deixa magenta na borda serrilhada
+    e na sombra do desenho — os dois são mistura de tinta com fundo, então passam
+    no teste de "não é fundo" e ficam com a cor errada e alfa cheio. Aqui o alfa
+    sai da DISTÂNCIA até o fundo (0 = fundo puro, 1 = tinta pura) e a cor é
+    desmisturada: C = a·F + (1-a)·B, então F = (C - (1-a)·B) / a. A sombra
+    continua sombra, só que escura e translúcida em vez de rosa."""
+    p = pedaco.astype(np.float32)
+    b = np.asarray(fundo, dtype=np.float32)
+    d = np.abs(p[:, :, :3] - b).max(axis=2)
+    al = np.clip((d - CHAVE_BAIXO) / float(CHAVE_ALTO - CHAVE_BAIXO), 0, 1)
+    al = np.where(sombra_do_fundo(p[:, :, :3], b), 0, al)
+    a3 = al[:, :, None]
+    cor = np.where(a3 > 0.004, (p[:, :, :3] - (1 - a3) * b) / np.maximum(a3, 0.004), p[:, :, :3])
+    fora = np.empty_like(p)
+    fora[:, :, :3] = np.clip(cor, 0, 255)
+    fora[:, :, 3] = np.minimum(p[:, :, 3], al * 255)
+    return fora.astype(np.uint8)
 
 
 def separa(caminho):
@@ -65,11 +118,7 @@ def separa(caminho):
             continue
         x0, y0 = max(0, x - FOLGA), max(0, y - FOLGA)
         x1, y1 = min(a.shape[1], x + w + FOLGA), min(a.shape[0], y + h + FOLGA)
-        pedaco = a[y0:y1, x0:x1].copy()
-        # o que era fundo vira transparente de verdade
-        pr = pedaco[:, :, :3].astype(np.int16)
-        pedaco[:, :, 3] = np.where(np.abs(pr - fundo).max(axis=2) > TOL, pedaco[:, :, 3], 0)
-        achados.append([x, y, w, h, Image.fromarray(pedaco)])
+        achados.append([x, y, w, h, Image.fromarray(chaveia(a[y0:y1, x0:x1], fundo))])
 
     # ordem de leitura: agrupa por faixa horizontal, depois ordena por x
     achados.sort(key=lambda r: r[1])
@@ -86,6 +135,38 @@ def separa(caminho):
     return fora
 
 
+def junta(pecas, nums):
+    """Cola vários recortes num só, guardando a posição que tinham na folha.
+
+    Bota é desenhada em PAR, e o separador entrega um pé em cada recorte porque
+    entre eles há fundo. Colar de volta pelo x/y original mantém a distância e a
+    altura de um para o outro — juntar encostando um no outro sairia torto."""
+    itens = [pecas[n - 1] for n in nums]
+    x0 = min(p[0] for p in itens); y0 = min(p[1] for p in itens)
+    x1 = max(p[0] + p[4].width for p in itens); y1 = max(p[1] + p[4].height for p in itens)
+    fora = Image.new('RGBA', (x1 - x0, y1 - y0), (0, 0, 0, 0))
+    for x, y, w, h, im in itens:
+        fora.alpha_composite(im, (x - x0, y - y0))
+    return fora
+
+
+def corta_metade(im, parte):
+    """Fica com metade do recorte e reaperta no alfa."""
+    w, h = im.size
+    caixa = {'cima': (0, 0, w, h // 2), 'baixo': (0, h // 2, w, h),
+             'esq': (0, 0, w // 2, h), 'dir': (w // 2, 0, w, h)}[parte]
+    im = im.crop(caixa)
+    # a metade descartada deixa lascas do vizinho na borda; fica só a mancha maior
+    a = np.array(im)
+    n, rot, stats, _ = cv2.connectedComponentsWithStats((a[:, :, 3] > 40).astype(np.uint8), 8)
+    if n > 2:
+        maior = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+        a[:, :, 3] = np.where(rot == maior, a[:, :, 3], 0)
+        im = Image.fromarray(a)
+    b = im.split()[3].point(lambda v: 255 if v > 16 else 0).getbbox()
+    return im.crop(b) if b else im
+
+
 def main():
     arg = [a for a in sys.argv[1:] if not a.startswith('--')]
     if not arg:
@@ -99,7 +180,19 @@ def main():
     if os.path.exists(jz):
         with open(jz, encoding='utf-8') as f:
             cfg = json.load(f)
-    ids = {int(v): k for k, v in cfg.get('ids', {}).items()}
+    # valor pode ser o número do desenho ou [número, metade]: às vezes dois
+    # desenhos vizinhos saem no mesmo recorte (bota logo acima do escudo, e o
+    # fecho de vãos finos gruda os dois). Aí se diz com qual metade ficar.
+    ids, metade, juntar = {}, {}, {}
+    for k, v in cfg.get('ids', {}).items():
+        if isinstance(v, list) and len(v) > 1 and all(isinstance(x, int) for x in v):
+            juntar[int(v[0])] = [int(x) for x in v]   # par de botas: um pé em cada recorte
+            n, parte = v[0], None
+        else:
+            n, parte = (v, None) if isinstance(v, int) else (v[0], v[1])
+        ids[int(n)] = k
+        if parte:
+            metade[int(n)] = parte
 
     print('%s — %d desenhos encontrados\n' % (os.path.basename(folha), len(pecas)))
     linha_atual, y_ant = [], None
@@ -128,6 +221,10 @@ def main():
             print('  %-16s numero %d nao existe nesta folha' % (nome, i))
             continue
         im = pecas[i - 1][4]
+        if i in juntar:
+            im = junta(pecas, juntar[i])
+        if i in metade:
+            im = corta_metade(im, metade[i])
         dst = os.path.join(destino, nome + '.png')
         if aplicar:
             im.save(dst)

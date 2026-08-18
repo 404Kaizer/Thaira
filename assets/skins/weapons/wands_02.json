@@ -1,0 +1,16 @@
+{
+  "_nota": "Folha sem legenda: o elemento de cada uma saiu da cor (vermelho=fogo, azul=gelo, verde=terra, roxo=morte, dourado=sagrado). São as irmãs de elemento das varinhas que já existiam em cada faixa.",
+  "ids": {
+    "sa_rod": 20,
+    "brasa_wand": 3,
+    "fullmoon_rod": 5,
+    "umbral_wand": 6,
+    "grove_rod": 7,
+    "arcane_eye_wand": 9,
+    "ossuary_staff": 10,
+    "crescent_rod": 12,
+    "frostgem_rod": 14,
+    "verdant_rod": 17,
+    "flame_trident": 18
+  }
+}

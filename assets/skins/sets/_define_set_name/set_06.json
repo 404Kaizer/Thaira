@@ -1,0 +1,15 @@
+{
+  "_nota": "Folha do necromante (fogo verde e caveira). Vira o Culto Sepulcral (cs). Bota vem em par: os dois pés saem em recortes separados, daí o [19, 20].",
+  "ids": {
+    "cs_hood": 1,
+    "cs_armor": 7,
+    "cs_legs": 13,
+    "cs_boots": [
+      19,
+      20
+    ],
+    "cs_staff": 30,
+    "cs_tome": 34,
+    "cs_shield": 35
+  }
+}

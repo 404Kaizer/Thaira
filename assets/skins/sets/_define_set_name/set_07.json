@@ -1,0 +1,15 @@
+{
+  "_nota": "Folha do xamã do norte (peles de urso e gelo). Vira a Fúria do Norte (fn). Bota vem em par: os dois pés saem em recortes separados, daí o [19, 20].",
+  "ids": {
+    "fn_helmet": 1,
+    "fn_armor": 8,
+    "fn_legs": 19,
+    "fn_boots": 24,
+    "fn_staff": 20,
+    "fn_shield": [
+      28,
+      "baixo"
+    ],
+    "fn_tome": 31
+  }
+}

@@ -4,7 +4,13 @@
     "common_health_potion": "health_potion",
     "common_mana_potion": "mana_potion",
     "supreme_health_potion": "great_health_potion",
-    "supreme_mana_potion": "great_mana_potion"
+    "supreme_mana_potion": "great_mana_potion",
+    "cyclop_toe": "cyclops_toe",
+    "orc_thooth": "orc_tooth",
+    "spider_web": "spider_silk"
   },
-  "ignorar": ["loot_01", "potions_01"]
+  "ignorar": [
+    "loot_01",
+    "potions_01"
+  ]
 }

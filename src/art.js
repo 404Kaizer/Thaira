@@ -623,7 +623,7 @@ function rangerSprite(dir, frame, esc) {
 
 /* --------------------------------------------- folha de criatura (PNG) */
 /* assets/creatures/<nome>.png, montada por assets/build_criaturas.py: célula
-   fixa de 208×248, colunas = quadro (parado, passo, passo), linhas = direção na
+   fixa de 352×248, colunas = quadro (parado, passo, passo), linhas = direção na
    ordem DIR_S/DIR_W/DIR_N/DIR_E e mais uma de tombado. O script já centrou o
    corpo e pôs os pés em PES, então a âncora é a mesma em toda célula — nada de
    tabela por quadro.
@@ -631,7 +631,7 @@ function rangerSprite(dir, frame, esc) {
    criatura com folha nasceria de outro tamanho que a da tabela manda.
    Cache no tamanho final de tela (`esc` = ampliação da câmera) e `k` = 1/esc,
    pelo mesmo motivo do ranger: uma redução só, com filtro bom, e blit 1:1. */
-const CRIA_CW = 208, CRIA_CH = 248, CRIA_PES = 244, CRIA_MORTO = 4;
+const CRIA_CW = 352, CRIA_CH = 248, CRIA_PES = 244, CRIA_MORTO = 4;
 const criaImg = {}, CRIA_CACHE = {};
 
 function creatureSheet(nome, dir, frame, esc, size) {
@@ -649,6 +649,45 @@ function creatureSheet(nome, dir, frame, esc, size) {
   cv.cx = w / 2; cv.feet = CRIA_PES * f;
   cv.k = 1 / esc;                          // já está em pixel de tela
   return CRIA_CACHE[key] = cv;
+}
+
+/* Qual COLUNA da linha usar. A folha guarda os parados e depois os passos, e
+   quantos são de cada vem do src/criaturas.js (gerado junto com o PNG).
+   Andando, o quadro sai do progresso do passo — assim o bicho anda na velocidade
+   em que se move de verdade.
+   Parado NÃO fica alternando: os quadros de idle são poses (o ciclope levanta o
+   porrete, o demônio abre a asa), não meio respiro cada. Alternar de meio em meio
+   segundo vira tique. Ele fica na pose base e, de tempo em tempo, passa pelas
+   outras e volta — com fase do uid, senão o mapa inteiro gesticula junto.
+   Sem a tabela (folha antiga), o padrão é 1 parado + 2 passos, que é o que o
+   jogo fazia antes dela existir. */
+const CRIA_PADRAO = [1, 2], CRIA_ESPERA = 5200, CRIA_GESTO = 700;
+const criaLinhas = n => (typeof CRIA_FOLHA !== 'undefined' && CRIA_FOLHA[n]) || null;
+function criaQuadro(nome, dir, andando, prog, agora, uid) {
+  const t = criaLinhas(nome);
+  const [parados, passos] = (t && t.linhas[dir]) || CRIA_PADRAO;
+  if (andando && passos) return parados + Math.min(passos - 1, Math.floor(prog * passos));
+  if (parados < 2) return 0;
+  const gesto = CRIA_GESTO * (parados - 1), ciclo = CRIA_ESPERA + gesto;
+  const q = (agora + (uid || 0) * 1373) % ciclo - CRIA_ESPERA;
+  return q < 0 ? 0 : 1 + Math.floor(q / CRIA_GESTO);
+}
+/* Tombado, quando são POSES do mesmo corpo: dois ciclopes caídos lado a lado não
+   podem ser a mesma foto. Sorteado na morte (game.js) e guardado com o corpo,
+   senão arrastar o cadáver trocaria o desenho. */
+const criaTombado = (nome, x, y) => {
+  const t = criaLinhas(nome);
+  return t && t.morto > 1 ? ((x * 7 + y * 13) % t.morto + t.morto) % t.morto : 0;
+};
+/* Tombado, quando os quadros são o bicho APODRECENDO (demônio: corpo, carne com
+   osso, caveira): aí não é sorteio, é relógio — o corpo passa pelos quadros ao
+   longo da vida dele. `tombado: "apodrece"` na pasta é quem diz qual é qual. */
+function criaMorto(nome, corpo, agora, vida) {
+  const t = criaLinhas(nome);
+  if (!t || t.morto < 2) return 0;
+  if (t.tombado !== 'apodrece') return corpo.pose || 0;
+  const k = (agora - corpo.t) / (vida || 120000);
+  return Math.max(0, Math.min(t.morto - 1, Math.floor(k * t.morto)));
 }
 
 /* ------------------------------------------------------- ícones de item */
