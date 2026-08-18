@@ -143,7 +143,7 @@ const SFX = {
    `n` = quantas variações existem, arquivos `hit.ogg`, `hit-2.ogg`, `hit-3.ogg`.
    `v` = ganho, porque arquivo de banco vem com volume de qualquer jeito e
    ninguém quer reeditar o wav só para baixar a espada. */
-const SFX_BUF = {}, SFX_VOL = {}, SFX_MIX = {};
+const SFX_BUF = {}, SFX_VOL = {}, SFX_MIX = {}, SFX_DER = {};
 let amostrasPedidas = false;
 /* Extensão: `"ext"` na raiz vale para todos, e cada entrada pode passar a sua em
    `{ "ext": "wav" }`. Não é enfeite — um pacote montado de duas fontes vem
@@ -184,6 +184,13 @@ async function carregarAmostras(base = 'assets/sfx') {
     const n = typeof cfg === 'number' ? cfg : (cfg && cfg.n) || 1;
     SFX_VOL[nome] = cfg && cfg.v != null ? cfg.v : 1;
     if (cfg && cfg.mix) SFX_MIX[nome] = cfg.mix;
+    /* Camada DERIVADA (`de`): não tem arquivo próprio, sai da gravação de outra
+       entrada tocada mais grave (`tom`) e sem a ponta aguda (`lp`). Baixar o tom
+       de um buffer é reamostrar — desce a altura E estica a duração no mesmo
+       gesto, que é exatamente o que faz um corpo soar pesado. Existe para a
+       morte poder ter peso próprio sem pedir mais um arquivo ao pacote, e por
+       ser dado dá para reafinar no manifesto sem rebuild nenhum. */
+    if (cfg && cfg.de) { SFX_DER[nome] = cfg; return; }
     const ext = (cfg && cfg.ext ? String(cfg.ext).replace(/^\./, '') : audioExt);
     const bufs = [];
     for (let i = 1; i <= n; i++) {
@@ -195,6 +202,11 @@ async function carregarAmostras(base = 'assets/sfx') {
     }
     if (bufs.length) SFX_BUF[nome] = bufs;
   }));
+  // as derivadas só depois: a origem precisa já ter entrado
+  for (const nome in SFX_DER) {
+    const orig = SFX_BUF[SFX_DER[nome].de];
+    if (orig) SFX_BUF[nome] = orig;
+  }
   const n = Object.keys(SFX_BUF).length;
   if (!n) _avisarSemSom('nenhum arquivo abriu');
 }
@@ -207,10 +219,21 @@ function _umaCamada(nome, saida) {
   if (!bufs) return false;
   const src = AC.createBufferSource();
   src.buffer = bufs[(Math.random() * bufs.length) | 0];
-  src.playbackRate.value = 1 + (Math.random() - .5) * .08;
+  const der = SFX_DER[nome];
+  src.playbackRate.value = (der && der.tom || 1) * (1 + (Math.random() - .5) * .08);
   const g = AC.createGain();
   g.gain.value = SFX_VOL[nome];
-  src.connect(g); g.connect(saida || BUS.efeitos || master);
+  src.connect(g);
+  /* O passa-baixa não é enfeite: só baixar o tom deixa o agudo da gravação
+     original ainda audível, e o ouvido lê aquilo como som LENTO em vez de som
+     pesado. Tirada a ponta, o que sobra é corpo. */
+  let fim = g;
+  if (der && der.lp) {
+    const f = AC.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = der.lp;
+    g.connect(f); fim = f;
+  }
+  fim.connect(saida || BUS.efeitos || master);
   src.start();
   return true;
 }
@@ -445,6 +468,30 @@ function chuvaSom(v) {
     // roda a cada escada e mataria o loop no meio do temporal
   }
   chuvaGain.gain.setTargetAtTime(v * .07, AC.currentTime, 1.5);
+}
+
+/* Trovão. Ruído grave e longo, não um estalo: o que faz soar como trovão é o
+   corte descendo (o agudo chega primeiro e some antes) e a cauda de mais de dois
+   segundos. Um sino de ruído curto vira porta batendo.
+   `atraso` é a distância do raio — o clarão sai na hora, o som demora. É ele que
+   diz se o temporal está em cima de você ou na serra do outro lado. */
+function trovao(atraso = 0, forca = 1) {
+  if (!audioInit()) return;
+  const t0 = AC.currentTime + atraso / 1000, dur = 2.2 + forca * 1.6;
+  const n = Math.ceil(AC.sampleRate * dur), buf = AC.createBuffer(1, n, AC.sampleRate), ch = buf.getChannelData(0);
+  // ruído marrom: integra o branco. Sem isso o espectro é chiado, e trovão é rugido
+  let v = 0;
+  for (let i = 0; i < n; i++) { v = (v + (Math.random() * 2 - 1) * .06) * .995; ch[i] = v * 4; }
+  const src = AC.createBufferSource(); src.buffer = buf;
+  const flt = AC.createBiquadFilter(); flt.type = 'lowpass';
+  flt.frequency.setValueAtTime(900 + forca * 700, t0);
+  flt.frequency.exponentialRampToValueAtTime(110, t0 + dur);
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(.5 * forca, t0 + .04);   // estouro
+  g.gain.setTargetAtTime(0, t0 + .12, dur * .35);          // e o rolo indo embora
+  src.connect(flt); flt.connect(g); g.connect(BUS.ambiente || master);
+  src.start(t0); src.stop(t0 + dur + .2);
 }
 
 /* ambNodes guarda osciladores e também o setInterval dos pingos — cada um morre do seu jeito */

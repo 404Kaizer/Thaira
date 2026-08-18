@@ -151,7 +151,14 @@ b{color:#fff}
   white-space:normal;text-align:center;text-shadow:0 1px 2px #000}
 .plate .pb{width:40px;height:5px;background:#000c;border:1px solid #000;border-radius:2px;overflow:hidden;padding:0}
 .plate .pb i{display:block;height:100%;background:linear-gradient(#5fe06a,#2a9c38)}
-.ftext{position:absolute;top:0;left:0;font:700 15px var(--serif);text-shadow:0 2px 3px #000,0 0 5px #000,0 0 5px #000}
+/* Número de combate: o contorno é o que garante leitura, não o tamanho — ele cai
+   sobre grama clara, pedra e poça de sangue, e cor sozinha não vence nenhum dos
+   três. Fica na Cinzel como todo o resto da interface: legibilidade aqui vem do
+   corpo e do contorno, e trocar a fonte só deste texto quebraria a identidade. */
+.ftext{position:absolute;top:0;left:0;white-space:nowrap;font:700 17px var(--serif);
+  text-shadow:0 0 2px #000,0 2px 3px #000,0 0 6px #000,0 0 11px #000c}
+/* o pico da luta — crítico, dano recebido, exp — sobe de corpo, não de cor */
+.ftext.forte{font-size:25px;letter-spacing:.02em}
 #hunt-label{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:2;
   font:700 15px var(--serif);letter-spacing:.08em;color:#ffcf7a;
   text-shadow:0 2px 4px #000,0 0 14px #000;pointer-events:none}
@@ -246,7 +253,20 @@ b{color:#fff}
    quadrado gigante que come a coluna inteira na vertical */
 #minimap{width:100%;height:190px;display:block;image-rendering:pixelated;background:#000;
   border:1px solid #000a;border-radius:3px;cursor:grab}
-#floor-label{margin-top:5px;font:700 10.5px/1 var(--serif);letter-spacing:.07em;color:var(--gold2);text-align:center}
+/* Rodapé do minimapa: andar à esquerda, relógio à direita, uma linha só. A
+   barra lateral não rola — cada linha nova aqui é uma linha a menos de mochila,
+   então o relógio divide a faixa que o nome do andar já ocupava. */
+#mini-foot{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:5px}
+#floor-label{font:700 10.5px/1 var(--serif);letter-spacing:.07em;color:var(--gold2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* a HORA é informação de leitura rápida: fonte legível e largura de dígito fixa,
+   senão o painel dança a cada minuto. A FASE é rótulo, e vai apagada atrás dela. */
+/* apertado de propósito: o nome do andar é o primeiro a ser lido e não pode ser
+   cortado por causa do relógio. "Madrugada" é a palavra mais larga que cabe. */
+#mini-clock{flex:none;display:flex;align-items:baseline;gap:4px}
+#mini-clock b{font:600 10px/1 ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--txt)}
+#mini-clock i{font:600 8px/1 var(--serif);font-style:normal;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--dim)}
 .sec{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:2px 0 5px}
 /* estatísticas de combate: mesma barra da de status, encostada nos botões de
    postura. Só ícone e número — o nome e o que faz vivem no tooltip. */
@@ -765,7 +785,10 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
     <div class="colunas"><div class="dock" id="dock-r1"></div><div class="dock" id="dock-r0">
     <section class="panel" id="panel-minimap">
       <div class="pb"><canvas id="minimap" width="190" height="190"></canvas>
-        <div id="floor-label">Superfície</div></div>
+        <div id="mini-foot">
+          <div id="floor-label">Superfície</div>
+          <div id="mini-clock"><b id="clock-hora">--:--</b><i id="clock-fase"></i></div>
+        </div></div>
     </section>
     <section class="panel" id="panel-status"><div class="pb" id="status-body"></div></section>
     <section class="panel" id="panel-equip">

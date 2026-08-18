@@ -112,6 +112,18 @@ MAPA = {
 }
 
 
+# Camadas DERIVADAS: não têm arquivo de origem nenhum — saem da gravação de outra
+# entrada, tocada mais grave (`tom`) e sem a ponta aguda (`lp`), lá no audio.js.
+# `_corpo_morte` existe porque morte e crítico dividiam o MESMO corpo
+# (`_corpo_forte`) e portanto pesavam igual; a morte é o golpe que mais precisa
+# soar pesado. Reamostrar para baixo desce a altura e estica a duração no mesmo
+# gesto, que é o que o ouvido lê como massa.
+# Vive aqui, e não só no manifest.json, porque este script reescreve assets/sfx
+# do zero: o que não estiver neste arquivo se perde no próximo build.
+DERIVADAS = {
+    '_corpo_morte': {'de': '_corpo_forte', 'tom': 0.55, 'lp': 850, 'v': 0.42},
+}
+
 # som -> camadas extras tocadas junto. Só o que precisa de peso entra aqui.
 MIX = {
     'hit': ['_corpo_medio'],
@@ -120,7 +132,7 @@ MIX = {
     'atk_club': ['_corpo_medio'],
     'atk_fist': ['_corpo_medio'],
     'atk_axe': ['_corpo_medio'],
-    'die': ['_corpo_forte'],
+    'die': ['_corpo_morte'],
 }
 
 
@@ -168,6 +180,12 @@ def main():
             manifesto[nome] = entrada
         else:
             faltando.append('!! %s ficou sem nenhum arquivo' % nome)
+
+    for nome, cfg in DERIVADAS.items():
+        if cfg['de'] in manifesto:
+            manifesto[nome] = dict(cfg)
+        else:
+            faltando.append('!! %s deriva de %s, que ficou sem arquivo' % (nome, cfg['de']))
 
     manifesto['ext'] = 'ogg'
     # rev vira ?v= na URL de cada som. Sem isso, trocar um arquivo mantendo o

@@ -464,6 +464,15 @@ function corDoCeu(td) {
   const canal = s => Math.round((n0 >> s & 255) + ((n1 >> s & 255) - (n0 >> s & 255)) * k);
   return [canal(16), canal(8), canal(0)];
 }
+/* Relógio do jogo. O dia dura DIA_MS de verdade, então a hora é a fração do
+   ciclo em 24h. Os cortes das fases saem da rampa do CÉU, não de números
+   redondos: com 6/12/18/24 na mão o painel anunciava "Manhã" com o céu ainda
+   roxo. Amanhecer é .26 e poente .78 lá em cima — é daí que vêm estes. */
+const FASES = [[.26, 'Madrugada'], [.50, 'Manhã'], [.78, 'Tarde'], [1, 'Noite']];
+function horaDoJogo(ms = Date.now()) {
+  const td = horaDoDia(ms), h = td * 24;
+  return { h: Math.floor(h), min: Math.floor(h % 1 * 60), fase: FASES.find(f => td < f[0])[1] };
+}
 const ehNoite = (td = horaDoDia()) => {
   const [r, g, b] = corDoCeu(td);
   return r * .3 + g * .6 + b * .1 < 110;
@@ -476,22 +485,83 @@ const souCoberto = (x = P.x, y = P.y, z = P.z) => z - 1 >= 0 && tileAt(x, y, z -
 
 /* Clima. Mesma ideia do relógio do dia: sai do Date.now(), então continua entre
    recargas, não precisa de tick nem de estado salvo e é igual em qualquer aba.
-   Duas senóides de períodos incomensuráveis — o tempo vira sem repetir num laço
-   que dê para decorar. Só existe onde há céu: no subsolo devolve tudo zero.
+   Senóides de períodos incomensuráveis — o tempo vira sem repetir num laço que
+   dê para decorar. Só existe onde há céu: no subsolo devolve tudo parado.
      nublado — quanto o céu está fechado, é o que escurece o mundo;
+     frente  — a tempestade se formando: sobe ANTES da primeira gota e fica
+               cravada em 1 enquanto chove;
      chuva   — só na metade mais fechada do céu;
-     nuvens  — força da SOMBRA no chão, que é outra curva: céu limpo não tem
-               nuvem para projetar e céu 100% fechado não tem recorte, o pico
-               está no meio. E sem sol (noite) não há sombra nenhuma. */
+     vento   — inclina mato e chuva e empurra a nuvem;
+     raio    — clarão do relâmpago no quadro, 0 na maior parte do tempo;
+     molhado — quanto o chão está encharcado, que atrasa a chuva e a sobrevive;
+     nuvens  — força da SOMBRA no chão;
+     luz     — força da fonte que projeta sombra (sol de dia, lua de noite);
+     estado  — o rótulo, para log, áudio e spawn lerem a MESMA coisa. */
+const CLIMA_PARADO = { nublado: 0, chuva: 0, frente: 0, vento: .25, raio: 0, molhado: 0,
+                       nuvens: 0, luz: .6, estado: 'abrigado' };
+const nubladoEm = ms => {
+  const m = ms / 60000, c = Math.sin(m / 2.7) * .6 + Math.sin(m / 6.3) * .4;
+  return Math.max(0, Math.min(1, (c + .15) / .85));
+};
+const chuvaDe = nublado => Math.max(0, (nublado - .55) / .45);
+
+/* Chão molhado. Não é a chuva de agora: a poça demora a se formar e continua ali
+   depois que para. Como o clima inteiro é função do relógio, a memória é uma
+   média com peso do passado recente em vez de um acumulador — nada para salvar,
+   nada para dessincronizar entre abas, e o chão já nasce molhado se você entrar
+   no jogo no meio de um temporal.
+   ponytail: seca no mesmo ritmo em que molha; poça de verdade some mais devagar
+   que aparece. Se a secagem instantânea incomodar, separar os dois pesos. */
+const MOLHADO_AMOSTRAS = 6, MOLHADO_PASSO = 60000;
+function molhadoEm(ms) {
+  let soma = 0, peso = 0;
+  for (let i = 0; i < MOLHADO_AMOSTRAS; i++) {
+    const p = 1 - i / MOLHADO_AMOSTRAS;
+    soma += chuvaDe(nubladoEm(ms - i * MOLHADO_PASSO)) * p; peso += p;
+  }
+  return Math.min(1, soma / peso * 1.3);
+}
+
+/* Relâmpago. O clarão sai de um HASH da janela de tempo, e não de um sorteio
+   guardado: o resto do clima é função do relógio, e um raio com estado próprio
+   seria a única coisa a não sobreviver ao reload — piscaria diferente em cada
+   aba, e o trovão de um jogador cairia num silêncio para o outro. A janela é
+   fixa; o hash decide se caiu e em que instante dela. */
+const RAIO_JANELA = 4200, RAIO_DUR = 240;
+function relampago(chuva, ms) {
+  if (chuva < .45) return 0;                       // garoa não tem raio
+  const h = Math.sin(Math.floor(ms / RAIO_JANELA) * 12.9898) * 43758.5453;
+  const r = h - Math.floor(h);
+  if (r > chuva) return 0;                         // nem toda janela tem raio
+  const k = (ms % RAIO_JANELA - (r / chuva) * (RAIO_JANELA - RAIO_DUR)) / RAIO_DUR;
+  if (k < 0 || k > 1) return 0;
+  // dois estouros: o principal e a réplica fraca — clarão único lê como falha de tela
+  return Math.min(1, Math.max(0, 1 - k * 4) + Math.max(0, .5 - Math.abs(k - .34) * 6));
+}
+
 function climaAgora(z, ms = Date.now()) {
-  if (FLOOR_AMBIENCE[z].amb) return { nublado: 0, chuva: 0, nuvens: 0 };
-  const m = ms / 60000;
-  const c = Math.sin(m / 2.7) * .6 + Math.sin(m / 6.3) * .4;
-  const nublado = Math.max(0, Math.min(1, (c + .15) / .85));
+  if (FLOOR_AMBIENCE[z].amb) return CLIMA_PARADO;
+  const nublado = nubladoEm(ms);
   const [r, g, b] = corDoCeu(horaDoDia(ms));
   const sol = Math.min(1, (r * .3 + g * .6 + b * .1) / 200);
-  return { nublado, chuva: Math.max(0, (nublado - .55) / .45),
-           nuvens: Math.min(1, nublado * (1 - nublado * .6) * sol * 1.4) };
+  /* `luz` é a força da fonte que projeta sombra: sol de dia, lua de noite (o
+     azul da madrugada nunca zera a luminância, então a noite tem sombra fraca em
+     vez de nenhuma), e céu fechado difunde. Sai daqui uma vez e alimenta duas
+     coisas: a força da sombra de nuvem e o alfa da sombra projetada. Se cada uma
+     tivesse a sua conta, a nuvem escureceria numa hora e o boneco em outra. */
+  const luz = sol * (1 - nublado * .6);
+  const chuva = chuvaDe(nublado);
+  const frente = Math.max(0, Math.min(1, (nublado - .40) / .15));
+  /* Terceira senóide, incomensurável com as duas do céu: vento que subisse junto
+     com a nuvem viraria a mesma informação duas vezes. O piso vem da frente —
+     tempestade sem vento é chuva de regador. */
+  const vento = Math.min(1, Math.max(.12 + (Math.sin(ms / 60000 / 4.1) * .5 + .5) * .55, frente * .9));
+  /* A nuvem escurece pela frente da tempestade, não só pelo recorte. A curva do
+     recorte tem pico no meio e AFINA quando o céu fecha de vez — a sombra sumia
+     justo na hora em que a chuva começava, que é o contrário do que o céu faz. */
+  return { nublado, chuva, frente, vento, raio: relampago(chuva, ms), molhado: molhadoEm(ms), luz,
+           nuvens: Math.min(1, Math.max(nublado * luz * 1.4, frente * (.4 + luz * .6))),
+           estado: chuva > .5 ? 'tempestade' : chuva > 0 ? 'chuva' : nublado > .5 ? 'nublado' : 'limpo' };
 }
 
 /* ambiente efetivo do andar: a caverna ignora o relógio, a superfície não.

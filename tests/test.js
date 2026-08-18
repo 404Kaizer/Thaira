@@ -60,11 +60,32 @@ function fakeEl() {
        ancestral esconde — é assim que o navegador se comporta, e o tooltip usa
        isso para saber que o dono sumiu. Um teste pode zerar para simular. */
     offsetParent: {},
-    classList: { add() { }, remove() { }, toggle() { } },
+    /* classList mexe no className de verdade em vez de ser no-op: `contains()`
+       tem de responder sobre o que `add()` acabou de pôr, senão quem filtra por
+       classe (hudEncaixa) recebe uma lista vazia — ou, quando o stub nem tinha
+       `contains`, estourava e derrubava o resto da suíte. */
+    classList: {
+      add(...c) { for (const k of c) if (!this.contains(k)) el.className += (el.className ? ' ' : '') + k },
+      remove(...c) { el.className = el.className.split(/\s+/).filter(k => k && !c.includes(k)).join(' ') },
+      contains(k) { return el.className.split(/\s+/).includes(k) },
+      toggle(k, f) { (f === undefined ? !this.contains(k) : f) ? this.add(k) : this.remove(k) }
+    },
     get firstChild() { return this.children[0] || null },
     get lastChild() { return this.children[this.children.length - 1] || null },
     appendChild(c) { if (c.parent) c.parent.removeChild(c); c.parent = this; this.children.push(c); return c },
-    insertBefore(c, ref) { c.parent = this; this.children.unshift(c); return c },
+    /* insertBefore MOVE o nó: no DOM real, reinserir quem já está na lista não
+       duplica. O stub só empilhava, e como `syncCells` reaproveita as mesmas
+       células vazias, a caixa ficava com o MESMO objeto duas vezes. Aí o
+       `while (children.length > n) last.remove()` removia a primeira cópia,
+       zerava o `parent` do objeto — e a segunda cópia virava um remove() mudo:
+       laço infinito, a suíte inteira pendurada sem imprimir uma linha. */
+    insertBefore(c, ref) {
+      if (c.parent) c.parent.removeChild(c);
+      c.parent = this;
+      const i = ref ? this.children.indexOf(ref) : -1;
+      i >= 0 ? this.children.splice(i, 0, c) : this.children.push(c);
+      return c
+    },
     removeChild(c) { const i = this.children.indexOf(c); if (i >= 0) { this.children.splice(i, 1); c.parent = null; } },
     // remove() precisa desanexar de verdade: código que faz `while (n) el.firstChild.remove()`
     // entra em laço infinito se o stub mentir
@@ -83,7 +104,8 @@ function fakeEl() {
 }
 const document = {
   querySelector: s => els.get(s) || (els.set(s, fakeEl()), els.get(s)),
-  querySelectorAll: () => [], createElement: () => fakeEl(), addEventListener() { }
+  querySelectorAll: () => [], createElement: () => fakeEl(), addEventListener() { },
+  documentElement: fakeEl()
 };
 const sandbox = {
   THREE, document, console, Math, Date, JSON, performance: { now: () => 0 },
@@ -92,6 +114,11 @@ const sandbox = {
   /* sem rede aqui: a imagem nunca fica pronta, que é justamente o caminho de
      fallback que ícone de item e folha do ranger têm de saber percorrer */
   Image: class { constructor() { this.complete = false; this.naturalWidth = 0; this.src = ''; } },
+  /* Sem CSS aqui: `tok()` lê os tokens de cor do :root e cacheia. Devolvendo ''
+     ele cai no fallback de cada chamador, que é o caminho certo para o teste —
+     o que importa é que a lógica rode, não o tom exato do pixel. Sem este stub a
+     suíte estourava no meio e ~300 linhas nunca chegavam a rodar. */
+  getComputedStyle: () => ({ getPropertyValue: () => '' }),
   innerWidth: 1200, innerHeight: 800, devicePixelRatio: 1
 };
 sandbox.globalThis = sandbox;
@@ -106,6 +133,7 @@ vm.runInContext(`
     expForLevel, triesFor, manaForML, SKILL_RATE, mkItem, itemStats, newPlayer, dealDamage, weaponInfo,
     damageFormula, skillOf, recalc, G, creatureSprite, TEX_DRAW, tileTexture, decoSprite, buildMinimaps, drawWorld, w2s,
     corDoCeu, ehNoite, ambienteAgora, climaAgora, souCoberto, FLOOR_AMBIENCE, silhouette, edgeShadow, cloudTexture,
+    horaDoJogo, CLIMA_AVISO, poolTexture,
     TERRAIN_PRIO, edgeMask, _mulberry, RANGER_DIR, SHEET_POS, rangerSprite,
     SANGUE_CLASSE, SANGUE_PADRAO, SANGUE_MAX, bloodSpray, plateAnchor, resizeCam, CAM,
     itemCell, showTip, hideTip, tipCheck,
@@ -485,20 +513,51 @@ A((() => {
 /* 19b. clima: valores sempre no intervalo, chuva de vez em quando (nem sempre,
    nem nunca) e subsolo sem céu — que é o que impede sombra de nuvem na caverna */
 {
-  let chovendo = 0, comSombra = 0, fora = 0;
+  let chovendo = 0, comSombra = 0, fora = 0, secoEMolhado = 0, chuvaSemSombra = 0;
+  const estados = {};
   const n = 5000;
   for (let i = 0; i < n; i++) {
     const c = S.climaAgora(S.SURF, i * 37000);
-    for (const v of [c.nublado, c.chuva, c.nuvens]) if (!(v >= 0 && v <= 1)) fora++;
+    for (const v of [c.nublado, c.chuva, c.nuvens, c.frente, c.vento, c.raio, c.molhado, c.luz])
+      if (!(v >= 0 && v <= 1)) fora++;
     if (c.chuva > 0) chovendo++;
     if (c.nuvens > .01) comSombra++;
+    estados[c.estado] = (estados[c.estado] || 0) + 1;
+    // chovendo, o chão tem de estar molhando e a nuvem tem de estar escura: são
+    // as duas coisas que antes AFINAVAM justo quando a chuva começava
+    if (c.chuva > .5 && c.molhado < .05) secoEMolhado++;
+    if (c.chuva > .5 && c.nuvens < .35) chuvaSemSombra++;
   }
   A(fora === 0, `clima fica em 0..1 o tempo todo (${fora} fora)`);
   A(chovendo > n * .05 && chovendo < n * .6, `chove às vezes (${(chovendo / n * 100).toFixed(0)}% do tempo)`);
   A(comSombra > n * .2, `sombra de nuvem aparece na maior parte dos dias (${(comSombra / n * 100).toFixed(0)}%)`);
+  A(secoEMolhado === 0, `temporal sempre encharca o chão (${secoEMolhado} quadros secos debaixo de chuva)`);
+  A(chuvaSemSombra === 0, `a nuvem fica escura enquanto chove (${chuvaSemSombra} quadros claros)`);
+  A(Object.keys(estados).every(e => S.CLIMA_AVISO[e]) && Object.keys(estados).length >= 3,
+    `todo rótulo de clima tem aviso no log (${Object.keys(estados).join(', ')})`);
   A([0, 1, 2, 3].every(z => S.FLOOR_AMBIENCE[z].amb ? S.climaAgora(z).chuva === 0 && S.climaAgora(z).nuvens === 0 : true),
     'andar sem céu não tem chuva nem sombra de nuvem');
   A(S.cloudTexture() === S.cloudTexture(), 'folha de nuvem vem do cache na segunda vez');
+  A(S.cloudTexture(1) !== S.cloudTexture(2), 'semente diferente dá folha de nuvem diferente');
+  /* Relâmpago sai de hash do relógio, não de sorteio guardado: a MESMA hora tem
+     de dar o MESMO clarão, senão ele não sobrevive ao reload nem casa entre abas */
+  A([0, 1e6, 5e7].every(ms => S.climaAgora(S.SURF, ms).raio === S.climaAgora(S.SURF, ms).raio),
+    'o relâmpago é função do relógio, não sorteio');
+  {
+    let comRaio = 0, raioSemChuva = 0;
+    for (let ms = 0; ms < 9e5; ms += 60) {
+      const c = S.climaAgora(S.SURF, ms);
+      if (c.raio > 0) { comRaio++; if (c.chuva < .45) raioSemChuva++; }
+    }
+    A(comRaio > 0, `cai raio de vez em quando (${comRaio} quadros em 15 min de relógio)`);
+    A(raioSemChuva === 0, 'e nunca com o céu aberto');
+  }
+  /* Fases do relógio têm de acompanhar a rampa do CÉU: se "Manhã" começasse
+     antes de o céu clarear, o painel mentiria para quem olha pela janela */
+  A(S.horaDoJogo(0).fase === 'Madrugada' && S.horaDoJogo(5 * 60000).fase === 'Tarde',
+    `o relógio nomeia a fase certa (${S.horaDoJogo(5 * 60000).h}h = ${S.horaDoJogo(5 * 60000).fase})`);
+  A(S.ehNoite(0.05) && S.horaDoJogo(9 * 60000).fase === 'Noite',
+    'e a fase "Noite" cai junto com o céu escuro');
   /* teto: no andar 0 não existe nada por cima, e onde o andar de cima é VOID
      chove — é a mesma conta que decide se o teto é desenhado */
   A([0, 40, 80].every(d => !S.souCoberto(S.WORLD.temple.x + d % S.W, S.WORLD.temple.y, 0)),
@@ -1353,14 +1412,17 @@ const Pl = S.getP();
 A(S.SLOT_POS.light && S.SLOT_POS.light[0] === S.SLOT_POS.shield[0] && S.SLOT_POS.light[1] > S.SLOT_POS.shield[1],
   'o slot de luz fica na mesma coluna do escudo, logo abaixo dele');
 A(Pl.eq.light && Pl.eq.light.id === 'torch', 'o kit inicial já sai com a tocha equipada');
-A(S.luzCarregada() === S.ITEMS.torch.luz, 'tocha equipada ilumina');
+A(S.luzCarregada().r === S.ITEMS.torch.luz, 'tocha equipada ilumina');
+A(S.luzCarregada().magica === false, 'e o halo dela é de chama, não de magia');
 vm.runInContext("unequip('light');", ctx);
-A(S.luzCarregada() === 0, 'tocha na mochila não acende nada — tem de estar no slot');
+A(S.luzCarregada().r === 0, 'tocha na mochila não acende nada — tem de estar no slot');
 A(Pl.bag.some(b => b.id === 'torch'), 'e ela volta para a mochila, não some');
 Pl.buffs.light = { val: 4 };
-A(S.luzCarregada() === 4, 'a magia de luz ilumina sozinha, sem item');
+A(S.luzCarregada().r === 4 && S.luzCarregada().magica, 'a magia de luz ilumina sozinha, sem item');
 vm.runInContext("equipItem(P.bag.find(b => b.id === 'torch'));", ctx);
-A(S.luzCarregada() === S.ITEMS.torch.luz, 'com tocha e magia fraca vale a MAIOR, não a soma');
+const luzMista = S.luzCarregada();
+A(luzMista.r === S.ITEMS.torch.luz, 'com tocha e magia fraca vale a MAIOR, não a soma');
+A(luzMista.magica === false, 'e quem vence a comparação também decide a cor do halo');
 Pl.buffs.light = null;
 A(S.itemStats(Pl.eq.light).slot === 'light', 'a tocha só cabe no slot de luz');
 

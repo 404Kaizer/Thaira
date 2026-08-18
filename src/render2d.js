@@ -110,11 +110,30 @@ const luzes = [];
    chão têm de ser a MESMA luz. Laranja-âmbar, não branco-quente — o halo pálido
    lia como lanterna. Duas senóides incomensuráveis: o tremor nunca fecha ciclo. */
 const CHAMA_COR = '#ffb14a';
+/* Luz mágica. Branco puxado para o azul frio, no oposto do âmbar da chama: a
+   magia de luz e a tocha davam halos idênticos, e o jogador não tinha como ver
+   que a tocha tinha apagado e o que restava era a magia. Cor é a única pista
+   barata aqui — o halo não tem forma nem ícone próprios. */
+const MAGIA_LUZ_COR = '#cfe4ff';
 const chamaTremor = () => 1 + Math.sin(G.now * .009) * .035 + Math.sin(G.now * .023) * .02;
 /* Força da chama = escuro da hora: de dia o halo quase não aparece, de noite vai
    ao cheio. Guardado do quadro porque a tocha do CHÃO é desenhada lá dentro do
    passe das entidades, longe do `amb`. Subsolo não tem hora: escuro total. */
 let chamaF = 1;
+/* Força da fonte que projeta sombra no quadro (sol/lua/tocha). Vem de
+   `climaAgora().luz`, é lida por quem desenha sombra projetada e vale para o
+   quadro inteiro — sombra por boneco recalculando a hora seria a mesma conta N
+   vezes, e bastaria uma divergir para o mapa ter dois sóis. */
+let solF = 1;
+/* Vento do quadro, 0..1. Mesmo motivo do solF: mato, chuva e nuvem têm de
+   concordar. Com cada um lendo o próprio relógio, a copa balançava para um lado
+   e a chuva caía para o outro no mesmo temporal. */
+let ventoF = .25;
+/* Quanto de poça desenhar no quadro, já com as ressalvas aplicadas (0 debaixo de
+   teto ou com o chão seco). Vem pronto porque quem consome está lá dentro do
+   drawFloor, que não vê o clima — passar por parâmetro obrigaria a furar a
+   assinatura de drawFloor por causa de um efeito só. */
+let pocaF = 0;
 
 function drawWorld() {
   if (!g2) return;
@@ -157,8 +176,12 @@ function drawWorld() {
   if (P.z - 1 >= 0 && !coberto) zs.push(P.z - 1);
 
   const bucket = entityBucket();
-  for (const z of zs) drawFloor(z, cx - cols, cx + cols, cy - rows, cy + rows, t, z === P.z ? bucket : null);
+  // clima antes do chão: quem desenha sombra projetada lê `solF`, e depois do
+  // laço ele valeria para o quadro seguinte — a sombra chegaria atrasada à noite
   const clima = climaAgora(P.z);
+  solF = clima.luz; ventoF = clima.vento;
+  pocaF = coberto || clima.molhado < .04 ? 0 : clima.molhado;
+  for (const z of zs) drawFloor(z, cx - cols, cx + cols, cy - rows, cy + rows, t, z === P.z ? bucket : null);
   if (clima.nuvens > .01) cloudPass(t, clima.nuvens);
   drawEffects(t);
   if (amb.amb) {
@@ -170,16 +193,27 @@ function drawWorld() {
        nenhum para a tocha resolver. Sem fonte na mochila não entra luz aqui — o
        passe de luz continua rodando, só que ele então apenas escurece.
        Duas senóides incomensuráveis: tremor de chama que nunca fecha o ciclo. */
-    const raio = luzCarregada();
-    if (raio > 0) {
+    const lz = luzCarregada();
+    if (lz.r > 0) {
       const [px, py] = w2s(P.px, P.py);
-      luzes.push({ x: px, y: py, cor: CHAMA_COR, a0: .95 * chamaF, a1: .4 * chamaF, tocha: 1,
-        r: raio * t * .85 * chamaTremor() });
+      /* Luz mágica não tremula: o tremor é o que diz "isso é fogo". Uma chama
+         parada parece bug e um encantamento piscando parece chama. */
+      luzes.push({ x: px, y: py, cor: lz.magica ? MAGIA_LUZ_COR : CHAMA_COR,
+        a0: .95 * chamaF, a1: .4 * chamaF, tocha: 1,
+        r: lz.r * t * .85 * (lz.magica ? 1 : chamaTremor()) });
     }
     lightPass(amb);
   }
   bloomPass();
-  // chuva por último: cai ENTRE a câmera e o mundo, então não leva o multiply da luz
+  /* Relâmpago e chuva por último: caem ENTRE a câmera e o mundo, então não levam
+     o multiply do passe de luz. O clarão vem depois do bloom de propósito — ele
+     é luz do céu chegando na cena inteira, não brilho de um objeto dela. */
+  if (clima.raio > 0 && !coberto) {
+    g2.globalCompositeOperation = 'lighter';
+    g2.fillStyle = `rgba(150,172,214,${(clima.raio * .34).toFixed(3)})`;
+    g2.fillRect(0, 0, VW, VH);
+    g2.globalCompositeOperation = 'source-over';
+  }
   if (clima.chuva > 0 && !coberto) rainPass(clima.chuva);
   gradePass();
 }
@@ -206,24 +240,76 @@ const VENTO = [.010, .004];
 /* inclinação do mato, em cisalhamento: no topo de uma árvore de ~50px dá uns 2px
    de balanço. Mais que isso e ela derrete de lado em vez de balançar. */
 const VENTO_INCL = .045;
-/* Duas passadas da MESMA folha em escala e velocidade diferentes. Uma folha só,
-   por maior que seja, repete visivelmente numa tela larga — dá para contar o
-   ladrilho. Duas em batimento não fecham o ciclo dentro do campo de visão, e a
-   diferença de velocidade ainda dá paralaxe: nuvem alta e nuvem baixa. */
+/* Duas passadas, folha PRÓPRIA em cada uma, em escala e velocidade diferentes.
+   Uma folha só, por maior que seja, repete visivelmente numa tela larga — dá
+   para contar o ladrilho. Duas em batimento não fecham o ciclo dentro do campo
+   de visão; com sementes diferentes elas também não compartilham contorno, então
+   nem o recorte denuncia a repetição. A diferença de velocidade ainda dá
+   paralaxe: nuvem alta e nuvem baixa. */
 function cloudPass(t, forca) {
-  camadaNuvem(t, t * 16, 1, forca * .55);
-  camadaNuvem(t, t * 9.7, 1.8, forca * .42);
+  camadaNuvem(t, t * 16, 1, forca * .85, 0xc10d5);
+  camadaNuvem(t, t * 9.7, 1.8, forca * .65, 0x51ee7);
 }
-function camadaNuvem(t, esc, vel, forca) {
-  const cv = cloudTexture();
+function camadaNuvem(t, esc, vel, forca, semente) {
+  const cv = cloudTexture(semente);
   const wrap = v => ((v % esc) + esc) % esc - esc;
-  const ox = wrap(VW / 2 - camX * t + G.now * VENTO[0] * vel * CAM.scale);
-  const oy = wrap(VH / 2 - camY * t + G.now * VENTO[1] * vel * CAM.scale);
+  const v = vel * (.4 + ventoF * 1.6);          // calmaria arrasta, temporal corre
+  const ox = wrap(VW / 2 - camX * t + G.now * VENTO[0] * v * CAM.scale);
+  const oy = wrap(VH / 2 - camY * t + G.now * VENTO[1] * v * CAM.scale);
   g2.globalCompositeOperation = 'multiply';
   g2.globalAlpha = forca;
   for (let y = oy; y < VH; y += esc) for (let x = ox; x < VW; x += esc) g2.drawImage(cv, x, y, esc, esc);
   g2.globalAlpha = 1;
   g2.globalCompositeOperation = 'source-over';
+}
+
+/* Poça. Duas passadas da MESMA máscara: a primeira escurece o chão encharcado
+   (multiply), a segunda devolve o lustro por cima (lighter, preso ao `solF` —
+   poça só brilha se há luz para refletir). Só o lustro faria decalque brilhante;
+   só o escuro faria mancha de óleo. Sem deriva, ao contrário da nuvem: água
+   parada fica parada, e é isso que separa uma coisa da outra na tela.
+   ponytail: o lustro é branco, não a cor do céu. Tingir exigiria uma cópia da
+   máscara por tom de céu; se a poça branca destoar no poente, cachear a máscara
+   tingida com a cor quantizada em ~16 passos e trocar só quando ela virar. */
+function poolPass(t, molhado) {
+  /* Recorte antes de tudo: poça só em chão PLANO. Sem ele a lâmina passava por
+     cima do mar, da lava e do topo das paredes — não se forma poça dentro do
+     oceano. `top === 0` é a mesma marca da tabela que já separa piso de líquido
+     (água, lava e brejo são negativos) e de parede (positivos), então não há uma
+     segunda lista de tiles molháveis para divergir da primeira. */
+  const cols = Math.ceil(VW / t / 2) + 2, rows = Math.ceil(VH / t / 2) + 3;
+  const cx = Math.floor(camX), cy = Math.floor(camY);
+  const meio = VW / 2 - t / 2, meioY = VH / 2 - t / 2;
+  const chao = new Path2D();
+  let algum = false;
+  for (let y = cy - rows; y <= cy + rows; y++) for (let x = cx - cols; x <= cx + cols; x++) {
+    const tt = tileAt(x, y, P.z);
+    if (tt === T.VOID || TILE[tt].top !== 0) continue;
+    // +1 no tamanho: sem a sobreposição sai um fio de piso seco entre os tiles
+    chao.rect(Math.round((x - camX) * t + meio), Math.round((y - camY) * t + meioY), t + 1, t + 1);
+    algum = true;
+  }
+  if (!algum) return;
+
+  const { luz, escuro } = poolTexture(), esc = t * 4.5;
+  const wrap = v => ((v % esc) + esc) % esc - esc;
+  const ox = wrap(VW / 2 - camX * t), oy = wrap(VH / 2 - camY * t);
+  const ladrilha = cv => {
+    for (let y = oy; y < VH; y += esc) for (let x = ox; x < VW; x += esc) g2.drawImage(cv, x, y, esc, esc);
+  };
+  g2.save();
+  g2.clip(chao);
+  /* O LUSTRO é o que diz "isso é água"; o escuro sozinho diz "isso é mancha".
+     Por isso o brilho pesa quase tanto quanto o escurecimento, e nunca zera: de
+     noite ele cai, mas alguma coisa a poça sempre reflete — chão molhado é a
+     única superfície da cena que devolve luz num mundo sem sol. */
+  g2.globalCompositeOperation = 'multiply';
+  g2.globalAlpha = molhado * .34; ladrilha(escuro);
+  g2.globalCompositeOperation = 'lighter';
+  g2.globalAlpha = molhado * .2 * (.35 + solF * .65); ladrilha(luz);
+  g2.globalAlpha = 1;
+  g2.globalCompositeOperation = 'source-over';
+  g2.restore();
 }
 
 /* Chuva em espaço de tela. As gotas são sorteadas uma vez e recicladas pelo
@@ -232,9 +318,13 @@ function camadaNuvem(t, esc, vel, forca) {
    engrossa e afina sozinha conforme o céu fecha. */
 const CHUVA_N = 280;
 const gotas = Array.from({ length: CHUVA_N }, () => ({ x: Math.random(), y: Math.random(), v: .7 + Math.random() * .6 }));
-const CHUVA_INCL = .3;
+/* inclinação MÁXIMA: no vento cheio a gota cai quase 45°. Em calmaria ela cai
+   quase reta — é a inclinação, mais que a quantidade, que faz a chuva parecer
+   forte, e ela agora sai do mesmo vento que dobra o mato. */
+const CHUVA_INCL = .55;
 function rainPass(forca) {
   const S = CAM.scale, n = Math.round(CHUVA_N * Math.min(1, forca));
+  const incl = CHUVA_INCL * ventoF;
   const alt = VH + 80, larg = VW + 260;      // H é a altura do mundo, não sombrear
   g2.strokeStyle = 'rgba(176,204,232,.55)';
   g2.lineWidth = Math.max(1, S * .55);
@@ -242,9 +332,9 @@ function rainPass(forca) {
   for (let i = 0; i < n; i++) {
     const d = gotas[i];
     const y = ((d.y + G.now * .0011 * d.v) % 1) * alt - 40;
-    const x = (d.x * larg + y * CHUVA_INCL) % larg - 130;
+    const x = (d.x * larg + y * incl) % larg - 130;
     const c = 15 * S * d.v;
-    g2.moveTo(x, y); g2.lineTo(x - c * CHUVA_INCL, y + c);
+    g2.moveTo(x, y); g2.lineTo(x - c * incl, y + c);
   }
   g2.stroke();
 }
@@ -260,7 +350,7 @@ function dropShadow(spr, px, py) {
   const cw = s.width * S * .5, ch = cw * .4;
   g2.drawImage(contactShadow(), px - cw / 2, py - ch / 2, cw, ch);
   g2.save();
-  g2.globalAlpha = .28;
+  g2.globalAlpha = .28 * solF;
   g2.transform(1, 0, -SOL_INCL, -SOL_ACHAT, px, py);
   g2.drawImage(s, -s.cx * S, -s.feet * S, s.width * S, s.height * S);
   g2.restore();
@@ -310,11 +400,16 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
      era pintado DEPOIS do jogador e o cobria. Como chão, fica sempre atrás de
      bicho, boneco, parede e deco. */
   if (bucket) {
-    /* Marca de POI: decalque de chão, o mais fundo da camada — sangue e corpo
-       passam por cima, como qualquer coisa que caia ali depois.
+    /* Marca de POI: decalque de chão, só acima da poça — sangue e corpo passam
+       por cima dela, como qualquer coisa que caia ali depois.
        Laço sobre os 39 pontos, não sobre os tiles visíveis: `poiAt` varre a
        lista inteira e chamá-lo por tile faria a mesma busca centenas de vezes
        por quadro para achar meia dúzia de marcas. */
+    /* Poça abaixo de tudo: é o chão molhado, não algo caído nele. Marca de POI,
+       sangue, corpo e boneco passam por cima. Estava no laço de fora, junto da
+       sombra de nuvem, e de lá pintava por cima do jogador — nuvem passa por
+       cima de quem está em pé de propósito, água parada no chão não. */
+    if (pocaF > 0) poolPass(t, pocaF);
     const limP = VW / t + 3;
     for (const p of WORLD.pois)
       if (p.z === z && Math.abs(p.x - camX) <= limP && Math.abs(p.y - camY) <= limP)
@@ -352,8 +447,13 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
            A fase sai do TILE, não só do relógio: com a fase igual o bosque
            inteiro se inclina junto, que lê como cortina, não como vento.
            Pedra (k=1) não balança, arbusto (k=2) balança menos que árvore. */
+        /* No vento cheio a copa fica dobrada para um lado e só treme em cima
+           disso — planta em temporal não oscila em torno da vertical, ela deita.
+           Por isso o vento entra como VIÉS somado, e não só como amplitude. */
+        const vies = (ventoF - .3) * VENTO_INCL * 1.6;
         const balanco = d.k === 1 ? 0
-          : Math.sin(G.now * .0016 + x * .9 + y * 1.7) * (d.k === 0 ? VENTO_INCL : VENTO_INCL * .5);
+          : (vies + Math.sin(G.now * .0016 * (.5 + ventoF) + x * .9 + y * 1.7) * VENTO_INCL * (.4 + ventoF))
+            * (d.k === 0 ? 1 : .5);
         g2.save();
         g2.transform(1, 0, balanco, 1, gx, gy);
         g2.drawImage(s, -s.cx * S, -s.feet * S, s.width * S, s.height * S);
@@ -521,7 +621,7 @@ function drawEntity(it, sx, sy, t) {
     /* Dois passes da mesma silhueta: o curto gruda no contorno — é ele que
        segura o item quando o chão já está escuro e o deslocamento sumiria — e o
        longo é a projeção para o sudeste. */
-    for (const [o, a] of [[.02, .5], [.07, .4]]) {
+    for (const [o, a] of [[.02, .5], [.07, .4 * solF]]) {
       g2.globalAlpha = a;
       g2.drawImage(sil, x - pad + t * o, y - pad + t * o, sil.width * K, sil.height * K);
     }

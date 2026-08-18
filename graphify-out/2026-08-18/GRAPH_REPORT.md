@@ -1,16 +1,16 @@
 # Graph Report - Jogo  (2026-08-18)
 
 ## Corpus Check
-- 43 files · ~6,032,787 words
+- 43 files · ~6,036,887 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1075 nodes · 1889 edges · 89 communities (85 shown, 4 thin omitted)
-- Extraction: 89% EXTRACTED · 10% INFERRED · 1% AMBIGUOUS · INFERRED: 189 edges (avg confidence: 0.86)
+- 1096 nodes · 1922 edges · 90 communities (86 shown, 4 thin omitted)
+- Extraction: 90% EXTRACTED · 10% INFERRED · 1% AMBIGUOUS · INFERRED: 189 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `18d40755`
+- Built from commit: `f4e3ab50`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -23,7 +23,7 @@
 - game.js
 - data.js
 - render2d.js
-- renderHotbar
+- _corpo_morte
 - world.js
 - superficie-dia
 - Orc Animation Sprite Sheet
@@ -33,13 +33,13 @@
 - Combat Stance System (attack / balanced / defense selector)
 - Weapon Equipment Slot
 - Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems)
-- itemStats
+- bindInput
 - fixSave
 - Energy Sorcerer Front Walk and Idle Reference Sheet
 - Flat Monochrome Glyph Icon Style
 - Knight Veteran Skin (voc_knight_veteran)
 - ui.js
-- bindInput
+- killMob
 - GG Boots Icon (Golden Lion Greaves)
 - sfx/manifest.json
 - Knight Vocation - Common Skin (Front-Facing Sprite Set)
@@ -60,17 +60,17 @@
 - spell_holy
 - atk_distance
 - atk_sword
-- atk_wand
+- die
 - buff
 - coin
 - _corpo_forte
-- killMob
+- frame
 - energy
 - equip
 - error
 - fire
 - hurt
-- log
+- renderHotbar
 - freesound.py
 - loot
 - ui_click
@@ -79,7 +79,7 @@
 - spell_death
 - spell_earth
 - spell_energy
-- spell_fire
+- _corpo_medio
 - bag
 - stairs
 - eat
@@ -93,17 +93,18 @@
 - build_skins.py
 - build_folhas.py
 - step_grass
-- step_dirt
+- rune
 - step_sand
-- levelup
+- shoot
 - step_cave
 - mob
 - defModificada
 - serve.py
+- spell_ice
 - package.json
 - main.js
 - lootEV
-- skillOf
+- log
 
 ## God Nodes (most connected - your core abstractions)
 1. `log()` - 34 edges
@@ -167,7 +168,7 @@
 - **Death State Group (single-frame prone poses with blood pool)** — assets_skins_voc_knight_voc_knight_veteran_dead_front_01_dead_front_pose, assets_skins_voc_knight_voc_knight_veteran_dead_back_01_dead_back_pose, assets_skins_voc_knight_voc_knight_veteran_dead_front_01_death_pose_blood_pool, assets_skins_voc_knight_voc_knight_veteran_idle_back_04_back_view_sword_harness [INFERRED 0.75]
 - **Veteran Knight walk animation sprite set (front + back directions, 4-frame cycle, shared character design)** — assets_skins_voc_knight_voc_knight_veteran_walk_front_01_walk_front_animation, assets_skins_voc_knight_voc_knight_veteran_walk_back_03_walk_back_animation, assets_skins_voc_knight_voc_knight_veteran_walk_front_04_four_frame_walk_cycle, assets_skins_voc_knight_voc_knight_veteran_walk_front_03_directional_sprite_set, assets_skins_voc_knight_voc_knight_veteran_walk_front_01_veteran_knight_sprite [INFERRED 0.95]
 
-## Communities (89 total, 4 thin omitted)
+## Communities (90 total, 4 thin omitted)
 
 ### Community 0 - "Tela de ajuda / comandos (#help)"
 Cohesion: 0.06
@@ -175,11 +176,11 @@ Nodes (48): Confirmar antes de implementar, graphify, headroom, ponytail, assets
 
 ### Community 1 - "art.js"
 Cohesion: 0.05
-Nodes (59): BORDER_CACHE, borderSprite(), _canvas(), _canvas2(), _chapado(), cloudTexture(), contactShadow(), _cracks() (+51 more)
+Nodes (61): BORDER_CACHE, borderSprite(), _canvas(), _canvas2(), _chapado(), CLOUD_CACHE, cloudTexture(), contactShadow() (+53 more)
 
 ### Community 2 - "test.js"
 Cohesion: 0.04
-Nodes (39): apAtk, apDef, B, C, chefes, comCharm, comum, ctx (+31 more)
+Nodes (40): apAtk, apDef, B, C, chefes, comCharm, comum, ctx (+32 more)
 
 ### Community 3 - "aplicaPreset (carrega modelo do preset)"
 Cohesion: 0.05
@@ -187,27 +188,27 @@ Nodes (46): aplicaPreset (carrega modelo do preset), carrega (baixa GLB com cach
 
 ### Community 4 - "audio.js"
 Cohesion: 0.08
-Nodes (33): ambience(), ambNodes, arp(), audioInit(), audioToggle(), audioVol(), audioVolReset(), _avisarSemSom() (+25 more)
+Nodes (35): ambience(), ambNodes, arp(), audioInit(), audioToggle(), audioVol(), audioVolReset(), _avisarSemSom() (+27 more)
 
 ### Community 5 - "game.js"
 Cohesion: 0.07
-Nodes (35): BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, cellsVazias(), cycleVoc(), ENTRY_SCREENS (+27 more)
+Nodes (33): bloodSpray(), BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, CLIMA_AVISO, cycleVoc() (+25 more)
 
 ### Community 6 - "data.js"
 Cohesion: 0.04
-Nodes (38): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, BIOMA_POOLS, COLETA, ELEM (+30 more)
+Nodes (39): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, BIOMA_POOLS, cdDe(), COLETA (+31 more)
 
 ### Community 7 - "render2d.js"
-Cohesion: 0.11
-Nodes (39): bloomPass(), CAM, camadaNuvem(), chamaTremor(), CHAO_ESCALA, cloudPass(), creatureSpriteFor(), _criaturaCrua() (+31 more)
+Cohesion: 0.10
+Nodes (40): bloomPass(), CAM, camadaNuvem(), chamaTremor(), CHAO_ESCALA, cloudPass(), creatureSpriteFor(), _criaturaCrua() (+32 more)
 
-### Community 8 - "renderHotbar"
-Cohesion: 0.32
-Nodes (8): SPELLS, abrirPicker(), HOT_KEYS_DEFAULT, hotDefault(), hotEntry(), hotKeyLabel(), knownSpells(), renderHotbar()
+### Community 8 - "_corpo_morte"
+Cohesion: 0.40
+Nodes (5): _corpo_morte, de, lp, tom, v
 
 ### Community 9 - "world.js"
-Cohesion: 0.13
-Nodes (28): POIS, ambienteAgora(), CEU, climaAgora(), corDoCeu(), corFora(), DIRS, distT() (+20 more)
+Cohesion: 0.11
+Nodes (35): POIS, ambienteAgora(), CEU, chuvaDe(), CLIMA_PARADO, climaAgora(), corDoCeu(), corFora() (+27 more)
 
 ### Community 10 - "superficie-dia"
 Cohesion: 0.10
@@ -223,7 +224,7 @@ Nodes (21): atk_axe, mix, n, v, atk_club, mix, n, v (+13 more)
 
 ### Community 13 - "updateMobs"
 Cohesion: 0.24
-Nodes (15): acordar(), changeFloor(), noTemplo(), occupied(), passoAte(), passoDeFuga(), passoVagar(), refreshSpawns() (+7 more)
+Nodes (14): lineClear(), noTemplo(), occupied(), passoAte(), passoDeFuga(), passoVagar(), renderStatus(), reservarVagas() (+6 more)
 
 ### Community 14 - "Ancestral Hunter Set Sheet (4x4 icon atlas on magenta key)"
 Cohesion: 0.33
@@ -241,13 +242,13 @@ Nodes (15): Greataxe Icon (ornate gold double-bladed battleaxe), Painted Semi-Re
 Cohesion: 0.38
 Nodes (15): Golden Guardian Halberd (two-handed polearm skin: dark shaft, gold-filigreed steel axe head with heraldic crest), Golden Guardian Amulet (neck slot skin: braided gold chain, lion-face shield pendant with red gems), Red Gem Accent (ruby inlay used across the set), Golden Guardian Armor (chest slot skin: dark steel cuirass, gold lion breastplate, red tabard), Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems), Lion Head Crest Motif (shared golden guardian emblem), Golden Guardian Backpack (back slot skin: brown leather rucksack with gold lion faceplate and bedroll), Golden Guardian Greaves (feet slot skin: dark plated boots with gold lion knee guards) (+7 more)
 
-### Community 18 - "itemStats"
-Cohesion: 0.17
-Nodes (15): blessPrice(), CELULA, descLoot(), dropItem(), fmtBon(), itemCell(), itemStats(), playerDeath() (+7 more)
+### Community 18 - "bindInput"
+Cohesion: 0.13
+Nodes (26): afterStep(), alvosPerto(), bagAdd(), bindInput(), cellsVazias(), CELULA, chaveTile(), coletaDe() (+18 more)
 
 ### Community 19 - "fixSave"
-Cohesion: 0.18
-Nodes (19): PREFIXES, SUFFIXES, askConfirm(), charId(), deleteCharacter(), exportarPersonagens(), fixSave(), importarPersonagens() (+11 more)
+Cohesion: 0.20
+Nodes (18): PREFIXES, SUFFIXES, askConfirm(), charId(), deleteCharacter(), exportarPersonagens(), fixSave(), importarPersonagens() (+10 more)
 
 ### Community 20 - "Energy Sorcerer Front Walk and Idle Reference Sheet"
 Cohesion: 0.35
@@ -265,9 +266,9 @@ Nodes (14): Dead Back Pose (knight veteran, single frame), Dead Front Pose (knig
 Cohesion: 0.18
 Nodes (28): IMBUEMENTS, bestDiff(), bestiaryKill(), bestKills(), bestStage(), bindBigMap(), contaMat(), drawBigMap() (+20 more)
 
-### Community 24 - "bindInput"
-Cohesion: 0.10
-Nodes (34): afterStep(), alvosPerto(), arrastaJanela(), bagAdd(), bindInput(), bindMiniMap(), chaveTile(), chuvaOuvida() (+26 more)
+### Community 24 - "killMob"
+Cohesion: 0.13
+Nodes (23): abrirTesouro(), acordar(), blessPrice(), changeFloor(), congelar(), descLoot(), fmtBon(), itemStats() (+15 more)
 
 ### Community 25 - "GG Boots Icon (Golden Lion Greaves)"
 Cohesion: 0.23
@@ -275,7 +276,7 @@ Nodes (12): Armor Icon (Steel Plate Cuirass), Axe Icon (Double-Bladed Wood Axe),
 
 ### Community 26 - "sfx/manifest.json"
 Cohesion: 0.13
-Nodes (14): _corpo_medio, n, v, ext, rev, rune, n, v (+6 more)
+Nodes (14): atk_wand, n, v, ext, levelup, n, v, rev (+6 more)
 
 ### Community 27 - "Knight Vocation - Common Skin (Front-Facing Sprite Set)"
 Cohesion: 0.31
@@ -290,8 +291,8 @@ Cohesion: 0.40
 Nodes (10): Golden Guardian Equipment Slot Taxonomy (Mochila, Amuleto, Anel, Elmo, Armadura, Calca, Botas, Escudo, weapons), Lion-Head Heraldic Motif (Guardiao Dourado theme), Golden Guardian Set Reference Sheet, 15-Slot Sheet Layout, 384x256px Magenta Chroma Cells, Off-Hand Shield Slot, Golden Guardian Shield (Escudo) Skin Icon, Golden Guardian Two-Handed Axe (Machado Duplo) Skin Icon, Two-Handed Weapon Slot (+2 more)
 
 ### Community 30 - "crit"
-Cohesion: 0.22
-Nodes (9): crit, mix, n, v, die, mix, n, v (+1 more)
+Cohesion: 0.40
+Nodes (5): crit, mix, n, v, _corpo_forte
 
 ### Community 31 - "Thaira Sound Toggle Icon Sheet (on + off)"
 Cohesion: 0.39
@@ -349,9 +350,9 @@ Nodes (3): atk_distance, n, v
 Cohesion: 0.67
 Nodes (3): atk_sword, n, v
 
-### Community 45 - "atk_wand"
-Cohesion: 0.67
-Nodes (3): atk_wand, n, v
+### Community 45 - "die"
+Cohesion: 0.40
+Nodes (5): die, mix, n, v, _corpo_morte
 
 ### Community 46 - "buff"
 Cohesion: 0.67
@@ -365,9 +366,9 @@ Nodes (4): coin, ext, n, v
 Cohesion: 0.67
 Nodes (3): _corpo_forte, n, v
 
-### Community 49 - "killMob"
-Cohesion: 0.26
-Nodes (12): abrirTesouro(), addExp(), bloodSpray(), congelar(), cssCol(), fxBurst(), killMob(), manchaChao() (+4 more)
+### Community 49 - "frame"
+Cohesion: 0.11
+Nodes (23): arrastaJanela(), bindMiniMap(), chuvaOuvida(), clamp(), clickTile(), empurrar(), finishStart(), frame() (+15 more)
 
 ### Community 50 - "energy"
 Cohesion: 0.67
@@ -389,9 +390,9 @@ Nodes (3): fire, n, v
 Cohesion: 0.67
 Nodes (3): hurt, n, v
 
-### Community 55 - "log"
-Cohesion: 0.17
-Nodes (34): abalo(), addMagic(), addSkillTry(), canEquip(), castSpell(), clickTile(), comer(), curar() (+26 more)
+### Community 55 - "renderHotbar"
+Cohesion: 0.13
+Nodes (21): DANO_TIPOS, SPELLS, abrirMagia(), abrirPicker(), _corTexto(), HOT_KEYS_DEFAULT, hotDefault(), hotEntry() (+13 more)
 
 ### Community 56 - "freesound.py"
 Cohesion: 0.80
@@ -425,9 +426,9 @@ Nodes (3): spell_earth, n, v
 Cohesion: 0.67
 Nodes (3): spell_energy, n, v
 
-### Community 64 - "spell_fire"
+### Community 64 - "_corpo_medio"
 Cohesion: 0.67
-Nodes (3): spell_fire, n, v
+Nodes (3): _corpo_medio, n, v
 
 ### Community 65 - "bag"
 Cohesion: 0.50
@@ -473,17 +474,17 @@ Nodes (4): main(), Corta as folhas de arte (vários itens numa imagem só) em PN
 Cohesion: 0.67
 Nodes (3): step_grass, n, v
 
-### Community 78 - "step_dirt"
+### Community 78 - "rune"
 Cohesion: 0.67
-Nodes (3): step_dirt, n, v
+Nodes (3): rune, n, v
 
 ### Community 79 - "step_sand"
 Cohesion: 0.67
 Nodes (3): step_sand, n, v
 
-### Community 80 - "levelup"
+### Community 80 - "shoot"
 Cohesion: 0.67
-Nodes (3): levelup, n, v
+Nodes (3): shoot, n, v
 
 ### Community 81 - "step_cave"
 Cohesion: 0.67
@@ -492,6 +493,10 @@ Nodes (3): step_cave, n, v
 ### Community 82 - "mob"
 Cohesion: 0.67
 Nodes (3): boss(), elemental(), mob()
+
+### Community 85 - "spell_ice"
+Cohesion: 0.67
+Nodes (3): spell_ice, n, v
 
 ### Community 86 - "package.json"
 Cohesion: 0.15
@@ -505,9 +510,9 @@ Nodes (11): abrirJanela(), { app, BrowserWindow, Menu }, DEV, fs, http, iniciar(
 Cohesion: 0.67
 Nodes (3): lootEV(), lootQtd(), lootVal()
 
-### Community 89 - "skillOf"
-Cohesion: 0.17
-Nodes (16): cdDe(), DANO_TIPOS, abrirMagia(), _corTexto(), magiaHTML(), magiaInfo(), renderCombatStats(), renderResChips() (+8 more)
+### Community 89 - "log"
+Cohesion: 0.20
+Nodes (31): abalo(), addExp(), addMagic(), addSkillTry(), canEquip(), castSpell(), comer(), cssCol() (+23 more)
 
 ## Ambiguous Edges - Review These
 - `graphify` → `Thaira — RPG isométrico (shell da aplicação)`  [AMBIGUOUS]
@@ -534,7 +539,7 @@ Nodes (16): cdDe(), DANO_TIPOS, abrirMagia(), _corTexto(), magiaHTML(), magiaInf
   tools/amostra/energy_sorcerer_front_walk_and_idle.png · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **314 isolated node(s):** `dia-vila.mp3`, `dia-celta.mp3`, `dia-campina.mp3`, `dia-taverna.mp3`, `dia-menestrel.mp3` (+309 more)
+- **324 isolated node(s):** `dia-vila.mp3`, `dia-celta.mp3`, `dia-campina.mp3`, `dia-taverna.mp3`, `dia-menestrel.mp3` (+319 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 

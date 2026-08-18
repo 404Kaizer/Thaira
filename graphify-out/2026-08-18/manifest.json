@@ -20,8 +20,8 @@
     "semantic_hash": "747bf4756c940e4336ccbf11d0fe5d8d"
   },
   "assets/build_sfx.py": {
-    "mtime": 1787017813.9854467,
-    "ast_hash": "f00051c468696f17dc2738ae17fcfb85",
+    "mtime": 1787064623.7164872,
+    "ast_hash": "3c79f241706572fee003296b3aa9ca82",
     "semantic_hash": ""
   },
   "assets/music/manifest.json": {
@@ -35,53 +35,53 @@
     "semantic_hash": ""
   },
   "assets/sfx/manifest.json": {
-    "mtime": 1787017836.9808037,
-    "ast_hash": "e189c52a210258c51bdac350d9f0674d",
+    "mtime": 1787064589.5468082,
+    "ast_hash": "9fed0d7219b832b8fafde24369509b72",
     "semantic_hash": ""
   },
   "src/art.js": {
-    "mtime": 1786938500.9228432,
-    "ast_hash": "db729c9ef04ddc0d772c37f829bc8027",
+    "mtime": 1787071690.7487893,
+    "ast_hash": "70b869e9cd46bbc8afb644fa1d889b9a",
     "semantic_hash": ""
   },
   "src/audio.js": {
-    "mtime": 1787017576.2373033,
-    "ast_hash": "89e1c09845602f53225a4393205b1442",
+    "mtime": 1787071690.7457755,
+    "ast_hash": "a06730b077fbcda2a531a8d4b0f12ac1",
     "semantic_hash": ""
   },
   "src/data.js": {
-    "mtime": 1787054260.1682878,
+    "mtime": 1787071690.7496817,
     "ast_hash": "231927fd311b85377f2be67203eb6bce",
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1787057532.2168393,
-    "ast_hash": "f38e77ed0a4a81497d361dc813da60fd",
+    "mtime": 1787071690.7518036,
+    "ast_hash": "7e75650212a9b89c603ed074ecc96e0f",
     "semantic_hash": ""
   },
   "src/hud.js": {
-    "mtime": 1787014304.631735,
+    "mtime": 1787071690.7457755,
     "ast_hash": "dcfb3159d00a36e369d35cc149b9ec0e",
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1787056392.3723936,
-    "ast_hash": "41a4ea0311dec6da83c7b158df69e20c",
+    "mtime": 1787071690.7496817,
+    "ast_hash": "c2ff6afd0fbecbe4eb647f06a2d58c86",
     "semantic_hash": ""
   },
   "src/ui.js": {
-    "mtime": 1787056112.0719788,
+    "mtime": 1787071690.7457755,
     "ast_hash": "0f0975aec34b6efd4d0c4f0bdad9e35b",
     "semantic_hash": ""
   },
   "src/world.js": {
-    "mtime": 1787055466.7168255,
-    "ast_hash": "0d1247ba6ab200ad71cccdf9fe1cb1e6",
+    "mtime": 1787071690.7496817,
+    "ast_hash": "1836e2565ef88ed507364cbd840604e5",
     "semantic_hash": ""
   },
   "tests/test.js": {
-    "mtime": 1787059476.8141947,
-    "ast_hash": "24a7d32ff298164284600a6346b05d08",
+    "mtime": 1787071614.4472532,
+    "ast_hash": "055e8b0653a44a4cab96f35a8344866b",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -95,8 +95,8 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1787056392.3733976,
-    "ast_hash": "0748b47f539573fc0975e2d5f4d1e3e6",
+    "mtime": 1787071481.8368154,
+    "ast_hash": "5818c7e07117ff05cbc248035f94088f",
     "semantic_hash": ""
   },
   "tools/amostra/kaykit.html": {
@@ -1690,7 +1690,7 @@
     "semantic_hash": ""
   },
   "src/icones.js": {
-    "mtime": 1786772930.1795995,
+    "mtime": 1787071690.7477486,
     "ast_hash": "7924751e1534e817a7a1f94dba1ded1a",
     "semantic_hash": ""
   },

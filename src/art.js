@@ -782,11 +782,80 @@ function edgeShadow(dir) {
    bolinhas iguais vira sarampo. Cada nuvem é um AGLOMERADO de bolhas achatadas e
    giradas, espalhadas ao longo de um eixo próprio — é o que dá contorno irregular
    e alongado, que é o que sombra de nuvem tem. */
-let CLOUD_CACHE = null;
+/* Poças. Manchas achatadas e esparsas, ladrilhadas em coordenada do MUNDO igual
+   à nuvem — poça que anda com a câmera é chuvisco na lente. Bem menos densa que
+   a folha de nuvem de propósito: o chão molhado é o efeito, a poça é o sotaque.
+   Saem DUAS folhas do MESMO desenho: a clara vai no `lighter` (o lustro) e a
+   escura no `multiply` (a água encharcando o piso). Duas folhas sorteadas
+   separadamente seriam dois recortes que não casam, e o lustro cairia ao lado da
+   poça em vez de dentro dela; a escura é a clara recortada em preto pelo
+   `source-in`, o mesmo truque da silhueta aqui de cima. */
+let POCA_CACHE = null;
+const POCA_S = 192;
+function poolTexture() {
+  if (POCA_CACHE) return POCA_CACHE;
+  const luz = _canvas(POCA_S), g = luz.getContext('2d'), rnd = _mulberry(0x9042a);
+  /* Uma elipse girada lê como círculo esticado, não como poça: o olho reconhece
+     a curva perfeita na hora. O contorno tem de ser IRREGULAR, e sai do mesmo
+     truque da nuvem — várias elipses achatadas se sobrepondo ao longo de um eixo
+     que serpenteia. O que interessa é a silhueta somada, não cada bolha.
+     `lighten` em vez de `source-over`: bolhas sobrepostas com alfa somariam e
+     deixariam um miolo mais claro a cada cruzamento, denunciando as peças. */
+  /* Poucas, e é o ponto. A folha cobre ~4,5 tiles na tela, então cada unidade
+     aqui é uma poça a cada dois ou três tiles. Com trinta delas o chão inteiro
+     ficava salpicado e o efeito lia como textura de ruído ou lama — poça precisa
+     de chão seco em volta para ser poça. */
+  const POCAS = 8;
+  g.globalCompositeOperation = 'lighten';
+  for (let i = 0; i < POCAS; i++) {
+    const cx = rnd() * POCA_S, cy = rnd() * POCA_S;
+    const eixo = rnd() * 6.283, esc = POCA_S * (.016 + rnd() * .022);
+    const n = 3 + (rnd() * 3 | 0);
+    /* Compacta, não esticada. Com o eixo longo a poça saía um rastro deitado, que
+       o olho lê como borrão ou pegada — água parada empoça em volta do ponto
+       baixo, ela não escorre pela tela. O deslocamento entre bolhas é curto e o
+       desvio lateral é da ordem do raio: o que sobra é o contorno lobado. */
+    for (let j = 0; j < n; j++) {
+      const d = (j / (n - 1 || 1) - .5) * esc * 1.5;
+      const bx = cx + Math.cos(eixo) * d + (rnd() - .5) * esc * .9;
+      const by = cy + Math.sin(eixo) * d * .7 + (rnd() - .5) * esc * .7;
+      const rx = esc * (.6 + rnd() * .55), ry = rx * (.62 + rnd() * .3);
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+        const px = bx + dx * POCA_S, py = by + dy * POCA_S;
+        if (px < -rx || px > POCA_S + rx || py < -rx || py > POCA_S + rx) continue;
+        g.save();
+        g.translate(px, py); g.rotate((rnd() - .5) * .8);
+        const gr = g.createRadialGradient(0, 0, 0, 0, 0, rx);
+        /* Borda CURTA: a queda toda acontece nos últimos 12% do raio. Com a queda
+           longa a mancha vira sombra desfocada, e sombra desfocada no chão já é a
+           da nuvem — duas coisas diferentes não podem ter a mesma borda. */
+        gr.addColorStop(0, 'rgba(255,255,255,1)');
+        gr.addColorStop(.88, 'rgba(255,255,255,1)');
+        gr.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = gr; g.scale(1, ry / rx); g.fillRect(-rx, -rx, rx * 2, rx * 2);
+        g.restore();
+      }
+    }
+  }
+  g.globalCompositeOperation = 'source-over';
+  const escuro = _canvas(POCA_S), ge = escuro.getContext('2d');
+  ge.drawImage(luz, 0, 0);
+  ge.globalCompositeOperation = 'source-in';
+  ge.fillStyle = '#2b3138';                 // não preto: água escurece o chão, não o apaga
+  ge.fillRect(0, 0, POCA_S, POCA_S);
+  return POCA_CACHE = { luz, escuro };
+}
+
+/* Uma folha por semente, em cache: a mesma semente devolve sempre a mesma nuvem
+   (o ladrilho não pode piscar entre quadros) e sementes diferentes devolvem
+   formas diferentes. É o que deixa as duas camadas terem recorte próprio em vez
+   de serem a mesma mancha em duas escalas. */
+const CLOUD_CACHE = new Map();
 const CLOUD_S = 256;
-function cloudTexture() {
-  if (CLOUD_CACHE) return CLOUD_CACHE;
-  const c = _canvas(CLOUD_S), g = c.getContext('2d'), rnd = _mulberry(0xc10d5);
+function cloudTexture(semente = 0xc10d5) {
+  const feito = CLOUD_CACHE.get(semente);
+  if (feito) return feito;
+  const c = _canvas(CLOUD_S), g = c.getContext('2d'), rnd = _mulberry(semente);
   g.fillStyle = '#fff'; g.fillRect(0, 0, CLOUD_S, CLOUD_S);
   const bolha = (x, y, r, achat, gira, a) => {
     for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
@@ -801,7 +870,7 @@ function cloudTexture() {
       g.restore();
     }
   };
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0, bancos = 5 + (rnd() * 4 | 0); i < bancos; i++) {
     const cx = rnd() * CLOUD_S, cy = rnd() * CLOUD_S, eixo = rnd() * 6.283;
     const n = 4 + (rnd() * 4 | 0);
     for (let j = 0; j < n; j++) {
@@ -813,7 +882,8 @@ function cloudTexture() {
             .16 + rnd() * .16);
     }
   }
-  return CLOUD_CACHE = c;
+  CLOUD_CACHE.set(semente, c);
+  return c;
 }
 
 /* escadas: buraco escuro para descer, degraus claros para subir */

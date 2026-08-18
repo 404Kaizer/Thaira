@@ -75,6 +75,15 @@ const STANCE = {
 const BUFF_LABEL = { haste: 'Pressa', mshield: 'Escudo Mágico', regen: 'Regeneração', light: 'Luz',
   rage: 'Fúria Sanguínea', guard: 'Protetor', sharp: 'Atirador de Elite', invis: 'Invisibilidade',
   lento: 'Lentidão' };
+/* Uma frase por rótulo de clima. Tabela, e não um encadeado de ifs no tick: o
+   estado já é decidido em climaAgora, aqui só se escolhe o texto — e quando
+   entrar neblina, é uma linha, não um ramo novo. */
+const CLIMA_AVISO = {
+  limpo: 'O céu abre.',
+  nublado: 'O céu fecha.',
+  chuva: 'Começa a chover.',
+  tempestade: 'A tempestade desaba.'
+};
 const BUFF_ICO = { haste: '💨', mshield: '🔵', regen: '🌱', light: '🔦',
   rage: '🩸', guard: '🛡️', sharp: '🎯', invis: '👻', lento: '🕸️' };
 /* o que o efeito FAZ, em número — cada um lê o `val` do seu jeito (ver recalc):
@@ -237,9 +246,16 @@ function addMagic(mana) {
    caverna passa a ser problema seu; antes o herói brilhava sozinho, de graça e o
    tempo todo, o que tirava a razão de existir da tocha e do feitiço de luz.
    A MAIOR fonte manda, não a soma: tocha mais magia fraca não viram farol. */
+/* Raio da luz que o jogador carrega, e DE ONDE ela vem. A fonte importa para o
+   render: tocha é chama, a magia é outra coisa, e sem devolver a origem daqui o
+   passe de luz teria de refazer a mesma comparação para adivinhar qual venceu —
+   duas contas do mesmo, e no dia em que uma mudasse o halo mentiria sobre a
+   fonte. Empate vai para a magia: ela é a que o jogador acabou de conjurar. */
 function luzCarregada() {
   const it = P.eq.light;
-  return Math.max(it ? (ITEMS[it.id] || 0).luz || 0 : 0, P.buffs.light ? P.buffs.light.val : 0);
+  const chama = it ? (ITEMS[it.id] || 0).luz || 0 : 0;
+  const magia = P.buffs.light ? P.buffs.light.val : 0;
+  return { r: Math.max(chama, magia), magica: magia >= chama && magia > 0 };
 }
 
 function bagAdd(it) {
@@ -361,7 +377,29 @@ function dropItem(it) {
 const cssCol = c => typeof c === 'number' ? '#' + (c >>> 0).toString(16).padStart(6, '0') : c;
 /* fala sobre a cabeça, estilo Tibia: chat e palavras de magia aparecem na tela */
 function say(ent, txt) { ent.say = { txt, until: G.now + 4200 }; }
-function float(x, y, txt, color) { G.fx.push({ kind: 'text', x, y, txt, color, t: G.now, dur: 950, el: null }); }
+/* `forte` é o pico da luta — crítico, dano recebido, exp ganha. Sobe de corpo e
+   dura um pouco mais; o resto da diferença fica na classe .forte do CSS.
+   `dx` é o leque: dois números nascidos no MESMO tile nasciam no mesmo pixel, e
+   numa área com seis acertos viravam um borrão ilegível — justamente o golpe que
+   mais merecia ser lido. */
+function float(x, y, txt, color, forte) {
+  /* O leque abre pelo que JÁ está na tela, não por um contador que gira sozinho:
+     com contador global um golpe solitário caía no slot 3 e o número saía 200ms
+     depois da pancada — som, clarão e número em três instantes diferentes, que é
+     pior do que o empilhamento que o leque veio resolver. Contando os vizinhos
+     recém-nascidos, golpe sozinho sai no centro e na hora, e só a rajada de área
+     abre em leque e em cascata.
+     Os dois eixos são precisos: 0,45 de tile são ~18px e um número de três
+     dígitos ocupa o dobro, então separar só no espaço não bastava — o atraso é
+     o que transforma a parede em cascata, e de quebra lê como "vários golpes"
+     em vez de "um borrão". */
+  let n = 0;
+  for (const f of G.fx) if (f.kind === 'text' && G.now - f.t < 150) n++;
+  n = Math.min(n, 4);
+  G.fx.push({ kind: 'text', x, y, txt, color, forte,
+    dx: n && (n % 2 ? 1 : -1) * Math.ceil(n / 2) * .45, atraso: n * 90,
+    t: G.now, dur: forte ? 1500 : 1300, el: null });
+}
 /* `el` é opcional e só decide a LUZ do estouro: explosão de terra não acende o
    terreno, de fogo acende. Sem elemento fica em 1, que é como era — cura, buff e
    conjuração não têm elemento e continuam brilhando. */
@@ -899,7 +937,7 @@ function dealDamage(m, raw, el, color) {
      tela e nunca larga o loot. */
   const nomeEl = ELEM[el || 'physical'].n;
   log(`${crit ? 'CRÍTICO! ' : ''}Você causa ${dmg} de dano em ${m.n}${marca ? (rm > 1 ? ' (fraco a ' : ' (resiste a ') + nomeEl + ')' : ''}${m.hp > 0 ? ` (${Math.max(0, m.hp)}/${m.maxhp})` : ''}.`, 'cbt dano');
-  float(m.x, m.y, (crit ? '★' : '') + marca + dmg, color || '#ff6a6a');
+  float(m.x, m.y, (crit ? '★' : '') + marca + dmg, crit ? '#ffb14a' : (color || '#ff6a6a'), crit);
   fxBurst(m.x, m.y, color || 0xff5555, 0.7, el);
   if (P.st.lifesteal) curar(dmg * P.st.lifesteal, 'roubo de vida');
   if (m.hp <= 0) killMob(m);
@@ -912,7 +950,7 @@ function killMob(m) {
   addExp(xp); P.kills++;
   // sobe no JOGADOR, não na criatura: quem ganhou a experiência foi ele. Em cima
   // do corpo o número se confundia com o dano e o "imune" que saem ali
-  float(P.x, P.y, '+' + xp + ' exp', '#ffd166');
+  float(P.x, P.y, '+' + xp + ' exp', '#ffd166', 1);
   bestiaryKill(m.id);
   log(`Você matou ${m.n} (+${xp} exp).`, 'good');
   if (m.def.boss) notify('👑', m.def.n, `chefe abatido — +${xp} exp`);
@@ -1034,7 +1072,7 @@ function hitPlayer(raw, src, el) {
   P.hp -= dmg;
   // apanhar merece a mesma leitura que bater: clarão no boneco e um tranco leve
   P.hitT = G.now; abalo(2);
-  float(P.x, P.y, (resEl ? '▼' : '') + '-' + dmg, '#ff5555');
+  float(P.x, P.y, (resEl ? '▼' : '') + '-' + dmg, '#ff5555', 1);
   impacto(P.x, P.y, mag ? 'magico' : 'fisico', SANGUE_PADRAO.cor, mag ? el : null);
   log(`${src} causa ${dmg} de dano em você (${Math.max(0, P.hp)}/${P.st.maxhp}).`, 'cbt apanha');
   sfx('hurt', P.x, P.y);
@@ -2440,17 +2478,32 @@ function updateOverlay() {
   // textos flutuantes
   for (const f of G.fx) {
     if (f.kind !== 'text') continue;
-    if (!f.el) { f.el = document.createElement('div'); f.el.className = 'ftext'; f.el.textContent = f.txt; f.el.style.color = f.color; ov.appendChild(f.el); }
-    const k = (G.now - f.t) / f.dur;
-    const [sx, sy] = project(f.x, f.y, 1.2 + k * 1.2);
-    f.el.style.transform = `translate(${sx}px,${sy}px) translate(-50%,-50%)`;
-    f.el.style.opacity = 1 - k;
+    if (!f.el) {
+      f.el = document.createElement('div');
+      f.el.className = f.forte ? 'ftext forte' : 'ftext';
+      f.el.textContent = f.txt; f.el.style.color = f.color; ov.appendChild(f.el);
+    }
+    const ms = G.now - f.t - f.atraso, k = ms / f.dur;
+    if (ms < 0) { f.el.style.opacity = 0; continue; }   // ainda na fila da cascata
+    /* Subida desacelerando, não linear: linear lê como coisa boiando, e
+       desacelerar lê como coisa CUSPIDA pelo golpe. O leque abre junto com a
+       subida — separa os números sem soltá-los da criatura que apanhou. */
+    const sobe = 1 - (1 - k) * (1 - k);
+    const [sx, sy] = project(f.x + f.dx * sobe, f.y, 1.2 + sobe * 1.5);
+    // estouro de entrada em MILISSEGUNDOS, não em fração da vida: assim o pop
+    // continua igual de rápido mesmo quando o texto dura mais
+    const pop = ms < 110 ? 1 + (f.forte ? .8 : .3) * (1 - ms / 110) : 1;
+    f.el.style.transform = `translate(${sx}px,${sy}px) translate(-50%,-50%) scale(${pop.toFixed(3)})`;
+    /* Opacidade cheia até os últimos ~30% e só então apaga. Com `1 - k` o número
+       começava a sumir no quadro em que nasceu — era o mais importante de ler e
+       o mais apagado da tela. */
+    f.el.style.opacity = Math.min(1, (1 - k) * 3.5);
   }
 }
 function updateFx() {
   for (let i = G.fx.length - 1; i >= 0; i--) {
     const f = G.fx[i];
-    if (G.now - f.t < f.dur) continue;
+    if (G.now - f.t < f.dur + (f.atraso || 0)) continue;
     if (f.el) f.el.remove();
     G.fx.splice(i, 1);
   }
@@ -2493,6 +2546,21 @@ function drawMinimap() {
   G.corpses.forEach(c => !c.player && dot(c.x, c.y, '#8a3a3a', 3));
   if (P.z === SURF) dot(WORLD.temple.x, WORLD.temple.y, '#ffe08a', 5);
   dot(P.x, P.y, '#ffffff', 4);
+  tickRelogio();
+}
+/* Relógio do painel. Escreve no DOM só quando o MINUTO vira: drawMinimap roda a
+   cada quadro, e trocar textContent 60x por segundo para repintar o mesmo texto
+   custa layout à toa. */
+let relogioUlt = '';
+function tickRelogio() {
+  const { h, min, fase } = horaDoJogo();
+  const txt = `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  if (txt === relogioUlt) return;
+  relogioUlt = txt;
+  // por id, e não por firstChild/lastChild: um espaço no HTML entre as duas tags
+  // já transformaria o nó de texto no "primeiro filho" e o relógio pararia
+  $('#clock-hora').textContent = txt;
+  $('#clock-fase').textContent = fase;
 }
 /* Arrastar move o recorte (ox/oy), roda dá zoom (R). `moved` some o clique de
    abrir o mapa grande quando o gesto era arrasto, não clique — sem isso todo
@@ -2696,9 +2764,23 @@ function frame(t) {
     // vira o dia: sem aviso o jogador acha que a tela quebrou
     const noite = ehNoite();
     if (G.noite !== noite) { G.noite = noite; if (P.z <= SURF) log(noite ? 'Anoitece.' : 'Amanhece.'); }
-    // clima do céu, não do andar: entrar na caverna não pode fazer a chuva "passar"
-    const chove = climaAgora(SURF).chuva > 0;
-    if (G.chuva !== chove) { G.chuva = chove; if (P.z <= SURF) log(chove ? 'Começa a chover.' : 'A chuva passa.'); }
+    /* Clima do CÉU, não do andar: entrar na caverna não pode fazer a chuva
+       "passar". O log agora segue o RÓTULO, e não um limiar próprio — antes ele
+       tinha a sua conta de "está chovendo" e a tela tinha a dela, que é como se
+       chega no dia em que o console anuncia chuva de céu limpo. */
+    const ceu = climaAgora(SURF);
+    if (G.tempo !== ceu.estado) {
+      G.tempo = ceu.estado;
+      if (P.z <= SURF) log(CLIMA_AVISO[ceu.estado]);
+    }
+    /* O trovão dispara na SUBIDA do clarão, uma vez por raio. `relampago()` é
+       função do relógio e vale por vários quadros seguidos; sem esta trava o som
+       recomeçaria a 60 por segundo enquanto o clarão durasse. */
+    if ((ceu.raio > 0) !== !!G.raio) {
+      G.raio = ceu.raio > 0;
+      // o som viaja: quanto mais fraco o clarão, mais longe caiu, mais ele demora
+      if (G.raio && P.z <= SURF) trovao(200 + (1 - ceu.raio) * 2600, .45 + ceu.raio * .55);
+    }
     chuvaOuvida();
     // a trilha muda com o andar E com a hora; musica() sai na hora quando já é a
     // lista certa, então chamar de novo aqui não custa nada
@@ -2786,7 +2868,9 @@ function finishStart(canvas, saved, name, voc) {
 
   $('#floor-label').textContent = FLOOR_NAMES[P.z];
   G.noite = ehNoite();
-  G.chuva = climaAgora(SURF).chuva > 0;
+  // semeia o rótulo com o tempo que JÁ está no céu: sem isto o primeiro tick
+  // anuncia "Começa a chover" para quem entrou no jogo no meio do temporal
+  G.tempo = climaAgora(SURF).estado;
   refreshSpawns(true);
   bindInput(canvas);
   bindMiniMap($('#minimap'));

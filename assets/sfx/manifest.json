@@ -7,6 +7,12 @@
     "n": 3,
     "v": 0.3
   },
+  "_corpo_morte": {
+    "de": "_corpo_forte",
+    "tom": 0.55,
+    "lp": 850,
+    "v": 0.42
+  },
   "hit": {
     "n": 4,
     "v": 0.65,
@@ -123,7 +129,7 @@
     "n": 3,
     "v": 0.55,
     "mix": [
-      "_corpo_forte"
+      "_corpo_morte"
     ]
   },
   "death": {
