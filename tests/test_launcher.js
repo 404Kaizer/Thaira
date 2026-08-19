@@ -5,6 +5,7 @@
    %2e%2e%2f chega inteiro no decodeURIComponent. */
 'use strict';
 const assert = require('assert');
+const fs = require('fs'), path = require('path');
 const servidor = require('../main.js');
 
 servidor.listen(0, '127.0.0.1', async () => {
@@ -23,6 +24,13 @@ servidor.listen(0, '127.0.0.1', async () => {
   assert.equal(fuga.status, 403, 'path traversal codificado tem que ser barrado');
 
   assert.equal((await fetch(base + '/nao_existe.png')).status, 404);
+
+  /* O ícone quebra em silêncio: caminho errado no BrowserWindow não dá erro
+     nenhum, o Electron só cai no átomo padrão. Foi assim que o `app.png`
+     inexistente sobreviveu. */
+  const ico = path.join(__dirname, '..', 'build', 'icon.ico');
+  assert.ok(fs.existsSync(ico), 'build/icon.ico sumiu — a janela volta pro ícone do Electron');
+  assert.ok(fs.readFileSync(ico).readUInt16LE(2) === 1, 'build/icon.ico não é um .ico de verdade');
 
   console.log('launcher ok');
   servidor.close();

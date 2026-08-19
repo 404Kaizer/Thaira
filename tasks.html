@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Expansão de Thaira</title>
 <style>
   :root{
@@ -94,6 +95,18 @@
   .it-d{font-size:13.5px;color:var(--dim)}
   .it-t{font-size:12.5px;color:var(--mute);font-family:var(--mono)}
 
+  /* Selo de estado. Retangular e sem preenchimento: é rótulo, não botão. */
+  .tag{font:600 10px var(--sans);letter-spacing:.09em;text-transform:uppercase;
+       padding:2px 6px;border:1px solid var(--line);border-radius:2px;
+       white-space:nowrap;margin-left:6px}
+  .tag.warn{color:var(--warn);border-color:var(--warn)}
+  .tag.wait{color:var(--wait);border-color:var(--wait)}
+  .tag.done{color:var(--done);border-color:var(--done)}
+  ul.itens li.feito{border-left-color:var(--done)}
+  /* Na lista de invariantes (ul simples, com marcador), o que entrou nesta leva
+     ganha o marcador em verde — some no meio das 30 antigas sem isso. */
+  li.feito::marker{color:var(--done)}
+
   .aviso{background:var(--surface2);border:1px solid var(--line);border-left:3px solid var(--warn);
          padding:18px 20px;margin-bottom:14px;max-width:var(--measure)}
   .aviso h4{color:var(--warn);margin-top:0}
@@ -118,14 +131,24 @@
     primeira leva de mundo e apresentação: o que foi construído, com quais identificadores e
     constantes, quais decisões não devem ser desfeitas, e o que segue pendente.
     Escrito para ser lido por quem não acompanhou a conversa — humano ou agente.
-    <b>600 verificações</b> passando em <code>tests/test.js</code>.
+    <b>488 verificações</b> passando em <code>tests/test.js</code>.
   </div>
   <div class="lede col" style="margin-top:14px;font-size:15px">
     <b>Se você só tem cinco minutos:</b> leia <em>Regras que não devem ser quebradas</em> e
-    <em>Armadilhas conhecidas</em>. Em seguida, os quatro casos em que a medição contrariou o
-    diagnóstico escrito aqui — #26, #27, #38 e #38b —, porque são o melhor argumento contra confiar
-    em impressão de jogo sem medir. O que está aberto está em <em>Pendente</em>, e o balanceamento
-    está em pausa por decisão do dono do projeto.
+    <em>Armadilhas conhecidas</em>. Em seguida, os cinco casos em que a medição contrariou o
+    diagnóstico escrito aqui — #26, #27, #38, #38b e agora #31 —, porque são o melhor argumento
+    contra confiar em impressão de jogo sem medir. O que está aberto está em <em>Pendente</em>, e o
+    balanceamento continua em pausa por decisão do dono do projeto, com a exceção anotada no #31.
+  </div>
+  <div class="lede col" style="margin-top:14px;font-size:15px">
+    <b>Auditoria de 2026-08-18.</b> Este documento passou três commits desatualizado e foi
+    conferido linha a linha contra o código. Duas correções mudam como ele deve ser lido:
+    a contagem de verificações estava em 600 e o valor real é <b>488</b>; e a seção
+    <em>Regras que não devem ser quebradas</em> afirmava 32 invariantes travadas por teste, das
+    quais <b>18 não existiam</b> — estão marcadas <span class="tag warn">sem teste</span> lá
+    embaixo, e fechá-las é o item mais alto da fila. O resto do documento confere: as 16 constantes
+    de balanceamento, os números do #26 ao #38d e a contagem de criaturas, magias, hunts, POIs e
+    imbuements foram todos remedidos e batem.
   </div>
 </header>
 
@@ -133,9 +156,19 @@
   <h2>Como o projeto é montado</h2>
   <div class="col">
     <p>
-      Jogo 2D dark-fantasy em JavaScript puro, sem build e sem dependências. Roda abrindo
-      <code>index.html</code> por HTTP (o arquivo <code>JOGAR.bat</code> sobe um
-      <code>python -m http.server 8765</code>). Não há framework, bundler nem pacote npm.
+      Jogo 2D dark-fantasy em JavaScript puro, sem build e sem framework. O código do jogo não tem
+      dependência nenhuma — nada de bundler, nada de pacote npm dentro de <code>src/</code>.
+    </p>
+    <p>
+      <b>Fora do jogo, sim:</b> hoje existe um launcher desktop em Electron
+      (<code>main.js</code> + <code>Server.bat</code>, atalho <code>Thaira.lnk</code>), porque no
+      navegador o F1–F12, F5, Ctrl+W e Ctrl+T são consumidos antes do <code>keydown</code> chegar
+      ao jogo e <code>preventDefault</code> não recupera. Ele sobe o mesmo servidor estático na
+      porta 8765 — de propósito a mesma do <code>tools/serve.py</code>, já que
+      <code>localStorage</code> é por origem e personagem criado numa porta sumiria na outra. O
+      ícone da janela sai de <code>build/icon.ico</code>.
+      <em>Isto substitui o <code>JOGAR.bat</code> com <code>python -m http.server</code>, que não
+      existe mais.</em>
     </p>
   </div>
   <div class="band">
@@ -143,15 +176,16 @@
       <caption>Arquivos em <code>src/</code>, carregados nesta ordem por <code>index.html</code>.</caption>
       <thead><tr><th scope="col">Arquivo</th><th scope="col">Linhas</th><th scope="col">Responsabilidade</th></tr></thead>
       <tbody>
-        <tr><th scope="row"><code>audio.js</code></th><td class="n">460</td><td>Trilha, ambiência e efeitos sonoros posicionais.</td></tr>
+        <tr><th scope="row"><code>audio.js</code></th><td class="n">508</td><td>Trilha, ambiência e efeitos sonoros posicionais.</td></tr>
         <tr><th scope="row"><code>icones.js</code></th><td class="n">9</td><td>GERADO. Conjuntos <code>ICONES</code> e <code>ICONES2X</code>: todo id de item que tem PNG próprio. Refeito por <code>assets/build_skins.py --aplicar</code>.</td></tr>
-        <tr><th scope="row"><code>data.js</code></th><td class="n">1983</td><td>Só tabelas e fórmulas puras, sem dependência. Vocações, itens, afixos, conjuntos, monstros, magias, hunts, POIs, coleta, imbuements, e as réguas de dano/velocidade/loot (<code>magPower</code>, <code>cdDe</code>, <code>VEL_BASE</code>, <code>LOOT_CLASSE</code>).</td></tr>
-        <tr><th scope="row"><code>art.js</code></th><td class="n">910</td><td>Desenho procedural em canvas: texturas de tile (<code>TEX_DRAW</code>), bonecos de criatura (<code>creatureSprite</code>, 7 formas em <code>SHAPE_DRAW</code>) e marcas de POI no chão (<code>POI_DRAW</code>).</td></tr>
-        <tr><th scope="row"><code>world.js</code></th><td class="n">527</td><td>Geração do mundo (<code>genWorld</code>), pathfinding A* (<code>findPath</code>), luz por andar, minimapa.</td></tr>
-        <tr><th scope="row"><code>render2d.js</code></th><td class="n">816</td><td>Câmera, desenho do mundo, efeitos, sangue de chão, clima.</td></tr>
-        <tr><th scope="row"><code>game.js</code></th><td class="n">2777</td><td>Estado do jogador, combate, IA de criatura, inventário, loja, forja, coleta, save.</td></tr>
-        <tr><th scope="row"><code>ui.js</code></th><td class="n">464</td><td>Bestiário, contratos de caça, forja (imbuements), mapa expandido.</td></tr>
-        <tr><th scope="row"><code>hud.js</code></th><td class="n">211</td><td>Posicionamento e visibilidade dos painéis.</td></tr>
+        <tr><th scope="row"><code>criaturas.js</code></th><td class="n">8</td><td>GERADO. <code>CRIA_FOLHA</code>: quantos quadros parados e de passo tem cada linha da folha de animação, por criatura. Refeito por <code>assets/build_criaturas.py --aplicar</code>. Hoje só <code>cyclops</code> e <code>demon</code>.</td></tr>
+        <tr><th scope="row"><code>data.js</code></th><td class="n">2233</td><td>Só tabelas e fórmulas puras, sem dependência. Vocações, itens, afixos, conjuntos, monstros, magias, hunts, POIs, coleta, imbuements, e as réguas de dano/velocidade/loot (<code>magPower</code>, <code>cdDe</code>, <code>VEL_BASE</code>, <code>LOOT_CLASSE</code>).</td></tr>
+        <tr><th scope="row"><code>art.js</code></th><td class="n">1019</td><td>Desenho procedural em canvas: texturas de tile (<code>TEX_DRAW</code>), bonecos de criatura (<code>creatureSprite</code>, 7 formas em <code>SHAPE_DRAW</code>), recorte da folha de animação (<code>criaQuadro</code>) e marcas de POI no chão (<code>POI_DRAW</code>).</td></tr>
+        <tr><th scope="row"><code>world.js</code></th><td class="n">601</td><td>Geração do mundo (<code>genWorld</code>), pathfinding A* (<code>findPath</code>), luz por andar, minimapa.</td></tr>
+        <tr><th scope="row"><code>render2d.js</code></th><td class="n">1002</td><td>Câmera, desenho do mundo, efeitos, sangue de chão, clima (nuvem, chuva, poça, relâmpago) e o relógio de fases do dia.</td></tr>
+        <tr><th scope="row"><code>game.js</code></th><td class="n">3192</td><td>Estado do jogador, combate, IA de criatura, inventário, loja, forja, coleta, save.</td></tr>
+        <tr><th scope="row"><code>ui.js</code></th><td class="n">474</td><td>Bestiário, contratos de caça, forja (imbuements), mapa expandido.</td></tr>
+        <tr><th scope="row"><code>hud.js</code></th><td class="n">381</td><td>Posicionamento e visibilidade dos painéis.</td></tr>
       </tbody>
     </table>
   </div>
@@ -182,13 +216,14 @@
         <tr><th scope="row">Mapa</th><td class="n">160 × 160</td><td class="now">224 × 224</td><td class="delta">+96% de área</td></tr>
         <tr><th scope="row">Criaturas</th><td class="n">53</td><td class="now">83</td><td class="delta">+30; 16 chefes, 4 de fauna passiva</td></tr>
         <tr><th scope="row">Hunts</th><td class="n">10</td><td class="now">16</td><td class="delta">do nível 8 ao 320</td></tr>
-        <tr><th scope="row">Itens</th><td class="n">202</td><td class="now">257</td><td class="delta">+55; 4 de despojo de caça</td></tr>
-        <tr><th scope="row">Conjuntos</th><td class="n">5</td><td class="now">7</td><td class="delta">+ <code>sa</code> (nv 55) e <code>vz</code> (nv 75)</td></tr>
+        <tr><th scope="row">Itens</th><td class="n">202</td><td class="now">329</td><td class="delta">+127; 4 de despojo de caça, 5 de coleta, 2 ferramentas</td></tr>
+        <tr><th scope="row">Conjuntos</th><td class="n">5</td><td class="now">12</td><td class="delta">+ <code>sa</code> (56) e <code>vz</code> (76) no fim; <code>bo</code> (25), <code>gl</code> (27), <code>ch</code> (45), <code>fn</code> (45), <code>cs</code> (61) no meio</td></tr>
         <tr><th scope="row">Magias</th><td class="n">49</td><td class="now">49</td><td class="delta">não mudou; ver #23</td></tr>
         <tr><th scope="row">Classes de criatura</th><td class="n">9</td><td class="now">12</td><td class="delta">+ Elemental, Aberração, Celeste</td></tr>
         <tr><th scope="row">Pontos de interesse</th><td class="n">0</td><td class="now">39</td><td class="delta">5 tipos</td></tr>
         <tr><th scope="row">Imbuements</th><td class="n">0</td><td class="now">11</td><td class="delta">forja</td></tr>
-        <tr><th scope="row">Verificações</th><td class="n">339</td><td class="now">600</td><td class="delta">+261</td></tr>
+        <tr><th scope="row">Ícones PNG</th><td class="n">0</td><td class="now">250</td><td class="delta">222 itens com arte própria, 77 emprestando genérico, <b>30 ainda em emoji</b> — ver #14</td></tr>
+        <tr><th scope="row">Verificações</th><td class="n">339</td><td class="now">488</td><td class="delta">+149. O documento dizia 600; era engano, conferido em 2026-08-18</td></tr>
       </tbody>
     </table>
   </div>
@@ -366,6 +401,9 @@
         <tr><th scope="row"><code>LOOT_TIER</code></th><td class="n">2</td><td class="n">data.js</td><td>Quanto o valor do saque multiplica a cada tier. Chefe leva <code>LOOT_CHEFE</code> = 5.</td></tr>
         <tr><th scope="row"><code>LOOT_CLASSE</code></th><td class="n">0.5 a 1.8</td><td class="n">data.js</td><td>Quem pensa carrega bolsa, bicho larga pedaço de si. É o eixo de sabor do loot.</td></tr>
         <tr><th scope="row"><code>CHARM_COST</code></th><td class="n">100</td><td class="n">data.js</td><td>Carisma por presa marcada; máximo de 3 presas, bônus de 18% de dano.</td></tr>
+        <tr><th scope="row"><code>ALCANCE_TIRO</code></th><td class="n">5</td><td class="n">data.js</td><td>Alcance do tiro, em tiles. Vale para arco/besta <b>e para a vara de pesca</b> — é o mesmo número de propósito, e há teste travando isso. Estava cravado dentro do <code>weaponInfo</code>.</td></tr>
+        <tr><th scope="row"><code>COLETA_EXITO</code></th><td class="n">.35 + nv×.006</td><td class="n">data.js</td><td>Chance de a colheita render alguma coisa: 41% na skill inicial, 62% na 45, 83% na 80 (teto de 90%). Falhar come o tempo da ação e treina, mas não esgota o ponto.</td></tr>
+        <tr><th scope="row"><code>COLETA_SORTE</code></th><td class="n">0.015</td><td class="n">data.js</td><td>Quanto cada linha da tabela fica mais provável por ponto de skill acima do que ela exige. É o que faz a skill melhorar a <em>raridade</em> do que sai, e não só destravar linha nova.</td></tr>
       </tbody>
     </table>
   </div>
@@ -970,8 +1008,129 @@
 </section>
 
 <section>
+  <h2>Coleta virou ofício — #30 e #31</h2>
+  <div class="col">
+    <p>
+      Entregue em 2026-08-18. O pedido era ferramenta obrigatória e taxa de êxito; a medição
+      mostrou um buraco de economia bem maior, e o dono do projeto autorizou corrigir os números
+      junto — é a única exceção à pausa do balanceamento.
+    </p>
+    <h3>A medição contrariou o diagnóstico, de novo</h3>
+    <p>
+      Este documento dizia que a <b>pesca</b> era o recurso sem limite, porque qualquer tile de
+      água serve e o mapa tem oceano na borda inteira. Medido, é o contrário: a pesca é o recurso
+      <b>mais escasso</b> dos três, e quem não tinha fim era a <b>mineração</b>.
+    </p>
+    <div class="band">
+      <table>
+        <caption>Tiles alcançáveis (com vizinho andável) e ouro por minuto antes da correção.</caption>
+        <thead><tr><th scope="col">Recurso</th><th scope="col">Tiles</th><th scope="col">skill 10</th><th scope="col">skill 45</th><th scope="col">skill 80</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">mineração</th><td class="n">46.899</td><td class="n">4.983/min</td><td class="n">23.428/min</td><td class="n">35.265/min</td></tr>
+          <tr><th scope="row">lenha</th><td class="n">3.510</td><td class="n">437/min</td><td class="n">1.847/min</td><td class="n">2.528/min</td></tr>
+          <tr><th scope="row">pesca</th><td class="n">3.463</td><td class="n">300/min</td><td class="n">2.239/min</td><td class="n">3.064/min</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      A causa era <code>COLETA.mining.tiles</code> incluir <code>CWALL</code>: caverna
+      <em>é feita</em> de parede de caverna. E o valor vinha junto — <code>iron_ore</code> vendia
+      por 145 na linha base, disponível na skill 10, contra 6 da madeira e 5 do peixe. Na skill 45
+      minerar parado pagava mais que matar um bicho de tier 9, que larga ~14.300 por morte.
+      Provável resíduo do #28: aquela régua mexeu em tesouro e ouro e deixou material de lado, mas
+      material de <em>coleta</em> nunca entrou na conta de ninguém.
+    </p>
+    <h3>Quatro alavancas, e uma que só apareceu medindo a composição</h3>
+    <p>
+      <b>Tiles:</b> <code>CWALL</code> saiu — sobram ~2.000, na mesma ordem dos outros dois.
+      <b>Preço:</b> caiu de 3× a 5× nos itens <em>exclusivos</em> de coleta (carvão 20→6, cobre
+      60→5, prata 380→40, mithril 1500→180, resina 30→18, lei 48→40).
+      <b>Chance:</b> ferro, gemas, pérolas e barra de ouro <em>também caem de monstro</em> e o
+      preço deles está amarrado à régua do #28 — mexer neles moveria o loot do jogo inteiro, então
+      ficaram com o preço que têm e viraram linha rara.
+      <b>Quantidade:</b> o multiplicador se aplicava a todas as linhas, então a skill 80 tirava
+      "4× Barra de Ouro" de uma britada. Agora só multiplica volume (chance ≥ .5). Esta quarta só
+      apareceu ao quebrar o ouro por linha — sozinha, ela levava a mineração de volta aos 20.000
+      por minuto depois das outras três.
+    </p>
+    <div class="band">
+      <table>
+        <caption>Ouro por minuto depois. A mineração segue no topo por desenho — é o ofício do minério e da gema.</caption>
+        <thead><tr><th scope="col">Recurso</th><th scope="col">skill 10</th><th scope="col">skill 45</th><th scope="col">skill 80</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">mineração</th><td class="n">145</td><td class="n">1.516</td><td class="n">3.663</td></tr>
+          <tr><th scope="row">lenha</th><td class="n">185</td><td class="n">566</td><td class="n">814</td></tr>
+          <tr><th scope="row">pesca</th><td class="n">95</td><td class="n">647</td><td class="n">1.637</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>A skill pesa nas duas pontas</h3>
+    <p>
+      Isto <b>substitui</b> uma decisão que estava escrita no código: "subir a skill não deixa o
+      comum mais raro, abre linha nova; peso pela chance, então mithril continua sendo mithril
+      mesmo com 60 de mineração". A pedido do dono do projeto, a skill passou a influenciar
+      <em>êxito</em> e <em>raridade</em>.
+    </p>
+    <p>
+      O sorteio agora desce da linha mais rara para a mais comum e para na primeira que cair, com
+      a chance de cada uma crescendo <code>COLETA_SORTE</code> por ponto de skill acima do que ela
+      exige. A última linha é o consolo. Por isso <b>a ordem da tabela importa</b> — escrita fora
+      de ordem, a rara nunca sairia, e há teste travando isso. Medido no jogo: skill 10 só tira
+      carvão e cobre; skill 45 abre prata, ferro, rubi e safira; skill 85 abre mithril e diamante,
+      e a prata vira comum.
+    </p>
+    <h3>Ferramenta no slot da arma</h3>
+    <p>
+      <code>pickaxe</code> e <code>fishing_rod</code> são itens novos, vendidos na loja do templo —
+      ofício que depende de sorte no drop não é ofício. Ocupam o slot da <b>arma</b>: colher custa
+      andar desarmado, e é essa a escolha de jogo. São armas ruins de verdade (atk 7 e 3) em vez de
+      zeradas, para que quem for pego colhendo ainda revide, mal. Lenhar reaproveita
+      <code>axe</code> e <code>hand_axe</code>, que já existiam — nenhum machado de lenhador novo.
+    </p>
+    <p>
+      <b>A vara alcança 5 tiles</b>, o mesmo do arco, e ainda exige linha limpa: ninguém pesca
+      através de montanha. O número saiu de dentro do <code>weaponInfo</code> para
+      <code>ALCANCE_TIRO</code> e é compartilhado de propósito — quem mexer no alcance do tiro tem
+      de ver a pesca acompanhar, e há teste afirmando a igualdade.
+    </p>
+    <h3>Diversificação sem uma arte nova</h3>
+    <p>
+      Cinco itens novos de coleta com <b>PNG próprio e distinto</b>: <code>herb</code>,
+      <code>mushroom</code>, <code>shell</code> e <code>worm</code> já tinham arte em
+      <code>assets/icons</code> e não eram item nenhum; <code>green_wood</code> empresta a da
+      madeira comum via <code>SPRITE_ID</code>, porque é o mesmo material em outra qualidade e o
+      §12 pede que o mesmo item se pareça consigo mesmo. Zero emoji novo — o §17 continua de pé.
+    </p>
+    <p>
+      A pesca paga em <b>sustento</b>, não em ouro: preço de venda caiu e a comida subiu. O Peixe
+      Graúdo virou a melhor regeneração que se consegue sem matar nada (t 360 / v 7, contra 240 / 5
+      do presunto de loja), e é o que faz caçar longe do templo durar.
+    </p>
+    <p>
+      De quebra saiu um defeito antigo de texto: o log dizia <em>"Você minerar e obtém"</em>. O
+      campo <code>n</code> era o infinitivo e servia aos dois usos; agora <code>n</code> é o
+      infinitivo ("para <em>minerar</em> você precisa de...") e <code>v</code> a terceira pessoa
+      ("você <em>minera</em> e obtém..."). O emoji que abria a linha (⛏️/🪓/🎣) saiu junto, pelo
+      §17, e há teste afirmando que nenhuma entrada de <code>COLETA</code> carrega emoji.
+    </p>
+  </div>
+</section>
+
+<section>
   <h2>Regras que não devem ser quebradas</h2>
   <div class="col">
+    <div class="aviso">
+      <h4>Metade desta seção era promessa vazia até 2026-08-18</h4>
+      <p>
+        A auditoria conferiu uma a uma contra <code>tests/test.js</code>: das 32 invariantes que
+        esta seção afirmava estarem travadas por teste, <b>18 não existiam</b> e 1 só valia pela
+        metade. Estão marcadas <span class="tag warn">sem teste</span> e
+        <span class="tag wait">parcial</span> abaixo, e não foram removidas de propósito — cada
+        uma continua sendo uma decisão de desenho que vale, só não tem nada guardando. Fechar essa
+        lacuna é o item mais alto da fila: o balanceamento do #38a–d foi o trabalho mais caro do
+        projeto e é justamente a parte sem rede.
+      </p>
+    </div>
     <p>
       Invariantes travadas por teste. Cada uma nasceu de um defeito real; se uma delas falhar,
       é regressão e não ajuste.
@@ -985,10 +1144,10 @@
         peça ser mais fraca é intencional — ela paga em bônus de conjunto e há alternativa fora dele.</li>
       <li><strong>A morte custa um número exato de níveis</strong> em 60, 100 e 200, com e sem
         bênção, e o nível resultante é sempre o que a experiência restante vale.</li>
-      <li><strong>Hunts de mesmo raio têm população parecida</strong> (isto pega a volta ao dado por
+      <li><span class="tag wait">parcial</span> <strong>Hunts de mesmo raio têm população parecida</strong> (isto pega a volta ao dado por
         tile), <strong>toda hunt tem um núcleo de 6+</strong> e <strong>sobra corredor vazio</strong>.
         As três juntas, porque só uma delas passaria com densidade uniforme.</li>
-      <li><strong>Renascimento avisado acontece a qualquer distância</strong>; ponto frio nunca
+      <li><span class="tag warn">sem teste</span> <strong>Renascimento avisado acontece a qualquer distância</strong>; ponto frio nunca
         instancia perto do jogador; distância nunca adia o relógio.</li>
       <li><strong>Multidão cerca, poucos encostam</strong> — 14 criaturas terminam a 3 tiles sem
         enfileirar, e 5 em campo aberto terminam todas coladas. As duas réguas convivem porque
@@ -997,10 +1156,10 @@
         virar estátua; quem atira fica parado e acerta por cima.</li>
       <li><strong>POI se saqueia uma vez só</strong> e o tesouro cai em tile andável.</li>
       <li><strong>O imbuement sobrevive ao save</strong>.</li>
-      <li><strong>Os 28 materiais da forja continuam caindo</strong>, e nenhum com chance irrisória.
+      <li><span class="tag warn">sem teste</span> <strong>Os 28 materiais da forja continuam caindo</strong>, e nenhum com chance irrisória.
         É a trava contra a régua de loot cortar insumo de imbuement para fechar conta de ouro —
         quebra que não daria erro nenhum, só um jogador descobrindo que não dá mais para forjar.</li>
-      <li><strong>Todo saque bate a régua</strong> de dificuldade × natureza, e no mesmo tier
+      <li><span class="tag warn">sem teste</span> <strong>Todo saque bate a régua</strong> de dificuldade × natureza, e no mesmo tier
         humanoide larga mais que bicho. A segunda sem a primeira permitiria uma tabela de números
         sem sabor; a primeira sem a segunda permitiria a bagunça voltar por dentro da classe.</li>
       <li><strong>Nenhuma criatura de Pesadelo</strong> nasce na superfície ou na montanha.</li>
@@ -1015,53 +1174,121 @@
       <li><strong>Um knight nível 300 escapa de tudo até tier 5</strong>, e só caçador de tier alto
         o alcança. As duas metades juntas: uma sozinha permitiria um mundo onde nada corre.</li>
 
-      <li><strong>Magia de dano não sai mais rápido que o ataque básico</strong> — e o teste
+      <li><span class="tag warn">sem teste</span> <strong>Magia de dano não sai mais rápido que o ataque básico</strong> — e o teste
         <em>alterna</em> as magias, porque lançar a mesma repetidas vezes passava mesmo com o
         defeito presente. Junto: <strong>a cura sai durante o cooldown de dano</strong>, senão a
         próxima simplificação joga tudo no mesmo relógio e tira a defesa de quem conjura.</li>
-      <li><strong>A varinha não escala com magic level</strong>, o dano dela é a faixa da própria
+      <li><span class="tag warn">sem teste</span> <strong>A varinha não escala com magic level</strong>, o dano dela é a faixa da própria
         arma, e <strong>a linha de varinhas cresce 5×+</strong> do primeiro ao último degrau. A
         terceira sem as duas primeiras deixaria alguém achatar a tabela e matar a progressão.</li>
-      <li><strong>O ganho por ponto de ML tem espalhamento limitado</strong> (teto de 6×; era 16,2×)
+      <li><span class="tag warn">sem teste</span> <strong>O ganho por ponto de ML tem espalhamento limitado</strong> (teto de 6×; era 16,2×)
         e <strong>magia de base maior ainda escala mais</strong> — a régua achata, não iguala.
         Junto: <strong>a magia mais fraca sobreviveu à mudança</strong>, porque a ponta de baixo já
         estava certa.</li>
-      <li><strong>A cura não cresce mais rápido que a vida</strong>, medido nas quatro vocações. Era
+      <li><span class="tag warn">sem teste</span> <strong>A cura não cresce mais rápido que a vida</strong>, medido nas quatro vocações. Era
         plana em 332% da barra do nível 50 ao 320 — cura total garantida em qualquer nível.</li>
-      <li><strong>O druida bate menos, cura mais e aguenta mais</strong> que o sorcerer, com faixa
+      <li><span class="tag warn">sem teste</span> <strong>O druida bate menos, cura mais e aguenta mais</strong> que o sorcerer, com faixa
         nos dois extremos (dano no máximo 92%, sobrevivência no mínimo 140%). Só o sinal passava
         com 96%, que era a diferença acidental de antes de haver identidade.
         E <strong>a hierarquia de curandeiro</strong> druida &gt; ranger &gt; sorcerer &gt; knight.</li>
-      <li><strong>Nenhuma magia é mais fraca que uma de nível menor</strong> do mesmo tipo e
+      <li><span class="tag warn">sem teste</span> <strong>Nenhuma magia é mais fraca que uma de nível menor</strong> do mesmo tipo e
         vocação — só nível estritamente menor conta, porque duas do mesmo nível são escolha de
         elemento, não degrau.</li>
-      <li><strong>Bicho manso não encalça, foge ao apanhar e não revida</strong> enquanto tem para
+      <li><span class="tag warn">sem teste</span> <strong>Bicho manso não encalça, foge ao apanhar e não revida</strong> enquanto tem para
         onde correr. As três juntas: só "não persegue" faz saco de pancada; só "foge" não impede o
         coelho de caçar o jogador.</li>
-      <li><strong>Toda fauna passiva declara a própria forma</strong> e <strong>só criatura noturna
+      <li><span class="tag warn">sem teste</span> <strong>Toda fauna passiva declara a própria forma</strong> e <strong>só criatura noturna
         acende</strong>. A primeira nasceu de um defeito real: o vaga-lume sem <code>shape</code>
         caiu no <code>biped</code> padrão e virou uma criança humanoide sem quebrar teste nenhum.</li>
-      <li><strong>Criatura noturna nasce de noite e não de dia</strong>, verificado no
+      <li><span class="tag warn">sem teste</span> <strong>Criatura noturna nasce de noite e não de dia</strong>, verificado no
         <code>refreshSpawns</code> de verdade e não só na ficha.</li>
-      <li><strong>Nenhuma cor crua em <code>ui.js</code></strong> — a varredura roda no fonte, então
+      <li><span class="tag warn">sem teste</span> <strong>Nenhuma cor crua em <code>ui.js</code></strong> — a varredura roda no fonte, então
         hexadecimal novo quebra a suíte no mesmo dia.</li>
-      <li><strong>Terreno vizinho é distinguível</strong> (separação mínima de 60 em seis pares),
+      <li><span class="tag warn">sem teste</span> <strong>Terreno vizinho é distinguível</strong> (separação mínima de 60 em seis pares),
         <strong>a saturação média do terreno fica acima de 33%</strong> e
         <strong>nenhum tile sai da faixa 10–90%</strong>. O teto importa tanto quanto o piso: uma
         régua que só empurrasse saturação para cima convidaria o neon que o §23 veta.</li>
-      <li><strong>Todo tipo de POI tem marca no chão</strong>, sem desenho órfão, e os dois estados
+      <li><span class="tag warn">sem teste</span> <strong>Todo tipo de POI tem marca no chão</strong>, sem desenho órfão, e os dois estados
         (intacto e saqueado) são sprites distintos.</li>
-      <li><strong>O número mostrado na ficha de magia sai da fórmula</strong>, para o personagem
+      <li><span class="tag warn">sem teste</span> <strong>O número mostrado na ficha de magia sai da fórmula</strong>, para o personagem
         de agora — acompanha o magic level, e o cooldown exibido é o de <code>cdDe</code>, não o
         cru. Junto: <strong>todo tipo de magia sabe se descrever</strong>.</li>
-      <li><strong>Virar não move o personagem</strong>, as quatro direções são alcançáveis e
+      <li><span class="tag warn">sem teste</span> <strong>Virar não move o personagem</strong>, as quatro direções são alcançáveis e
         <strong>morto não vira</strong>.</li>
+      <li class="feito"><strong>Ninguém fica 3 s+ imóvel longe do jogador com vaga livre</strong> —
+        14 minotauros contra um jogador encostado numa parede, com briga. É o #22, e o teste nasceu
+        da reverificação dele. A imortalidade do jogador é <em>reafirmada a cada tique</em> de
+        propósito: sem isso ele morre debaixo da horda, <code>G.dead</code> derruba o
+        <code>chase</code> de todo mundo, e a cena inteira vira falso positivo de criatura travada.
+        Junto: <strong>encostado na parede ainda dá para ser cercado</strong> — só a primeira metade
+        passaria com uma IA que desistisse de todos.</li>
+      <li class="feito"><strong>Toda coleta exige ferramenta</strong>, toda ferramenta é item de
+        slot de arma, e <strong>a ferramenta de todo ofício se compra na loja</strong> — ofício que
+        depende de sorte no drop não é ofício.</li>
+      <li class="feito"><strong>Toda tabela de colheita vai da linha mais rara para a mais
+        comum</strong> e a última é o consolo (nível inicial, chance cheia). O sorteio para na
+        primeira que cai: escrita fora de ordem, a rara nunca sairia.</li>
+      <li class="feito"><strong>Parede de caverna não é minerável</strong> — era o único recurso
+        sem fim do jogo, 46.899 tiles contra ~3.500 dos outros dois.</li>
+      <li class="feito"><strong>Falhar não esgota o ponto de coleta</strong>, e
+        <strong>a tentativa treina mesmo quando falha</strong>. Sem a primeira, errar valeria por
+        colher e o recurso sumiria igual.</li>
+      <li class="feito"><strong>A skill de coleta pesa nas duas pontas</strong>: acerta mais vezes
+        <em>e</em> tira coisa melhor. As duas juntas, porque êxito sem raridade faz skill alta
+        render mais lixo, e raridade sem êxito não dá curva nenhuma.</li>
+      <li class="feito"><strong>A vara alcança o mesmo que o arco</strong>
+        (<code>ALCANCE_TIRO</code>), pesca sem o personagem sair do lugar, e picareta e machado só
+        trabalham no tile encostado.</li>
+      <li class="feito"><strong>Nenhuma entrada de <code>COLETA</code> carrega emoji</strong>, e
+        toda coleta tem infinitivo e terceira pessoa — com um campo só, o log dizia
+        "Você minerar e obtém".</li>
+      <li class="feito"><strong>O <code>build/icon.ico</code> existe e é um <code>.ico</code> de
+        verdade</strong> (em <code>tests/test_launcher.js</code>). Caminho de ícone errado no
+        <code>BrowserWindow</code> não dá erro nenhum — o Electron cai no átomo padrão em silêncio,
+        que foi como um <code>assets/icons/app.png</code> inexistente sobreviveu.</li>
     </ul>
   </div>
 </section>
 
 <section>
   <h2>Pendente</h2>
+
+  <div class="grupo">
+    <div class="gtitle">Rede de segurança</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">#43 · Fechar a lacuna de testes</span>
+        <span class="it-d">
+          Descoberto pela auditoria de 2026-08-18. A seção <em>Regras que não devem ser
+          quebradas</em> afirmava 32 invariantes travadas por teste; <b>18 não existem</b> em
+          <code>tests/test.js</code> e 1 só vale pela metade. Não é dívida de qualidade, é dívida de
+          <b>risco</b>: o #38a–d — relógio único de magia, varinha sem magic level,
+          <code>magPower</code>, identidade do druida — foi o trabalho mais caro do projeto e é
+          justamente a parte sem nada guardando. Um <code>revert</code> acidental passa verde.
+        </span>
+        <span class="it-d">
+          <b>Baratas</b> (varredura de tabela e fórmula, sem simular jogo): varinha sem ML;
+          espalhamento de ML limitado; cura não cresce mais que vida nas quatro vocações;
+          identidade do druida; nenhuma magia mais fraca que uma de nível menor; régua de loot
+          dificuldade × natureza; os 28 materiais da forja continuam caindo; nenhuma cor crua em
+          <code>ui.js</code>; as três invariantes de paleta.
+          <b>Caras</b> (precisam da simulação): relógio de dano alternando magias e cura durante o
+          cooldown; fauna passiva não encalça, foge ao apanhar, revida encurralada; criatura noturna
+          nasce de noite no <code>refreshSpawns</code> de verdade; marca de POI no chão; ficha de
+          magia derivada da fórmula; virar sem andar.
+        </span>
+        <span class="it-d">
+          <b>Antes de começar, duas ressalvas.</b> A invariante de paleta <em>falha hoje</em>:
+          SAND × TEMPLE dá separação 56, abaixo do mínimo de 60 que a seção afirma — escrever esse
+          teste exige antes decidir se a cor muda ou se a régua real é outra. E as caras são
+          simulação, que é a família dos testes que já oscilaram (#41): fixar estado inicial e
+          conferir em série de 10+ execuções antes de deixar entrar, sem afrouxar limiar para fazer
+          passar.
+        </span>
+        <span class="it-t">esforço médio · retorno muito alto · nada bloqueia · faz todo o resto ficar mais barato</span>
+      </li>
+    </ul>
+  </div>
 
   <div class="grupo">
     <div class="gtitle">Design de mundo</div>
@@ -1072,6 +1299,10 @@
         <span class="it-t">esforço alto · retorno muito alto</span>
       </li>
       <li>
+        <span class="it-n">#42 · Ilha tutorial</span>
+        <span class="it-d">Uma ilha única, <b>fixa e não procedural</b> — a mesma em toda partida, desenhada à mão para iniciante. Bem menor que o continente. Apresenta as mecânicas básicas, inclusive o combate, com criaturas fracas o bastante para chegar ao <b>nível 15 com tranquilidade</b>, farmar equipamento básico e algum ouro. O jogador <b>não sai da ilha antes do nível 15</b>. A ilha é o fôlego para aprender e se equipar antes de encarar o continente MAIN.
+        Pontos que a discussão precisa fechar: onde a ilha mora (andar próprio ou região reservada do mapa), como a travessia é barrada (barco/portal com porteiro de nível), se o personagem novo nasce lá sempre ou só na primeira vez, e se o templo/loja/forja da ilha são versões reduzidas ou os mesmos painéis. Atrito técnico previsível: <code>genWorld</code> hoje monta tudo por semente, então uma malha à mão é o primeiro mapa autoral do projeto — e o spawn, as hunts e os POIs assumem mundo gerado.</span>
+        <span class="it-t">esforço alto · retorno muito alto · a discutir antes de escrever código</span>
       </li>
     </ul>
   </div>
@@ -1166,8 +1397,10 @@
     <ul class="itens">
       <li>
         <span class="it-n">#14 · Trocar emoji por ícones próprios</span>
-        <span class="it-d">O <code>CLAUDE.md</code> §17 proíbe emoji como ícone de gameplay e §23 lista "Emoji UI" entre as práticas vetadas. Os botões <code>task-btn</code> (📜) e <code>forja-btn</code> (🔨) são emoji cru ao lado de quatro botões que usam PNG. Também em emoji: 5 tipos de POI, 11 imbuements e ~15 itens de coleta. O pipeline já existe — PNG em <code>assets/icons</code> com o nome do id, e <code>build_skins.py --aplicar</code>.</span>
-        <span class="it-t">esforço baixo · parte depende de arte a produzir</span>
+        <span class="it-d">O <code>CLAUDE.md</code> §17 proíbe emoji como ícone de gameplay e §23 lista "Emoji UI" entre as práticas vetadas. O pipeline já existe — PNG em <code>assets/icons</code> com o nome do id, e <code>build_skins.py --aplicar</code>.</span>
+        <span class="it-d"><b>Estado medido em 2026-08-18</b>, dos 329 itens: <b>222 com arte própria</b>, 77 emprestando um PNG genérico por slot ou tipo de arma, e <b>30 caindo em emoji</b>. Os 30 são quase todos <em>pernas, amuletos e anéis</em> — e a causa é precisa: <code>SPRITE_SLOT</code> tem genérico para elmo, armadura, escudo e bota, e não para esses três. <b>Três PNGs genéricos matam os 30 de uma vez</b>, e é de longe o melhor troco do item.</span>
+        <span class="it-d"><b>Falta também:</b> os botões <code>task-btn</code> (📜) e <code>forja-btn</code> (🔨), emoji cru ao lado de quatro que já usam PNG — bloqueados em arte, precisam de dois desenhos em <code>assets/green_background/</code> no estilo dos outros quatro. E 5 tipos de POI, 11 imbuements e os ícones de buff (<code>BUFF_ICO</code>). <b>Feito:</b> o log de coleta perdeu o ⛏️/🪓/🎣, com teste guardando.</span>
+        <span class="it-t">esforço baixo · 3 PNGs genéricos resolvem 30 itens · os 2 botões dependem de arte</span>
       </li>
       <li>
         <span class="it-n">#40 · Segunda passada na paleta</span>
@@ -1198,13 +1431,17 @@
       </li>
       <li>
         <span class="it-n">#13 · Bonecos procedurais de criatura</span>
-        <span class="it-d">79 criaturas dividem seis formas (biped, quadruped, arachnid, serpent, worm, dragon), então a leitura de longe depende quase só de cor e tamanho. As 29 criaturas novas pioraram isso: Elemental, Aberração e Celeste usam <code>biped</code> como todo mundo. O ganho barato é acrescentar silhuetas, não refinar sombreado. Trabalho descartável de propósito — o caminho para sprite sheet já existe via <code>MOB_ART.sheet</code>.</span>
-        <span class="it-t">esforço médio · descartável quando a arte chegar</span>
+        <span class="it-d">83 criaturas dividem <b>sete</b> formas (biped, quadruped, arachnid, serpent, worm, dragon, mote), e <code>biped</code> sozinha cobre 51 — a leitura de longe depende quase só de cor e tamanho. Elemental, Aberração e Celeste usam <code>biped</code> como todo mundo.</span>
+        <span class="it-d"><b>Rebaixado em 2026-08-18.</b> O texto antigo já chamava isto de "trabalho descartável de propósito"; agora é <em>literalmente</em> descartável. O pipeline de folha de animação funciona de ponta a ponta — <code>assets/build_criaturas.py</code> monta a folha, <code>src/criaturas.js</code> guarda a contagem de quadros e <code>criaQuadro</code> recorta — e <code>cyclops</code> e <code>demon</code> já rodam com arte de verdade. Desenhar silhueta procedural nova é investir num caminho que já está provado que vai ser jogado fora.</span>
+        <span class="it-d"><b>O que vale no lugar:</b> mais folhas de criatura. Duas já estão esperando e nenhuma entra, por formato: <code>minotaur/minotaur_anim.png</code> é uma folha de contato (recorte limpo, fundo transparente) e o pipeline quer quadros soltos nomeados <code>minotaur_idle_front_01.png</code>; <code>diabrete/diabrete.png</code> está 100% opaco com chroma magenta e precisa da chave de cor antes. <b>Falta a etapa de cortar folha de contato em quadros nomeados</b>, que não existe como ferramenta — fazê-la uma vez destrava as duas e toda arte futura no mesmo formato.</span>
+        <span class="it-t">rebaixado · o caminho agora é folha de animação, não silhueta nova</span>
       </li>
       <li>
         <span class="it-n">#16 · Revisão visual das janelas Contratos e Forja</span>
-        <span class="it-d">As duas foram construídas sem o ciclo que o §26 exige (inspecionar, identificar reuso, definir hierarquia) e sem a revisão do §32. Pontos concretos: <code>.task-card</code> foi criada nova quando <code>.best-card</code> já existia; falta conferir hover, pressed e focus; e a contagem de material na forja é verde/vermelho puro, o que o §20 proíbe (indicador não pode depender só de cor).</span>
-        <span class="it-t">esforço baixo-médio</span>
+        <span class="it-d">As duas foram construídas sem o ciclo que o §26 exige (inspecionar, identificar reuso, definir hierarquia) e sem a revisão do §32.</span>
+        <span class="it-d"><b>Feito em 2026-08-18:</b> <code>.task-card</code> e <code>.best-card</code> passaram a dividir uma moldura só — sobrou em cada uma apenas o que é papel de verdade (contrato é linha empilhada, ficha de bestiário é célula de grade clicável). Conferido no navegador: estilo computado idêntico ao de antes, zero mudança visual.</span>
+        <span class="it-d"><b>Falta:</b> conferir hover, pressed e focus dos dois. A contagem de material na forja continua verde/vermelho — mas, ressalva à leitura antiga, ela mostra <code>2/5</code>, que já é pista não-cromática: a violação do §20 é menor do que estava escrito aqui.</span>
+        <span class="it-t">esforço baixo · metade feita</span>
       </li>
     </ul>
   </div>
@@ -1443,49 +1680,19 @@
   </div>
 
   <div class="grupo">
-    <div class="gtitle">Coleta e controles</div>
-    <ul class="itens">
-      <li>
-        <span class="it-n">#30 · Ferramenta obrigatória para colher</span>
-        <span class="it-d">
-          <code>colher()</code> hoje só exige proximidade e nível de skill — qualquer personagem
-          minera com as mãos. Pedido: picareta para minerar, machado para lenhar, vara para pescar.
-          Provável campo <code>ferramenta</code> em cada entrada de <code>COLETA</code>. Decisão
-          aberta: a ferramenta precisa estar <em>equipada</em>, competindo com a arma (o que é uma
-          escolha de jogo interessante), ou basta estar na mochila? E o <code>axe</code> que já
-          existe como arma serve de machado de lenhador, ou é item separado? Encaixa com #8: a
-          ferramenta ocupa espaço e peso.
-        </span>
-        <span class="it-t">esforço baixo</span>
-      </li>
-      <li>
-        <span class="it-n">#31 · Pontos de coleta e taxa de êxito</span>
-        <span class="it-d">
-          Dois problemas. <strong>Pontos:</strong> lenha e mineração já têm limite natural (árvore e
-          pedra não existem em todo lugar), mas <em>pesca não</em> — qualquer tile de água serve, e
-          o mapa tem oceano na borda inteira, então dá para pescar infinitamente, vender e ter
-          regeneração de graça. <strong>Taxa de êxito:</strong> colher sempre rende; o sorteio
-          decide o que sai, nunca se sai. Nas palavras do usuário, o jogador não "tenta executar",
-          ele "consegue executar". O esgotamento por tile já existe (<code>P.colhido</code>), então
-          a estrutura de ponto com recarga está pronta. Falha deve consumir o tempo da ação mas
-          <em>não</em> esgotar o ponto. Com taxa de êxito, a curva de skill passa a significar algo:
-          hoje o nível só abre linhas melhores na tabela.
-        </span>
-        <span class="it-t">esforço médio · alimenta a economia junto com #28</span>
-      </li>
-    </ul>
-  </div>
-
-  <div class="grupo">
     <div class="gtitle">Defeito residual conhecido</div>
     <ul class="itens">
       <li class="debt">
         <span class="it-n">#41 · Três testes probabilísticos instáveis</span>
         <span class="it-d">
           <code>provocado, o lobo volta mesmo ferido</code>, <code>dragão fecha a distância em vez
-          de fugir</code> e <code>a multidão CERCA em vez de enfileirar</code> falham sozinhos entre
-          1 em 6 e 1 em 10 execuções. Todos <b>pré-existentes</b> — conferido em <code>HEAD</code> —
-          e nenhum tem relação com o que foi mexido no #38 ou no #6.
+          de fugir</code> e <code>a multidão CERCA em vez de enfileirar</code> falhavam sozinhos
+          entre 1 em 6 e 1 em 10 execuções. Todos <b>pré-existentes</b> — conferido em
+          <code>HEAD</code> — e nenhum tem relação com o que foi mexido no #38 ou no #6.
+          <b>Rebaixado em 2026-08-18:</b> os três continuam na suíte e não falharam em
+          <b>18 execuções seguidas</b>. Com a taxa que estava escrita aqui, 18 limpas dão p ≈ 0,04 —
+          ou melhorou junto com alguma mudança de IA, ou a taxa era menor do que a estimativa. Vale
+          reverificar em série longa antes de gastar tempo caçando viés.
         </span>
         <span class="it-d">
           Hoje são ruído tolerável, mas o custo real é outro: <b>uma suíte que às vezes falha treina
@@ -1495,12 +1702,13 @@
           mesmo dos que já foram corrigidos: achar o viés (personagem morto de um bloco anterior,
           skill treinada pela própria medição, RNG compartilhado), não afrouxar o limiar.
         </span>
-        <span class="it-t">baixa prioridade · dívida de confiança na suíte</span>
+        <span class="it-t">rebaixado · não reproduzido em 18 execuções · reverificar em série longa</span>
       </li>
-      <li class="debt">
-        <span class="it-n">#22 · Criatura oscilando na vaga reservada</span>
-        <span class="it-d">Com 14 criaturas cercando um jogador encostado numa parede, uma delas a 2 tiles ficou imóvel por 9,6 s com 4 vizinhos livres. Hipótese: oscilação entre <code>reservarVagas</code> e <code>passoVagar</code> — chega na vaga, o passo vira nulo, ela vaga para fora e o quadro seguinte a manda de volta. Pode ter sido resolvido pela inversão da varredura de vagas; não foi reverificado. Impacto de 1 em 14, e não é mais o congelamento em massa.</span>
-        <span class="it-t">baixa prioridade · precisa de reverificação</span>
+      <li class="feito">
+        <span class="it-n">#22 · Criatura oscilando na vaga reservada <span class="tag done">resolvido</span></span>
+        <span class="it-d">Reverificado em 2026-08-18 e <b>não reproduz</b>. Dezesseis cenas — parede e campo aberto, 14 e 20 criaturas, rato e minotauro, 16 e 120 ms por tique, com e sem briga: nenhum travamento, e o pior imóvel a 2+ tiles do jogador ficou em <b>1,3 s</b> contra os 9,6 s do relato. A inversão da varredura de vagas resolveu, como a hipótese dizia. Está travado por teste agora.</span>
+        <span class="it-d"><b>A primeira medição deu positivo e estava errada:</b> o harness matava o jogador (o <code>recalc</code> devolve <code>maxhp</code> ao valor real e o cavaleiro não aguenta 14 minotauros), <code>G.dead</code> derrubava o <code>chase</code> de todo mundo, e 66 "travamentos" apareceram em 16 cenas. É a armadilha de estado inicial que esta mesma página documenta — ver <em>Armadilhas conhecidas</em>.</span>
+        <span class="it-t">fechado · virou invariante</span>
       </li>
     </ul>
   </div>
@@ -1550,6 +1758,46 @@
       primeira postura medida treinava o personagem e a segunda era medida com mais escudo.
       Aumentar a amostra não resolvia nenhum dos dois.
     </p>
+
+    <h4>Jogador imortal precisa ser reafirmado a cada tique, não uma vez</h4>
+    <p>
+      Mesma família da anterior, e custou uma medição inteira em 2026-08-18. Para medir IA de
+      multidão você põe <code>P.hp = P.st.maxhp = 1e9</code> e solta 14 minotauros. Só que
+      <b>qualquer <code>recalc()</code> devolve <code>maxhp</code> ao valor real</b> — 150 para um
+      cavaleiro novo — e o personagem morre no meio da medida. Aí <code>G.dead</code> faz
+      <code>m.chase = false</code> em <em>todas</em> as criaturas, elas passam a andar 1% dos
+      quadros, e a leitura é <b>66 "criaturas travadas" em 16 cenas</b> — um falso positivo
+      perfeito, porque o sintoma medido é exatamente o comportamento correto.
+      O certo é reafirmar <code>G.dead = false; P.hp = P.st.maxhp = 1e9</code> dentro do laço, a
+      cada tique. Com isso, zero travamentos nas mesmas 16 cenas.
+      <b>Regra que sai daqui:</b> quando a medição confirmar o defeito que você esperava, desconfie
+      primeiro do harness — foi o que separou "#22 reproduzido" de "#22 não existe".
+    </p>
+
+    <h4>Ícone de janela errado não dá erro nenhum</h4>
+    <p>
+      O <code>BrowserWindow</code> apontava para <code>assets/icons/app.png</code>, arquivo que
+      nunca existiu. O Electron <b>ignora caminho de ícone quebrado em silêncio</b> e cai no átomo
+      padrão — então o sintoma ("meu jogo abre com o ícone do Electron") não parece um caminho
+      errado, parece o launcher não suportar ícone. O ícone bom estava em
+      <code>build/icon.ico</code> o tempo todo.
+      Duas coisas a saber: no Windows use <code>.ico</code> e não <code>.png</code>, porque a barra
+      de tarefas quer a folha multi-tamanho; e sem
+      <code>app.setAppUserModelId</code> o Windows agrupa a janela sob o <code>electron.exe</code> e
+      o botão herda o ícone <em>dele</em> mesmo com o da janela certo.
+      Há teste em <code>tests/test_launcher.js</code> agora — falha silenciosa merece teste.
+    </p>
+
+    <h4>Item novo em <code>data.js</code> sem PNG vira emoji sem avisar</h4>
+    <p>
+      <code>spriteOf</code> procura, nesta ordem: PNG com o nome do id, <code>SPRITE_ID</code>,
+      genérico por tipo de arma, genérico por slot, genérico por emoji declarado. Quem não casa
+      nada cai no <code>ICO_SLOT</code>, que é emoji — e o §17 proíbe emoji como ícone de gameplay.
+      Não há erro, não há aviso: o item simplesmente aparece com um pictograma.
+      Ao criar item novo, ou solte o PNG em <code>assets/skins/&lt;pasta&gt;/&lt;id&gt;.png</code> e
+      rode <code>build_skins.py --aplicar</code>, ou aponte um empréstimo em <code>SPRITE_ID</code>.
+      Foi assim que os cinco itens de coleta de 2026-08-18 entraram sem um emoji novo.
+    </p>
   </div>
 </section>
 
@@ -1578,25 +1826,48 @@
       sublinear e a identidade do druida. Mago contra guerreiro saiu de 6,2× para 3,4× no nível 50.
     </p>
     <p>
-      <strong>Com o balanceamento em pausa, o próximo passo é o #6 — zonas calmas e fauna
-      passiva.</strong> É a mais barata da lista e a que mais muda a sensação do mundo, não depende
-      de nenhuma decisão em aberto, e tem sinergia direta com o que foi corrigido: agora que as
-      criaturas percebem o jogador a 11 tiles e cercam de verdade, atravessar o mapa ficou mais
-      hostil do que era — zonas calmas passaram a ser mais necessárias, não menos.
-      Alternativas igualmente destravadas, se a preferência for fechar dívida em vez de abrir
-      sistema: <strong>#12</strong> (marcadores de POI) e <strong>#14</strong> (trocar emoji por
-      ícone próprio).
+      <strong>A fila mudou em 2026-08-18.</strong> O #6 (fauna passiva) saiu, o #12 e o #21 saíram,
+      e o #30 e o #31 (coleta como ofício) saíram nesta leva. O que a auditoria acrescentou é um
+      item que não estava na lista e passou à frente de todos.
+    </p>
+    <div class="aviso">
+      <h4>O próximo passo é fechar a lacuna de testes</h4>
+      <p>
+        Não é dívida de qualidade, é dívida de <em>risco</em>. O #38a–d foi o trabalho mais caro do
+        projeto — relógio único de magia, varinha sem ML, <code>magPower</code>, identidade do
+        druida — e <b>nada disso tem teste</b>. Um <code>revert</code> acidental passa verde. São 18
+        invariantes marcadas <span class="tag warn">sem teste</span> na seção de regras, e a maior
+        parte é varredura de tabela e fórmula, sem simular jogo. Todo item abaixo fica mais barato
+        depois que existir rede.
+      </p>
+      <p>
+        Um aviso para quem for escrever: <b>a invariante de paleta falha hoje</b>. A separação
+        SAND × TEMPLE dá 56, abaixo do mínimo de 60 que a seção afirma. Escrever esse teste exige
+        antes decidir se a cor muda ou se a régua real é outra.
+      </p>
+    </div>
+    <p>
+      Depois dela, e ainda sem depender de decisão nenhuma: <strong>#32</strong> (status elemental
+      no corpo), que destrava o #33 e o #24 e faz o elemento parar de ser só cor de partícula; e
+      <strong>#18</strong> (NPCs), que é código novo, risco baixo, e melhora retroativamente as
+      fases 2 e 4.
     </p>
     <p>
-      Do <strong>#38</strong> sobram três coisas, todas menores que o que já saiu: a chance de erro
-      de ataque (ninguém erra um golpe hoje, nos dois sentidos), o estreitamento do sorteio de dano
-      (polimento de percepção, não de peso), e o resíduo da Cura Suprema do druida em 106% da barra
-      no meio do jogo. Nenhuma bloqueia nada.
+      Na frente gráfica, o melhor troco é <strong>#14</strong> pelo caminho barato — três PNGs
+      genéricos para pernas, amuleto e anel apagam de uma vez os 30 itens que ainda saem como
+      emoji — e a etapa de <b>cortar folha de contato em quadros nomeados</b>, que destrava o
+      minotauro e o diabrete já desenhados e toda arte futura no mesmo formato (ver #13).
     </p>
     <p>
-      Depois deles, <strong>#12</strong> (marcadores de POI) e <strong>#14</strong> (emoji), que são
-      pequenas e fecham dívida de conformidade. As estruturais — #5 e #8 — devem esperar o
-      balanceamento assentar.
+      Na frente de cenário, o <strong>#19</strong> tem um primeiro passo de meia hora que decide o
+      item inteiro: montar os tiles lado a lado e ver se aparece grade. Se costurar mal, ele morre
+      ali em vez de custar dias depois.
+    </p>
+    <p>
+      As estruturais — <strong>#5</strong> (topologia) e <strong>#8</strong> (mochila e peso) —
+      devem esperar o balanceamento assentar. A <strong>#42</strong> (ilha tutorial) pode ser
+      desenhada a qualquer momento, mas <em>calibrada</em> não: "chegar ao nível 15 com
+      tranquilidade" é um alvo de ritmo, e ritmo é o #29.
     </p>
     <p>
       Duas decisões travam itens da fila: o escopo da <strong>#20</strong> (seguidor simples ou
@@ -1607,9 +1878,9 @@
 </section>
 
 <footer>
-  Thaira · RPG 2D dark-fantasy em JavaScript sem dependências ·
-  600 verificações passando em <code>tests/test.js</code> ·
-  23 tarefas pendentes.
+  Thaira · RPG 2D dark-fantasy em JavaScript sem framework, com launcher Electron ·
+  488 verificações passando em <code>tests/test.js</code> ·
+  22 tarefas pendentes · conferido contra o código em 2026-08-18.
 </footer>
 
 </div>

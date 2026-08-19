@@ -150,7 +150,7 @@ vm.runInContext(`
     playerDeath, BENCAOS, blessPrice, bagAdd, DEEP, SPAWN_POOLS,
     taskEstado, taskAceitar, taskReceber, taskProgresso, taskOfertas, nivelDe, shopNear, SKILL_NAMES, fixSave,
     POIS, poiAt, abrirTesouro, BIOMA_POOLS,
-    COLETA, SKILLS_COLETA, colher, coletaDe, IMBUEMENTS, imbuir, contaMat, renderForja,
+    COLETA, SKILLS_COLETA, colher, coletaDe, COLETA_EXITO, COLETA_SORTE, chaveTile, ALCANCE_TIRO, lineClear, IMBUEMENTS, imbuir, contaMat, renderForja,
     getForjaSlot: () => forjaSlot, setForjaSlot: v => forjaSlot = v,
     getHUD: () => HUD, setHUD: v => HUD = v, getP: () => P });
 
@@ -893,6 +893,46 @@ vm.runInContext(`
   for (const [i, v] of pedra) WORLD.floors[SURF].t[i] = v;
 `, ctx);
 A(S.tirosPedra === 0, 'ninguém atira através de parede de pedra');
+
+/* 29b-bis. #22: jogador encostado numa parede, 14 minotauros chegando pelo mesmo
+   lado. O relato era de uma criatura a 2 tiles imóvel por 9,6 s com 4 vizinhos
+   livres — oscilação entre `reservarVagas` e `passoVagar`. Medido depois da
+   inversão da varredura de vagas, o pior imóvel longe do jogador é ~1,3 s.
+   A imortalidade é REAFIRMADA a cada tique de propósito: um `recalc()` devolve
+   maxhp ao valor real, o cavaleiro morre debaixo da horda, e `G.dead` derruba o
+   `chase` de TODO mundo — o que lê exatamente como "criatura travada" e faz a
+   cena inteira virar falso positivo. Foi assim que a primeira medição errou. */
+vm.runInContext(`
+  G.mobs.length = 0; G.now += 1e5; G.dead = false;
+  const tm = WORLD.floors[SURF].t;
+  globalThis.paredeN = [];
+  for (let dx = -4; dx <= 4; dx++) { const i = (P.y - 1) * W + (P.x + dx); paredeN.push([i, tm[i]]); tm[i] = T.ROCK; }
+  const postos = [];
+  for (let r = 2; r <= 4 && postos.length < 14; r++)
+    for (let dx = -r; dx <= r && postos.length < 14; dx++)
+      for (let dy = 0; dy <= r && postos.length < 14; dy++)
+        if (Math.max(Math.abs(dx), Math.abs(dy)) === r && isWalkable(P.x + dx, P.y + dy, SURF)) postos.push([dx, dy]);
+  for (const [dx, dy] of postos) { const m = mkMob('minotaur', dx, dy); m.nextAtk = 0; }   // com briga
+  const trilha = G.mobs.map(() => []);
+  for (let i = 0; i < 150; i++) {
+    G.dead = false; P.hp = P.st.maxhp = 1e9;
+    G.now += 120; updateMobs(120);
+    G.mobs.forEach((m, k) => trilha[k].push(m.x + ',' + m.y));
+  }
+  const livresDe = m => DIRS.filter(([dx, dy]) => isWalkable(m.x + dx, m.y + dy, P.z)
+    && !G.mobs.some(o => o !== m && o.x === m.x + dx && o.y === m.y + dy)
+    && !(P.x === m.x + dx && P.y === m.y + dy)).length;
+  globalThis.travou = G.mobs.filter((m, k) => {
+    if (distT(m.x, m.y, P.x, P.y) <= 1 || !livresDe(m)) return false;   // colado é ataque, não travamento
+    let pior = 1, seq = 1;
+    for (let i = 1; i < trilha[k].length; i++) { seq = trilha[k][i] === trilha[k][i - 1] ? seq + 1 : 1; if (seq > pior) pior = seq; }
+    return pior * 120 >= 3000;
+  }).length;
+  globalThis.coladosParede = G.mobs.filter(m => distT(m.x, m.y, P.x, P.y) <= 1).length;
+  for (const [i, v] of paredeN) WORLD.floors[SURF].t[i] = v;
+`, ctx);
+A(S.travou === 0, `#22: ninguém fica 3s+ imóvel longe do jogador com vaga livre (${S.travou} travados)`);
+A(S.coladosParede >= 3, `encostado na parede ainda dá para ser cercado (${S.coladosParede} colados)`);
 
 /* 29c. medo: quem tem instinto foge ferido, quem não tem morre no lugar */
 vm.runInContext(`
@@ -1664,32 +1704,134 @@ const morte = (bless, lvl = 40, expBase = `expForLevel(${lvl} + 1) - 1`) => {
   A(Object.values(S.COLETA).every(c => c.tiles.every(t => S.T[t] !== undefined)),
     'todo tile de coleta existe na tabela de terreno');
 
+  A(Object.values(S.COLETA).every(c => c.ferramenta && c.ferramenta.length && c.ferramenta.every(id => S.ITEMS[id] && S.ITEMS[id].slot === 'weapon')),
+    'toda coleta exige ferramenta, e toda ferramenta é item de slot de arma');
+  A(Object.values(S.COLETA).every(c => c.n && c.v && c.n !== c.v),
+    'toda coleta tem infinitivo e terceira pessoa — com um só dava "Você minerar e obtém"');
+  /* §17: emoji não é ícone de gameplay. O log de coleta abria com ⛏️/🪓/🎣. */
+  A(!JSON.stringify(S.COLETA).match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u),
+    'nenhuma coleta carrega emoji — o log fala por escrito');
+  A(Object.values(S.COLETA).every(c => c.ferramenta.some(id => S.SHOP_STOCK.includes(id))),
+    'a ferramenta de todo ofício se compra na loja — ofício não pode depender de sorte no drop');
+  /* A tabela é lida da mais rara para a mais comum e a última linha é o consolo:
+     escrita fora de ordem, a rara nunca sairia (a comum casaria antes). */
+  A(Object.values(S.COLETA).every(c => c.tab.every((l, i) => !i || l[1] >= c.tab[i - 1][1])),
+    'toda tabela de colheita vai da linha mais rara para a mais comum');
+  A(Object.values(S.COLETA).every(c => c.tab[c.tab.length - 1][2] <= 10 && c.tab[c.tab.length - 1][1] >= 1),
+    'a última linha é o consolo: nível inicial e chance cheia');
+  /* Minerar não pode voltar a ser infinito: caverna é feita de CWALL, e com ela
+     na lista havia 46.899 tiles mineráveis contra ~3.500 de árvore e de água. */
+  A(!S.COLETA.mining.tiles.includes('CWALL'),
+    'parede de caverna não é minerável — era o único recurso sem fim do jogo');
+
   vm.runInContext(`
     newPlayer('Colhedor', 'knight'); P.bag.length = 0; G.drops.length = 0; G.now = 5e6;
-    // acha um tile de cada recurso com vizinho andável e colhe dele
-    globalThis.res = {};
+    globalThis.pontos = {};
     for (const [nome, tt] of [['mining', T.ROCK], ['woodcut', T.TREE], ['fishing', T.WATER]]) {
-      let achou = null;
-      for (let y = 5; y < H - 5 && !achou; y++) for (let x = 5; x < W - 5; x++) {
+      for (let y = 5; y < H - 5 && !pontos[nome]; y++) for (let x = 5; x < W - 5; x++) {
         if (tileAt(x, y, SURF) !== tt) continue;
         const v = DIRS.map(([dx, dy]) => [x + dx, y + dy]).find(([a, b]) => isWalkable(a, b, SURF));
-        if (v) { achou = { x, y, v }; break; }
+        if (v) { pontos[nome] = { x, y, v }; break; }
       }
-      if (!achou) { res[nome] = null; continue; }
-      P.z = SURF; P.x = achou.v[0]; P.y = achou.v[1];
-      const antes = P.bag.length, tAntes = P.sk[nome].t;
-      G.colheitaCd = 0; colher(achou.x, achou.y);
-      const ganhou = P.bag.length - antes, treinou = P.sk[nome].t - tAntes;
-      G.colheitaCd = 0; colher(achou.x, achou.y);          // tile gasto: não rende de novo
-      res[nome] = { ganhou, treinou, repetido: P.bag.length - antes };
     }
+    /* Uma tentativa: leva o jogador ao ponto, zera o relógio da ação e devolve o
+       que mudou. \`limpa\` apaga a marca de esgotado para a próxima tentativa cair
+       num ponto fresco — o que este teste mede é o sorteio, não o descanso. */
+    globalThis.tentar = (nome, ferramenta, nivel, limpa) => {
+      const p = pontos[nome];
+      P.z = SURF; P.x = P.px = p.v[0]; P.y = P.py = p.v[1];
+      P.eq.weapon = ferramenta ? mkItem(ferramenta) : null;
+      /* Zera as tentativas junto com o nível: \`addSkillTry\` zera \`t\` ao subir de
+         habilidade, e sem isto o teste forçava nível 40 com \`t\` acumulando, subia
+         de nível dentro da própria medição e apagava o treino que queria medir. */
+      if (nivel) { P.sk[nome].l = nivel; P.sk[nome].t = 0; }
+      const k = chaveTile(p.x, p.y, SURF);
+      if (limpa && P.colhido) delete P.colhido[k];
+      const antes = P.bag.length, tAntes = P.sk[nome].t;
+      G.colheitaCd = 0; colher(p.x, p.y);
+      return { ganhou: P.bag.length - antes, treinou: P.sk[nome].t - tAntes, gasto: !!(P.colhido && P.colhido[k]) };
+    };
+    globalThis.FERR = { mining: 'pickaxe', woodcut: 'axe', fishing: 'fishing_rod' };
+    globalThis.semFerr = {}, globalThis.comFerr = {}, globalThis.treinouFalhando = {};
+    for (const nome in FERR) {
+      P.bag.length = 0;
+      semFerr[nome] = tentar(nome, null, 40, true);
+      /* Com ferramenta o êxito é sorteado, então uma tentativa não prova nada:
+         100 delas provam. Sem ferramenta, ZERO é a regra — uma basta. */
+      let ganhos = 0, tentativas = 0, falhouSemGastar = 0, treinos = 0;
+      for (let i = 0; i < 100; i++) {
+        const r = tentar(nome, FERR[nome], 40, true);
+        tentativas++; ganhos += r.ganhou; treinos += r.treinou > 0 ? 1 : 0;
+        if (!r.ganhou && !r.gasto) falhouSemGastar++;
+        P.bag.length = 0;
+      }
+      comFerr[nome] = { ganhos, tentativas, falhouSemGastar, treinos };
+    }
+    /* Raridade pela skill: mesma tabela, mesmo ponto, skill 10 contra skill 90.
+       Mede o valor médio do que saiu — se a skill não pesar, os dois empatam. */
+    globalThis.valorPorSkill = nivel => {
+      P.bag.length = 0;
+      let soma = 0, n = 0;
+      for (let i = 0; i < 400; i++) {
+        const r = tentar('mining', 'pickaxe', nivel, true);
+        if (r.ganhou) { const it = P.bag[P.bag.length - 1]; soma += (ITEMS[it.id].sell || 0) * (it.count || 1); n++; }
+        P.bag.length = 0;
+      }
+      return n ? soma / n : 0;
+    };
+    globalThis.vBaixo = valorPorSkill(10);
+    globalThis.vAlto = valorPorSkill(90);
   `, ctx);
   for (const k of ['mining', 'woodcut', 'fishing']) {
-    const r = S.res[k];
-    A(r && r.ganhou === 1, `${k}: colher rende um item (${r && r.ganhou})`);
-    A(r && r.treinou > 0, `${k}: colher treina a habilidade`);
-    A(r && r.repetido === 1, `${k}: o tile se esgota — colher de novo não rende nada`);
+    const sem = S.semFerr[k], com = S.comFerr[k];
+    A(sem.ganhou === 0 && !sem.gasto, `${k}: sem a ferramenta não colhe nem gasta o ponto`);
+    A(com.ganhos > 20 && com.ganhos < com.tentativas, `${k}: colher às vezes rende e às vezes falha (${com.ganhos}/${com.tentativas})`);
+    A(com.treinos === com.tentativas, `${k}: treina a habilidade mesmo na tentativa que falha`);
+    A(com.falhouSemGastar > 0, `${k}: falhar NÃO esgota o ponto (${com.falhouSemGastar} falhas sem gastar)`);
   }
+  /* Alcance: a vara pesca de longe, como o arco; picareta e machado exigem
+     encostar. O número é o MESMO do tiro de propósito — quem mexer num tem de
+     ver o outro andar junto. */
+  A(S.COLETA.fishing.alcance === S.ALCANCE_TIRO && S.COLETA.fishing.alcance > 1,
+    `a vara alcança o mesmo que o arco (${S.COLETA.fishing.alcance} tiles)`);
+  A(S.COLETA.mining.alcance === 1 && S.COLETA.woodcut.alcance === 1,
+    'picareta e machado só trabalham no tile encostado');
+  vm.runInContext(`(() => {
+    P.eq.weapon = mkItem('fishing_rod'); P.sk.fishing.l = 90;   // êxito alto: mede alcance, não sorte
+    /* A água de \`pontos.fishing\` é a borda do oceano, onde tudo em volta também
+       é água — dali não existe posto a 3 tiles. Procura uma margem de verdade:
+       tile de água com chão firme a 2+ tiles e linha limpa até ele. */
+    let posto = null, alvo = null;
+    for (let y = 5; y < H - 5 && !posto; y++) for (let x = 5; x < W - 5 && !posto; x++) {
+      if (tileAt(x, y, SURF) !== T.WATER) continue;
+      for (let dy = -4; dy <= 4 && !posto; dy++) for (let dx = -4; dx <= 4; dx++) {
+        const nx = x + dx, ny = y + dy, d = distT(nx, ny, x, y);
+        if (d >= 2 && d <= 4 && isWalkable(nx, ny, SURF) && lineClear(nx, ny, x, y, SURF)) {
+          posto = [nx, ny, d]; alvo = [x, y]; break;
+        }
+      }
+    }
+    let semAndar = 0, andou = false;
+    if (posto) for (let i = 0; i < 40; i++) {
+      P.z = SURF; P.x = P.px = posto[0]; P.y = P.py = posto[1]; P.stepD = 0;
+      if (P.colhido) delete P.colhido[chaveTile(alvo[0], alvo[1], SURF)];
+      P.bag.length = 0; G.colheitaCd = 0; G.path = null; G.pendingColheita = null;
+      colher(alvo[0], alvo[1]);
+      if (G.path) { andou = true; break; }        // pediu para andar: não alcançou de longe
+      if (P.bag.length) semAndar++;
+    }
+    globalThis.pescaLonge = { dist: posto && posto[2], semAndar, andou, achou: !!posto };
+  })();`, ctx);
+  A(S.pescaLonge.achou, 'achou um posto de pesca a 2+ tiles da água com linha limpa');
+  A(!S.pescaLonge.andou, 'pescar de longe não manda o personagem andar até a margem');
+  A(S.pescaLonge.semAndar > 10, `a vara pesca a ${S.pescaLonge.dist} tiles sem sair do lugar (${S.pescaLonge.semAndar}/40)`);
+
+  /* As duas metades do pedido, juntas: uma sem a outra deixaria metade da curva
+     de skill sem sentido — êxito sem raridade faz skill alta render mais lixo. */
+  A(S.COLETA_EXITO(90) > S.COLETA_EXITO(10) + .2,
+    `skill alta acerta bem mais que skill baixa (${(S.COLETA_EXITO(10) * 100).toFixed(0)}% → ${(S.COLETA_EXITO(90) * 100).toFixed(0)}%)`);
+  A(S.vAlto > S.vBaixo * 1.5,
+    `skill alta também tira coisa MELHOR, não só mais vezes (${S.vBaixo.toFixed(0)}g → ${S.vAlto.toFixed(0)}g por colheita)`);
 }
 
 /* 31. imbuement: gasta material e ouro, entra como afixo, um por peça, e

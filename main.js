@@ -12,8 +12,15 @@ const RAIZ = __dirname;
 // personagem criado numa porta nao some quando voce troca de jeito de abrir
 const PORTA = 8765;
 const DEV = process.argv.includes('--dev');
+/* .ico e nao .png: o Windows quer a folha multi-tamanho (16 a 256) pra barra de
+   tarefas e alt-tab sem reamostrar. Caminho errado aqui nao da erro nenhum --
+   o Electron cai no atomo padrao em silencio, que foi como o app.png inexistente
+   passou batido. O test_launcher confere que o arquivo existe. */
+const ICONE = path.join(RAIZ, 'build', 'icon.ico');
 const TIPOS = {
-  '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
+  // charset explicito: sem ele o navegador adivinha, e um HTML sem <meta charset>
+  // proprio sai com acento quebrado (foi o que aconteceu com o tasks.html)
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml',
   '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav',
@@ -34,7 +41,7 @@ function abrirJanela() {
   Menu.setApplicationMenu(null);
   const win = new BrowserWindow({
     width: 1280, height: 800, backgroundColor: '#0b0c0f', show: false,
-    icon: path.join(RAIZ, 'assets/icons/app.png'),   // barra de titulo, alt-tab e barra de tarefas
+    icon: ICONE,   // barra de titulo, alt-tab e barra de tarefas
   });
   win.maximize();
   win.once('ready-to-show', () => win.show());
@@ -52,6 +59,10 @@ function iniciar() {
   // personagem por cima uma da outra e a ultima a fechar ganharia. O return e
   // obrigatorio -- so o app.quit() nao impede o whenReady de rodar e abrir a 2a.
   if (!app.requestSingleInstanceLock()) return app.quit();
+
+  /* Sem isto o Windows agrupa a janela sob o electron.exe e o botao da barra de
+     tarefas herda o icone DELE, mesmo com o `icon:` da janela certo. */
+  app.setAppUserModelId('com.thaira.rpg');
 
   app.on('second-instance', () => {
     const [win] = BrowserWindow.getAllWindows();

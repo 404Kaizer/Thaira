@@ -13,6 +13,11 @@ const MAGIC_BASE = 400; // mana necessária p/ magic level 1
    Cura e utilidade ficam de fora do piso de propósito — elas não competem com a
    arma por dano, e travar `exura` em 2 s tiraria a defesa de quem conjura. */
 const ATAQUE_MS = 2000;
+/* Alcance do tiro, em tiles. Vale para arco/besta e para a VARA DE PESCA — a
+   linha chega tão longe quanto a flecha, e é o mesmo número de propósito: quem
+   mexer no alcance do tiro tem de ver a pesca acompanhar. Estava cravado dentro
+   do `weaponInfo`. */
+const ALCANCE_TIRO = 5;
 /* DEFESA: um contador só, e uma conta só.
    Havia dois sistemas empilhados — armadura por subtração plana e escudo por
    bloqueio tudo-ou-nada — e cada um criava o próprio limiar de imunidade. Com
@@ -178,7 +183,10 @@ const ITEMS = {};
    Trocar aqui vale em inventário, hotbar, loja e bestiário de uma vez, porque
    todos renderizam `ico` via innerHTML. Casa por id, depois tipo de arma,
    depois slot, depois emoji — do mais específico para o mais genérico. */
-const SPRITE_ID = { dagger: 'dagger' };
+/* `green_wood` empresta a arte da madeira comum de propósito: é o mesmo material
+   em outra qualidade, e o §12 pede que o mesmo item se pareça consigo mesmo. O
+   que separa os dois é o nome e o preço, não o desenho. */
+const SPRITE_ID = { dagger: 'dagger', green_wood: 'wood' };
 const SPRITE_WT = { sword: 'sword', axe: 'axe', distance: 'bow', club: 'mace' };
 const SPRITE_SLOT = { helmet: 'helmet', armor: 'armor', shield: 'shield', boots: 'boots' };
 /* '🔮' é o ico padrão de toda runa: as 7 já eram idênticas entre si, então o
@@ -233,6 +241,13 @@ item({ id: 'magic_sword', n: 'Espada Mágica', ico: '✨', slot: 'weapon', wt: '
 
 item({ id: 'hand_axe', n: 'Machadinha', ico: '🪓', slot: 'weapon', wt: 'axe', atk: 9, def: 5, lvl: 0, price: 25 });
 item({ id: 'axe', n: 'Machado', ico: '🪓', slot: 'weapon', wt: 'axe', atk: 15, def: 9, lvl: 0, price: 250 });
+/* Ferramentas de coleta. Ocupam o slot da ARMA: minerar exige guardar a espada,
+   e é essa a escolha de jogo — você colhe desarmado. Por isso são armas ruins de
+   verdade em vez de zeradas: quem for pego colhendo ainda revida, mal.
+   O machado de lenhador não existe porque `axe` e `hand_axe` já servem — ver
+   COLETA.woodcut, que aceita os dois. */
+item({ id: 'pickaxe', n: 'Picareta', slot: 'weapon', wt: 'axe', atk: 7, def: 3, lvl: 0, price: 90 });
+item({ id: 'fishing_rod', n: 'Vara de Pesca', slot: 'weapon', wt: 'club', atk: 3, def: 1, lvl: 0, price: 60 });
 item({ id: 'battle_axe', n: 'Machado de Batalha', ico: '🪓', slot: 'weapon', wt: 'axe', atk: 21, def: 13, lvl: 10, price: 1200 });
 item({ id: 'war_axe', n: 'Machado de Guerra', ico: '🪓', slot: 'weapon', wt: 'axe', atk: 32, def: 18, lvl: 25, price: 9000 });
 item({ id: 'stonecutter_axe', n: 'Machado Corta-Pedra', ico: '🪓', slot: 'weapon', wt: 'axe', atk: 48, def: 26, lvl: 45, price: 70000, b: { atkPct: 0.05 } });
@@ -370,7 +385,7 @@ item({ id: 'skull', n: 'Crânio', ico: '💀', stack: true, sell: 34 });
 item({ id: 'orc_tooth', n: 'Dente de Orc', ico: '🦷', stack: true, sell: 58 });
 item({ id: 'rotten_flesh', n: 'Carne Podre', ico: '🥩', stack: true, sell: 11 });
 item({ id: 'worm_slime', n: 'Gosma de Verme', ico: '💧', stack: true, sell: 24 });
-item({ id: 'copper_ore', n: 'Minério de Cobre', ico: '🟫', stack: true, sell: 60 });
+item({ id: 'copper_ore', n: 'Minério de Cobre', ico: '🟫', stack: true, sell: 5 });
 item({ id: 'iron_ore', n: 'Minério de Ferro', ico: '🪨', stack: true, sell: 145 });
 item({ id: 'minotaur_leather', n: 'Couro de Minotauro', ico: '🟫', stack: true, sell: 130 });
 item({ id: 'minotaur_horn', n: 'Chifre de Minotauro', ico: '📯', stack: true, sell: 240 });
@@ -392,13 +407,32 @@ item({ id: 'soul_shard', n: 'Fragmento de Alma', ico: '👻', stack: true, sell:
 item({ id: 'void_shard', n: 'Estilhaço do Vazio', ico: '🟪', stack: true, sell: 5200 });
 item({ id: 'seraph_feather', n: 'Pena de Serafim', ico: '🪶', stack: true, sell: 6400 });
 item({ id: 'primordial_heart', n: 'Coração Primordial', ico: '❤️‍🔥', stack: true, sell: 14000 });
-/* colheita — o que sai da pedra, da árvore e da água */
+/* colheita — o que sai da pedra, da árvore e da água.
+
+   Os preços destes caíram de 3× a 5× (carvão 20→6, cobre 60→14, prata 380→70,
+   mithril 1500→300, resina 30→18, lei 48→40). Medido antes: minerar rendia
+   ~100 de ouro por colheita já na skill inicial e ~23.000/min na skill 45,
+   contra os ~14.300 que um bicho de tier 9 larga por morte — parado, sem risco,
+   desde o nível 1. Coleta é ofício seguro: tem de pagar menos que caçar.
+
+   Só entra aqui quem é EXCLUSIVO de coleta. Ferro, gemas, pérolas e barra de
+   ouro também caem de monstro, e o preço deles está amarrado à régua do #28
+   (dificuldade × natureza) — mexer neles moveria o loot do jogo inteiro. Esses
+   ficam com o preço que têm e viram linha rara na tabela de colheita. */
 item({ id: 'wood', n: 'Madeira', ico: '🪵', stack: true, sell: 6 });
-item({ id: 'hard_wood', n: 'Madeira de Lei', ico: '🪵', stack: true, sell: 48 });
-item({ id: 'resin', n: 'Resina', ico: '🟠', stack: true, sell: 30 });
-item({ id: 'coal', n: 'Carvão', ico: '⬛', stack: true, sell: 20 });
-item({ id: 'silver_ore', n: 'Minério de Prata', ico: '⬜', stack: true, sell: 380 });
-item({ id: 'mithril_ore', n: 'Minério de Mithril', ico: '🟦', stack: true, sell: 1500 });
+item({ id: 'hard_wood', n: 'Madeira de Lei', ico: '🪵', stack: true, sell: 40 });
+item({ id: 'resin', n: 'Resina', ico: '🟠', stack: true, sell: 18 });
+item({ id: 'coal', n: 'Carvão', ico: '⬛', stack: true, sell: 6 });
+item({ id: 'silver_ore', n: 'Minério de Prata', ico: '⬜', stack: true, sell: 40 });
+item({ id: 'mithril_ore', n: 'Minério de Mithril', ico: '🟦', stack: true, sell: 180 });
+/* A escada de qualidade que faltava. Arte própria em todos: `herb`, `mushroom`,
+   `shell` e `worm` já tinham PNG em assets/icons e não eram item nenhum — então
+   diversificar não custou arte nova nem um emoji a mais (§17). */
+item({ id: 'green_wood', n: 'Madeira Verde', ico: '🪵', stack: true, sell: 2 });
+item({ id: 'herb', n: 'Erva do Mato', ico: '🌿', use: { mp: 30 }, stack: true, sell: 9 });
+item({ id: 'mushroom', n: 'Cogumelo Pálido', ico: '🍄', use: { hp: 30 }, food: { t: 120, v: 2 }, stack: true, sell: 12 });
+item({ id: 'shell', n: 'Concha', ico: '🐚', stack: true, sell: 4 });
+item({ id: 'worm', n: 'Minhoca', ico: '🪱', stack: true, sell: 1 });
 /* mantimentos — a comida barata que a loja do templo passa a vender. Cura pouco
    e enche pouco: é o que segura o nível baixo até a primeira poção, e o que dá
    uso ao ouro miúdo. A arte veio das folhas de loot. */
@@ -408,9 +442,13 @@ item({ id: 'egg', n: 'Ovo', ico: '🥚', use: { hp: 22 }, food: { t: 80, v: 2 },
 item({ id: 'grapes', n: 'Cacho de Uvas', ico: '🍇', use: { hp: 30 }, food: { t: 110, v: 2 }, stack: true, price: 12, sell: 3 });
 item({ id: 'cheese', n: 'Queijo', ico: '🧀', use: { hp: 35 }, food: { t: 150, v: 3 }, stack: true, price: 18, sell: 5 });
 item({ id: 'honeycomb', n: 'Favo de Mel', ico: '🍯', use: { hp: 60 }, food: { t: 200, v: 4 }, stack: true, sell: 24 });
-item({ id: 'fish', n: 'Peixe', ico: '🐟', use: { hp: 40 }, food: { t: 110, v: 3 }, stack: true, sell: 5 });
-item({ id: 'big_fish', n: 'Peixe Graúdo', ico: '🐠', use: { hp: 140 }, food: { t: 300, v: 6 }, stack: true, sell: 40 });
-item({ id: 'shrimp', n: 'Crustáceo', ico: '🦐', use: { hp: 70 }, food: { t: 180, v: 4 }, stack: true, sell: 18 });
+/* A pesca paga em sustento, não em ouro: o preço de venda caiu e a comida subiu.
+   Peixe graúdo passa a ser a melhor regeneração que se consegue sem matar nada
+   (t 360/v 7 contra 240/5 do presunto comprado e 480/8 do presunto de dragão),
+   e é o que faz caçar longe do templo durar. */
+item({ id: 'fish', n: 'Peixe', ico: '🐟', use: { hp: 40 }, food: { t: 130, v: 3 }, stack: true, sell: 5 });
+item({ id: 'big_fish', n: 'Peixe Graúdo', ico: '🐠', use: { hp: 160 }, food: { t: 360, v: 7 }, stack: true, sell: 30 });
+item({ id: 'shrimp', n: 'Crustáceo', ico: '🦐', use: { hp: 80 }, food: { t: 210, v: 5 }, stack: true, sell: 12 });
 
 /* tesouros — não servem pra nada além de virar ouro na loja */
 item({ id: 'white_pearl', n: 'Pérola Branca', ico: '⚪', stack: true, sell: 170 });
@@ -843,6 +881,10 @@ const SHOP_STOCK = ['weak_health_potion', 'health_potion', 'strong_health_potion
   'crossbow', 'arbalest', 'steel_crossbow', 'clerical_mace', 'bright_sword', 'halberd',
   'wand_of_vortex', 'wand_of_dragonbreath', 'wand_of_decay', 'wand_of_cosmic_energy', 'wand_of_inferno',
   'snakebite_rod', 'moonlight_rod', 'terra_rod', 'springsprout_rod', 'hailstorm_rod',
+  /* As ferramentas de coleta são de loja e não de loot: sem elas o ofício não
+     abre, e ofício que depende de sorte no drop não é ofício. O machado já
+     estava aqui e serve de lenhador. */
+  'pickaxe', 'fishing_rod',
   'apple', 'bread', 'egg', 'grapes', 'cheese',
   'wooden_shield', 'brass_shield', 'leather_helmet', 'soldier_helmet',
   'leather_armor', 'chain_armor', 'scale_armor', 'leather_legs', 'brass_legs', 'leather_boots',
@@ -1853,21 +1895,55 @@ const HUNTS = [
      tab    [item, chance, nívelMínimo] — a linha só entra no sorteio se a skill
             alcançou o nível; é isso que faz subir a skill VALER, e não só
             aumentar um número na ficha. Uma linha sai por colheita. */
+/* Cada ofício tem uma ESCADA de qualidade e uma ferramenta própria.
+
+   `tiles` — a mineração perdeu `CWALL`. Caverna é FEITA de parede de caverna:
+   com ela na lista havia 46.899 tiles mineráveis contra 3.510 árvores e 3.463
+   tiles de água alcançáveis, o que fazia da mineração o único recurso sem fim
+   do jogo. Só `ROCK` deixa ~2.000, na mesma ordem dos outros dois — minerar
+   voltou a ser procurar veio, como lenhar é procurar árvore.
+
+   `ferramenta` — lista de ids que servem. A picareta e a vara existem só para
+   isso; o machado NÃO tem versão de lenhador porque `axe` e `hand_axe` já são
+   machados, e obrigar um item novo idêntico seria tabela por tabela.
+
+   `alcance` — de quantos tiles se colhe. Picareta e machado exigem encostar; a
+   VARA alcança `ALCANCE_TIRO`, o mesmo do arco, e ainda precisa de linha limpa:
+   ninguém pesca através de uma montanha.
+
+   Sem `ico`: o §17 veta emoji como ícone de gameplay, e o pá/machado/anzol que
+   abriam a linha do log eram justamente isso. O log fala por escrito.
+
+   `n` é o infinitivo ("para MINERAR você precisa de...") e `v` a terceira pessoa
+   ("você MINERA e obtém..."). Um só dos dois dava "Você minerar e obtém".
+
+   `tab` — [id, chance, nível]. A ordem importa: o sorteio desce da linha mais
+   rara para a mais comum (ver `colher`), então escreva da rara para a comum. A
+   última linha é o consolo, o que sai quando nada melhor cai. */
 const COLETA = {
   mining: {
-    tiles: ['ROCK', 'CWALL'], n: 'minerar', ico: '⛏️', seg: 90,
-    tab: [['iron_ore', 1, 10], ['copper_ore', .5, 10], ['coal', .8, 10], ['small_ruby', .10, 20], ['small_sapphire', .10, 20],
-    ['silver_ore', .35, 25], ['small_diamond', .07, 40], ['mithril_ore', .18, 45], ['gold_ingot', .05, 55]]
+    tiles: ['ROCK'], n: 'minerar', v: 'minera', seg: 90, alcance: 1, ferramenta: ['pickaxe'],
+    tab: [['gold_ingot', .0025, 65], ['small_diamond', .005, 55], ['small_sapphire', .012, 35],
+    ['small_ruby', .012, 35], ['mithril_ore', .07, 48], ['iron_ore', .10, 18],
+    ['silver_ore', .20, 28], ['copper_ore', .55, 10], ['coal', 1, 10]]
   },
   woodcut: {
-    tiles: ['TREE'], n: 'cortar lenha', ico: '🪓', seg: 60,
-    tab: [['wood', 1, 10], ['resin', .3, 15], ['hard_wood', .35, 25], ['brown_mushroom', .12, 10], ['honeycomb', .1, 20]]
+    tiles: ['TREE'], n: 'cortar lenha', v: 'corta lenha', seg: 60, alcance: 1, ferramenta: ['axe', 'hand_axe'],
+    tab: [['honeycomb', .12, 25], ['mushroom', .15, 15], ['brown_mushroom', .18, 10], ['hard_wood', .20, 35],
+    ['resin', .22, 20], ['herb', .30, 10], ['wood', .70, 10], ['green_wood', 1, 10]]
   },
   fishing: {
-    tiles: ['WATER'], n: 'pescar', ico: '🎣', seg: 30,
-    tab: [['fish', 1, 10], ['shrimp', .3, 15], ['big_fish', .3, 25], ['white_pearl', .05, 30], ['black_pearl', .03, 45]]
+    tiles: ['WATER'], n: 'pescar', v: 'pesca', seg: 30, alcance: ALCANCE_TIRO, ferramenta: ['fishing_rod'],
+    tab: [['shimmering_pearl', .004, 65], ['black_pearl', .015, 50], ['white_pearl', .03, 35],
+    ['big_fish', .25, 28], ['shrimp', .30, 18], ['shell', .30, 10], ['fish', .70, 10], ['worm', 1, 10]]
   }
 };
+/* Quanto a skill pesa nas duas pontas. `COLETA_EXITO` é a chance de a tentativa
+   render alguma coisa: 41% na skill inicial, 62% na 45, 83% na 80. `COLETA_SORTE`
+   é o quanto cada linha fica mais provável por ponto de skill ACIMA do que ela
+   exige — é o que faz a skill melhorar a raridade, e não só destravar linha. */
+const COLETA_EXITO = (nivel) => Math.min(.90, .35 + nivel * .006);
+const COLETA_SORTE = .015;
 
 /* ----------------------------------------------------------- imbuements */
 /* A ideia é do Tibia: gastar despojo de monstro para pôr um bônus no que você

@@ -199,7 +199,7 @@ function weaponInfo() {
   // a varinha atira na cor do que ela lança: o roxo fixo fazia a Varinha do
   // Inferno cuspir a mesma bola da Varinha da Podridão. Roxo só sobra de reserva
   if (s.wt === 'wand') return { wt: 'wand', dmg: s.dmg, range: 4, el: s.el, col: (ELEM[s.el] || 0).cor || 0xbb77ff };
-  if (s.wt === 'distance') return { wt: 'distance', atk: s.atk, range: 5, col: 0xd9c48a };
+  if (s.wt === 'distance') return { wt: 'distance', atk: s.atk, range: ALCANCE_TIRO, col: 0xd9c48a };
   return { wt: s.wt, atk: s.atk, range: 1 };
 }
 
@@ -2024,38 +2024,79 @@ function colher(x, y) {
   /* Recurso é tile que NÃO dá pé (pedra, árvore, água), então não dá para pedir
      caminho até ele — o pathfinding recusa o destino. Anda até um vizinho e
      deixa marcado; `afterStep` colhe ao chegar, do mesmo jeito que o saque. */
-  if (distT(...tileDe(P), x, y) > 1) {
-    const v = DIRS.map(([dx, dy]) => [x + dx, y + dy])
-      .filter(([nx, ny]) => isWalkable(nx, ny, P.z))
-      .sort((a, b) => distT(P.x, P.y, a[0], a[1]) - distT(P.x, P.y, b[0], b[1]))[0];
-    const p = v && findPath(P.x, P.y, v[0], v[1], P.z);
+  /* De onde dá para trabalhar este tile. Picareta e machado pedem encostar
+     (alcance 1); a vara alcança de longe, como o arco. A linha limpa vale só
+     para o alcance longo — a curta é sempre vizinha, e `lineClear` não olha o
+     tile de destino, então mirar na água (que não dá pé) funciona. */
+  const alc = c.alcance || 1;
+  const daquiDa = (px, py) => distT(px, py, x, y) <= alc
+    && (alc <= 1 || lineClear(px, py, x, y, P.z));
+  if (!daquiDa(...tileDe(P))) {
+    const postos = [];
+    for (let dy = -alc; dy <= alc; dy++) for (let dx = -alc; dx <= alc; dx++) {
+      const nx = x + dx, ny = y + dy;
+      if (isWalkable(nx, ny, P.z) && daquiDa(nx, ny)) postos.push([nx, ny]);
+    }
+    postos.sort((a, b) => distT(P.x, P.y, a[0], a[1]) - distT(P.x, P.y, b[0], b[1]));
+    /* O mais perto pode não ter caminho (ilha do outro lado da água). Tenta em
+       ordem em vez de desistir no primeiro — sem isso pescar da margem errada
+       dizia "não dá para chegar lá" com a margem certa a três passos. */
+    let p = null;
+    for (const v of postos.slice(0, 8)) { p = findPath(P.x, P.y, v[0], v[1], P.z); if (p) break; }
     if (p) { G.path = p; G.pendingColheita = [x, y]; } else log('Não dá para chegar lá.');
     return true;
   }
   if (G.now < (G.colheitaCd || 0)) return true;                    // uma ação por vez
+  /* Ferramenta certa, no slot da ARMA. É a escolha de jogo: colher custa andar
+     desarmado. Vale a lista inteira — lenhar aceita machado e machadinha. */
+  const arma = P.eq.weapon && P.eq.weapon.id;
+  if (c.ferramenta && !c.ferramenta.includes(arma)) {
+    const nomes = c.ferramenta.map(id => ITEMS[id].n).join(' ou ');
+    log(`Para ${c.n} você precisa de ${nomes} equipado.`, 'bad');
+    sfx('error');
+    return true;
+  }
   const k = chaveTile(x, y, P.z), volta = colhidoEm(k);
   if (Date.now() < volta) {
     log(`Aqui já foi ${c.n === 'pescar' ? 'pescado' : 'colhido'} — volte em ${Math.ceil((volta - Date.now()) / 1000)}s.`);
     return true;
   }
   G.colheitaCd = G.now + 1200;
+  const nivel = skillOf(c.skill);
+  /* Tentar não é conseguir. A falha come o tempo da ação e treina — mas NÃO
+     esgota o ponto, senão errar valeria por colher e o recurso sumiria do mesmo
+     jeito. É o que faz a curva de skill significar alguma coisa: antes o nível
+     só abria linha melhor na tabela, e toda batida rendia. */
+  addSkillTry(c.skill, 3);
+  if (Math.random() >= COLETA_EXITO(nivel)) {
+    sfx('error', x, y);
+    impacto(x, y, 'erro');
+    float(x, y, c.skill === 'fishing' ? 'escapou' : 'nada', '#8f8874');
+    return true;
+  }
   P.colhido = P.colhido || {};
   P.colhido[k] = Date.now() + c.seg * 1000;
-  const nivel = skillOf(c.skill);
-  /* Uma linha por colheita, sorteada entre as que o nível já alcança e SÓ entre
-     elas: subir a skill não deixa o comum mais raro, abre linha nova. Peso pela
-     chance, então mithril continua sendo mithril mesmo com 60 de mineração. */
-  const abertas = c.tab.filter(([, , lv]) => nivel >= lv);
-  const total = abertas.reduce((a, [, ch]) => a + ch, 0);
-  let r = Math.random() * total, escolha = abertas[0];
-  for (const linha of abertas) { r -= linha[1]; if (r <= 0) { escolha = linha; break; } }
-  const qtd = 1 + Math.floor(Math.random() * (1 + nivel / 25));
+  /* Do mais raro para o mais comum, parando no primeiro que cair. A skill acima
+     do que a linha exige aumenta a chance DELA, então subir mineração melhora o
+     que sai e não só o que pode sair — a última linha é o consolo de quem não
+     tirou nada melhor. (Isto substitui a régua antiga, de peso uniforme entre as
+     linhas abertas, em que mithril continuava igualmente raro na skill 60.) */
+  let escolha = null;
+  for (const linha of c.tab) {
+    if (nivel < linha[2]) continue;
+    if (Math.random() < linha[1] * (1 + (nivel - linha[2]) * COLETA_SORTE)) { escolha = linha; break; }
+  }
+  if (!escolha) escolha = c.tab[c.tab.length - 1];
+  /* Quantidade é coisa de VOLUME, não de achado: um veio bom dá três carvões, mas
+     ninguém tira quatro barras de ouro de uma britada. Sem esta linha a skill 80
+     multiplicava também a gema e a barra — medido, era o que sozinho levava a
+     mineração de volta aos 20.000 de ouro por minuto. */
+  const qtd = escolha[1] >= .5 ? 1 + Math.floor(Math.random() * (1 + nivel / 25)) : 1;
   const it = mkItem(escolha[0], 0, qtd);
-  addSkillTry(c.skill, 3);
   sfx(c.skill === 'fishing' ? 'loot' : 'hit', x, y);
   fxBurst(x, y, c.skill === 'fishing' ? 0x5aa9ff : 0xc9a05a, 0.9);
   if (!bagAdd(it)) spawnDrop(P.x, P.y, P.z, it);                   // mochila cheia: cai no chão
-  log(`${c.ico} Você ${c.n} e obtém ${qtd}× ${ITEMS[escolha[0]].n}.`, 'good');
+  log(`Você ${c.v} e obtém ${qtd}× ${ITEMS[escolha[0]].n}.`, 'good');
   float(x, y, '+' + qtd + ' ' + ITEMS[escolha[0]].n, '#9fd4a0');
   renderInv(); renderBars();
   return true;
