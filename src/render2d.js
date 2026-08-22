@@ -416,6 +416,9 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
         g2.drawImage(poiSprite(p.id, !!(P.seen && P.seen['poi' + p.uid])),
           telaX(p.x), telaY(p.y), t, t);
     drawBlood(z, t);
+    // gelo e energia são chão tratado: ficam sob os pés, aqui mesmo. Sem
+    // entidades no andar (bucket nulo) todo campo sai aqui, que dá no mesmo.
+    drawCampos(z, t, c => !bucket || !CAMPO_ACIMA[c.el]);
     /* Antes do corpo, pela mesma regra do marcador de alvo: quadro no chão é
        marca do TILE, não do que está em cima dele — desenhado por último ele
        riscava o cadáver ao meio. */
@@ -471,6 +474,9 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
     for (let x = x0; x <= x1; x++) { const l = bucket.get(y * W + x); if (l) fila.push(...l); }
     if (fila.length > 1) fila.sort((a, b) => peY(a) - peY(b));
     for (const it of fila) drawEntity(it, telaX(it.bx), telaY(it.by), t);
+    // e o campo que ENVOLVE sai por cima — desta fileira só, para não tapar
+    // criatura de outro tile
+    drawCampos(z, t, c => CAMPO_ACIMA[c.el], y);
   }
   }
 }
@@ -573,6 +579,7 @@ function _criaturaCrua(e) {
    bota saíam do tamanho de uma calça — anel do tamanho do tile. A régua é o
    slot; o que não está na tabela ocupa o tile como antes. */
 const CHAO_ESCALA = { ring: .34, amulet: .78, boots: .68, light: .70, helmet: .80 };
+const CHAO_MOEDA = { '1': .34, few: .58, many: .82 };
 /* Despojo e comida não têm slot, então todos caíam do MESMO tamanho: ovo igual a
    cabeça de dragão, pérola igual a tronco. A régua aqui é o tamanho da coisa no
    mundo, em fração do tile — só entra quem foge do padrão, o resto continua .88.
@@ -644,14 +651,17 @@ function drawEntity(it, sx, sy, t) {
        boneco: é a própria silhueta, do mesmo tamanho, deslocada para o sudeste
        (o sol é fixo no noroeste). Assim a sombra escapa por todas as bordas do
        desenho, que é o que um objeto largado no chão faz. */
-    const def = ITEMS[it.d.it.id] || 0, ico = itemIcon(def.spr);
+    /* moeda escolhe o monte pela quantidade; o resto tem sprite fixo */
+    const def = ITEMS[it.d.it.id] || 0;
+    const spr = def.moeda ? def.moeda + '_' + COIN_MONTE(it.d.it.count || 1) : def.spr;
+    const ico = itemIcon(spr);
     if (!ico) {
       /* Sem PNG o item continua sendo o emoji da mochila: o mesmo item não pode
          ter duas caras, uma no inventário e um quadradinho no chão. O quadrado
          da raridade sobrou para quem TEM arte e ainda não recebeu o arquivo —
          hoje só antes da pré-carga do início. */
       g2.save();
-      if (!def.spr) {
+      if (!spr) {
         g2.font = `${Math.round(t * .58)}px serif`;
         g2.textAlign = 'center'; g2.textBaseline = 'middle';
         g2.fillStyle = '#fff';
@@ -670,7 +680,10 @@ function drawEntity(it, sx, sy, t) {
        do bloom, igual à da mão, senão o chão vira lanterna de dia. */
     if (def.luz) luzes.push({ x: sx + t / 2, y: sy + t / 2, cor: CHAMA_COR,
       a0: .9 * chamaF, a1: .3 * chamaF, tocha: 1, r: t * 2 * chamaTremor() });
-    const d = t * (CHAO_ITEM[def.id] || CHAO_ESCALA[def.slot] || .88), x = sx + (t - d) / 2, y = sy + (t - d) / 2;
+    // moeda escala pelo monte, não pelo id: é a quantidade que muda o tamanho
+    const esc = def.moeda ? CHAO_MOEDA[COIN_MONTE(it.d.it.count || 1)]
+      : (CHAO_ITEM[def.id] || CHAO_ESCALA[def.slot] || .88);
+    const d = t * esc, x = sx + (t - d) / 2, y = sy + (t - d) / 2;
     const sil = silhouette(ico), K = d / ico.width, pad = (sil.width - ico.width) / 2 * K;
     /* Dois passes da mesma silhueta: o curto gruda no contorno — é ele que
        segura o item quando o chão já está escuro e o deslocamento sumiria — e o
@@ -727,6 +740,20 @@ function drawEntity(it, sx, sy, t) {
   const dx = sx + ox + lx + t / 2 - spr.cx * K, dy = sy + oy + ly + t * CHAO - spr.feet * Ky,
         dw = spr.width * K, dh = spr.height * Ky;
   g2.drawImage(spr, dx, dy, dw, dh);
+  /* Estado elemental: o CORPO tingido na cor do elemento, pulsando por cima do
+     sprite — o congelado fica azul, o queimando alaranjado. Junto com a
+     partícula contínua que o `frame` emite (brasa que sobe, caco que cai, raio
+     que estala), é o estado que se lê no boneco e não num selo à parte.
+     Um anel no chão foi tentado antes e não servia: o corpo do minotauro é mais
+     largo que o tile e comia o anel inteiro. */
+  const flash = estadoFlash(e);
+  if (flash > 0) {
+    g2.save();
+    // acende forte e apaga: o quadrado deixa a queda rápida no fim, como o clarão
+    g2.globalAlpha = .78 * flash * flash;
+    g2.drawImage(tingido(spr, cssCol(estiloEstado(e.estadoK).cor)), dx, dy, dw, dh);
+    g2.restore();
+  }
   /* Clarão do acerto: o MESMO sprite por cima, achatado em branco. brightness(0)
      zera a cor e mantém o alfa, invert(1) leva o preto ao branco — sai a
      silhueta exata sem máscara nem canvas extra. Some em ~90ms; o filtro só
@@ -764,6 +791,64 @@ function drawBlood(z, t) {
   g2.globalAlpha = 1;
   g2.globalCompositeOperation = 'source-over';
 }
+
+/* Campo no chão (#33). O desenho vem de `campoSprite` em art.js: um sprite por
+   elemento e por quadro, no modelo do Tibia. Aqui só se escolhe o quadro e se
+   estampa no tile.
+   O QUADRO É COMPARTILHADO por todos os campos do mesmo elemento, de propósito:
+   com fase por tile, um campo grande vira ruído de trinta animações fora de
+   compasso; em compasso, a área inteira pulsa como uma coisa só, que é como o
+   Tibia lê.
+   A opacidade só serve à MORTE do campo — enquanto ele vive é opaco, porque o
+   jogador precisa saber qual tile machuca, e tile meio transparente responde
+   "mais ou menos". A versão anterior tingia o chão e soltava partícula, e não
+   dava para dizer se era fogo ou veneno: cor sozinha não é identidade. */
+/* `pred` escolhe quais elementos entram e `linha` restringe a uma fileira.
+   Os dois existem por causa da ordem: gelo e energia saem no passe do chão, e
+   fogo e veneno saem DENTRO do laço de fileiras, logo depois das entidades
+   daquela fileira. Desenhar todos depois de tudo (foi a primeira versão) fazia
+   o fogo de um tile tapar a criatura de outro — o campo tem de passar por cima
+   de quem está em pé NELE, e por cima de mais ninguém. */
+function drawCampos(z, t, pred, linha) {
+  const lim = VW / t + 3;
+  /* MESMA origem de tile do drawFloor, e não a do `w2s`: aquela devolve o centro
+     do tile (VW/2) e esta o canto (VW/2 − t/2). Estampar a partir do centro
+     jogava o campo meio tile para baixo e para a direita, o que na tela parecia
+     um campo MAIOR que o tile. */
+  const dz = (P.z - z) * t, meio = VW / 2 - t / 2, meioY = VH / 2 - t / 2;
+  const q = Math.floor(G.now / CAMPO_MS) % CAMPO_FRAMES;
+  // ponytail: varredura linear por fileira (≤300 campos × ~20 fileiras). Se um
+  // dia pesar, indexar G.campos por y uma vez por quadro corta para uma passada.
+  for (const c of G.campos) {
+    if (c.z !== z) continue;
+    if (linha !== undefined && c.y !== linha) continue;
+    if (pred && !pred(c)) continue;
+    if (Math.abs(c.x - camX) > lim || Math.abs(c.y - camY) > lim) continue;
+    const k = (G.now - c.t) / c.dur;
+    if (k >= 1) continue;
+    /* A FASE é quem conta a história, não o alfa: o desenho muda de verdade a
+       cada degrau (chama vira brasa, poça vira mancha) para o jogador saber
+       olhando se aquele tile ainda dói. O alfa só apaga os últimos instantes. */
+    const fase = campoFase(k);
+    g2.globalAlpha = k < .93 ? 1 : Math.max(0, (1 - k) * 14);
+    const sx = Math.round((c.x - camX) * t - dz + meio);
+    const sy = Math.round((c.y - camY) * t - dz + meioY);
+    g2.drawImage(campoSprite(c.el, q, campoVarDe(c.x, c.y), fase), sx, sy, t, t);
+    /* GLOW na cor do elemento, entrando na MESMA lista das outras luzes do jogo
+       (tocha, projétil mágico, impacto) — assim o passe de luz e o bloom leem a
+       mesma coisa e não há como um acender o que o outro não acende.
+       A força sai do `luz` que a tabela ELEM já declara, então fogo e energia
+       brilham forte e terra quase nada; o piso de .4 existe porque campo no chão
+       é matéria acesa mesmo quando o elemento não é luminoso — sem ele o veneno
+       não teria brilho nenhum. E cai por fase: brasa apagando ilumina pouco. */
+    const e = ELEM[c.el];
+    const lf = Math.max(.4, e.luz) * [1, .62, .3][fase];
+    luzes.push({ x: sx + t / 2, y: sy + t / 2, r: t * 1.5 * lf,
+      cor: cssCol(e.cor), a0: .8 * lf, a1: .24 * lf });
+  }
+  g2.globalAlpha = 1;
+}
+
 
 function drawEffects(t) {
   const S = CAM.scale;

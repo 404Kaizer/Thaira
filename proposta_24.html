@@ -1,0 +1,501 @@
+<meta charset="utf-8">
+<title>Proposta de alinhamento — #24 habilidades de criatura</title>
+<style>
+  :root{
+    --ink:#0b0c0f; --surface:#15151a; --surface2:#1e1c18; --raise:#26241f;
+    --line:#3a352b; --line-soft:#2a261f;
+    --txt:#ddd5c2; --dim:#8f8874; --mute:#6b6558;
+    --gold:#d9a441; --gold2:#f0cd7a;
+    --done:#7fd08a; --wait:#e0a05a; --warn:#e0705f;
+    --serif:"Cinzel","Trajan Pro",Georgia,"Times New Roman",serif;
+    --sans:"Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:ui-monospace,"Cascadia Code",Consolas,"DejaVu Sans Mono",monospace;
+    --measure:74ch;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+      --line:#bdb6a6; --line-soft:#cdc7b9;
+      --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+      --gold:#7d5a15; --gold2:#5e430f;
+      --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+    }
+  }
+  :root[data-theme="light"]{
+    --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+    --line:#bdb6a6; --line-soft:#cdc7b9;
+    --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+    --gold:#7d5a15; --gold2:#5e430f;
+    --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--txt);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px 96px}
+  .col{max-width:var(--measure)}
+  h1,h2,h3,h4{text-wrap:balance;margin:0}
+  a{color:var(--gold2)}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+  header{padding:64px 0 36px;border-bottom:1px solid var(--line)}
+  .eyebrow{font:600 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin-bottom:18px}
+  h1{font:400 clamp(32px,5.5vw,50px)/1.08 var(--serif);letter-spacing:.03em;color:var(--gold2)}
+  .lede{margin-top:20px;color:var(--dim);font-size:17px}
+  .lede b{color:var(--txt);font-weight:600}
+
+  section{padding:48px 0;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:0}
+  h2{font:600 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+     margin-bottom:22px;display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  h3{font:600 17px/1.4 var(--sans);color:var(--txt);margin:26px 0 8px}
+  h3:first-child{margin-top:0}
+  h4{font:600 14px var(--sans);color:var(--gold2);margin:18px 0 6px}
+  p{margin:0 0 14px;max-width:var(--measure)}
+  p:last-child{margin-bottom:0}
+  strong{color:var(--gold2);font-weight:600}
+  code{font:0.87em var(--mono);background:var(--surface2);border:1px solid var(--line-soft);
+       border-radius:3px;padding:1px 5px;color:var(--txt);white-space:nowrap}
+  ul,ol{max-width:var(--measure);margin:0 0 14px;padding-left:20px}
+  li{margin-bottom:6px}
+
+  .band{overflow-x:auto;margin:0 -4px 8px}
+  table{border-collapse:collapse;width:100%;min-width:540px;font-variant-numeric:tabular-nums}
+  caption{text-align:left;color:var(--mute);font-size:13px;padding-bottom:10px}
+  th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  thead th{font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);
+           border-bottom:1px solid var(--line)}
+  tbody th{font:400 14px var(--sans);color:var(--txt);font-weight:500}
+  td{font-size:14px;color:var(--dim)}
+  td.n{font-family:var(--mono);font-size:13.5px}
+  td.now{color:var(--gold2);font-family:var(--mono);font-size:13.5px}
+  td.delta{color:var(--done);font-size:13px}
+
+  .fases{display:grid;gap:2px;background:var(--line-soft);border:1px solid var(--line-soft);margin-bottom:8px}
+  .fase{background:var(--surface);padding:20px 22px;display:grid;grid-template-columns:auto 1fr;gap:18px}
+  .num{font:400 13px var(--mono);color:var(--gold);padding:3px 18px 0 0;border-right:1px solid var(--line-soft)}
+  .fase p,.fase li{color:var(--dim);font-size:14.5px}
+  .why{margin-top:10px;padding-left:14px;border-left:2px solid var(--line);color:var(--mute);
+       font-size:13.5px;font-style:italic}
+
+  .fix{background:var(--surface);border:1px solid var(--line-soft);border-left:2px solid var(--done);
+       padding:16px 20px;margin-bottom:2px}
+  .fix h4{margin-top:0}
+  .fix p{font-size:14px;color:var(--dim);margin-bottom:8px}
+  .causa{font-size:13.5px;color:var(--mute)}
+  .causa b{color:var(--warn);font-weight:600}
+
+  .grupo{margin-bottom:28px}
+  .gtitle{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+  ul.itens{list-style:none;margin:0;padding:0;display:grid;gap:2px;max-width:none}
+  ul.itens li{background:var(--surface);border-left:2px solid var(--wait);padding:13px 18px;
+              display:grid;gap:4px;margin:0}
+  ul.itens li.debt{border-left-color:var(--mute)}
+  .it-n{font:600 15px var(--sans);color:var(--txt)}
+  .it-d{font-size:13.5px;color:var(--dim)}
+  .it-t{font-size:12.5px;color:var(--mute);font-family:var(--mono)}
+
+  /* Selo de estado. Retangular e sem preenchimento: é rótulo, não botão. */
+  .tag{font:600 10px var(--sans);letter-spacing:.09em;text-transform:uppercase;
+       padding:2px 6px;border:1px solid var(--line);border-radius:2px;
+       white-space:nowrap;margin-left:6px}
+  .tag.warn{color:var(--warn);border-color:var(--warn)}
+  .tag.wait{color:var(--wait);border-color:var(--wait)}
+  .tag.done{color:var(--done);border-color:var(--done)}
+  ul.itens li.feito{border-left-color:var(--done)}
+  /* Na lista de invariantes (ul simples, com marcador), o que entrou nesta leva
+     ganha o marcador em verde — some no meio das 30 antigas sem isso. */
+  li.feito::marker{color:var(--done)}
+
+  .aviso{background:var(--surface2);border:1px solid var(--line);border-left:3px solid var(--warn);
+         padding:18px 20px;margin-bottom:14px;max-width:var(--measure)}
+  .aviso h4{color:var(--warn);margin-top:0}
+  .aviso p{font-size:14px;color:var(--dim)}
+
+  footer{padding:36px 0 0;color:var(--mute);font-size:13px;border-top:1px solid var(--line)}
+
+  @media (max-width:640px){
+    .fase{grid-template-columns:1fr;gap:10px}
+    .num{border-right:0;border-bottom:1px solid var(--line-soft);padding:0 0 8px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Thaira · proposta de alinhamento · #24</div>
+  <h1>Habilidades e inteligência de criatura</h1>
+  <div class="lede col">
+    Proposta escrita para ser <b>revisada antes de qualquer código</b>, a partir dos quatro pontos
+    levantados pelo dono do projeto em 2026-08-22. Cada item traz o que o código já sustenta, o que
+    precisa ser escrito e o que ainda depende de uma decisão sua.
+    Números medidos no código em 2026-08-22, não estimados.
+  </div>
+</header>
+
+<section>
+  <h2>O que você pediu</h2>
+  <div class="col">
+    <ol>
+      <li><b>Diversidade.</b> Criaturas podem ter magia, magia em área, cura em área, invocação de
+        aliados, habilidades de combate, estratégia em grupo ou solo, e técnicas como puxar ou
+        empurrar o personagem — e empurrar criaturas mais fracas para tomar o tile delas.
+        <i>"O combate é vivo, como D&amp;D, e isso deve ser considerado."</i></li>
+      <li><b>Dificuldade não pode ser só vida.</b> <i>"Uma criatura não deve ser difícil apenas pela
+        quantidade de vida, pela quantidade de tempo que demora pra matar, caso contrário o boneco
+        fica parado batendo até que a criatura morra."</i> Quanto mais difícil, mais habilidades.</li>
+      <li><b>Boss é EVENTO.</b> Área inteira dedicada, sozinho ou com capangas. Referência: RuneScape.</li>
+      <li><b>Inteligência.</b> <i>"É algo que utilizaremos muito. Precisamos aprimorar a IA dos mobs."</i></li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <h2>O diagnóstico, medido</h2>
+  <div class="band">
+    <table>
+      <caption>Estado das 83 criaturas em 2026-08-22.</caption>
+      <thead><tr><th>Eixo</th><th>Hoje</th><th>O que isso significa</th></tr></thead>
+      <tbody>
+        <tr><th>Criaturas sem habilidade</th><td class="n">29 de 83</td><td>mais de um terço só bate</td></tr>
+        <tr><th>Tipos de habilidade</th><td class="n">4</td><td><code>area</code> 30 · <code>lento</code> 13 · <code>cura</code> 7 · <code>mana</code> 4</td></tr>
+        <tr><th>Habilidades por criatura</th><td class="n">1</td><td>o campo <code>hab</code> é um objeto, nunca uma lista</td></tr>
+        <tr><th>Chefes com segunda fase</th><td class="n">6 de 16</td><td>10 chefes são vida grande e um golpe</td></tr>
+        <tr><th>Atiradores que recuam</th><td class="n">10 de 33</td><td><code>recua</code> vive dentro de <code>ranged</code></td></tr>
+        <tr><th>Criaturas com medo</th><td class="n">22 de 83</td><td>única reação a estado que existe</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>A variedade é aparente</h3>
+  <p>São quatro tipos, mas <code>area</code> sozinho responde por <b>30 das 54</b> criaturas que têm
+  habilidade. Na prática quase toda briga do jogo é <i>"sai do raio quando ele gritar"</i>. É
+  exatamente o combate parado do seu ponto 2.</p>
+
+  <h3>A dificuldade JÁ é só vida na metade de baixo</h3>
+  <div class="band">
+    <table>
+      <caption>Criaturas com habilidade, por faixa de dificuldade.</caption>
+      <thead><tr><th>Faixa</th><th>Com habilidade</th><th>Total</th></tr></thead>
+      <tbody>
+        <tr><th>harmless</th><td class="n">0</td><td class="n">7</td></tr>
+        <tr><th>trivial</th><td class="n">2</td><td class="n">7</td></tr>
+        <tr><th>easy</th><td class="n">3</td><td class="n">10</td></tr>
+        <tr><th>medium</th><td class="n">4</td><td class="n">11</td></tr>
+        <tr><th>hard</th><td class="n">10</td><td class="n">13</td></tr>
+        <tr><th>challenging</th><td class="n">9</td><td class="n">9</td></tr>
+        <tr><th>nightmare</th><td class="n">10</td><td class="n">10</td></tr>
+        <tr><th>boss</th><td class="n">16</td><td class="n">16</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Do <code>challenging</code> para cima todo mundo tem habilidade — e mesmo assim <b>uma só</b>.
+  A progressão de dificuldade do jogo inteiro, de <code>harmless</code> a <code>boss</code>, vai de
+  zero a uma habilidade. O resto é vida e dano.</p>
+
+  <div class="aviso">
+    <h4>O achado que muda o ponto 3</h4>
+    <p>Todas as <b>16 hunts já têm chefe</b>, e ele nasce no <b>centro exato da hunt</b>, com ponto de
+    spawn próprio, sem sorteio de elite em cima e com respawn de 13 a 22 minutos. Ou seja: a
+    infraestrutura de "chefe é especial" já existe — o que falta é o <b>espaço</b>. Hoje ele fica
+    literalmente no meio dos 20 a 43 bichos comuns que a mesma hunt distribui em núcleos.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Proposta 1 — habilidade vira lista, não campo único</h2>
+  <p>É a mudança que destrava tudo o resto, e é pequena. Hoje:</p>
+  <p><code>hab: { tipo:'area', r:2, dano:[18,44], cd:11000, grito:'ESMAGA!' }</code></p>
+  <p>Proposta: <code>hab</code> aceita objeto <b>ou</b> lista. Objeto continua funcionando (as 54
+  fichas atuais não mudam), lista dá várias. O cooldown deixa de ser <code>m.habT</code> e vira
+  <code>m.habT[i]</code>, um por habilidade.</p>
+  <p class="why">Aceitar as duas formas é o que evita reescrever 54 fichas para ganhar a segunda
+  habilidade em três criaturas. A conversão fica para quando cada ficha for revisada de verdade.</p>
+
+  <h3>Escolha da habilidade: a primeira que serve, não a primeira da lista</h3>
+  <p>Com várias habilidades, alguém precisa decidir qual sai. Proposta: cada uma declara a própria
+  <b>condição</b>, e a criatura usa a primeira cujo cooldown venceu <i>e</i> cuja condição bate —
+  cura só quando está ferida (já é assim), invocação só quando não há aliado por perto, puxão só
+  quando o alvo está longe. Sem condição, a régua vira sorteio e o chefe cura com a vida cheia.</p>
+</section>
+
+<section>
+  <h2>Proposta 2 — os tipos novos, em três blocos de custo</h2>
+  <p>Separados pelo que cada um <b>toca</b> no código, porque é isso que decide se cabe numa leva ou
+  em três. Os quatro atuais (<code>area</code>, <code>lento</code>, <code>cura</code>,
+  <code>mana</code>) continuam.</p>
+
+  <div class="grupo">
+    <div class="gtitle">Bloco A — efeito novo, forma antiga (barato)</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">campo — deixa chão elemental</span>
+        <span class="it-d">A criatura acende o próprio tile ou um raio em volta. <b>Sai quase de
+        graça:</b> <code>criaCampo</code> já existe inteiro desde o #33, com fases, desenho e desvio
+        por inteligência. É a primeira que eu escreveria.</span>
+        <span class="it-t">toca: só o switch de <code>habilidade()</code> · destrava o #45 pelo lado da criatura</span>
+      </li>
+      <li>
+        <span class="it-n">invocar — traz aliados</span>
+        <span class="it-d"><code>spawnMob</code> já existe. Precisa de teto (quantos vivos ao mesmo
+        tempo) e de uma decisão sua sobre experiência e loot do invocado.</span>
+        <span class="it-t">toca: <code>habilidade()</code> + um contador na criatura · <b>decisão pendente</b></span>
+      </li>
+      <li>
+        <span class="it-n">cura_area — fecha as feridas do grupo</span>
+        <span class="it-d">O <code>cura</code> atual só cura a si mesma. Curar vizinhos é iterar
+        <code>G.mobs</code> por distância, que a habilidade de área já faz.</span>
+        <span class="it-t">toca: <code>habilidade()</code></span>
+      </li>
+      <li>
+        <span class="it-n">enfurecer — buff no próprio grupo</span>
+        <span class="it-d">Sobe ataque ou velocidade da criatura e dos vizinhos por um tempo.
+        Criatura ainda não tem mapa de buff próprio — tem <code>m.estados</code>, do #32, com a
+        mesma forma. Estender é mais barato que criar.</span>
+        <span class="it-t">toca: <code>habilidade()</code> + <code>m.estados</code> · reusa a expiração do tique de 3 s</span>
+      </li>
+      <li>
+        <span class="it-n">silenciar — corta a conjuração</span>
+        <span class="it-d">Resposta ao mago que não seja drenar mana. O jogador já tem
+        <code>P.cd</code> e <code>P.buffs</code>; um buff que barra <code>castSpell</code> por alguns
+        segundos é uma linha na entrada da função.</span>
+        <span class="it-t">toca: <code>castSpell</code> + <code>habilidade()</code></span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Bloco B — mexe em posição (médio, e é o que você pediu por nome)</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">puxar — traz o jogador para perto</span>
+        <span class="it-d">Move o alvo alguns tiles na direção da criatura. O caminho tem de respeitar
+        parede e ocupação, senão o jogador atravessa pedra. Reaproveita <code>lineClear</code> para
+        parar no primeiro obstáculo.</span>
+        <span class="it-t">toca: movimento do jogador · precisa acertar o <code>lerp</code>, senão o boneco teleporta</span>
+      </li>
+      <li>
+        <span class="it-n">empurrar — afasta o jogador</span>
+        <span class="it-d">O espelho do puxão, mesma mecânica. Junto com <code>puxar</code> dá o
+        vaivém que tira o jogador do lugar sem depender de dano.</span>
+        <span class="it-t">toca: o mesmo do puxar</span>
+      </li>
+      <li>
+        <span class="it-n">abrir caminho — empurra criatura mais fraca e toma o tile</span>
+        <span class="it-d">O item mais estrutural da sua lista. Hoje <code>occupied</code> é binário:
+        o tile está livre ou não. Isto exige perguntar <i>quem</i> está lá e comparar força. Resolve
+        um defeito real de leitura — o chefe que fica preso atrás dos próprios capangas.</span>
+        <span class="it-t">toca: <code>occupied</code>, <code>tryStep</code>, <code>passoAte</code> · <b>o mais caro do bloco</b></span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Bloco C — comportamento, não efeito (caro, e depende da Proposta 3)</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">flanquear</span>
+        <span class="it-d">Em vez de todos irem pelo caminho mais curto, parte do grupo busca o lado
+        oposto. Hoje <code>passoAte</code> é A* para o jogador, igual para todos — daí a fila.</span>
+        <span class="it-t">toca: <code>passoAte</code> com um alvo deslocado por criatura</span>
+      </li>
+      <li>
+        <span class="it-n">recuar em bando</span>
+        <span class="it-d">O <code>medo</code> é individual. Em bando, a debandada acontece quando o
+        grupo perde, não quando o indivíduo perde.</span>
+        <span class="it-t">toca: <code>updateMobs</code> · precisa de noção de grupo, que não existe</span>
+      </li>
+      <li>
+        <span class="it-n">reagir ao estado do jogador</span>
+        <span class="it-d">Atacar quem está com pouca vida, esperar o jogador pisar no próprio campo,
+        guardar a habilidade para quando ele estiver sem escapatória. É o que separa inteligente de
+        rápido, e é o que a Proposta 3 governa.</span>
+        <span class="it-t">toca: a condição de cada habilidade · barato DEPOIS da Proposta 1</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Proposta 3 — a régua de quantidade, derivada do <code>diff</code></h2>
+  <p>O campo <code>diff</code> já existe em toda ficha e já governa o bestiário e o respawn. Usá-lo
+  também para habilidade responde o seu ponto 2 sem inventar um segundo eixo de dificuldade.</p>
+  <div class="band">
+    <table>
+      <caption>Proposta de mínimo por faixa, e o que falta escrever para chegar lá.</caption>
+      <thead><tr><th>Faixa</th><th>Proposto</th><th>Hoje</th><th>Falta</th></tr></thead>
+      <tbody>
+        <tr><th>harmless</th><td class="now">0</td><td class="n">0 de 7</td><td>nada — bicho de cenário</td></tr>
+        <tr><th>trivial</th><td class="now">0 a 1</td><td class="n">2 de 7</td><td class="delta">5 fichas</td></tr>
+        <tr><th>easy</th><td class="now">1</td><td class="n">3 de 10</td><td class="delta">7 fichas</td></tr>
+        <tr><th>medium</th><td class="now">1 a 2</td><td class="n">4 de 11</td><td class="delta">7 fichas + segundas</td></tr>
+        <tr><th>hard</th><td class="now">2</td><td class="n">10 de 13</td><td class="delta">3 fichas + 13 segundas</td></tr>
+        <tr><th>challenging</th><td class="now">2 a 3</td><td class="n">9 de 9</td><td class="delta">9 segundas</td></tr>
+        <tr><th>nightmare</th><td class="now">3</td><td class="n">10 de 10</td><td class="delta">20 (2ª e 3ª)</td></tr>
+        <tr><th>boss</th><td class="now">3 + 2 fases</td><td class="n">16 de 16 · 6 com fase</td><td class="delta">32 + 10 fases</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why">A régua é o que impede a volta do problema: sem ela, criatura nova nasce com uma
+  habilidade porque foi assim que a anterior nasceu. Com ela, o teste cobra — do mesmo jeito que
+  hoje já cobra que toda criatura siga a régua de velocidade e a de loot.</p>
+  <p><b>Invariante proposta:</b> <i>toda criatura tem pelo menos o mínimo de habilidades da própria
+  faixa, e nenhuma criatura de faixa maior tem menos que uma de faixa menor.</i></p>
+</section>
+
+<section>
+  <h2>Proposta 4 — inteligência como eixo de IA</h2>
+  <p><code>INTEL</code> já existe desde o #33: por classe, com override na ficha, na mesma forma do
+  <code>RES</code>. Hoje responde uma pergunta só. A proposta é que cada nível <b>destrave</b>
+  comportamento, e que nada no código pergunte "que classe é essa" — só "quanto ela pensa".</p>
+  <div class="band">
+    <table>
+      <caption>O que cada nível passa a poder fazer. Cada linha herda as de cima.</caption>
+      <thead><tr><th>Nível</th><th>Classes</th><th>Comportamento</th></tr></thead>
+      <tbody>
+        <tr><th>0 — nenhum</th><td>Inseto, Elemental</td><td>anda reto, atravessa campo, usa habilidade assim que o cooldown vence</td></tr>
+        <tr><th>1 — instinto</th><td>Mamífero, Réptil, Aracnídeo, Morto-vivo</td><td>+ foge quando ferida (o <code>medo</code> atual)</td></tr>
+        <tr><th>2 — evita</th><td>Gigante, Aberração</td><td>+ contorna o que machuca (já feito no #33) · não entra em campo · recua de área conhecida</td></tr>
+        <tr><th>3 — planeja</th><td>Humanoide, Demônio, Celeste, Dragão</td><td>+ flanqueia · guarda a habilidade para o melhor momento · empurra aliado fraco para tomar posição · debanda em bando</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="aviso">
+    <h4>Inteligência não é medo, e a distinção precisa sobreviver</h4>
+    <p>Medo é instinto de sobrevivência; inteligência é ler o chão. O ciclope é brutamontes, não recua
+    por orgulho (não tem <code>medo</code>) e mesmo assim <b>enxerga a fogueira e dá a volta</b>. Se
+    os dois eixos virarem um, ou o ciclope passa a fugir ou o esqueleto passa a desviar — e os dois
+    estão errados.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Proposta 5 — boss como evento</h2>
+  <p>A parte de "chefe é especial" já existe: ponto de spawn próprio no centro da hunt, sem elite em
+  cima, respawn de 13 a 22 minutos, e 6 dos 16 com troca de habilidade por fração de vida. O que
+  falta é <b>espaço</b> e <b>encenação</b>.</p>
+
+  <h3>a) Sala do chefe — raio de exclusão</h3>
+  <p>Ao distribuir os núcleos da hunt, excluir os tiles dentro de um raio do ponto do chefe. O chefe
+  fica sozinho no centro e o jogador atravessa a hunt para chegar nele.</p>
+  <p class="why">É a mudança mais barata que entrega o seu ponto 3: uma condição no laço de
+  povoamento do <code>genWorld</code>, sem tocar em geração de mapa. Já existe orçamento por raio
+  (<code>HUNT_DENS</code>) e núcleos, então o que sai do centro se redistribui sozinho.</p>
+
+  <h3>b) Capangas declarados</h3>
+  <p>Campo <code>capangas</code> na ficha do chefe — quais espécies e quantas — nascendo com ele e
+  renascendo junto. Diferente dos mobs da hunt: são <b>do chefe</b>, não do lugar.</p>
+
+  <h3>c) Mais fases</h3>
+  <p>O campo <code>fase</code> troca a habilidade abaixo de uma fração de vida, e funciona. Faltam nos
+  outros 10 chefes, e a proposta é permitir <b>duas</b> trocas em vez de uma — o plano que derrubou o
+  primeiro terço não serve para o segundo nem para o último.</p>
+
+  <div class="aviso">
+    <h4>O que NÃO cabe aqui</h4>
+    <p>Andar ou região dedicada ao chefe, com porta e travessia própria, é <b>design de mundo</b> —
+    mexe em <code>genWorld</code>, <code>HUNTS</code> e no spawn, e é território do #5 (topologia) e
+    do #42 (ilha). O raio de exclusão entrega a maior parte do valor por uma fração do risco. Se
+    depois disso ainda faltar, aí a sala de verdade vira item próprio.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Fatiamento proposto</h2>
+  <div class="fases">
+    <div class="fase"><div class="num">01</div><div>
+      <h3>Fundação</h3>
+      <p><b>Habilidade vira lista + condição por habilidade + tipo <code>campo</code>.</b> Sem
+      escrever ficha nova: só a estrutura e uma habilidade nova que sai quase de graça porque o #33
+      já entregou o <code>criaCampo</code>.</p>
+      <p class="why">Escolhida primeiro porque toda a Proposta 2 e a régua da Proposta 3 dependem
+      dela, e porque cabe num teste de mutação simples: desfazer a lista tem de derrubar a suíte.</p>
+    </div></div>
+    <div class="fase"><div class="num">02</div><div>
+      <h3>Bloco A inteiro + a régua</h3>
+      <p>Invocar, cura em área, enfurecer, silenciar. Depois disso, aplicar a régua de quantidade nas
+      faixas de baixo, que é onde o buraco está — <code>trivial</code>, <code>easy</code> e
+      <code>medium</code> somam <b>19 fichas sem habilidade nenhuma</b>.</p>
+      <p class="why">O jogador sente essa leva imediatamente: as primeiras 30 horas do jogo são
+      justamente as faixas que hoje só batem.</p>
+    </div></div>
+    <div class="fase"><div class="num">03</div><div>
+      <h3>Boss como evento</h3>
+      <p>Raio de exclusão, capangas e as fases que faltam. Independente das outras duas — pode entrar
+      antes se você preferir sentir o resultado mais cedo.</p>
+    </div></div>
+    <div class="fase"><div class="num">04</div><div>
+      <h3>Bloco B — puxar, empurrar, tomar tile</h3>
+      <p>Por último dentro do que é certo, porque mexe em <code>occupied</code>,
+      <code>tryStep</code> e <code>passoAte</code> — os três pontos que a suíte mais cobra e onde o
+      #22 já mordeu uma vez.</p>
+    </div></div>
+    <div class="fase"><div class="num">05</div><div>
+      <h3>Bloco C — comportamento de grupo</h3>
+      <p>Flanquear e debandar em bando. Fica para depois de a Proposta 3 estar em pé, porque é ela
+      que diz quem tem direito de fazer isso.</p>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Decisões que preciso de você antes de escrever</h2>
+  <div class="grupo">
+    <ul class="itens">
+      <li>
+        <span class="it-n">1 · A régua de quantidade está certa?</span>
+        <span class="it-d">A tabela da Proposta 3 é um chute calibrado pela distribuição atual. Se
+        <code>nightmare</code> com 3 habilidades parecer demais, ou <code>trivial</code> com 1
+        parecer pouco, é aqui que muda — depois vira teste e fica caro mexer.</span>
+      </li>
+      <li>
+        <span class="it-n">2 · Invocação: teto, experiência e loot</span>
+        <span class="it-d">Invocado dá experiência? Larga loot? Se der os dois, invocador vira fazenda
+        de experiência; se não der nenhum, matar invocado é tempo jogado fora. <b>Minha
+        recomendação:</b> experiência sim (reduzida), loot não — e teto de vivos por invocador.</span>
+      </li>
+      <li>
+        <span class="it-n">3 · Puxar e empurrar entram na primeira leva?</span>
+        <span class="it-d">Você citou os dois por nome, então quero confirmar a prioridade. Eles são
+        o que mais muda a sensação do combate <b>e</b> o que mais mexe em código que a suíte cobra.
+        <b>Minha recomendação:</b> fase 04, depois da fundação estar travada por teste.</span>
+      </li>
+      <li>
+        <span class="it-n">4 · Sala do chefe: raio de exclusão basta?</span>
+        <span class="it-d">Ou você quer mesmo uma <b>área separada</b>, com travessia própria? A
+        segunda é bem mais cara e cai no #5/#42. <b>Minha recomendação:</b> começar pelo raio, medir
+        em jogo, e só então decidir se falta.</span>
+      </li>
+      <li class="debt">
+        <span class="it-n">5 · Isto é balanceamento?</span>
+        <span class="it-d">Mais habilidade é mais dificuldade, e o balanceamento está em pausa por
+        decisão sua desde 2026-08-16. Preciso saber se o #24 entra como <b>exceção</b> — como o #31
+        entrou — ou se espera a fila de balanceamento voltar.</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>O que fica de fora, de propósito</h2>
+  <div class="col">
+    <ul>
+      <li><b>Reescrever as 54 fichas que já têm habilidade.</b> A lista aceita objeto, então elas
+        continuam válidas. Convertê-las é trabalho de revisão de conteúdo, não de sistema.</li>
+      <li><b>Árvore de decisão ou máquina de estados para IA.</b> O <code>updateMobs</code> hoje é uma
+        sequência de condições que cabe na cabeça. Trocar por um sistema genérico é a abstração
+        especulativa clássica — se a Proposta 4 apertar, aí sim.</li>
+      <li><b>Habilidade com mira ou alvo escolhido.</b> Tudo aqui mira no jogador ou em volta de si.
+        Criatura escolhendo entre alvos só faz sentido depois do #20 (aliados), que ainda tem escopo
+        indefinido.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  Thaira · proposta de alinhamento do #24 · escrita em 2026-08-22 contra o código da mesma data ·
+  nada aqui foi implementado.
+</footer>
+
+</div>

@@ -762,6 +762,26 @@ function outlined(spr) {
    O desfoque entra aqui, na montagem, e não no desenho: sombra de borda dura
    vira um decalque recortado, e `filter` a cada quadro por boneco seria caro à
    toa. A folga de SOMBRA_PAD existe para o desfoque não bater na borda e cortar. */
+/* Corpo TINGIDO na cor do elemento: mesma técnica da silhueta (source-in mais
+   fill), sem o desfoque — aqui o recorte é o próprio boneco, não a sombra dele.
+   Cache por sprite E por cor: um estado tinge muitos bichos, mas as cores são
+   quatro. É o que faz o congelado ficar azul e o queimando alaranjado sem folha
+   nova nem filtro de canvas (que só sabe produzir branco). */
+const TINT_CACHE = new WeakMap();
+function tingido(spr, cor) {
+  let porCor = TINT_CACHE.get(spr);
+  if (!porCor) TINT_CACHE.set(spr, porCor = new Map());
+  let s = porCor.get(cor);
+  if (s) return s;
+  s = _canvas2(spr.width, spr.height);
+  const g = s.getContext('2d');
+  g.drawImage(spr, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = cor;
+  g.fillRect(0, 0, s.width, s.height);
+  porCor.set(cor, s);
+  return s;
+}
 const SIL_CACHE = new WeakMap();
 const SOMBRA_PAD = 4;
 function silhouette(spr) {
@@ -1016,4 +1036,330 @@ function stairSprite(desce) {
     g.fillStyle = 'rgba(255,220,140,.25)'; g.fillRect(6, 2, 20, 28);
   }
   return STAIR_CACHE[key] = c;
+}
+
+/* ---------------------------------------------------- campos no chão (#33) */
+/* Modelo Tibia: o campo é um SPRITE que ocupa o tile, com quadros discretos —
+   não um tingimento com partícula por cima. A primeira tentativa foi essa, e o
+   dono do projeto estava certo em rejeitá-la: bolinha subindo em quatro cores
+   não diz fogo, veneno, gelo nem energia. A cor sozinha nunca disse.
+   O que diz é SILHUETA e MOVIMENTO, e por isso cada elemento tem a própria
+   rotina em vez de uma fórmula compartilhada — é o caso em que reusar a mesma
+   função é exatamente o erro, porque diferenciar é o requisito inteiro.
+
+     fogo    língua que afina para cima, núcleo claro, tremula rápido
+     veneno  massa rasteira que borbulha e estoura, não sobe
+     gelo    cristal angular crescendo das bordas, quase parado, brilha às vezes
+     energia arco que estala e some, sem deriva nenhuma
+
+   QUADROS DISCRETOS são metade da assinatura: 4 quadros trocados de vez em
+   quando lêem como pixel-art animado; a mesma coisa interpolada lê como efeito
+   de motor moderno, que é o que o §23 veta. Pré-desenhar também troca dezenas de
+   traçados por tile e por quadro por um `drawImage`. */
+const CAMPO_CACHE = {};
+const CAMPO_FRAMES = 4;
+const CAMPO_MS = 150;          // 600 ms de laço: rápido no fogo, imperceptível no gelo
+const CAMPO_DRAW = {
+  /* FOGO. Leito de brasa embaixo e línguas por cima, em três faixas de cor: a
+     externa escura dá contorno, o núcleo claro é o que faz parecer quente. A
+     ponta anda por quadro — é a tremulação, e ela é o que separa fogo de
+     "triângulo laranja". */
+  /* FOGO. Quinta versão, e a primeira feita contra uma IMAGEM de referência do
+     Tibia em vez de contra uma descrição. As quatro anteriores e o que cada
+     descrição virou ao pé da letra:
+       "língua que afina para cima"  -> spike
+       "massa que enche o tile"      -> lava (camadas empilhadas na horizontal)
+       "pilha de círculos"           -> pino de boliche
+       "labaredas com perfil de gota"-> minhocas se contorcendo (três colunas
+                                        estreitas balançando cada uma pra um lado)
+     O que a referência mostra, e nenhuma descrição minha tinha:
+       1. UMA massa por tile, larga quanto o tile — não três chamas separadas.
+          Chama separada balançando é minhoca; massa única com a crista mexendo
+          é fogo.
+       2. Crista IRREGULAR de vários picos pequenos, não uma silhueta suave.
+       3. Sombreado CONCÊNTRICO: borda escura, laranja, amarelo e quase branco,
+          cada camada encaixada dentro da anterior e seguindo a mesma crista.
+          Faixa horizontal vira líquido; encaixe concêntrico vira volume.
+       4. O AMARELO domina o centro. Minhas versões eram laranja escuro com um
+          fiapo claro, e é metade do motivo de não parecerem quentes.
+
+     A crista é uma soma de três senoides em x (≈1,5 + 3 + 5 picos), com a fase
+     andando por quadro: é o que faz o fogo lamber sem nenhuma parte se destacar
+     como objeto próprio. As pontas afunilam nas laterais para o desenho morrer
+     dentro do quadro e não ler como cortado pelo tile. */
+  fire(g, S, base, q, v, fase) {
+    /* A fase mínima é a MESMA chama, pequena — não um desenho à parte. A versão
+       anterior trocava por uma mancha de queimado com brasas e o tile virava um
+       buraco escuro no chão. Uma régua de altura só, três valores: o jogador lê
+       "o fogo está morrendo" porque é o mesmo fogo diminuindo. */
+    const alto = [.62, .40, .17][fase] * S;
+    /* CRISTA POR RUÍDO, não por senoides. Soma de senoides sempre volta a ser
+       periódica, e com a abóbada simétrica por cima o resultado foi uma ameia
+       de castelo — bonitinha, igual dos dois lados, e nada parecida com fogo.
+       Aqui sete alturas SORTEADAS (semeadas pelo quadro e pela variante do
+       tile) interpoladas com smoothstep: irregular por construção, diferente em
+       cada tile e em cada quadro, e sem eixo de simetria nenhum. */
+    const nC = 7, rr = _mulberry(q * 137 + v * 911 + 7), ctrl = [];
+    for (let i = 0; i <= nC; i++) ctrl.push(rr());
+    const alturaEm = t => {
+      const p = t * nC, i = Math.min(nC - 1, p | 0), f = p - i;
+      return ctrl[i] + (ctrl[i + 1] - ctrl[i]) * (f * f * (3 - 2 * f));
+    };
+    const crista = [];
+    for (let x = 0; x < S; x++) {
+      const t = x / S;
+      let h = alto * (.45 + alturaEm(t) * .85);
+      h *= Math.min(1, Math.sin(Math.PI * (.03 + t * .94)) * 1.5);   // morre nas bordas
+      crista.push(Math.max(0, h));
+    }
+    // média com os vizinhos: sem ela cada coluna de 1px vira degrau e a ponta
+    // sai quadrada, que foi a outra metade da reclamação
+    const suave = crista.map((_, i) =>
+      (crista[Math.max(0, i - 1)] + crista[i] * 2 + crista[Math.min(S - 1, i + 1)]) / 4);
+    /* Camada = a MESMA crista rebaixada, sem recuo lateral. O recuo lateral fixo
+       da versão anterior cortava as camadas internas em linha reta vertical — é
+       exatamente o "quadrado no meio". Rebaixando só a altura, a camada some
+       sozinha onde a chama é fina, e a silhueta interna acompanha a externa.
+       O deslocamento em x tira o encaixe perfeitamente concêntrico. */
+    /* As camadas internas puxam para uma ABÓBADA centrada em vez de copiarem a
+       crista. Copiando a crista, o claro virava uma faixa fina acompanhando o
+       contorno — leitura de montanha sombreada, não de fogo. Puxando para o
+       centro, o amarelo vira MIOLO: quente no meio, escuro na borda, que é o
+       que a referência mostra. `k` é o quanto cada camada já esqueceu a crista. */
+    const domo = x => alto * .92 * Math.sin(Math.PI * (x + .5) / S);
+    const camada = (cor, baixa, desloc, k) => {
+      g.fillStyle = cor;
+      for (let x = 0; x < S; x++) {
+        const c = suave[Math.max(0, Math.min(S - 1, x + desloc))];
+        const h = c + (domo(x) - c) * k - baixa;
+        if (h <= 1.2) continue;
+        g.fillRect(x, S - 2 - h, 1, h);
+      }
+    };
+    camada(_rgb(shade(base, .62)), 0, 0, 0);           // borda escura: a crista crua
+    camada(_rgb(base), fase === 2 ? 1.2 : 3, 1, .22);  // laranja
+    camada(_rgb(shade(base, 1.55)), fase === 2 ? 2.5 : 7, -1, .5);   // amarelo — é ele que manda
+    if (fase < 2) camada(_rgb(shade(base, 2.3)), 11.5, 2, .72);      // miolo branco: só enquanto há fogo
+    // faísca solta acima da crista, o único ponto pontual
+    const fx = 5 + ((q * 7 + v * 5) % 22), fy = 3 + ((q * 3 + v) % 6);
+    g.fillStyle = _rgb(shade(base, 1.8), 1, .8); g.fillRect(fx, fy, 1.6, 1.6);
+  },
+  /* VENENO. Massa ESCURA que cobre o tile, com realce claro por cima — a
+     primeira versão era verde claro espalhado e sumia no capim, porque tinha a
+     mesma luminância do terreno. O que separa não é a cor, é o contraste: base
+     bem escura, poças brilhantes dentro, borda lumpenta feita de bolhas.
+     Não sobe: veneno é poça viva, e o dia em que subir vira fumaça. */
+  earth(g, S, base, q, v, fase) {
+    const massa = _rgb(shade(base, .5)), poca = _rgb(shade(base, .95)), luz = _rgb(shade(base, 1.5));
+    /* SEM FUNDO, por decisão do dono do projeto. O retângulo escuro atrás dava
+       o corpo, mas lado a lado desenhava um bloco chapado com bolha em cima, e
+       o terreno sumia embaixo dele. Agora o veneno é só a poça: bolhas grandes
+       encostando umas nas outras fazem o corpo, e o chão aparece nos vãos —
+       que é o que faz parecer coisa DERRAMADA e não retângulo pintado. */
+    /* Fase encolhe a poça e apaga o brilho: na mínima sobra a mancha seca no
+       chão, que é veneno que já foi. */
+    /* A mínima ENCOLHE pouco: é mancha seca, e mancha seca continua ocupando o
+       chão. Encolher demais fazia o tile parecer limpo — o veneno passou, mas o
+       jogador tem de continuar vendo onde ele esteve. */
+    const enc = [1, .85, .8][fase], n = [11, 10, 10][fase];
+    for (let i = 0; i < n; i++) {
+      const a = i * 2.1 + (v & 3) * .5, d = (2 + i % 4 * 3.6) * enc;
+      _el(g, S / 2 + Math.cos(a) * d, S / 2 + Math.sin(a) * d * .9,
+          (4.6 - i % 3 * .9) * enc, (3.9 - i % 3 * .8) * enc,
+          fase >= 2 ? _rgb(shade(base, .5 + (i % 3) * .08)) : (i % 4 ? massa : poca));
+    }
+    if (fase >= 2) return;                             // mínima: mancha e mais nada
+    for (let i = 0; i < (fase ? 3 : 5); i++) {                     // brilho de superfície
+      const a = i * 1.7 + q * .3, d = (3 + i % 3 * 3) * enc;
+      _el(g, S / 2 + Math.cos(a) * d, S / 2 + Math.sin(a) * d * .8 - 1, 2, 1.4, poca);
+    }
+    const bolhas = [[10, 12], [22, 15], [14, 22], [24, 24]].slice(0, fase ? 2 : 4);
+    bolhas.forEach(([bx, by], i) => {
+      const f = (q + i) % CAMPO_FRAMES;
+      if (f === 3) {
+        /* Estourou. Anel ABERTO e irregular em vez do círculo fechado: o
+           círculo perfeito lia como forma geométrica desenhada por cima da
+           massa, não como bolha que acabou de arrebentar. */
+        g.strokeStyle = luz; g.lineWidth = 1.4; g.lineCap = 'round';
+        g.beginPath(); g.arc(bx, by, 3.6, .6, 4.4); g.stroke();
+        _el(g, bx + 3, by - 2, 1, .8, luz);                        // respingo
+      } else {
+        const r = 1.4 + f * 1.1;
+        _el(g, bx, by, r, r * .85, poca);
+        _el(g, bx - r * .3, by - r * .35, r * .4, r * .3, luz);    // brilho da bolha
+      }
+    });
+  },
+  /* GELO. Poça CONGELADA vista de cima: placas irregulares separadas por trincas
+     brancas. A primeira versão eram lascas apontando para o centro e o resultado
+     foi um cata-vento — simetria radial é a coisa mais fácil de errar aqui,
+     porque gelo real racha em pedaço torto.
+     Fica parado de propósito: o que muda por quadro é só o brilho. Um treme, o
+     outro não, e isso separa gelo de fogo antes mesmo da cor. */
+  ice(g, S, base, q, v, fase) {
+    let placas = [
+      [[0, 0], [14, 0], [17, 10], [6, 14], [0, 9]],
+      [[14, 0], [32, 0], [32, 8], [20, 12], [17, 10]],
+      [[0, 9], [6, 14], [4, 24], [0, 26]],
+      [[6, 14], [17, 10], [20, 12], [22, 22], [12, 26], [4, 24]],
+      [[32, 8], [32, 20], [22, 22], [20, 12]],
+      [[0, 26], [4, 24], [12, 26], [10, 32], [0, 32]],
+      [[12, 26], [22, 22], [32, 20], [32, 32], [10, 32]]
+    ];
+    const tons = [.62, .88, .72, 1, .8, .68, .92];
+    /* Derrete de fora para dentro: na fraca sobram cinco placas, na mínima três
+       e sem trinca clara — sobra a geada rala, que escorrega mas não gela. */
+    const vivas = [7, 5, 4][fase];
+    placas.slice(0, vivas).forEach((p, i) => _poly(g, p, _rgb(shade(base, tons[i] * (fase ? .8 : 1)))));
+    placas = placas.slice(0, vivas);
+    g.strokeStyle = _rgb(shade(base, 1.55)); g.lineWidth = 1;      // trinca clara
+    placas.forEach(p => {
+      g.beginPath();
+      p.forEach((pt, i) => i ? g.lineTo(pt[0], pt[1]) : g.moveTo(pt[0], pt[1]));
+      g.closePath(); g.stroke();
+    });
+    for (let i = 0; i < 5; i++) {                                  // agulhas de geada
+      const r = _rnd() * 6.283, x = 4 + _rnd() * 24, y = 4 + _rnd() * 24;
+      g.strokeStyle = _rgb(0xffffff, 1, .5); g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(x - Math.cos(r) * 3, y - Math.sin(r) * 3);
+      g.lineTo(x + Math.cos(r) * 3, y + Math.sin(r) * 3);
+      g.stroke();
+    }
+    /* Brilho, não cruz. A versão anterior era um traço horizontal mais um
+       vertical do mesmo tamanho, e o desenho que sai disso é o sinal de mais —
+       lia como ícone de interface. Um losango pequeno com um pixel branco no
+       meio lê como luz batendo na quina da placa, que é o que devia. */
+    if (fase >= 2) {
+      /* Mínima: a geada FINA cobrindo o tile inteiro, sem placa brilhante nem
+         faísca. Escorrega, não gela — mas se vê. */
+      g.strokeStyle = _rgb(shade(base, 1.2), 1, .45); g.lineWidth = 1;
+      for (let i = 0; i < 9; i++) {
+        const x = 2 + (i * 11 % 27), y = 3 + (i * 7 % 25), a = i * 1.3;
+        g.beginPath();
+        g.moveTo(x - Math.cos(a) * 4, y - Math.sin(a) * 4);
+        g.lineTo(x + Math.cos(a) * 4, y + Math.sin(a) * 4);
+        g.stroke();
+      }
+      return;
+    }
+    const [bx, by] = [[9, 7], [24, 9], [15, 19], [26, 27]][q];
+    _poly(g, [[bx, by - 2.6], [bx + 1.5, by], [bx, by + 2.6], [bx - 1.5, by]], _rgb(0xffffff, 1, .8));
+    g.fillStyle = _rgb(0xffffff); g.fillRect(bx - .5, by - .5, 1, 1);
+  },
+  /* ENERGIA. Refeita contra a imagem de referência do Tibia, que mostrou uma
+     estrutura que nenhuma descrição minha tinha: NÃO é raio atravessando o
+     tile. É um CONTORNO EM ESTRELA espinhosa — fechado, de traço fino, pontas
+     alternando longa e curta — com um NÚCLEO claro arredondado no meio.
+     As duas versões anteriores (fita ondulada e zigue-zague em W) erravam a
+     topologia inteira: linha ABERTA atravessando, quando o certo é aura FECHADA
+     em volta de um miolo. O miolo diz "energia contida"; o espinho diz
+     "descarregando". Só traço, sem preenchimento: na referência o chão aparece
+     entre a estrela e o núcleo, e é isso que impede virar bolha chapada. */
+  energy(g, S, base, q, v, fase) {
+    const halo = _rgb(shade(base, 1.2)), nucleo = _rgb(shade(base, 1.75));
+    /* A mínima é o MESMO contorno, pequeno e apagado — não um desenho à parte.
+       A versão anterior trocava por uma estrela dupla de pontas retas e a fase
+       mínima virava outro elemento; é a mesma correção que o fogo levou. */
+    const esc = [1, .84, .72][fase];
+    /* Contorno BOLHUDO e fino, com o chão aparecendo entre a aura e o miolo.
+       A versão anterior tinha ponta reta, 11 pontas e raio interno colado no
+       núcleo — o traçado se cruzava perto do centro e o resultado era uma
+       estrela CHAPADA, tipo adesivo. A referência é o oposto: linha fina, poucos
+       lobos, e vão de chão bem visível entre o anel e o núcleo.
+       As curvas quadráticas passam pelos MEIOS das arestas usando o vértice de
+       controle: cada vértice vira lobo arredondado em vez de bico. */
+    const lobos = 8, pts = [], rr = _mulberry(1000 + q * 37 + v * 991);
+    for (let i = 0; i < lobos * 2; i++) {
+      const a = (i / (lobos * 2)) * 6.283 + q * .2 + (rr() - .5) * .3;
+      const r = (i % 2 ? 9.4 + rr() * 1.6 : 12.8 + rr() * 2.6) * esc;
+      pts.push([16 + Math.cos(a) * r, 16 + Math.sin(a) * r * .95]);
+    }
+    const meioDe = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    g.strokeStyle = fase === 2 ? _rgb(shade(base, 1.05), 1, .62) : halo;
+    g.lineWidth = fase === 2 ? 1.3 : 1; g.lineJoin = 'round';
+    g.beginPath();
+    const m0 = meioDe(pts[pts.length - 1], pts[0]);
+    g.moveTo(m0[0], m0[1]);
+    for (let i = 0; i < pts.length; i++) {
+      const cur = pts[i], m = meioDe(cur, pts[(i + 1) % pts.length]);
+      g.quadraticCurveTo(cur[0], cur[1], m[0], m[1]);
+    }
+    g.closePath(); g.stroke();
+    // realce branco só nos lobos longos: dá a leitura de descarga sem encher
+    if (fase < 2) {
+      g.strokeStyle = _rgb(0xffffff, 1, fase ? .4 : .55);
+      for (let i = 1; i < pts.length; i += 4) {
+        g.beginPath();
+        g.moveTo(pts[i][0], pts[i][1]);
+        g.lineTo(16 + (pts[i][0] - 16) * .72, 16 + (pts[i][1] - 16) * .72);
+        g.stroke();
+      }
+    }
+    /* FAÍSCAS. O contorno sozinho lê como aura parada — quase uma flor. A
+       faísca é o que diz que está DESCARREGANDO: risquinhos quebrados saltando
+       do miolo para fora, em posição e comprimento novos a cada quadro, mais um
+       ponto branco solto. Trocam de lugar em vez de deslizar, que é a mesma
+       regra da descontinuidade que vale para o raio. */
+    const nf = fase === 2 ? 2 : fase === 1 ? 3 : 5;
+    const rf = _mulberry(q * 613 + v * 71 + 3);
+    for (let i = 0; i < nf; i++) {
+      const a = rf() * 6.283, d0 = 4 + rf() * 3, d1 = d0 + 3.5 + rf() * 5;
+      const quebra = (rf() - .5) * .55;                 // o cotovelo do risco
+      const dm = (d0 + d1) / 2;
+      g.strokeStyle = _rgb(shade(base, 1.6), 1, fase === 2 ? .5 : .85);
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(16 + Math.cos(a) * d0, 16 + Math.sin(a) * d0 * .94);
+      g.lineTo(16 + Math.cos(a + quebra) * dm, 16 + Math.sin(a + quebra) * dm * .94);
+      g.lineTo(16 + Math.cos(a - quebra * .6) * d1, 16 + Math.sin(a - quebra * .6) * d1 * .94);
+      g.stroke();
+      if (i % 2 === 0) {                                // ponto branco na ponta
+        g.fillStyle = _rgb(0xffffff, 1, fase === 2 ? .45 : .8);
+        g.fillRect(16 + Math.cos(a - quebra * .6) * d1 - .6, 16 + Math.sin(a - quebra * .6) * d1 * .94 - .6, 1.4, 1.4);
+      }
+    }
+    // núcleo PEQUENO: na referência a aura é que ocupa o tile, não o miolo
+    if (fase === 2)                                    // carga residual crepitando no chão
+      for (let i = 0; i < 4; i++)
+        _el(g, 11 + ((i * 5 + q * 3) % 11), 12 + ((i * 7 + q) % 9), 1.5, 1.2, _rgb(shade(base, 1.15), 1, .55));
+    _el(g, 16, 16, 4 * esc, 3.5 * esc, fase === 2 ? _rgb(shade(base, 1.2), 1, .5) : nucleo);
+    if (fase < 2) _el(g, 15.2, 15.2, 1.9 * esc, 1.6 * esc, _rgb(0xffffff, 1, fase ? .7 : .95));
+  }
+};
+/* Um sprite por elemento e por quadro, desenhado uma vez e reaproveitado. 32×32
+   como o resto da arte do projeto: o render amplia com nearest-neighbor, então
+   desenhar em 32 é o que garante a borda dura do §18. */
+/* VARIANTE POR TILE. O mesmo sprite repetido em trinta tiles desenha uma grade
+   de carimbos — defeito que só aparece na vista lado a lado e que um tile
+   sozinho esconde por completo. Quatro variantes por espelhamento custam quatro
+   canvas a mais e quebram o padrão sem redesenhar rotina nenhuma.
+   FOGO não espelha na vertical: a chama tem "para cima", e virá-la de cabeça
+   para baixo faz o fogo pingar do teto. Em troca ele varia a posição e a altura
+   das línguas, que é o que a rotina faz com o `v`. */
+const CAMPO_VARS = 4;
+const CAMPO_EIXO_Y = { fire: false };
+/* Quem pode GIRAR um quarto de volta. Espelhar só na horizontal deixava os arcos
+   de energia todos deitados, e lado a lado isso desenha listras. Raio não tem
+   em pé nem deitado, então girar é de graça; fogo tem, e por isso fica de fora. */
+const CAMPO_GIRA = { energy: true };
+const campoVarDe = (x, y) => (x * 5 + y * 3) & 3;
+function campoSprite(el, q, v = 0, fase = 0) {
+  const key = el + q + '.' + v + '.' + fase;
+  if (CAMPO_CACHE[key]) return CAMPO_CACHE[key];
+  const c = _canvas2(32, 32), g = c.getContext('2d'), d = CAMPO_DRAW[el];
+  if (!d) return CAMPO_CACHE[key] = c;            // elemento novo sem arte: some, não quebra
+  g.save();
+  g.translate(16, 16);                                   // tudo em volta do centro
+  if (v & 2) {
+    if (CAMPO_GIRA[el]) g.rotate(Math.PI / 2);
+    else if (CAMPO_EIXO_Y[el] !== false) g.scale(1, -1);
+  }
+  if (v & 1) g.scale(-1, 1);
+  g.translate(-16, -16);
+  _rnd = _mulberry(_hash(key));
+  d(g, 32, (typeof ELEM !== 'undefined' && ELEM[el] ? ELEM[el].cor : 0xffffff), q, v, fase);
+  _rnd = Math.random;
+  g.restore();
+  return CAMPO_CACHE[key] = c;
 }

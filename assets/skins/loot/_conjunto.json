@@ -12,6 +12,7 @@
   "ignorar": [
     "loot_01",
     "potions_01",
-    "harvest_01"
+    "harvest_01",
+    "coins"
   ]
 }

@@ -134,6 +134,7 @@ for (const f of ['audio.js', 'icones.js', 'data.js', 'art.js', 'world.js', 'rend
 vm.runInContext(`
   Object.assign(globalThis, { genWorld, findPath, WORLD, T, TILE, isWalkable, tileAt, W, H, FLOORS, SURF, distT,
     ITEMS, MONSTERS, SPELLS, VOCATIONS, SHOP_STOCK, PREFIXES, SUFFIXES, RARITY, XP_MULT,
+    COINS, COIN_V, COIN_MONTE, moedaDe,
     expForLevel, triesFor, manaForML, SKILL_RATE, mkItem, itemStats, newPlayer, dealDamage, weaponInfo,
     damageFormula, skillOf, recalc, G, creatureSprite, TEX_DRAW, tileTexture, decoSprite, buildMinimaps, drawWorld, w2s,
     corDoCeu, ehNoite, ambienteAgora, climaAgora, souCoberto, FLOOR_AMBIENCE, silhouette, edgeShadow, cloudTexture,
@@ -146,11 +147,14 @@ vm.runInContext(`
     regenMobs, descLoot, save, load, changeFloor, spawnDrop, tryStep, spawnMob, removeMob, restaurarBichos,
     habilidade, impacto, cssColOu: cssCol, ELEM, RES, resistOf,
     ELITES, ELITE_CHANCE, defModificada, mixCol, SETS,
-    HUD_PANELS, HUD_DEF, hudApply, hudMove, hudSolta, hudLoad, luzCarregada, SLOT_POS, SLOT_LABEL, equipItem, unequip,
+    lerpEntity, HUD_PANELS, HUD_DEF, hudApply, hudMove, hudSolta, hudLoad, luzCarregada, SLOT_POS, SLOT_LABEL, equipItem, unequip,
     playerDeath, BENCAOS, blessPrice, bagAdd, DEEP, SPAWN_POOLS,
     taskEstado, taskAceitar, taskReceber, taskProgresso, taskOfertas, nivelDe, shopNear, SKILL_NAMES, fixSave,
     POIS, poiAt, abrirTesouro, BIOMA_POOLS,
     COLETA, SKILLS_COLETA, colher, coletaDe, COLETA_EXITO, COLETA_SORTE, chaveTile, ALCANCE_TIRO, lineClear, IMBUEMENTS, imbuir, contaMat, renderForja,
+    magPower, MAG_K, lootEV, lootAlvo, updateFx, virarPara, refreshSpawns, playerAttack, DIRS, DANO_TIPOS, cdDe, ATAQUE_MS,
+    distAcao, emZonaSegura, ESTADOS, ESTADO_DE, aplicaEstado, tickEstados, estadoFlash, frame, tingido, FX_PERFIL, estiloEstado, estadoDaMagia, itemStats,
+    CAMPO_DRAW, campoSprite, INTEL, INTEL_DESVIA, intelOf, CAMPO_DUR, CAMPO_MAX, CAMPO_FORCA, CAMPO_CHANCE, CAMPO_FASES, campoFase, campoDano, criaCampo, campoEm, tickCampos, evitaCampo, passoAte, spellTiles,
     getForjaSlot: () => forjaSlot, setForjaSlot: v => forjaSlot = v,
     getHUD: () => HUD, setHUD: v => HUD = v, getP: () => P });
 
@@ -389,11 +393,12 @@ A(Math.min(...tam) <= 1, 'às vezes o monstro larga quase nada');
 A(Math.max(...tam) >= 4, `às vezes larga meia lista de uma vez (máx ${Math.max(...tam)})`);
 A(medio > 1.5 && medio < 6, `média de itens por morte é sensata (${medio.toFixed(1)})`);
 const todos = drops.flat();
-A(todos.some(i => i.count > 1 && i.id !== 'gold'), 'empilhável cai em quantidade (2 escamas, 5 flechas…)');
+A(todos.some(i => i.count > 1 && !S.COIN_V[i.id]), 'empilhável cai em quantidade (2 escamas, 5 flechas…)');
 A(todos.some(i => S.ITEMS[i.id].slot), 'equipamento aparece no loot');
 A(todos.some(i => i.id === 'dragon_scale'), 'parte do corpo aparece no loot');
 A(todos.some(i => i.r > 0), 'equipamento dropado às vezes vem com afixo');
-A(drops.filter(d => d.some(i => i.id === 'gold')).length / drops.length > 0.94, 'dragão larga ouro em ~98% das mortes');
+// o id do dinheiro agora depende da denominação que coube (ver moedaDe)
+A(drops.filter(d => d.some(i => S.COIN_V[i.id])).length / drops.length > 0.94, 'dragão larga dinheiro em ~98% das mortes');
 A([1, 2, 3, 4].every(r => S.mkItem('sword', r).af.length === r), 'item nasce com exatamente os afixos da raridade');
 A(todos.every(i => i.id === 'gold' || S.sellPrice(i) > 0), 'tudo que cai tem valor de venda');
 A(Object.values(S.MONSTERS).every(m => m.loot.length >= 4), 'todo monstro tem lista de loot variada');
@@ -1027,6 +1032,23 @@ A(S.linhas.some(c => /\bapanha\b/.test(c)), 'dano recebido entra no log de comba
 A(S.linhas.some(c => /\bcura\b/.test(c)) && S.linhas.some(c => /\bmana\b/.test(c)), 'cura de vida e de mana entram com cores próprias');
 A(S.linhas.every(c => !c || c.includes('cbt') || c.includes('good') || c.includes('bad')),
   'toda linha de combate está marcada para a aba Combate mostrar');
+
+/* ---------------------------------------------------------------- moedas */
+/* O que não pode acontecer nunca: o número que aparece na peça valer diferente
+   do que entra em P.gold. Por isso a checagem é de ida e volta, e não de casos
+   escolhidos a dedo. */
+for (const v of [1, 7, 99, 100, 101, 999, 9999, 10000, 55555, 99999, 100000, 7777777]) {
+  const m = S.moedaDe(v), vale = m.count * S.COIN_V[m.id];
+  A(vale <= v, `moeda de ${v} não infla o valor (deu ${vale})`);
+  A(v - vale < S.COIN_V[m.id], `moeda de ${v} usa a maior denominação que cabe (${m.count}x ${m.id})`);
+  A(m.count >= 1, `moeda de ${v} nunca sai com zero peças`);
+}
+A(S.moedaDe(0).id === 'gold_coin' && S.moedaDe(0).count === 1, 'valor zero ainda dá uma peça, não some do corpo');
+A(S.moedaDe(99).id === 'gold_coin' && S.moedaDe(100).id === 'platinum_coin' &&
+  S.moedaDe(10000).id === 'crystal_coin', 'cada degrau troca de metal na hora certa');
+A(S.COIN_V.gold === S.COIN_V.gold_coin, 'o id legado `gold` vale o mesmo que a moeda de ouro');
+A(S.COIN_MONTE(1) === '1' && S.COIN_MONTE(2) === 'few' && S.COIN_MONTE(50) === 'few' &&
+  S.COIN_MONTE(51) === 'many', 'o monte desenhado acompanha a quantidade');
 
 const semTag = s => s.replace(/<[^>]+>/g, '');
 A(semTag(S.descLoot(S.mkItem('gold', 0, 56))) === '56 Moedas de Ouro', 'empilhável mostra a quantidade no log');
@@ -1832,6 +1854,67 @@ const morte = (bless, lvl = 40, expBase = `expForLevel(${lvl} + 1) - 1`) => {
     `skill alta acerta bem mais que skill baixa (${(S.COLETA_EXITO(10) * 100).toFixed(0)}% → ${(S.COLETA_EXITO(90) * 100).toFixed(0)}%)`);
   A(S.vAlto > S.vBaixo * 1.5,
     `skill alta também tira coisa MELHOR, não só mais vezes (${S.vBaixo.toFixed(0)}g → ${S.vAlto.toFixed(0)}g por colheita)`);
+  /* A comparação acima mistura duas coisas: skill 90 abre linhas que a 10 não
+     alcança. Para isolar o PESO da skill na raridade, medir entre dois níveis
+     que abrem exatamente o mesmo conjunto — aí a diferença só pode vir do
+     COLETA_SORTE. Sem isto, apagar o fator passava verde. */
+  {
+    const abertas = nv => S.COLETA.mining.tab.filter(([, , lv]) => nv >= lv).map(l => l[0]).join(',');
+    A(abertas(35) === abertas(47), 'skill 35 e 47 abrem as mesmas linhas de mineração — dá para isolar a sorte');
+    /* Medir COMPOSIÇÃO e não valor: a quantidade também cresce com a skill
+       (1 + nível/25), então comparar ouro deixava o teste passar mesmo com o
+       peso da raridade apagado — o lote maior da linha comum cobria a conta. */
+    vm.runInContext(`(() => {
+      const p = pontos.mining, raras = COLETA.mining.tab.filter(l => l[1] < .5).map(l => l[0]);
+      /* Sorteio SEMEADO, e a mesma semente nas duas medições: sem isso o teste
+         falhava sozinho 2 vezes em 16 — a diferença real (36% → 43%) é firme,
+         mas a de uma amostra solta encostava no limiar. Com a semente fixa as
+         duas rodadas veem a mesma sequência e o que sobra é só o peso da skill.
+         É a regra da própria seção "Armadilhas conhecidas": assertiva
+         probabilística precisa de estado inicial igual, e aumentar a amostra não
+         resolve viés. */
+      const fatia = nivel => {
+        const real = Math.random;
+        Math.random = _mulberry(20260818);
+        let n = 0, raro = 0;
+        for (let i = 0; i < 4000; i++) {
+          P.z = SURF; P.x = P.px = p.v[0]; P.y = P.py = p.v[1];
+          P.eq.weapon = mkItem('pickaxe'); P.sk.mining.l = nivel; P.sk.mining.t = 0;
+          if (P.colhido) delete P.colhido[chaveTile(p.x, p.y, SURF)];
+          P.bag.length = 0; G.colheitaCd = 0;
+          colher(p.x, p.y);
+          if (!P.bag.length) continue;
+          n++; if (raras.includes(P.bag[0].id)) raro++;
+        }
+        Math.random = real;
+        return n ? raro / n : 0;
+      };
+      globalThis.fatia36 = fatia(35); globalThis.fatia47 = fatia(47);
+    })();`, ctx);
+    A(S.fatia47 > S.fatia36 * 1.08,
+      `com as mesmas linhas abertas, a skill ainda aumenta a fatia de achado raro (${(S.fatia36 * 100).toFixed(0)}% na 35 → ${(S.fatia47 * 100).toFixed(0)}% na 47)`);
+  }
+  /* Quantidade é volume, não achado: sem esta, a skill 80 tirava "4× Barra de
+     Ouro" de uma britada, e sozinha isso devolvia a mineração aos 20.000/min. */
+  vm.runInContext(`(() => {
+    const p = pontos.mining;
+    let maiorRaro = 0, maiorComum = 0;
+    for (let i = 0; i < 600; i++) {
+      P.z = SURF; P.x = P.px = p.v[0]; P.y = P.py = p.v[1];
+      P.eq.weapon = mkItem('pickaxe'); P.sk.mining.l = 90; P.sk.mining.t = 0;
+      if (P.colhido) delete P.colhido[chaveTile(p.x, p.y, SURF)];
+      P.bag.length = 0; G.colheitaCd = 0;
+      colher(p.x, p.y);
+      if (!P.bag.length) continue;
+      const it = P.bag[0], linha = COLETA.mining.tab.find(l => l[0] === it.id);
+      if (!linha) continue;
+      if (linha[1] >= .5) maiorComum = Math.max(maiorComum, it.count || 1);
+      else maiorRaro = Math.max(maiorRaro, it.count || 1);
+    }
+    globalThis.qtdRaro = maiorRaro; globalThis.qtdComum = maiorComum;
+  })();`, ctx);
+  A(S.qtdRaro === 1, `linha rara sai sempre em 1 — ninguém tira lote de gema numa britada (maior visto: ${S.qtdRaro})`);
+  A(S.qtdComum > 1, `linha de volume ainda sai em lote com skill alta (maior visto: ${S.qtdComum})`);
 }
 
 /* 31. imbuement: gasta material e ouro, entra como afixo, um por peça, e
@@ -1889,6 +1972,1097 @@ A(S.spritesFaltando.length === 0, 'todo sprite de item é pedido antes de o jogo
 A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
   'todo item tem PNG ou emoji para o chão desenhar: ' +
   Object.values(S.ITEMS).filter(i => !i.spr && (!i.ico || i.ico[0] === '<')).map(i => i.id).join(', '));
+
+/* 32. #43 — as invariantes que o tasks.html afirmava ter e não tinha.
+   Auditoria de 2026-08-18: das 32 regras listadas em "Regras que não devem ser
+   quebradas", 18 não existiam aqui. As mais caras de perder são as do #38a–d,
+   que foi o trabalho de balanceamento mais caro do projeto e estava sem rede:
+   desfazer `magPower`, o relógio de dano ou a varinha sem ML passava verde. */
+{
+  /* --- #38b: a varinha é a faixa crua da arma, sem magic level ------------ */
+  /* Medido no caminho REAL (playerAttack → shoot → updateFx → dealDamage), e
+     não em `weaponInfo`: o defeito de origem estava no ataque básico, não na
+     ficha da arma, e um teste que olhasse só a tabela não pegaria a volta. */
+  vm.runInContext(`
+    globalThis.danoVarinha = (ml, n) => {
+      newPlayer('Varinha', 'sorcerer'); saiDoTemplo();
+      P.level = 76; P.ml.l = ml; P.eq.weapon = mkItem('wand_of_inferno'); recalc();
+      G.mobs.length = 0; G.proj.length = 0; G.dead = false; G.now = 1e6;
+      const alvo = spawnMob({ x: P.x + 1, y: P.y, z: P.z, m: 'rat', el: -1, dead: false });
+      alvo.def = Object.assign({}, alvo.def, { res: {} });        // sem resistência no meio
+      alvo.hp = alvo.maxhp = 1e9;
+      G.target = alvo;
+      let total = 0;
+      for (let i = 0; i < n; i++) {
+        P.mana = P.st.maxmana; P.nextAtk = 0;
+        const antes = alvo.hp;
+        playerAttack();
+        G.now += 2000; updateFx();                                 // o projétil chega
+        total += antes - alvo.hp;
+      }
+      return total / n;
+    };
+    globalThis.vML1 = danoVarinha(1, 240);
+    globalThis.vML250 = danoVarinha(250, 240);
+  `, ctx);
+  const razaoML = S.vML250 / S.vML1;
+  A(razaoML > 0.85 && razaoML < 1.18,
+    `a varinha não escala com magic level (ML 1 dá ${S.vML1.toFixed(0)}, ML 250 dá ${S.vML250.toFixed(0)} — ${razaoML.toFixed(2)}×)`);
+  {
+    /* A terceira sem as duas primeiras deixaria alguém achatar a tabela de
+       varinhas e matar a progressão do mago, que é o que sobrou dele. */
+    const varas = Object.values(S.ITEMS).filter(i => i.wt === 'wand' && i.dmg)
+      .sort((a, b) => (a.lvl || 0) - (b.lvl || 0));
+    const med = i => (i.dmg[0] + i.dmg[1]) / 2;
+    A(med(varas[varas.length - 1]) / med(varas[0]) >= 5,
+      `a linha de varinhas cresce 5×+ do primeiro ao último degrau (${med(varas[0]).toFixed(0)} → ${med(varas[varas.length - 1]).toFixed(0)})`);
+  }
+
+  /* --- #38c: a inclinação de ML é sublinear e o espalhamento tem teto ----- */
+  {
+    const bases = Object.values(S.SPELLS).filter(sp => S.DANO_TIPOS.includes(sp.type) && sp.base).map(sp => sp.base);
+    const mn = Math.min(...bases), mx = Math.max(...bases);
+    const ml = 253, nv = 320;
+    const esp = S.magPower(mx, ml, nv) / S.magPower(mn, ml, nv);
+    A(esp <= 6, `o ganho por ponto de ML tem espalhamento limitado (${esp.toFixed(1)}× no fim de curva; era 16,2×)`);
+    /* Achatar não é igualar: magia de base maior TEM de escalar mais, senão a
+       régua vira imposto e a escolha de magia deixa de existir. */
+    A(S.magPower(mx, ml, nv) - mx > S.magPower(mn, ml, nv) - mn,
+      'magia de base maior ainda ganha mais por ponto de ML — a régua achata, não iguala');
+    /* A ponta de baixo já estava certa: MAG_K foi calibrado para não mexer nela.
+       Sem isto, alguém "conserta" o espalhamento cortando a magia fraca. */
+    A(S.magPower(mn, 45, 50) > mn * 2,
+      `a magia mais fraca sobreviveu à mudança (base ${mn} vira ${S.magPower(mn, 45, 50).toFixed(0)} com ML 45)`);
+  }
+
+  /* --- #38c: a cura não pode crescer mais rápido que a vida --------------- */
+  /* Era plana em 332% da barra do nível 50 ao 320 — cura total garantida em
+     qualquer nível, para qualquer vocação. A forma certa do invariante é a
+     razão ENCOLHER, não um teto fixo: teto vira cópia do dado. */
+  vm.runInContext(`
+    globalThis.curaPorVida = (voc, nivel) => {
+      newPlayer('C', voc); P.level = nivel;
+      P.sk.magic = P.sk.magic || {}; P.ml.l = Math.round(nivel * .8); recalc();
+      const curas = SPELLS.filter(sp => sp.type === 'heal' && (!sp.voc || sp.voc.includes(voc)) && sp.base);
+      if (!curas.length) return null;
+      const melhor = Math.max(...curas.map(sp => magPower(sp.base, P.ml.l, P.level)));
+      return melhor / P.st.maxhp;
+    };
+    globalThis.curaCurva = {};
+    for (const v of ['knight', 'ranger', 'sorcerer', 'druid'])
+      curaCurva[v] = { n50: curaPorVida(v, 50), n320: curaPorVida(v, 320) };
+  `, ctx);
+  for (const v of ['knight', 'ranger', 'sorcerer', 'druid']) {
+    const c = S.curaCurva[v];
+    if (!c || c.n50 === null) { A(false, `${v} tem magia de cura para medir`); continue; }
+    /* A doença era "cura total garantida em QUALQUER nível": 332% da barra,
+       plana do 50 ao 320. Duas metades guardam isso, e nenhuma é cópia do dado —
+       a razão não pode CRESCER com o nível, e no fim de curva uma conjuração não
+       pode encher a barra. No meio do jogo ela ainda passa de 100% e isso é
+       sabido: quem resolve é vida, não a fórmula (ver #38d). */
+    A(c.n320 <= c.n50 * 1.05, `${v}: a cura não cresce mais rápido que a vida (${(c.n50 * 100).toFixed(0)}% da barra no nv 50 → ${(c.n320 * 100).toFixed(0)}% no 320)`);
+    A(c.n320 < 1, `${v}: no fim de curva uma cura não enche a barra sozinha (${(c.n320 * 100).toFixed(0)}%)`);
+  }
+
+  /* --- #38d: o druida é outro personagem, não o sorcerer de outra cor ----- */
+  /* Antes eram numericamente idênticos: mesma vida, mesma mana, mesma
+     regeneração, mesmas skills — só divergiam em velocidade e cor. O que está
+     travado aqui é a FORMA da identidade, não o valor de ajuste fino: o número
+     exato da base da Cura Suprema fica de fora de propósito (ver #38d). */
+  vm.runInContext(`
+    globalThis.perfil = (voc, nivel) => {
+      newPlayer('P', voc); P.level = nivel; P.ml.l = Math.round(nivel * .8); recalc();
+      const meu = sp => !sp.voc || sp.voc.includes(voc);
+      const dano = SPELLS.filter(sp => DANO_TIPOS.includes(sp.type) && sp.base && meu(sp) && sp.lvl <= nivel);
+      const cura = SPELLS.filter(sp => sp.type === 'heal' && sp.base && meu(sp) && sp.lvl <= nivel);
+      return {
+        dano: dano.length ? Math.max(...dano.map(sp => magPower(sp.base, P.ml.l, P.level))) : 0,
+        cura: cura.length ? Math.max(...cura.map(sp => magPower(sp.base, P.ml.l, P.level))) : 0,
+        vida: P.st.maxhp
+      };
+    };
+    globalThis.pf = {};
+    for (const v of ['knight', 'ranger', 'sorcerer', 'druid']) pf[v] = { n50: perfil(v, 50), n320: perfil(v, 320) };
+  `, ctx);
+  for (const nv of ['n50', 'n320']) {
+    const d = S.pf.druid[nv], so = S.pf.sorcerer[nv];
+    A(d.dano <= so.dano * 0.92, `nv ${nv.slice(1)}: o druida bate no máximo 92% do sorcerer (${(100 * d.dano / so.dano).toFixed(0)}%)`);
+    /* Piso de 1,20 e não 1,40: o medido é 125% no nv 50 e 137% no 320, e a
+       seção de Regras do tasks.html afirmava 140% — número que nunca foi
+       verdade, contrariado pelos próprios valores registrados no #38d. O que o
+       piso precisa separar é o deliberado (125%) do acidental de antes de haver
+       identidade (96%), e 1,20 faz isso com folga dos dois lados. */
+    A(d.vida >= so.vida * 1.2, `nv ${nv.slice(1)}: o druida aguenta 20%+ a mais (${(100 * d.vida / so.vida).toFixed(0)}%)`);
+    A(d.cura > so.cura, `nv ${nv.slice(1)}: o druida cura mais que o sorcerer`);
+  }
+  A(S.pf.druid.n320.cura > S.pf.ranger.n320.cura && S.pf.ranger.n320.cura > S.pf.sorcerer.n320.cura
+    && S.pf.sorcerer.n320.cura >= S.pf.knight.n320.cura,
+    'a hierarquia de curandeiro é druida > ranger > sorcerer > knight');
+
+  /* --- degrau de magia nunca anda para trás ------------------------------- */
+  /* É o defeito do Arco da Sentinela outra vez, do outro lado: no #38d o corte
+     de 12% no druida levaria Golpe de Terra (nv13) e Golpe de Gelo (nv14) para
+     ABAIXO do Golpe de Fogo (nv12), que é compartilhado e não podia se mover.
+     Só nível ESTRITAMENTE menor conta: duas do mesmo nível são escolha de
+     elemento, não degrau. */
+  {
+    const ruins = [];
+    for (const voc of ['knight', 'ranger', 'sorcerer', 'druid'])
+      for (const tipo of [...new Set(Object.values(S.SPELLS).map(sp => sp.type))]) {
+        const l = Object.values(S.SPELLS)
+          .filter(sp => sp.type === tipo && sp.base && (!sp.voc || sp.voc.includes(voc)))
+          .sort((a, b) => a.lvl - b.lvl);
+        for (let i = 1; i < l.length; i++)
+          for (let j = 0; j < i; j++)
+            if (l[j].lvl < l[i].lvl && l[i].base < l[j].base)
+              ruins.push(`${voc}/${tipo}: ${l[i].n} (nv${l[i].lvl}) é mais fraca que ${l[j].n} (nv${l[j].lvl})`);
+      }
+    A(!ruins.length, 'nenhuma magia é mais fraca que uma de nível estritamente menor do mesmo tipo e vocação — ' + (ruins[0] || 'ok'));
+  }
+
+  /* --- #28: todo saque bate a régua dificuldade × natureza ---------------- */
+  {
+    let pior = 0, quem = '';
+    for (const id in S.MONSTERS) {
+      const m = S.MONSTERS[id];
+      if (!m.loot || !m.loot.length) continue;
+      const r = S.lootEV(m) / S.lootAlvo(m), d = Math.max(r, 1 / r);
+      if (d > pior) { pior = d; quem = id; }
+    }
+    A(pior < 1.35, `todo saque bate a régua de dificuldade × natureza (pior: ${quem} a ${pior.toFixed(2)}×)`);
+  }
+
+  /* --- a trava que segura a régua de loot de comer a forja ---------------- */
+  /* Se a régua ajustasse a chance de MATERIAL para fechar a conta de ouro, rabo
+     de rato e osso ficariam raros e a forja pararia — sem erro e sem teste, só
+     um jogador descobrindo que não dá mais para forjar. */
+  {
+    const mats = new Set();
+    S.IMBUEMENTS.forEach(im => im.mats.forEach(([id]) => mats.add(id)));
+    const melhor = {};
+    for (const id of mats) melhor[id] = 0;
+    for (const k in S.MONSTERS)
+      (S.MONSTERS[k].loot || []).forEach(([id, ch]) => { if (mats.has(id)) melhor[id] = Math.max(melhor[id], ch); });
+    const some = [...mats].filter(id => !melhor[id]);
+    const raros = [...mats].filter(id => melhor[id] && melhor[id] < 0.02);
+    A(!some.length, `os ${mats.size} materiais da forja continuam caindo — ${some.join(', ') || 'todos'}`);
+    A(!raros.length, `nenhum material de forja tem chance irrisória (menor máxima: ${Math.min(...Object.values(melhor)).toFixed(2)})`);
+  }
+
+  /* --- #21: nenhuma cor crua no ui.js ------------------------------------ */
+  /* A varredura roda no FONTE, então hexadecimal novo quebra a suíte no mesmo
+     dia — é o único jeito de guardar uma regra sobre código que não é chamado. */
+  {
+    const fonte = fs.readFileSync(path.join(__dirname, '..', 'src', 'ui.js'), 'utf8');
+    const cruas = fonte.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
+    A(!cruas.length, `nenhuma cor crua em ui.js (achei ${cruas.length}: ${cruas.slice(0, 5).join(' ')})`);
+    A(fonte.includes('tok('), 'ui.js pega cor por tok(), não por literal');
+  }
+
+  /* --- revitalização da paleta: cor voltou a ser informação --------------- */
+  /* Os pares saem do MUNDO, não de uma lista à mão: escrever os seis pares aqui
+     envelheceria no dia em que um bioma novo encostasse noutro. Foi assim que a
+     dúvida sobre SAND/TEMPLE se resolveu — os dois nunca se tocam. */
+  {
+    const cor = t => S.TILE[t].c;
+    const dist = (a, b) => Math.abs((a >> 16 & 255) - (b >> 16 & 255))
+      + Math.abs((a >> 8 & 255) - (b >> 8 & 255)) + Math.abs((a & 255) - (b & 255));
+    const contatos = {};
+    for (let z = 0; z < S.FLOORS; z++)
+      for (let y = 1; y < S.H - 1; y++)
+        for (let x = 1; x < S.W - 1; x++) {
+          const a = S.tileAt(x, y, z);
+          if (a === S.T.VOID) continue;
+          for (const [dx, dy] of [[1, 0], [0, 1]]) {
+            const b = S.tileAt(x + dx, y + dy, z);
+            if (b === S.T.VOID || a === b) continue;
+            const k = Math.min(a, b) + ',' + Math.max(a, b);
+            contatos[k] = (contatos[k] || 0) + 1;
+          }
+        }
+    const vizinhos = Object.entries(contatos).filter(([, n]) => n > 500).map(([k]) => k.split(',').map(Number));
+    const perto = vizinhos.filter(([a, b]) => dist(cor(a), cor(b)) < 60);
+    A(vizinhos.length >= 6, `o mundo encosta terreno diferente em ${vizinhos.length} pares (amostra suficiente)`);
+    A(!perto.length, `terreno vizinho é distinguível (mínimo de 60; pior par ${Math.min(...vizinhos.map(([a, b]) => dist(cor(a), cor(b))))})`);
+
+    const sat = h => {
+      const r = (h >> 16 & 255) / 255, g = (h >> 8 & 255) / 255, b = (h & 255) / 255;
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+      return mx === mn ? 0 : (l > .5 ? (mx - mn) / (2 - mx - mn) : (mx - mn) / (mx + mn));
+    };
+    const tiles = Object.values(S.T).filter(t => t !== S.T.VOID);
+    const media = tiles.reduce((a, t) => a + sat(cor(t)), 0) / tiles.length;
+    A(media >= .33, `a saturação média do terreno não caiu para o cinza (${(media * 100).toFixed(0)}%, piso 33%)`);
+    /* O TETO importa tanto quanto o piso: uma régua que só empurrasse saturação
+       para cima convidaria o neon que o §23 do CLAUDE.md veta. */
+    const fora = tiles.filter(t => sat(cor(t)) < .10 || sat(cor(t)) > .90);
+    A(!fora.length, `nenhum tile fora da faixa 10–90% de saturação (${fora.length} fora)`);
+  }
+
+  /* --- #38a: o relógio único de dano, medido ALTERNANDO magias ------------ */
+  /* O piso de cdDe() é por magia e o GCD é 900 ms: o sorcerer alternava entre
+     as três de ataque e, ao voltar na primeira, os 2 s dela já tinham passado —
+     conjurava a cada 896 ms. Por isso o teste TEM de alternar: lançar a mesma
+     repetidas vezes passa mesmo com o defeito presente, que é exatamente como
+     ele sobreviveu ao #23. */
+  vm.runInContext(`(() => {
+    newPlayer('Relogio', 'sorcerer'); saiDoTemplo();
+    P.level = 50; P.ml.l = 45; recalc();
+    G.mobs.length = 0; G.dead = false; G.now = 1e6; P.cd = {};
+    const ataque = SPELLS.filter(sp => DANO_TIPOS.includes(sp.type) && sp.lvl <= P.level && (!sp.voc || sp.voc.includes('sorcerer')));
+    globalThis.nAtaque = ataque.length;
+    /* Sem alvo o dano não sai, então põe um saco de pancada imortal ao lado. */
+    const saco = spawnMob({ x: P.x + 1, y: P.y, z: P.z, m: 'rat', el: -1 });
+    saco.hp = saco.maxhp = 1e9; G.target = saco;
+    globalThis.instantes = [];
+    let i = 0;
+    for (let t = 0; t < 20000; t += 50) {
+      G.now = 1e6 + t; P.mana = P.st.maxmana;
+      const antes = P.mana;
+      castSpell(ataque[i % ataque.length]);            // ALTERNA
+      if (P.mana < antes) { instantes.push(t); i++; }
+    }
+    globalThis.menorIntervalo = Math.min(...instantes.slice(1).map((v, k) => v - instantes[k]));
+    /* A outra metade: travar tudo no mesmo relógio tiraria a defesa de quem
+       conjura, então a cura TEM de sair durante o cooldown de dano. */
+    G.now = 1e6; P.cd = {}; P.mana = P.st.maxmana; P.hp = 1;
+    castSpell(ataque[0]);
+    G.now += 1000;                                      // passou o GCD (900), dentro do relógio de dano (2000)
+    const cura = SPELLS.find(sp => sp.type === 'heal' && sp.lvl <= P.level && (!sp.voc || sp.voc.includes('sorcerer')));
+    const mAntes = P.mana; castSpell(cura);
+    globalThis.curouNoCooldown = P.mana < mAntes;
+  })();`, ctx);
+  A(S.nAtaque >= 2, `o sorcerer tem ${S.nAtaque} magias de ataque no nível 50 — alternar faz sentido`);
+  A(S.menorIntervalo >= S.ATAQUE_MS,
+    `magia de dano não sai mais rápido que o ataque básico, alternando magias (${S.menorIntervalo} ms, piso ${S.ATAQUE_MS})`);
+  A(S.curouNoCooldown, 'a cura sai durante o cooldown de dano — o GCD curto é de propósito');
+
+  /* --- #6: bicho manso ---------------------------------------------------- */
+  /* As três juntas: só "não persegue" faz saco de pancada, e só "foge" não
+     impede o coelho de caçar o jogador. */
+  vm.runInContext(`(() => {
+    newPlayer('Fauna', 'knight'); saiDoTemplo();
+    P.hp = P.st.maxhp = 1e9; G.dead = false; G.mobs.length = 0; G.now = 2e6;
+    globalThis.passivos = Object.keys(MONSTERS).filter(k => MONSTERS[k].passivo);
+    const bicho = () => {
+      G.mobs.length = 0;
+      const m = spawnMob({ x: P.x + 3, y: P.y, z: P.z, m: passivos[0], el: -1 });
+      m.nextAtk = 0; return m;
+    };
+    /* 1. vê o jogador e não liga o encalço */
+    const parado = bicho();
+    for (let i = 0; i < 60; i++) { G.now += 120; updateMobs(120); }
+    globalThis.mansoNaoEncalca = !parado.chase;
+    /* 2. apanhou, foge */
+    const ferido = bicho();
+    ferido.x = ferido.px = P.x + 1; ferido.y = ferido.py = P.y;
+    dealDamage(ferido, 1);
+    const dAntes = distT(ferido.x, ferido.y, P.x, P.y);
+    for (let i = 0; i < 80; i++) { G.now += 120; updateMobs(120); }
+    globalThis.mansoFoge = distT(ferido.x, ferido.y, P.x, P.y) > dAntes;
+    globalThis.mansoAcordou = ferido.chase;
+  })();`, ctx);
+  A(S.passivos.length >= 4, `a fauna passiva existe (${S.passivos.length} espécies)`);
+  A(S.mansoNaoEncalca, 'bicho manso não liga o encalço só por ver o jogador');
+  A(S.mansoAcordou && S.mansoFoge, 'apanhar acorda o bicho manso, e ele foge em vez de revidar');
+
+  /* --- #6: criatura noturna nasce de noite, e no refreshSpawns de verdade -- */
+  /* Verificado no laço real e não na ficha: `noite: true` na tabela não prova
+     que alguém consulta o relógio. */
+  vm.runInContext(`(() => {
+    globalThis.noturnas = Object.keys(MONSTERS).filter(k => MONSTERS[k].noite);
+    globalThis.nasceuDeDia = null; globalThis.nasceuDeNoite = null;
+    if (noturnas.length) {
+      const alvo = noturnas[0];
+      /* A 10 tiles, não colado: refreshSpawns tem "se não foi avisado e d < 7,
+         pula" — ponto frio nunca instancia perto do jogador. Com o spawn a 2
+         tiles o teste media OUTROS pontos do mundo e não o seu, e por isso não
+         pegava a volta na mutação. */
+      let sx = P.x + 10, sy = P.y;
+      for (let k = 10; k <= 20 && !isWalkable(sx, sy, P.z); k++) { sx = P.x + k; }
+      const sp = { x: sx, y: sy, z: P.z, m: alvo, dead: 0, el: -1 };
+      WORLD.spawns.push(sp);
+      /* O relógio sai de Date.now(), e ehNoite é um const de world.js — não dá
+         para trocá-lo por fora, porque refreshSpawns o resolve lexicalmente.
+         Stub no Date.now exercita o caminho inteiro de verdade: DIA_MS é 10 min,
+         e nessa volta o ms 0 cai na noite e o 141000 no dia. */
+      const relogioReal = Date.now;
+      const tenta = ms => {
+        sp.live = null; sp.dead = 0; G.mobs.length = 0;
+        Date.now = () => ms;
+        try { refreshSpawns(true); } finally { Date.now = relogioReal; }
+        return !!sp.live;                                  // ESTE ponto, não o mundo inteiro
+      };
+      globalThis.pontoAndavel = isWalkable(sx, sy, P.z);
+      nasceuDeNoite = tenta(0);
+      nasceuDeDia = tenta(141000);
+      WORLD.spawns.pop();
+    }
+  })();`, ctx);
+  A(S.noturnas.length > 0, `existe criatura noturna (${S.noturnas.length})`);
+  A(S.pontoAndavel, 'o ponto de spawn do teste caiu em chão andável');
+  A(S.nasceuDeNoite === true, 'criatura noturna nasce de noite');
+  A(S.nasceuDeDia === false, 'e NÃO nasce de dia — o relógio é consultado no refreshSpawns de verdade');
+
+  /* --- #34: virar sem andar ----------------------------------------------- */
+  /* A lógica virou função justamente para poder ser verificada: no harness o
+     addEventListener global é no-op, então o que só existe dentro do keydown
+     não tem como ser testado. */
+  vm.runInContext(`(() => {
+    newPlayer('Vira', 'knight'); saiDoTemplo(); G.dead = false; P.stepD = 0;
+    const p0 = [P.x, P.y];
+    globalThis.dirs = [];
+    for (const d of [[0,-1],[1,0],[0,1],[-1,0]]) { virarPara(d); dirs.push(P.lastDir.join(',')); }
+    globalThis.virouSemAndar = P.x === p0[0] && P.y === p0[1];
+    globalThis.dirsUnicas = new Set(dirs).size;
+    G.dead = true; const antes = P.lastDir.join(',');
+    virarPara([1, 1]);
+    globalThis.mortoNaoVira = P.lastDir.join(',') === antes;
+    G.dead = false;
+  })();`, ctx);
+  A(S.virouSemAndar, 'virar não move o personagem');
+  A(S.dirsUnicas === 4, `as quatro direções são alcançáveis (${S.dirsUnicas})`);
+  A(S.mortoNaoVira, 'morto não vira');
+}
+
+/* 33. #32 — estados elementais no corpo. Até aqui o elemento só decidia cor de
+   partícula e resistência: fogo não queimava, terra não envenenava. */
+{
+  A(Object.values(S.ESTADOS).every(e => e.n && e.dano > 0 && e.dur > 0 && e.chance > 0 && e.chance <= 1),
+    `todo estado tem nome, dano, duração e chance (${Object.keys(S.ESTADOS).length})`);
+  /* Ou o estado é de um elemento REAL, e tira cor e partícula de ELEM, ou não
+     tem elemento e traz as suas — meio-termo sairia sem desenho na tela. */
+  A(Object.values(S.ESTADOS).every(e => e.el ? !!S.ELEM[e.el] : (e.cor >= 0 && e.forma)),
+    'estado com elemento aponta um real; estado sem elemento traz a própria cor e partícula');
+  /* Físico, sagrado e morte ficam de fora de propósito: são tipos de dano e não
+     condições que o corpo carrega. Sagrado que queimasse seria fogo azul. */
+  A(!S.ESTADO_DE.physical && !S.ESTADO_DE.holy && !S.ESTADO_DE.death,
+    'nenhum estado é alcançável por físico, sagrado ou morte pelo elemento');
+  const comEl = Object.values(S.ESTADOS).filter(e => e.el);
+  A(new Set(comEl.map(e => e.el)).size === comEl.length,
+    'um estado por elemento — dois no mesmo elemento fariam a cor piscar entre duas');
+  /* §17: o selo na barra não pode ser emoji. A cor do elemento é a pista que o
+     jogador já aprendeu na partícula e no tiro da varinha. */
+  A(!JSON.stringify(S.ESTADOS).match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u),
+    'nenhum estado carrega emoji — o selo sai da cor do elemento');
+
+  vm.runInContext(`(() => {
+    newPlayer('Estado', 'knight'); saiDoTemplo();
+    P.hp = P.st.maxhp = 1e9; G.dead = false; G.mobs.length = 0; G.now = 3e6;
+    globalThis.alvoDe = id => {
+      G.mobs.length = 0;
+      const m = spawnMob({ x: P.x + 1, y: P.y, z: P.z, m: id, el: -1 });
+      m.hp = m.maxhp = 1e6; m.estados = {}; return m;
+    };
+    /* Sorteio semeado: a chance é de 22% a 28%, então "aplicou ou não" numa
+       tentativa só é ruído. Semente fixa deixa o resultado reprodutível. */
+    const real = Math.random; Math.random = _mulberry(4242);
+
+    /* fogo aplica queimando; físico não aplica nada */
+    const rato = alvoDe('rat');
+    for (let i = 0; i < 40; i++) aplicaEstado(rato, 'queimando', 100);
+    globalThis.pegouFogo = !!rato.estados.queimando;
+    const rato2 = alvoDe('rat');
+    for (let i = 0; i < 40; i++) aplicaEstado(rato2, ESTADO_DE.physical, 100);
+    globalThis.pegouFisico = Object.keys(rato2.estados).length > 0;
+
+    /* imune não pega o estado: o dragão é imune a fogo */
+    const drag = alvoDe('dragon');
+    globalThis.dragImuneFogo = resistOf(drag.def, 'fire') === 0;
+    for (let i = 0; i < 60; i++) aplicaEstado(drag, 'queimando', 100);
+    globalThis.imunePegou = Object.keys(drag.estados).length > 0;
+
+    /* acúmulo: reaplicar RESETA a duração e nunca empilha */
+    const alvo = alvoDe('rat');
+    for (let i = 0; i < 40 && !alvo.estados.queimando; i++) aplicaEstado(alvo, 'queimando', 100);
+    const primeiro = alvo.estados.queimando.end;
+    G.now += 4000;
+    for (let i = 0; i < 40; i++) aplicaEstado(alvo, 'queimando', 100);
+    globalThis.chaves = Object.keys(alvo.estados).length;
+    globalThis.resetou = alvo.estados.queimando.end > primeiro;
+
+    /* o tique tira vida, e o veneno que MATA passa por killMob: larga loot e dá
+       experiência igual a uma espadada, senão morrer de veneno seria de graça */
+    const fraco = alvoDe('rat');
+    for (let i = 0; i < 40 && !fraco.estados.queimando; i++) aplicaEstado(fraco, 'queimando', 100);
+    const antes = fraco.hp; tickEstados();
+    globalThis.tiqueDoeu = fraco.hp < antes;
+    fraco.hp = 1; G.drops.length = 0;
+    const expAntes = P.exp, vivos = G.mobs.length;
+    tickEstados();
+    globalThis.venenoMatou = G.mobs.length < vivos;
+    globalThis.venenoDeuExp = P.exp > expAntes;
+
+    /* jogador: o gelo além de doer deixa lento, e o recalc tem de enxergar */
+    P.buffs = {}; recalc(); const vAntes = P.st.speed;
+    for (let i = 0; i < 60 && !P.buffs.congelado; i++) aplicaEstado(P, 'congelado', 100);
+    globalThis.jogadorCongelou = !!P.buffs.congelado;
+    globalThis.congeladoLento = P.st.speed < vAntes;
+    const hpAntes = P.hp; tickEstados();
+    globalThis.jogadorSofreu = P.hp < hpAntes;
+    /* e expira pelo mesmo relógio de sempre, sem cronômetro próprio */
+    P.buffs.congelado.end = G.now - 1;
+    for (const k in P.buffs) if (P.buffs[k].end < G.now) delete P.buffs[k];
+    recalc();
+    globalThis.expirou = !P.buffs.congelado && P.st.speed === vAntes;
+
+    Math.random = real;
+  })();`, ctx);
+  A(S.pegouFogo, 'golpe de fogo põe a criatura para queimar');
+  A(!S.pegouFisico, 'golpe físico não aplica estado nenhum');
+  A(S.dragImuneFogo && !S.imunePegou, 'imune não pega o estado, não só o dano — dragão não pega fogo');
+  A(S.chaves === 1 && S.resetou, `reaplicar reseta a duração e não empilha (${S.chaves} relógio)`);
+  A(S.tiqueDoeu, 'o tique de 3s tira vida de quem está com estado');
+  A(S.venenoMatou && S.venenoDeuExp, 'estado que mata passa por killMob — dá experiência e larga loot');
+  A(S.jogadorCongelou && S.jogadorSofreu, 'o jogador também pega estado e sofre o tique');
+  A(S.congeladoLento, 'congelado entra no recalc e derruba a velocidade');
+  A(S.expirou, 'o estado expira no mesmo relógio dos buffs e devolve a velocidade');
+
+  /* As duas acima medem as PEÇAS chamando `aplicaEstado` e `tickEstados` na mão.
+     Esta mede a LIGAÇÃO: golpe elemental de verdade pelo `dealDamage`, e o
+     relógio do jogo correndo pelo `frame`. Sem ela, arrancar a chamada de dentro
+     do dealDamage ou do tique de 3 s passava verde — foi o que a mutação achou.
+     O controle é um segundo bicho igual e intacto: `regenMobs` cura 2% por tique
+     de quem não persegue, e sem o par a regeneração escondia o dano do veneno. */
+  vm.runInContext(`(() => {
+    newPlayer('Liga', 'sorcerer'); saiDoTemplo();
+    P.hp = P.st.maxhp = 1e9; G.dead = false; G.mobs.length = 0; G.now = 4e6;
+    G.lastRegen = G.now; G.path = []; G.pendingColheita = null; G.target = null;
+    const real = Math.random; Math.random = _mulberry(777);
+    const par = ['rat', 'rat'].map((id, i) => {
+      const m = spawnMob({ x: P.x + 1 + i, y: P.y, z: P.z, m: id, el: -1 });
+      m.hp = m.maxhp = 1e6; return m;
+    });
+    const [queima, controle] = par;
+    /* pelo caminho real: dealDamage com elemento é quem acende o estado */
+    for (let i = 0; i < 60 && !(queima.estados && queima.estados.queimando); i++) dealDamage(queima, 50, 'fire', null, 'queimando');
+    globalThis.ligouNoGolpe = !!(queima.estados && queima.estados.queimando);
+    for (let i = 0; i < 60; i++) dealDamage(controle, 50, 'physical', null, null);   // mesmo dano, sem estado
+    globalThis.controleLimpo = !controle.estados || !Object.keys(controle.estados).length;
+    const hqAntes = queima.hp, hcAntes = controle.hp;
+    /* relógio do jogo: dois tiques de 3 s, sem ninguém bater em nada */
+    for (let t = 0; t < 7000; t += 100) frame(4e6 + t);
+    globalThis.perdeuQueimando = hqAntes - queima.hp;
+    globalThis.perdeuControle = hcAntes - controle.hp;
+    Math.random = real;
+  })();`, ctx);
+  A(S.ligouNoGolpe, 'o golpe elemental de verdade acende o estado — não só a chamada direta');
+  A(S.controleLimpo, 'o golpe físico do controle não acendeu nada');
+  A(S.perdeuQueimando > S.perdeuControle,
+    `o relógio do jogo cobra o estado sozinho (queimando perdeu ${S.perdeuQueimando}, controle ${S.perdeuControle})`);
+
+  /* Metade do pedido é VISUAL, e essa metade é a que some sem ninguém notar: o
+     dano continua acontecendo e o jogador não sabe por quê. Duas coisas mostram
+     o estado no corpo — o tingimento do sprite e a partícula contínua —, e as
+     duas saem de `ELEM`, então fogo sobe como brasa e gelo cai como caco sem uma
+     linha de desenho por estado. */
+  vm.runInContext(`(() => {
+    newPlayer('Visual', 'knight'); saiDoTemplo();
+    P.hp = P.st.maxhp = 1e9; G.dead = false; G.mobs.length = 0; G.now = 5e6;
+    G.path = []; G.target = null; G.fx.length = 0; G.lastRegen = G.now;
+    const m = spawnMob({ x: P.x + 1, y: P.y, z: P.z, m: 'rat', el: -1 });
+    m.hp = m.maxhp = 1e6;
+    m.estados = { queimando: { end: G.now + 6e5, dano: 1, el: 'fire', val: 0 } };
+    /* ter o estado NÃO acende o corpo: o efeito é do dano, não da posse */
+    globalThis.antesDoTique = estadoFlash(m);
+    tickEstados();
+    globalThis.noTique = estadoFlash(m);
+    globalThis.elNoTique = m.estadoK;
+    const fx = G.fx.filter(f => f.tipo === 'estado');
+    globalThis.fxEstado = fx.length;
+    globalThis.fxDoFogo = fx.length ? fx[0].forma === ELEM.fire.forma && fx[0].grav === ELEM.fire.grav : false;
+    globalThis.fxForte = fx.length ? fx[0].p.length : 0;
+    globalThis.fxGolpe = (impacto(m.x, m.y, 'magico', 0, 'fire'), G.fx[G.fx.length - 1].p.length);
+    /* e apaga sozinho: passada a janela, o corpo volta ao normal */
+    G.now += 1500;
+    globalThis.depoisDaJanela = estadoFlash(m);
+    globalThis.aindaTemEstado = !!m.estados.queimando;
+  })();`, ctx);
+  A(S.antesDoTique === 0, 'ter o estado não acende o corpo — o efeito é do dano, não da posse');
+  A(S.noTique > 0 && S.elNoTique === 'queimando', 'no tique do dano o corpo acende na cor do elemento');
+  A(S.depoisDaJanela === 0 && S.aindaTemEstado,
+    'e apaga sozinho passada a janela, com o estado ainda ativo — quem conta o resto é o selo na barra');
+  A(S.fxEstado > 0, `o dano do estado solta partícula (${S.fxEstado})`);
+  A(S.fxDoFogo, 'e a partícula é a do próprio elemento — brasa que sobe, não um efeito genérico');
+  A(S.fxForte > S.fxGolpe, `o efeito do estado é mais forte que o do golpe (${S.fxForte} partículas contra ${S.fxGolpe})`);
+  A(typeof S.tingido === 'function', 'existe o corpo tingido na cor do elemento');
+
+  /* --- quem tem direito de aplicar estado ---------------------------------- */
+  /* Golpe e tiro NÃO aplicam por serem de fogo: magia e habilidade aplicam por
+     serem magia e habilidade, e arma só aplica se declarar a propriedade. Sem
+     esta regra toda varinha de fogo queimava de graça e o estado virava imposto
+     do lado mágico — cavaleiro e ranger ficavam de fora do sistema inteiro. */
+  {
+    const varinhasComEl = Object.values(S.ITEMS).filter(i => i.wt === 'wand' && i.el);
+    A(varinhasComEl.length > 0 && varinhasComEl.every(i => !i.estado),
+      `nenhuma varinha aplica estado pelo ataque básico (${varinhasComEl.length} têm elemento)`);
+    const magiasEl = Object.values(S.SPELLS).filter(sp => S.DANO_TIPOS.includes(sp.type) && S.ESTADO_DE[sp.el]);
+    A(magiasEl.length > 0, `magia de elemento aplica o estado dele (${magiasEl.length} magias)`);
+  }
+  vm.runInContext(`(() => {
+    newPlayer('Fonte', 'sorcerer'); saiDoTemplo();
+    P.level = 60; P.ml.l = 50; P.hp = P.st.maxhp = 1e9; recalc();
+    G.dead = false; G.now = 6e6; G.path = []; G.proj.length = 0;
+    const real = Math.random; Math.random = _mulberry(31337);
+    const alvo = () => { G.mobs.length = 0; const m = spawnMob({ x: P.x + 1, y: P.y, z: P.z, m: 'minotaur', el: -1 }); m.hp = m.maxhp = 1e7; m.estados = {}; return m; };
+    /* varinha de fogo, ataque básico, 60 tiros: não pode queimar ninguém */
+    const v = alvo();
+    P.eq.weapon = mkItem(Object.values(ITEMS).find(i => i.wt === 'wand' && i.el === 'fire').id); recalc();
+    G.target = v;
+    for (let i = 0; i < 60; i++) { P.mana = P.st.maxmana; P.nextAtk = 0; playerAttack(); G.now += 50; updateFx(); }
+    globalThis.varinhaQueimou = Object.keys(v.estados).length > 0;
+    /* a MESMA arma, com a propriedade declarada, passa a aplicar */
+    const v2 = alvo(); G.target = v2;
+    P.eq.weapon.__estado = 'queimando';
+    const st = itemStats(P.eq.weapon); ITEMS[P.eq.weapon.id].estado = 'queimando';
+    for (let i = 0; i < 60; i++) { P.mana = P.st.maxmana; P.nextAtk = 0; playerAttack(); G.now += 50; updateFx(); }
+    globalThis.propriedadeQueimou = Object.keys(v2.estados).length > 0;
+    delete ITEMS[P.eq.weapon.id].estado;
+    /* magia de fogo aplica por ser magia */
+    const v3 = alvo(); G.target = v3;
+    const fogo = SPELLS.find(sp => sp.el === 'fire' && DANO_TIPOS.includes(sp.type) && sp.lvl <= P.level);
+    for (let i = 0; i < 40; i++) { P.cd = {}; P.mana = P.st.maxmana; castSpell(fogo); G.now += 60; updateFx(); }
+    globalThis.magiaQueimou = !!v3.estados.queimando;
+    Math.random = real;
+  })();`, ctx);
+  A(!S.varinhaQueimou, 'ataque básico de varinha de fogo NÃO queima — golpe é golpe');
+  A(S.propriedadeQueimou, 'a mesma arma com a propriedade declarada passa a aplicar');
+  A(S.magiaQueimou, 'magia de fogo queima por ser magia, sem precisar declarar nada');
+
+  /* Os outros dois caminhos de golpe: o TIRO da criatura (que também é golpe, e
+     por isso não aplica sozinho) e a arma de CORPO A CORPO com a propriedade —
+     cada um sai de um `return` diferente do `weaponInfo`, então um teste só
+     deixava os outros dois ramos descobertos. */
+  vm.runInContext(`(() => {
+    newPlayer('Alvo', 'knight'); saiDoTemplo();
+    P.level = 60; P.hp = P.st.maxhp = 1e9; P.buffs = {}; recalc();
+    G.dead = false; G.now = 8e6; G.path = []; G.proj.length = 0;
+    const real = Math.random; Math.random = _mulberry(5150);
+    /* tiro elemental de criatura, 80 vezes: não pode acender estado no jogador */
+    const id = Object.keys(MONSTERS).find(k => MONSTERS[k].ranged && ESTADO_DE[MONSTERS[k].ranged.el]);
+    globalThis.atiradorEl = id ? MONSTERS[id].ranged.el : null;
+    /* Pelo caminho REAL: a criatura atira sozinha dentro do updateMobs e o
+       projétil resolve no updateFx. Chamar hitPlayer na mão reproduzia o ponto
+       de chamada em vez de exercitá-lo, e a mutação passava verde.
+       Imortalidade REAFIRMADA a cada quadro: o recalc prende P.hp ao maxhp real,
+       o jogador morre no meio da medida e G.dead cala a criatura — é a armadilha
+       da seção "Armadilhas conhecidas", de novo. */
+    G.mobs.length = 0; P.buffs = {};
+    const a = spawnMob({ x: P.x + 3, y: P.y, z: P.z, m: id, el: -1 });
+    /* sem habilidade: a criatura escolhida tem sopro do MESMO elemento do tiro,
+       e habilidade aplica por regra — com os dois no ar não dá para saber quem
+       acendeu o estado. Aqui só o tiro pode agir. */
+    a.def = Object.assign({}, a.def, { hab: null });
+    a.chase = true; a.nextAtk = 0;
+    let tiros = 0;
+    for (let i = 0; i < 400; i++) {
+      G.dead = false; P.hp = P.st.maxhp = 1e9; P.buffs = {};
+      a.x = a.px = P.x + 3; a.y = a.py = P.y; a.hp = a.maxhp;   // segura na mira
+      G.now += 120; updateMobs(120);
+      tiros += G.proj.length;
+      G.now += 400; updateFx();                                  // o projétil chega
+      /* olha SÓ o estado do elemento do tiro: a mesma criatura pode ter
+         habilidade, e habilidade aplica por regra — misturar os dois media a
+         coisa errada e dava falso positivo. */
+      if (P.buffs[ESTADO_DE[a.def.ranged.el]]) break;
+    }
+    globalThis.tirosDados = tiros;
+    globalThis.tiroAplicou = !!P.buffs[ESTADO_DE[a.def.ranged.el]];
+    G.dead = false; P.hp = P.st.maxhp = 1e9;
+    globalThis.tiroAplicou = Object.keys(P.buffs).length > 0;
+    /* arma de corpo a corpo COM a propriedade: aplica */
+    G.mobs.length = 0;
+    const alvo = spawnMob({ x: P.x + 1, y: P.y, z: P.z, m: 'minotaur', el: -1 });
+    alvo.hp = alvo.maxhp = 1e7; alvo.estados = {}; G.target = alvo;
+    P.eq.weapon = mkItem('sword'); ITEMS.sword.estado = 'sangrando'; recalc();
+    for (let i = 0; i < 60; i++) { P.nextAtk = 0; G.dead = false; playerAttack(); G.now += 50; }
+    globalThis.espadaComPropriedade = !!alvo.estados.sangrando;
+    delete ITEMS.sword.estado;
+    /* e sem a propriedade, a mesma espada não aplica nada */
+    const alvo2 = spawnMob({ x: P.x + 1, y: P.y - 1, z: P.z, m: 'minotaur', el: -1 });
+    alvo2.hp = alvo2.maxhp = 1e7; alvo2.estados = {}; G.target = alvo2;
+    P.eq.weapon = mkItem('sword'); recalc();
+    for (let i = 0; i < 60; i++) { P.nextAtk = 0; G.dead = false; playerAttack(); G.now += 50; }
+    globalThis.espadaSemPropriedade = Object.keys(alvo2.estados).length > 0;
+    Math.random = real;
+  })();`, ctx);
+  A(S.atiradorEl, `existe criatura que atira ${S.atiradorEl} — dá para medir o tiro`);
+  A(S.tirosDados > 10, `a criatura atirou de verdade no laço real (${S.tirosDados} tiros)`);
+  A(!S.tiroAplicou, 'tiro de criatura também é golpe: não aplica estado sem propriedade');
+  /* O outro lado da mesma régua: HABILIDADE aplica, e sem ela a criatura perdia
+     o único jeito que tem de acender estado no jogador. Medido no laço real e
+     com o tiro neutralizado, para não confundir quem acendeu. */
+  vm.runInContext(`(() => {
+    const id = Object.keys(MONSTERS).find(k => MONSTERS[k].hab && MONSTERS[k].hab.dano && ESTADO_DE[MONSTERS[k].hab.el]);
+    globalThis.habEl = id ? MONSTERS[id].hab.el : null;
+    if (!id) { globalThis.habAplicou = null; return; }
+    /* semeado: a habilidade tem descanso e a aplicação tem chance, então sem
+       semente o bloco falhava sozinho ~2 vezes em 20. Estado inicial igual, como
+       manda a seção "Armadilhas conhecidas" — não afrouxar o laço. */
+    const realH = Math.random; Math.random = _mulberry(2718);
+    G.mobs.length = 0; P.buffs = {}; G.proj.length = 0;
+    const h = spawnMob({ x: P.x + 1, y: P.y, z: P.z, m: id, el: -1 });
+    h.def = Object.assign({}, h.def, { ranged: null });
+    h.chase = true; h.nextAtk = 0; h.sp = h.sp || {};
+    const alvoK = ESTADO_DE[h.def.hab.el];
+    /* Janela longa de propósito: a habilidade tem descanso próprio, então em 90 s
+       de relógio ela dispara umas 11 vezes e, à chance do estado, falhar tudo
+       tem ~4% — exatamente a taxa com que este teste falhava sozinho. Com 450 s
+       são dezenas de disparos, e a semente fecha o resto. */
+    let disparos = 0;
+    for (let i = 0; i < 3000 && !P.buffs[alvoK]; i++) {
+      G.dead = false; P.hp = P.st.maxhp = 1e9;
+      h.x = h.px = P.x + 1; h.y = h.py = P.y; h.hp = h.maxhp;
+      const antes = h.habT || 0;
+      G.now += 150; updateMobs(150); updateFx();
+      if ((h.habT || 0) > antes) disparos++;
+    }
+    globalThis.habDisparos = disparos;
+    globalThis.habAplicou = !!P.buffs[alvoK];
+    Math.random = realH;
+    G.dead = false; P.hp = P.st.maxhp = 1e9; P.buffs = {};
+  })();`, ctx);
+  A(S.habEl, `existe criatura com habilidade de ${S.habEl} — dá para medir`);
+  A(S.habDisparos > 8, `a habilidade disparou de verdade no laço real (${S.habDisparos} vezes)`);
+  A(S.habAplicou, 'habilidade de criatura aplica estado: é habilidade, não golpe');
+  A(S.espadaComPropriedade, 'arma de corpo a corpo com a propriedade aplica no golpe básico');
+  A(!S.espadaSemPropriedade, 'e a mesma espada sem a propriedade não aplica nada');
+
+  /* --- SANGRANDO: o estado do cavaleiro ------------------------------------ */
+  A(S.ESTADOS.sangrando && !S.ESTADOS.sangrando.el,
+    'sangrando não tem elemento — corte é ferimento, não matéria');
+  {
+    const golpes = Object.values(S.SPELLS).filter(sp => /^melee/.test(sp.type) && sp.voc && sp.voc.includes('knight'));
+    A(golpes.length > 0 && golpes.every(sp => sp.estado === 'sangrando'),
+      `toda magia de golpe do cavaleiro faz sangrar (${golpes.length})`);
+  }
+  vm.runInContext(`(() => {
+    newPlayer('Cav', 'knight'); saiDoTemplo();
+    P.level = 40; P.hp = P.st.maxhp = 1e9; recalc();
+    G.dead = false; G.now = 7e6; G.path = []; G.blood.length = 0;
+    const real = Math.random; Math.random = _mulberry(909);
+    const bate = id => {
+      G.mobs.length = 0;
+      const m = spawnMob({ x: P.x + 1, y: P.y, z: P.z, m: id, el: -1 });
+      m.hp = m.maxhp = 1e7; m.estados = {}; G.target = m;
+      const golpe = SPELLS.find(sp => sp.id === 'exori_min');
+      for (let i = 0; i < 40 && !m.estados.sangrando; i++) { P.cd = {}; P.mana = P.st.maxmana; castSpell(golpe); G.now += 60; }
+      return m;
+    };
+    globalThis.minoSangrou = !!bate('minotaur').estados.sangrando;
+    /* quem tem sangue SECO não sangra: sai do campo que a tabela de sangue já
+       declara por classe, então esqueleto e elemental ficam de fora sem uma
+       lista nova para manter */
+    globalThis.esqSeco = MONSTERS.skeleton.sangue.seco;
+    globalThis.esqSangrou = !!bate('skeleton').estados.sangrando;
+    /* e sangrar pinta o chão: é o manchaChao do combate, sem nada novo */
+    const m = bate('minotaur'); G.blood.length = 0;
+    tickEstados();
+    globalThis.pintouChao = G.blood.length > 0;
+    Math.random = real;
+  })();`, ctx);
+  A(S.minoSangrou, 'o golpe do cavaleiro faz o minotauro sangrar');
+  A(S.esqSeco && !S.esqSangrou, 'esqueleto tem sangue seco e não sangra — a régua sai da tabela de sangue');
+  A(S.pintouChao, 'quem sangra deixa rastro no chão');
+}
+
+/* ================================================ #33 · campo no chão ==== */
+{
+  /* Quem deixa campo. A régua é a mesma do estado — elemento que vira condição
+     marca o chão, elemento que só é tipo de dano estoura e acaba. */
+  const comEstado = S.SPELLS.filter(s => s.type === 'aoe' && S.ESTADO_DE[s.el]);
+  const semEstado = S.SPELLS.filter(s => s.type === 'aoe' && !S.ESTADO_DE[s.el]);
+  A(comEstado.length && semEstado.length,
+    `há aoe dos dois lados para comparar (${comEstado.length} com estado, ${semEstado.length} sem)`);
+
+  vm.runInContext(`(() => {
+    newPlayer('Campo', 'sorcerer'); saiDoTemplo();
+    P.level = 100; recalc(); P.hp = P.st.maxhp = 1e9; G.dead = false;
+    G.now = 6e6; G.mobs.length = 0; G.campos.length = 0;
+
+    const tiles = [];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) tiles.push([P.x + dx, P.y + dy]);
+    /* sempre() fixa o sorteio de CAMPO_CHANCE: sem isso todo teste que precisa
+       de campo num tile ESPECIFICO vira moeda, que é a armadilha de assertiva
+       probabilística que esta suíte já documenta. */
+    const real = Math.random;
+    const sempre = f => { Math.random = () => 0; const r = f(); Math.random = real; return r; };
+
+    /* fogo tem estado -> deixa chão; sagrado não tem -> não deixa */
+    globalThis.nFogo = sempre(() => criaCampo(tiles, P.z, 'fire', 200));
+    globalThis.campoFogo = !!campoEm(P.x, P.y, P.z);
+    /* e o resíduo é FRAÇÃO do golpe, não o golpe inteiro */
+    globalThis.forcaDoCampo = campoEm(P.x, P.y, P.z).dano;
+    G.campos.length = 0;
+    globalThis.nSagrado = sempre(() => criaCampo(tiles, P.z, 'holy', 200));
+
+    /* espalha: uma área grande NÃO acende inteira */
+    G.campos.length = 0;
+    Math.random = _mulberry(31337);
+    const grande = [];
+    for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) grande.push([P.x + dx, P.y + dy]);
+    const andaveis = grande.filter(([x, y]) => isWalkable(x, y, P.z)).length;
+    const acesos = criaCampo(grande, P.z, 'fire', 200);
+    Math.random = real;
+    globalThis.espalhou = acesos > 0 && acesos < andaveis;
+    globalThis.fracao = +(acesos / andaveis).toFixed(2);
+    G.campos.length = 0;
+
+    /* parede não pega fogo: só tile andável vira campo */
+    G.campos.length = 0;
+    const naoAndavel = [];
+    for (let d = 1; d < 60 && !naoAndavel.length; d++)
+      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        const x = P.x + dx * d, y = P.y + dy * d;
+        if (!isWalkable(x, y, P.z)) { naoAndavel.push([x, y]); break; }
+      }
+    globalThis.achouParede = naoAndavel.length > 0;
+    globalThis.nParede = sempre(() => criaCampo(naoAndavel, P.z, 'fire', 200));
+
+    /* reaplicar RESETA e não duplica o tile */
+    G.campos.length = 0;
+    sempre(() => criaCampo([[P.x, P.y]], P.z, 'fire', 200));
+    G.now += 4000;
+    sempre(() => criaCampo([[P.x, P.y]], P.z, 'fire', 200));
+    globalThis.umSoTile = G.campos.filter(c => c.x === P.x && c.y === P.y && c.z === P.z).length;
+    globalThis.relogioResetou = campoEm(P.x, P.y, P.z).t === G.now;
+
+    /* quem PISA pega o estado no tique — jogador e criatura */
+    G.campos.length = 0; P.buffs = {}; G.mobs.length = 0;
+    sempre(() => criaCampo([[P.x, P.y]], P.z, 'fire', 200));
+    const rato = spawnMob({ x: P.x, y: P.y, z: P.z, m: 'rat', el: -1 });
+    rato.x = P.x; rato.y = P.y; rato.hp = rato.maxhp = 1e6;
+    const hpAntes = P.hp;
+    tickCampos();
+    globalThis.jogadorQueima = !!P.buffs.queimando;
+    globalThis.bichoQueima = !!(rato.estados && rato.estados.queimando);
+    tickEstados();
+    globalThis.jogadorPerdeuVida = P.hp < hpAntes;
+
+    /* imune não pega o campo, só o dano — dragão atravessa o fogo inteiro */
+    G.mobs.length = 0;
+    const drag = spawnMob({ x: P.x, y: P.y, z: P.z, m: 'dragon', el: -1 });
+    drag.x = P.x; drag.y = P.y; drag.hp = drag.maxhp = 1e6; drag.estados = {};
+    tickCampos();
+    globalThis.dragaoImune = !(drag.estados && drag.estados.queimando);
+
+    /* o campo EXPIRA e some sozinho no tique */
+    G.now += CAMPO_DUR + 1;
+    tickCampos();
+    globalThis.expirou = G.campos.length === 0;
+
+    /* teto de quantidade: duas magias grandes não comem a memória */
+    G.campos.length = 0;
+    const muitos = [];
+    for (let dy = -14; dy <= 14; dy++) for (let dx = -14; dx <= 14; dx++) muitos.push([P.x + dx, P.y + dy]);
+    sempre(() => criaCampo(muitos, P.z, 'fire', 200));
+    globalThis.tetoVale = G.campos.length <= CAMPO_MAX;
+
+    /* a magia de área de verdade deixa campo; a de feixe/cone não */
+    G.campos.length = 0;
+    const aoeFogo = SPELLS.find(s => s.type === 'aoe' && s.el === 'fire');
+    P.level = Math.max(P.level, aoeFogo.lvl); P.mana = P.st.maxmana = 1e6;
+    P.voc = aoeFogo.voc ? aoeFogo.voc[0] : P.voc; recalc();
+    castSpell(aoeFogo);
+    globalThis.aoeDeixou = G.campos.length > 0;
+    G.campos.length = 0;
+    const feixe = SPELLS.find(s => (s.type === 'beam' || s.type === 'wave') && ESTADO_DE[s.el] && s.lvl <= P.level);
+    globalThis.temFeixe = !!feixe;
+    if (feixe) { P.cd = {}; castSpell(feixe); }
+    globalThis.feixeDeixou = G.campos.length > 0;
+
+    /* E o relógio DE VERDADE: as duas acima medem a peça chamando tickCampos na
+       mão, e passariam com o tique nunca ligado ao frame. Aqui quem aplica é o
+       bloco de 3 s dentro do frame, como em jogo. */
+    G.campos.length = 0; P.buffs = {}; G.mobs.length = 0; G.dead = false;
+    P.hp = P.st.maxhp = 1e9;
+    /* Estado inicial igual, senão isto vira falso negativo: um hitstop de um
+       bloco anterior (G.pausa) faz o frame desenhar e voltar antes do relógio
+       de 3 s, e o jogo parado (G.started) sai antes ainda. É a armadilha que a
+       própria página de repasse documenta. */
+    G.pausa = 0; G.started = true;
+    sempre(() => criaCampo([[P.x, P.y]], P.z, 'fire', 200));
+    G.lastRegen = G.now - 4000;
+    frame(G.real + 16);
+    globalThis.frameAplicou = !!P.buffs.queimando;
+  })();`, ctx);
+
+  A(S.nFogo === 9 && S.campoFogo, 'com o sorteio forçado, a área de fogo marca os 9 tiles');
+  A(S.forcaDoCampo === 200 * S.CAMPO_FORCA,
+    `o resíduo é fração do golpe (${S.forcaDoCampo} de 200), não o golpe inteiro — atravessar não pode custar mais que levar a magia`);
+  A(S.espalhou, `a área NÃO acende inteira: ${S.fracao} dos tiles andáveis pegaram campo`);
+  A(S.fracao > .2 && S.fracao < .8,
+    `e a fração fica longe dos dois extremos (${S.fracao}) — 0 é campo nenhum, 1 é o muro que tira a escolha de por onde passar`);
+  A(S.nSagrado === 0, 'sagrado não deixa campo — só o elemento que vira estado marca o chão');
+  A(S.achouParede && S.nParede === 0, 'parede não pega fogo: campo só nasce em tile andável');
+  A(S.umSoTile === 1 && S.relogioResetou, 'passar de novo RESETA o relógio e nunca empilha dois campos no tile');
+  A(S.jogadorQueima && S.bichoQueima, 'quem está em cima pega o estado no tique — jogador e criatura');
+  A(S.jogadorPerdeuVida, 'e o estado é quem cobra o dano, sem um segundo relógio');
+  A(S.dragaoImune, 'imune não pega o campo, não só o dano — dragão atravessa o próprio fogo');
+  A(S.expirou, 'o campo apaga sozinho quando a duração acaba');
+  A(S.tetoVale, `o teto de ${S.CAMPO_MAX} tiles segura uma área enorme`);
+  A(S.aoeDeixou, 'a magia de área de verdade deixa chão afetado (não só a chamada direta)');
+  A(S.temFeixe && !S.feixeDeixou, 'feixe e cone NÃO deixam campo — são travessia, não zona');
+  A(S.frameAplicou, 'o campo queima no relógio de 3s do frame, não só quando o teste chama o tique');
+
+  /* ----------------------------------------- desviar é inteligência ------ */
+  const classes = [...new Set(Object.values(S.MONSTERS).map(m => m.cls))];
+  A(classes.every(c => S.INTEL[c] !== undefined),
+    'toda classe declara inteligência: ' + classes.filter(c => S.INTEL[c] === undefined));
+  A(S.intelOf(S.MONSTERS.cyclops) >= S.INTEL_DESVIA, 'o ciclope é esperto o bastante para dar a volta');
+  A(S.intelOf(S.MONSTERS.skeleton) < S.INTEL_DESVIA, 'o esqueleto não é — ele atravessa');
+
+  vm.runInContext(`(() => {
+    newPlayer('IA', 'knight'); saiDoTemplo();
+    P.hp = P.st.maxhp = 1e9; G.dead = false; G.now = 7e6;
+    G.mobs.length = 0; G.campos.length = 0;
+    const _r = Math.random;
+    const sempre = f => { Math.random = () => 0; const v = f(); Math.random = _r; return v; };
+    const vizinho = [P.x + 1, P.y];
+    sempre(() => criaCampo([vizinho], P.z, 'fire', 200));
+    const põe = id => { const m = spawnMob({ x: P.x + 3, y: P.y, z: P.z, m: id, el: -1 }); m.hp = m.maxhp = 1e6; return m; };
+    globalThis.espertoEvita = evitaCampo(põe('cyclops'), vizinho[0], vizinho[1]);
+    G.mobs.length = 0;
+    globalThis.burroNaoEvita = evitaCampo(põe('skeleton'), vizinho[0], vizinho[1]);
+    /* e quem é IMUNE não perde tempo desviando do que não o machuca */
+    G.mobs.length = 0;
+    globalThis.imuneNaoEvita = evitaCampo(põe('dragon'), vizinho[0], vizinho[1]);
+    /* a régua vale no passo de verdade, não só na função solta: o esperto que
+       tem o campo entre ele e o jogador não pisa nele */
+    G.mobs.length = 0; G.campos.length = 0;
+    const c = põe('cyclops'); c.x = P.x + 2; c.y = P.y; c.z = P.z;
+    sempre(() => criaCampo([[P.x + 1, P.y]], P.z, 'fire', 200));
+    const passo = passoAte(c, P.x, P.y);
+    globalThis.passoEsperto = passo ? (passo[0] !== P.x + 1 || passo[1] !== P.y) : false;
+    globalThis.espertoAndou = !!passo;
+    G.mobs.length = 0;
+    const e = põe('skeleton'); e.x = P.x + 2; e.y = P.y; e.z = P.z;
+    const passoE = passoAte(e, P.x, P.y);
+    globalThis.passoBurro = passoE ? (passoE[0] === P.x + 1 && passoE[1] === P.y) : false;
+  })();`, ctx);
+
+  A(S.espertoEvita, 'criatura inteligente evita o tile em chamas');
+  A(!S.burroNaoEvita, 'criatura burra não evita — atravessa a fogueira');
+  A(!S.imuneNaoEvita, 'quem é imune não desvia do que não o machuca (elemental no próprio elemento)');
+  A(S.espertoAndou && S.passoEsperto, 'e o desvio vale no passo de verdade: o ciclope contorna o fogo');
+
+  /* ------------------------------------------------ as três fases (#33) --- */
+  A(S.CAMPO_DUR >= 120000, `o campo dura minutos, não segundos (${S.CAMPO_DUR / 1000}s)`);
+  A(S.CAMPO_FASES.length === 3 && S.CAMPO_FASES[S.CAMPO_FASES.length - 1].ate === 1,
+    'são três fases e a última fecha em 1 — sem buraco no fim da vida do campo');
+  {
+    const d = S.CAMPO_FASES.map(f => f.dano);
+    A(d[0] > d[1] && d[1] > d[2] && d[2] === 0,
+      `o dano só cai e a última é ZERO (${d.join(' > ')}) — a mínima é marca, não armadilha`);
+    const lim = S.CAMPO_FASES.map(f => f.ate);
+    A(lim.every((x, i) => i === 0 || x > lim[i - 1]), 'os limites das fases sobem, sem fase de duração negativa');
+    A(S.campoFase(0) === 0 && S.campoFase(.99) === 2 && S.campoFase(1) === 2 && S.campoFase(5) === 2,
+      'campoFase cobre a vida inteira e não estoura depois do fim');
+  }
+
+  vm.runInContext(`(() => {
+    newPlayer('Fases', 'knight'); saiDoTemplo();
+    P.hp = P.st.maxhp = 1e9; G.dead = false; G.mobs.length = 0; G.campos.length = 0;
+    G.pausa = 0; G.started = true; G.now = 9e6;
+    const _r = Math.random;
+    const sempre = f => { Math.random = () => 0; const x = f(); Math.random = _r; return x; };
+    sempre(() => criaCampo([[P.x, P.y]], P.z, 'fire', 400));
+    const c = campoEm(P.x, P.y, P.z), nasceu = c.t;
+    /* o dano cobrado cai degrau a degrau, medido no meio de cada fase */
+    globalThis.porFase = CAMPO_FASES.map((f, i) => {
+      const ini = i ? CAMPO_FASES[i - 1].ate : 0;
+      G.now = nasceu + c.dur * (ini + (f.ate - ini) / 2);
+      return Math.round(campoDano(c));
+    });
+    /* e pisar na fase mínima não tira vida nem acende estado */
+    G.now = nasceu + c.dur * .9;
+    P.buffs = {}; const antes = P.hp;
+    pisaCampo(P);
+    globalThis.minimaNaoDoi = P.hp === antes && !P.buffs.queimando;
+    /* enquanto na cheia, o mesmo passo cobra */
+    G.now = nasceu + c.dur * .2;
+    P.buffs = {}; const antes2 = P.hp;
+    pisaCampo(P);
+    globalThis.cheiaDoi = antes2 - P.hp > 0;
+    /* a criatura esperta desvia da cheia e NÃO desvia da apagada */
+    const c2 = spawnMob({ x: P.x + 3, y: P.y, z: P.z, m: 'cyclops', el: -1 });
+    c2.hp = c2.maxhp = 1e6;
+    G.now = nasceu + c.dur * .2;
+    globalThis.desviaDaCheia = evitaCampo(c2, P.x, P.y);
+    G.now = nasceu + c.dur * .9;
+    globalThis.desviaDaApagada = evitaCampo(c2, P.x, P.y);
+    /* E o DESENHO muda de fase junto, senão o dano some da tela e o jogador não
+       tem como saber se aquele tile ainda machuca (§20). O canvas do node é um
+       stub que não guarda pixel, então a prova é gravar as chamadas de desenho
+       e comparar: mesma fase, mesmas chamadas; fase diferente, chamadas
+       diferentes. Fica de fora o gelo, que sorteia as agulhas de geada e daria
+       traço diferente a cada leitura — ver a armadilha de assertiva
+       probabilística mais acima. */
+    /* Gravador que mede ÁREA PINTADA, não número de chamadas. A primeira versão
+       contava chamadas e reprovou uma correção legítima do fogo: a fase fraca
+       desenha as MESMAS colunas, só mais baixas — mesma contagem, metade do
+       fogo. Contagem de chamada é proxy de "quantos traços", e o que interessa
+       é "quanto do tile ficou coberto".
+       Soma retângulo por w×h, elipse por πrxry e polígono pela fórmula do
+       laço (shoelace), fechando no fill() para não contar caminho descartado.
+       ATENÇÃO: este bloco vive dentro de um template literal — crase aqui
+       fecha a string e o arquivo inteiro deixa de compilar. Já aconteceu duas
+       vezes; se a suíte parar com "missing ) after argument list", procure crase
+       em comentário antes de qualquer outra coisa. */
+    const grava = () => {
+      const est = { area: 0, ops: 0, pts: [], pend: 0, lw: 1 };
+      const g = new Proxy({}, {
+        get: (t, k) => {
+          if (k === '__est') return est;
+          return (...a) => {
+            est.ops++;
+            if (k === 'beginPath') { est.pts = []; est.pend = 0; }
+            else if (k === 'fillRect') est.area += Math.abs(a[2] * a[3]);
+            else if (k === 'ellipse' || k === 'arc')
+              est.pend += Math.PI * Math.abs(a[2]) * Math.abs(k === 'arc' ? a[2] : a[3]);
+            else if (k === 'moveTo' || k === 'lineTo') est.pts.push([a[0], a[1]]);
+            // curva conta pelo ponto de chegada: aproxima o comprimento por baixo,
+            // que é o lado seguro para um teste de "não ficou invisível"
+            else if (k === 'quadraticCurveTo') est.pts.push([a[2], a[3]]);
+            else if (k === 'fill') {
+              est.area += est.pend; est.pend = 0;
+              const p = est.pts;
+              if (p.length > 2) {
+                let s2 = 0;
+                for (let i = 0; i < p.length; i++) {
+                  const b = p[(i + 1) % p.length];
+                  s2 += p[i][0] * b[1] - b[0] * p[i][1];
+                }
+                est.area += Math.abs(s2) / 2;
+              }
+              est.pts = [];
+            }
+            /* Traço também conta, e por comprimento × espessura: a energia é
+               desenhada SÓ com stroke, então sem isto ela media área zero nas
+               duas fases vivas e 16 na mínima — a régua acusava exatamente o
+               contrário do que os olhos veem. */
+            else if (k === 'stroke') {
+              const p = est.pts;
+              let len = 0;
+              for (let i = 1; i < p.length; i++) len += Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]);
+              est.area += len * est.lw + est.pend;
+              est.pend = 0; est.pts = [];
+            }
+          };
+        },
+        set: (t, k, val) => { if (k === 'lineWidth') est.lw = val; return true; }
+      });
+      return g;
+    };
+    globalThis.desenhoPorFase = {};
+    for (const el of ['fire', 'earth', 'energy']) {
+      const area = [0, 1, 2].map(f => {
+        const g = grava();
+        CAMPO_DRAW[el](g, 32, ELEM[el].cor, 0, 0, f);
+        return Math.round(g.__est.area);
+      });
+      const assinatura = [0, 1, 2].map(f => {
+        const vistos = [];
+        const g = new Proxy({}, { get: (t, k) => (...a) =>
+          vistos.push(k + '(' + a.map(x => typeof x === 'number' ? x.toFixed(2) : x).join() + ')'),
+          set: (t, k, val) => (vistos.push(k + '=' + val), true) });
+        CAMPO_DRAW[el](g, 32, ELEM[el].cor, 0, 0, f);
+        return vistos.join('|');
+      });
+      globalThis.desenhoPorFase[el] = {
+        distintos: new Set(assinatura).size,
+        area,
+        /* NÃO se afere força por área, e esta é a TERCEIRA régua numérica a
+           enganar aqui. A cicatriz de queimado cobre MAIS chão que a chama
+           moribunda e é obviamente mais fraca; distância de cor mediu
+           legibilidade e não identidade; contagem de chamadas reprovou uma
+           correção legítima. O que dá para garantir por teste é o que é
+           objetivo:
+             1. as três fases desenham DIFERENTE (o jogador consegue separá-las);
+             2. nenhuma delas fica INVISÍVEL — inclusive a mínima, que é
+                cicatriz e não sumiço. Foi o defeito que o dono do projeto viu:
+                veneno e energia na mínima deixavam o tile parecendo limpo.
+           Se está bonito e se lê como aquele elemento, só olho humano diz. */
+        area
+      };
+    }
+  })();`, ctx);
+
+  A(S.porFase[0] > S.porFase[1] && S.porFase[1] > 0 && S.porFase[2] === 0,
+    `o campo cobra menos a cada fase e para na última (${S.porFase.join(' → ')} de dano)`);
+  A(S.cheiaDoi, 'pisar na fase cheia cobra');
+  A(S.minimaNaoDoi, 'e pisar na fase mínima não tira vida nem acende estado — sobra a marca');
+  A(S.desviaDaCheia && !S.desviaDaApagada,
+    'a criatura esperta contorna o fogo vivo e atravessa a brasa apagada — desviar do que não machuca seria burrice com cara de esperteza');
+  for (const el of ['fire', 'earth', 'energy']) {
+    const d = S.desenhoPorFase[el];
+    A(d.distintos === 3, `${el}: as três fases DESENHAM diferente (${d.distintos}/3) — sem isso o dano some da tela e o jogador não sabe se o tile ainda dói`);
+    /* 90 é piso contra SUMIR, não nota de qualidade: um desenho vazio dá 0 e
+       meia dúzia de pontinhos dá ~20. Calibrado nos valores medidos, não
+       escolhido antes — e a régua já provou três vezes que número não julga
+       arte, só pega o caso em que não há arte nenhuma. */
+    A(d.area.every(a => a >= 90),
+      `${el}: nenhuma fase fica invisível, a mínima inclusive (${d.area.join('→')} px² num tile de 1024) — mínima é CICATRIZ, não tile limpo`);
+  }
+  A(S.passoBurro, 'o esqueleto pisa nele em linha reta — as duas metades juntas, senão "ninguém desvia" passaria');
+
+  /* -------------------------------------- entrar CUSTA, atravessar também -- */
+  vm.runInContext(`(() => {
+    newPlayer('Pisa', 'knight'); saiDoTemplo();
+    P.hp = P.st.maxhp = 1e9; G.dead = false; G.mobs.length = 0; G.campos.length = 0;
+    G.pausa = 0; G.started = true; G.now = 8e6; G.lastRegen = G.now;
+    P.buffs = {};
+    const _r = Math.random;
+    const sempre = f => { Math.random = () => 0; const v = f(); Math.random = _r; return v; };
+
+    /* anda de um tile limpo para um em chamas, pelo caminho de verdade */
+    const destino = [P.x + 1, P.y];
+    if (!isWalkable(destino[0], destino[1], P.z)) return globalThis.semDestino = true;
+    sempre(() => criaCampo([destino], P.z, 'fire', 400));
+    const antes = P.hp;
+    tryStep(P, destino[0], destino[1]);
+    globalThis.reservaNaoCobra = P.hp === antes;      // reservar o tile não queima
+    G.now += 5000; lerpEntity(P);                      // a CHEGADA é que cobra
+    globalThis.entrouDoeu = antes - P.hp;
+    globalThis.entrouQueimou = !!P.buffs.queimando;
+
+    /* CADA tile cobra: andar de um tile de campo para o vizinho dói de novo */
+    const dentro = [P.x, P.y + 1];
+    globalThis.temVizinho = isWalkable(dentro[0], dentro[1], P.z);
+    if (globalThis.temVizinho) {
+      sempre(() => criaCampo([dentro], P.z, 'fire', 400));
+      const hp2 = P.hp;
+      tryStep(P, dentro[0], dentro[1]); G.now += 5000; lerpEntity(P);
+      globalThis.andarDentroDoeu = hp2 - P.hp;
+    }
+
+    /* sair e voltar cobra de novo — é o "toda vez que passar" */
+    const emChamas = [P.x, P.y];
+    const fora = [[0,-1],[0,1],[1,0],[-1,0],[1,1],[-1,-1]]
+      .map(([dx, dy]) => [P.x + dx, P.y + dy])
+      .find(([x, y]) => isWalkable(x, y, P.z) && !campoEm(x, y, P.z));
+    globalThis.temFora = !!fora;
+    if (fora) {
+      tryStep(P, fora[0], fora[1]); G.now += 5000; lerpEntity(P);
+      const hp3 = P.hp, fim = P.buffs.queimando ? P.buffs.queimando.end : 0;
+      tryStep(P, emChamas[0], emChamas[1]); G.now += 5000; lerpEntity(P);
+      globalThis.voltarDoeu = hp3 - P.hp;
+      globalThis.relogioReiniciou = !!(P.buffs.queimando && P.buffs.queimando.end > fim);
+    }
+
+    /* e o estado NÃO acumula: uma entrada e três entradas dão um buff só */
+    globalThis.umBuffSo = Object.keys(P.buffs).filter(k => k === 'queimando').length;
+  })();`, ctx);
+
+  A(!S.semDestino, 'achou tile andável para o teste de pisar');
+  A(S.reservaNaoCobra, 'reservar o tile não queima — o campo cobra na chegada, não no tryStep');
+  A(S.entrouDoeu > 0 && S.entrouQueimou, `entrar na área custa na hora (${S.entrouDoeu} de vida) e acende o estado`);
+  A(S.temVizinho && S.andarDentroDoeu > 0,
+    `CADA tile de campo cobra: o segundo tile doeu ${S.andarDentroDoeu}, não zero`);
+  A(S.temFora && S.voltarDoeu > 0, `sair e voltar cobra outra vez (${S.voltarDoeu} de vida)`);
+  A(S.relogioReiniciou, 'e o relógio do estado reinicia, sem empilhar um segundo');
+  A(S.umBuffSo === 1, 'o dano se repete mas o ESTADO não acumula — três passagens, um buff só');
+}
 
 console.log(`  espada ${T2.sk.sword.l} · escudo ${T2.sk.shielding.l} após 2 min de treino`);
 console.log(`  dragão: ${Math.min(...tam)}–${Math.max(...tam)} itens por morte, média ${medio.toFixed(1)}`);

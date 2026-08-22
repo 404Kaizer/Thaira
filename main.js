@@ -83,3 +83,7 @@ function iniciar() {
 if (app && app.whenReady) iniciar();
 
 module.exports = servidor;
+// o caminho do icone sai junto para o test_launcher conferir o QUE a janela usa,
+// e nao so se algum .ico existe na pasta -- apontar para arquivo inexistente e
+// exatamente a falha silenciosa que este teste guarda
+module.exports.ICONE = ICONE;

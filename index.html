@@ -8,7 +8,26 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap');
 :root{
-  --bg:#0b0c0f; --panel:#1f1b15; --panel2:#2c2620; --line:#574a33;
+  /* SUPERFÍCIES. Cinco degraus dentro de uma faixa estreita e quente-neutra —
+     a hierarquia sai de "esta chapa está 8 pontos mais clara que a vizinha", não
+     de contraste. É por isso que o chrome some e só o mundo e os ícones ficam
+     saturados na tela (§11).
+     `--panel` e `--panel2` estavam declarados e NUNCA usados: as doze superfícies
+     do HUD eram gradiente marrom cravado à mão, cada uma com o seu tom. Ficaram
+     como apelido dos degraus novos.
+     A regra que segura tudo: `--well` é a coisa mais escura da tela. Slot é
+     buraco, e ícone escuro (couro, madeira, osso) só tem silhueta se o fundo
+     dele for mais escuro que qualquer outra coisa. */
+  --ink:#060605;                  /* atrás de tudo */
+  --well:#080706;                 /* furo: slot, campo de texto, poço do log */
+  --surface0:#0d0c0a;             /* pedra: chão da sidebar, moldura externa */
+  --surface1:#15130f;             /* couro: corpo de painel */
+  --surface2:#221e17;             /* saliente: cabeçalho, botão, aba ativa */
+  --panel:var(--surface1); --panel2:var(--surface2);
+  /* dois pesos de fio, não um só: era a mesma borda em janela, painel, slot e
+     botão, então nada dizia o que continha o quê (§15) */
+  --line:#3b3227; --line2:#5a4c33;
+  --bg:var(--ink);
   --txt:#ddd5c2; --dim:#8f8874; --gold:#e5a838; --gold2:#f7d582;
   /* Tokens semânticos: cor comunica ESTADO, não estética. Estavam espalhados
      como hexadecimal cravado em cinco lugares do JS e do CSS — quem quisesse
@@ -23,11 +42,18 @@
   --hunt:#ffb03a; --temple:#fff0b0; --stair-up:#ffd166; --stair-down:#20242a;
   --player:#ffffff; --alert:#ff5252;
   --scrim:#00000099; --scrim2:#000000aa;
-  --stone:linear-gradient(#2b2823,#1a1815);
+  --stone:linear-gradient(var(--surface2),#17140f);
+  /* os dois estados que faltavam e estavam cravados em oito lugares:
+     peça saliente sob o mouse, e realce chapado de linha de lista */
+  --stone-hi:linear-gradient(#3a3427,#1f1c17); --hover:#282218;
   --serif:"Cinzel","Trajan Pro",Georgia,serif;
   --dock:208px;
 }
 *{box-sizing:border-box}
+/* Toda <img> é arrastável por padrão no navegador: dava para puxar o ícone do
+   item para fora do slot e soltar em qualquer lugar, com o fantasma do arraste
+   por cima do jogo. Nada aqui é conteúdo para levar embora — é sprite. */
+img{-webkit-user-drag:none;user-drag:none}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
   font:13px/1.4 "Segoe UI",system-ui,sans-serif;overflow:hidden;user-select:none}
 b{color:#fff}
@@ -43,7 +69,7 @@ b{color:#fff}
    dos painéis elásticos — e cada um passa a rolar por dentro, no seu quadro.
    Quando nem espremidos cabem, hudEncaixa() recolhe os de baixo até caber. */
 .lado{flex:none;display:flex;flex-direction:column;gap:6px;padding:6px;
-  background:linear-gradient(#1e1c18,#141310);overflow:hidden}
+  background:linear-gradient(var(--surface0),#080807);overflow:hidden}
 .lado[hidden]{display:none}
 .colunas{display:flex;gap:6px;flex:1;min-height:0}
 .faixa{display:flex;flex-direction:column;gap:6px;flex:none}
@@ -52,16 +78,18 @@ b{color:#fff}
 .dock[hidden]{display:none}
 #lado-l{border-right:2px solid var(--line);box-shadow:8px 0 24px #000a}
 #lado-r{border-left:2px solid var(--line);box-shadow:-8px 0 24px #000a}
-.dock-arrow{flex:none;width:13px;background:var(--stone);border-left:1px solid var(--line);
-  border-right:1px solid var(--line);color:var(--dim);cursor:pointer;
+/* z-index: a sombra da sidebar (24px de desfoque) vazava por cima da seta e
+   comia o glifo — a peça ficava atrás do painel que ela controla. */
+.dock-arrow{position:relative;z-index:2;flex:none;width:13px;background:var(--stone);
+  border-left:1px solid var(--line);border-right:1px solid var(--line);color:var(--dim);cursor:pointer;
   display:flex;align-items:center;justify-content:center;font-size:11px}
-.dock-arrow:hover{color:var(--gold2);background:linear-gradient(#3a342a,#221f1a)}
+.dock-arrow:hover{color:var(--gold2);background:var(--stone-hi)}
 #center{flex:1;min-width:0;display:flex;flex-direction:column}
 
 /* painéis das sidebars */
 /* elástico por padrão (encolhe quando a coluna enche), menos os de geometria
    própria — minimapa e equipamento, que espremidos só cortariam o desenho */
-.panel{background:linear-gradient(#232019,#181614);border:1px solid var(--line);border-radius:5px;
+.panel{background:linear-gradient(var(--surface1),#100e0b);border:1px solid var(--line);border-radius:5px;
   box-shadow:inset 0 1px 0 #ffffff10,0 3px 10px #0007;
   display:flex;flex-direction:column;flex:0 1 auto;overflow:hidden;min-height:34px}
 /* 34px = cabeçalho (26) + alça (5) + bordas: espremido até o fim, o painel ainda
@@ -95,19 +123,35 @@ b{color:#fff}
 /* aba de baixo: mesma pegada da divisa do chat, para o gesto ser o mesmo em toda
    a interface. Fica apagada até o painel receber o mouse. */
 .panel .pg{flex:none;height:5px;cursor:ns-resize;border-top:1px solid var(--line);border-radius:0 0 4px 4px;
-  background:linear-gradient(#2b2823,#151310);opacity:0}
+  background:var(--stone);opacity:0}
 .panel:hover .pg{opacity:1}
-.panel .pg:hover{background:linear-gradient(#4a3f28,#221f1a)}
+.panel .pg:hover{background:var(--stone-hi)}
 .panel.fechado .pg{display:none}
 .panel.fechado .ph{border-bottom:0;border-radius:4px}
 
 /* barras de status: um bloco só, vive na borda do jogo ou dentro do painel */
-#topbar{flex:none;padding:5px 8px 3px;background:linear-gradient(#191713,#121110);
+#topbar{flex:none;padding:5px 8px 3px;background:linear-gradient(var(--surface0),var(--ink));
   border-bottom:1px solid var(--line)}
+/* HIERARQUIA DO TOPO. As três barras tinham o mesmo corpo, e a EXP — a
+   informação menos urgente do jogo — ocupava um terço da faixa mais nobre da
+   tela. Vida e mana são a dupla que decide se você sobrevive e ficam grandes;
+   experiência é progresso, não sobrevivência, e virou uma fita de 4px (§11: a
+   ordem do HUD é sobrevivência, recurso, e só depois o resto).
+   O roxo saiu junto: no sistema de tokens roxo quer dizer mágico/épico, e
+   gastá-lo aqui esvaziava o significado dele. Ouro é a cor de progresso em
+   Thaira — a mesma das barras de perícia (.sbar). */
 #statusbars{display:flex;flex-direction:column;gap:4px}
-#topbar #statusbars{flex-direction:row;align-items:center;gap:8px}
-#topbar .bar{flex:1}
-.bar{position:relative;height:17px;background:#0a0908;border:1px solid #000;border-radius:3px;
+#vitais{display:flex;flex-direction:column;gap:4px}
+#topbar #statusbars{gap:3px}
+#topbar #vitais{flex-direction:row;gap:8px}
+#topbar #vitais .bar{flex:1}
+#xp-row{display:flex;align-items:center;gap:7px}
+#xp-rail{flex:1;height:4px;background:var(--well);border:1px solid #000;border-radius:2px;
+  overflow:hidden;box-shadow:inset 0 1px 3px #000b}
+#xp-rail i{display:block;height:100%;background:linear-gradient(#f0cd7a,#b8860b);transition:width .15s}
+/* o nível é a única coisa da exp que se lê de relance; o resto vive no tooltip */
+#xp-nivel{flex:none;font:700 10px var(--serif);letter-spacing:.06em;color:var(--gold2);cursor:help}
+.bar{position:relative;height:20px;background:var(--well);border:1px solid #000;border-radius:3px;
   overflow:hidden;box-shadow:inset 0 2px 6px #000c,inset 0 0 0 1px #6b5a3340,0 0 0 1px #00000080}
 .bar i{display:block;height:100%;transition:width .15s}
 /* réguas a cada 10%: medidor forjado, não retângulo liso */
@@ -115,21 +159,24 @@ b{color:#fff}
   background:repeating-linear-gradient(90deg,transparent 0 9.4%,#00000050 9.4% 10%)}
 .bar::after{content:"";position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(#ffffff34,#ffffff06 46%,#00000036)}
-.bar span{position:absolute;inset:0;z-index:2;text-align:center;font-size:10.5px;line-height:15px;
-  text-shadow:0 1px 2px #000,0 0 3px #000}
+.bar span{position:absolute;inset:0;z-index:2;text-align:center;font-size:11px;line-height:18px;
+  font-weight:600;text-shadow:0 1px 2px #000,0 0 3px #000}
 #hp-fill{background:linear-gradient(#e05545,#a5251b)}
 #mp-fill{background:linear-gradient(#4b8fe0,#22508f)}
-#xp-fill,.xp-fill{background:linear-gradient(#a78bfa,#6d4fc0)}
+.xp-fill{background:linear-gradient(#f0cd7a,#b8860b)}
 /* Barra de status: uma barra só, sempre presente, e os ícones do que está
    agindo em você aparecem DENTRO dela. Mesmo encaixe das barras de vida/mana
    (fundo fundo, bisel de bronze) para ler como parte da mesma família.
    Só ícone — nome, efeito e tempo vivem no tooltip, senão não cabe na sidebar. */
 #status-icons{display:flex;flex-wrap:wrap;align-content:flex-start;gap:3px;margin-bottom:8px;
-  min-height:34px;padding:3px;border:1px solid #000;border-radius:4px;background:#0a0908;
+  min-height:34px;padding:3px;border:1px solid #000;border-radius:4px;background:var(--well);
   box-shadow:inset 0 2px 6px #000c,inset 0 0 0 1px #6b5a3340}
 .stico{position:relative;width:26px;height:26px;display:flex;align-items:center;justify-content:center;
   font-size:14px;line-height:1;cursor:help;border-radius:3px;
-  background:linear-gradient(#2b2823,#1a1815);border:1px solid var(--line)}
+  background:var(--stone);border:1px solid var(--line)}
+/* Selo de estado elemental: losango na cor do elemento, sem emoji (§17). A cor
+   vem de ELEM e é a mesma da partícula e do tiro — pista que o jogador já leu. */
+.stel{display:block;width:11px;height:11px;transform:rotate(45deg);border:1px solid #0006}
 .stico.bom{border-color:#5c7a3a}
 .stico.ruim{border-color:#8a3f38}
 .stico:hover{box-shadow:0 0 9px #d9a44177}
@@ -162,17 +209,28 @@ b{color:#fff}
 #hunt-label{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:2;
   font:700 15px var(--serif);letter-spacing:.08em;color:#ffcf7a;
   text-shadow:0 2px 4px #000,0 0 14px #000;pointer-events:none}
-/* barra única, ponta a ponta do #stage: loja na esquerda, ícones na direita */
-#toolbar{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;
-  justify-content:space-between;padding:10px 12px;pointer-events:none}
-#toolbar>*{pointer-events:auto}
-#toolbar-right{display:flex;gap:6px}
-#toolbar button,#shop-btn{background:var(--stone);color:var(--gold2);border:1px solid var(--line);
-  border-radius:4px;padding:7px 11px;cursor:pointer;font:600 11.5px var(--serif);letter-spacing:.04em;
-  box-shadow:inset 0 1px 0 #ffffff1f,0 3px 10px #0008}
-#toolbar button:hover,#shop-btn:hover{border-color:var(--gold);box-shadow:inset 0 1px 0 #ffffff33,0 0 14px #d9a44166}
-#toolbar button.on{border-color:var(--gold);box-shadow:inset 0 0 10px #d9a44133}
-#shop-btn{display:none;border-color:var(--gold)}
+/* Um único ponto de entrada, encostado na quina do #stage — a fileira de sete
+   cards boiando sobre a cena era barra de navegador, não moldura de jogo. A
+   lista desce colada na borda, com rótulo em cada linha: o ícone sozinho não
+   dizia o que era, e a tecla de atalho não aparecia em lugar nenhum. */
+#toolbar{position:absolute;top:0;right:0;z-index:3;width:180px;display:flex;flex-direction:column}
+#menu-btn{background:var(--stone);color:var(--gold2);border:1px solid var(--line);
+  border-top:0;border-right:0;border-radius:0 0 0 5px;padding:8px 12px;cursor:pointer;
+  font:700 11.5px var(--serif);letter-spacing:.16em;text-align:right;align-self:flex-end}
+#menu-btn:hover,#menu-btn[aria-expanded=true]{color:var(--gold);border-color:var(--gold)}
+#menu-list{display:flex;flex-direction:column;background:linear-gradient(var(--surface2),var(--surface1));
+  border:1px solid var(--line);border-top:0;border-right:0;border-radius:0 0 0 5px;
+  box-shadow:-6px 8px 22px #000b}
+#menu-list[hidden],#menu-list button[hidden]{display:none}
+#menu-list button{display:flex;align-items:center;gap:9px;background:none;color:var(--txt);
+  border:0;border-top:1px solid #ffffff0d;padding:7px 12px;cursor:pointer;
+  font:600 11.5px var(--serif);letter-spacing:.04em;text-align:left}
+#menu-list button:first-child{border-top:0}
+#menu-list button:hover{background:var(--hover);color:var(--gold2)}
+/* a tecla é informação secundária: fica na direita, apagada, sem competir */
+#menu-list button b{margin-left:auto;color:var(--dim);font-weight:600;font-size:10px}
+#menu-list .im{width:20px;height:20px;flex:none}
+#shop-btn{color:var(--gold2)}
 
 /* notificações de marco (level, skill, bestiário, área nova) */
 #toast{position:absolute;top:20%;left:50%;transform:translateX(-50%);z-index:4;
@@ -205,35 +263,78 @@ b{color:#fff}
   padding:3px 0;cursor:pointer;font:600 11.5px var(--serif);letter-spacing:.03em}
 #follow-btn.on{color:var(--gold2);border-color:var(--gold);box-shadow:inset 0 0 10px #d9a44133}
 #follow-btn:hover{color:var(--txt)}
-#hotbar-wrap{flex:none;padding:5px 8px;border-bottom:1px solid var(--line)}
-#hotbar{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
-/* flex-grow em vez de largura fixa: a fileira estica de ponta a ponta do
-   elemento, não fica um bloco pequeno flutuando com espaço morto ao lado */
-.hk{position:relative;flex:1 1 50px;height:50px;background:var(--stone);border:1px solid var(--line);border-radius:5px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;
-  box-shadow:inset 0 1px 0 #ffffff14,inset 0 0 0 1px #00000090,0 3px 10px #0009}
-.hk:hover{border-color:var(--gold);box-shadow:inset 0 1px 0 #ffffff24,inset 0 0 0 1px #d9a4413a,0 0 14px #d9a44166}
-.hk.rebind{border-color:var(--gold);box-shadow:0 0 12px #d9a44199}
+/* sem vão: a faixa É o trilho. O padding de 5/8px fazia a barra boiar dentro
+   dela, com folga escura em volta — e as linhas de cima e de baixo passam a
+   ser as do próprio trilho, para não dobrar com a da faixa. */
+#hotbar-wrap{flex:none;padding:0;display:flex;align-items:stretch}
+/* Mesma peça da seta das sidebars, deitada: abre a segunda fileira de slots.
+   Fica na ponta da régua e não come largura de slot — os 20 continuam dividindo
+   o resto por igual. */
+#hotbar-arrow{position:relative;z-index:2;flex:none;width:15px;background:var(--stone);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-left:1px solid var(--line);
+  color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:11px;line-height:1}
+#hotbar-arrow:hover{color:var(--gold2);background:var(--stone-hi)}
+/* Era vinte botões arredondados soltos, cada um com borda e sombra projetada
+   próprias: vinte peças boiando lado a lado em vez de UMA barra. Agora é uma
+   régua única — moldura por fora, divisória de 1px por dentro — e cada slot é o
+   mesmo furo escuro da mochila e do equipamento, para o mesmo objeto ler igual
+   nos três lugares (§24).
+   Grade em vez de flex: com `gap:1px` sobre um fundo quase preto, o próprio vão
+   vira a divisória, e ela aparece sozinha também na horizontal quando a barra
+   quebra em duas linhas — coisa que borda em `.hk` não resolveria. */
+/* A divisória é o `gap`, e não uma nervura desenhada dentro do slot: gap só
+   existe ENTRE itens, nunca nas extremidades — desenhar a nervura por dentro
+   punha uma linha clara na esquerda do primeiro e uma escura na direita do
+   último, encostadas na moldura, e as duas liam como folga.
+   Uma linha só, sem quebra: quebrando, ou sobrava célula vazia no fim (grade,
+   e o preto delas virava buraco) ou os dois últimos slots inchavam para fechar
+   a fileira (flex). Sem quebra os vinte dividem a largura por igual sempre — e
+   é o que a barra é, um trilho, não uma grade. */
+#hotbar{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:1px;background:#000;
+  border:1px solid var(--line);border-left:0;border-right:0;border-radius:0;overflow:hidden;
+  box-shadow:inset 0 0 0 1px #ffffff0a,0 3px 10px #0009}
+/* base exata de 1/20 do vão: sem crescer e sem encolher, dá sempre 20 por
+   fileira. Com flex-grow a última fileira inchava para fechar a linha. */
+.hk{position:relative;flex:0 0 calc((100% - 19px) / 20);min-width:0;height:50px;
+  background:linear-gradient(#100e0b,var(--well));
+  border:0;border-radius:0;box-shadow:inset 0 2px 6px #000a;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+.hk.rebind{box-shadow:inset 0 0 0 1px var(--gold),inset 0 0 14px #d9a44166}
 .hk.nomana{opacity:.45}
-.hk.vazio{opacity:.5}
-.hk.vazio span{color:#5c5648}
+/* slot vazio: furo mais fundo, sem relevo, só o `+` apagado dizendo que dá para
+   pôr algo ali */
+/* fileira 2 fechada: os slots continuam no DOM, só não ocupam altura */
+#hotbar-wrap:not(.aberto) .hk.fila2{display:none}
+.hk.vazio{background:#0a0908;box-shadow:inset 0 3px 8px #000d}
+.hk.vazio span{color:#4a443a;font-size:15px}
+/* Hover DEPOIS de .vazio: as duas regras têm a mesma especificidade, então quem
+   vem por último ganha — era isto que deixava o slot vazio sem resposta ao
+   mouse. Vazio acende mais fraco: ali o hover diz "dá para encaixar", não
+   "isto vai disparar". */
+.hk:hover{box-shadow:inset 0 0 0 1px var(--gold),inset 0 0 12px #d9a44133;z-index:1}
+.hk.vazio:hover{background:#141109;box-shadow:inset 0 0 0 1px #d9a44188,inset 0 2px 7px #000b;z-index:1}
+.hk.vazio:hover span{color:var(--gold2)}
 /* tecla do slot: clicável para trocar o atalho, separado do clique que usa o slot */
 .hk b{position:absolute;top:1px;left:3px;font-size:8.5px;color:var(--dim);cursor:pointer;padding:0 2px;border-radius:2px}
 .hk b:hover{color:var(--gold2);background:#00000080}
-.hk span{font-size:19px;line-height:1}
-.hk i{font-size:7.5px;color:var(--dim);font-style:normal;max-width:calc(100% - 6px);overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap}
+/* sem o rótulo embaixo, o ícone toma a altura que era dele */
+.hk span{font-size:23px;line-height:1}
+/* quantidade: selo de canto, o MESMO da mochila (.cell .cnt), para o número
+   querer dizer a mesma coisa nos dois lugares */
+.hk i{position:absolute;right:3px;bottom:1px;font-size:10px;font-style:normal;font-weight:600;
+  color:#fff;text-shadow:0 1px 2px #000,0 0 3px #000}
 .hk u{position:absolute;bottom:0;left:0;width:100%;background:#000000aa}
 
 /* console */
-#console{flex:none;height:148px;display:flex;flex-direction:column;position:relative;background:#0b0a09}
-#console-grip{height:5px;flex:none;cursor:ns-resize;background:linear-gradient(#2b2823,#151310);
+#console{flex:none;height:148px;display:flex;flex-direction:column;position:relative;background:var(--well)}
+#console-grip{height:5px;flex:none;cursor:ns-resize;background:var(--stone);
   border-top:1px solid var(--line);border-bottom:1px solid #000}
-#console-grip:hover{background:linear-gradient(#4a3f28,#221f1a)}
-#chat-tabs{display:flex;flex:none;background:#131210;border-bottom:1px solid var(--line)}
+#console-grip:hover{background:var(--stone-hi)}
+#chat-tabs{display:flex;flex:none;background:var(--surface0);border-bottom:1px solid var(--line)}
 #chat-tabs .tab{flex:none;padding:4px 16px;font:600 10.5px var(--serif);letter-spacing:.05em;
   color:var(--dim);cursor:pointer;border-right:1px solid var(--line);border-bottom:2px solid transparent}
-#chat-tabs .tab.on{color:var(--gold2);border-bottom-color:var(--gold);background:#1c1a16}
+#chat-tabs .tab.on{color:var(--gold2);border-bottom-color:var(--gold);background:var(--surface2)}
 #log{flex:1;min-height:0;overflow-y:auto;padding:5px 9px;font-size:11.5px;color:#bdb6a6}
 #log div.good{color:var(--good)}#log div.bad{color:var(--bad)}
 /* linhas de combate: uma cor por tipo de informação, para o olho separar sem ler.
@@ -244,9 +345,9 @@ b{color:#fff}
 #log div.morte{color:#c98bdd}#log div.loot{color:#e8c96a}
 #log[data-canal="combate"] div:not(.good):not(.bad):not(.cbt){display:none}
 #log[data-canal="saque"] div:not(.good):not(.bad):not(.loot){display:none}
-#chat{flex:none;background:#0b0a09;border:0;border-top:1px solid var(--line);color:var(--txt);
+#chat{flex:none;background:var(--well);border:0;border-top:1px solid var(--line);color:var(--txt);
   padding:5px 9px;font:inherit;outline:none}
-#chat:focus{background:#141210}
+#chat:focus{background:var(--surface0)}
 
 /* conteúdo dos painéis */
 /* altura fixa: alargar o painel tem de dar mais mapa na horizontal, não um
@@ -271,9 +372,9 @@ b{color:#fff}
 /* estatísticas de combate: mesma barra da de status, encostada nos botões de
    postura. Só ícone e número — o nome e o que faz vivem no tooltip. */
 #combat-stats{display:flex;gap:3px;margin-top:8px;padding:3px;border:1px solid #000;border-radius:4px;
-  background:#0a0908;box-shadow:inset 0 2px 6px #000c,inset 0 0 0 1px #6b5a3340}
+  background:var(--well);box-shadow:inset 0 2px 6px #000c,inset 0 0 0 1px #6b5a3340}
 .cst{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0;
-  cursor:help;border-radius:3px;background:linear-gradient(#2b2823,#1a1815);border:1px solid var(--line)}
+  cursor:help;border-radius:3px;background:var(--stone);border:1px solid var(--line)}
 .cst:hover{border-color:var(--gold);box-shadow:0 0 9px #d9a44166}
 .cst .ii{width:16px;height:16px;filter:drop-shadow(0 1px 2px #000)}
 /* Faixa de resistência: quadradinho na cor do elemento com o corte em % dentro.
@@ -294,12 +395,37 @@ b{color:#fff}
    não slots maiores. 32px é o tamanho que a coluna estreita já produzia, então a
    mochila normal continua com as mesmas cinco por linha. */
 #bag{display:grid;grid-template-columns:repeat(auto-fill,minmax(32px,1fr));gap:4px}
-.cell{position:relative;aspect-ratio:1;background:linear-gradient(#232019,#171512);border:1px solid var(--line);
+.cell{position:relative;aspect-ratio:1;background:linear-gradient(#0d0b09,var(--well));border:1px solid var(--line);
   border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;
   box-shadow:inset 0 2px 5px #0009,inset 0 0 0 1px #00000090}
-.cell.empty{cursor:default;background:#131210;box-shadow:inset 0 2px 6px #000b}
-.cell.eq{background:linear-gradient(#2a261d,#191712);box-shadow:inset 0 2px 5px #0009,inset 0 0 0 1px #6b5a3340}
+.cell.empty{cursor:default;background:var(--well);border-color:#2a2419;box-shadow:inset 0 2px 6px #000b}
+.cell.eq{background:linear-gradient(#0f0d0a,var(--well));box-shadow:inset 0 2px 5px #0009,inset 0 0 0 1px #6b5a3340}
+/* Vazio é buraco, não peça. `.cell.eq` vem depois de `.cell.empty` e ganhava
+   por ordem de fonte, então o slot vazio acendia a MESMA placa de um ocupado —
+   era o quadrado claro atrás do placeholder, e apagava a diferença entre
+   "tenho isto" e "falta isto". */
+.cell.eq.empty{background:var(--ink);box-shadow:inset 0 3px 8px #000d,inset 0 0 0 1px #6b5a331f}
 .cell:not(.empty):hover{border-color:var(--gold);box-shadow:inset 0 0 12px #d9a44140,inset 0 0 0 1px #d9a4413a,0 0 10px #d9a44140}
+/* ------------------------------------------------------------- raridade
+   Era só cor, a 53% de alfa: num slot quase preto o azul e o roxo somem, e quem
+   não separa as duas cores não lê nada (§9 — estado não pode depender só de
+   cor). A escada agora é de FORMA — fio, cantoneira, espessura — e a cor entra
+   por cima como reforço, não como o único sinal.
+   Comum não ganha tratamento nenhum de propósito: é a maioria da mochila, e
+   marcar todo mundo é não marcar ninguém. Antes ele tinha borda #cfc9ba, mais
+   CLARA que a dos painéis, e era o que fazia a mochila ler como grade de
+   caixinhas.
+   Duas cantoneiras na diagonal, não quatro: em slot de 32px, quatro viram ruído
+   e a grade inteira fica agitada. */
+.cell.r1,.cell.r2,.cell.r3,.cell.r4{border-color:currentColor}
+.cell.r2{--l:5px}
+.cell.r3{--l:8px;border-width:2px}
+.cell.r4{--l:11px;border-width:2px;box-shadow:inset 0 0 0 1px color-mix(in srgb,currentColor 30%,transparent)}
+.cell.r2::before,.cell.r2::after,.cell.r3::before,.cell.r3::after,
+.cell.r4::before,.cell.r4::after{
+  content:"";position:absolute;width:var(--l);height:var(--l);border:1px solid;pointer-events:none}
+.cell.r2::before,.cell.r3::before,.cell.r4::before{top:2px;left:2px;border-right:0;border-bottom:0}
+.cell.r2::after,.cell.r3::after,.cell.r4::after{bottom:2px;right:2px;border-left:0;border-top:0}
 .cell .ico{font-size:18px;filter:drop-shadow(0 1px 2px #000c);
   width:100%;height:100%;display:flex;align-items:center;justify-content:center}
 /* ícone de imagem: escala pelo font-size de quem o contém, para servir na loja
@@ -321,24 +447,53 @@ b{color:#fff}
    muita folga vazia: em caixa igual os dois liam do mesmo tamanho. */
 .cell .ii-amulet,#eq-slots .ii-amulet{width:78%;height:78%}
 .cell .ii-boots,#eq-slots .ii-boots{width:68%;height:68%}
+/* Moeda: uma não ocupa o mesmo espaço que uma pilha de cem. Mesma régua do anel
+   e da bota acima — o tamanho vive aqui e não no PNG porque o build_skins
+   normaliza todo ícone para encher os 54px do slot. */
+.cell .ii-coin-1{width:40%;height:40%}
+.cell .ii-coin-few{width:66%;height:66%}
 .cell .ii-light,#eq-slots .ii-light{width:70%;height:70%}
 .cell .ii-helmet,#eq-slots .ii-helmet{width:80%;height:80%}
-.ii-ring,.ii-amulet,.ii-boots,.ii-light,.ii-helmet{image-rendering:pixelated}
-.hk .ii{width:1.6em;height:1.6em}
+.ii-ring,.ii-amulet,.ii-boots,.ii-light,.ii-helmet,.ii-coin-1,.ii-coin-few{image-rendering:pixelated}
+.hk .ii{width:1.5em;height:1.5em}
 .cell .cnt{position:absolute;right:2px;bottom:1px;font-size:9.5px;color:#fff;text-shadow:0 0 3px #000}
-.cell .lbl{font-size:8px;color:#5c5648;text-align:center;font-family:var(--serif)}
+/* placeholder do slot vazio: a peça dessaturada e rebaixada — presente o
+   bastante para dizer o que entra ali, apagada o bastante para nunca ser
+   confundida com algo equipado. */
+.cell.empty .slot-ph{filter:grayscale(1) brightness(.72) contrast(.85);opacity:.4}
+/* ------------------------------------------------------- arrastar item
+   O fantasma segue o cursor e não recebe evento nenhum: se recebesse, o
+   elementFromPoint que acha a zona embaixo acharia sempre ele mesmo. */
+.arr-ghost{position:fixed;z-index:80;width:42px;height:42px;margin:-21px 0 0 -21px;
+  pointer-events:none;opacity:.85;filter:drop-shadow(0 4px 6px #000c)}
+.arr-ghost .ii{width:100%;height:100%}
+.arr-ghost>span{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:26px}
+body.arrastando-item{cursor:grabbing}
+/* alvo válido: o mesmo fio dourado do hover, para o realce não ser vocabulário
+   novo — muda o que acende, não como acende */
+.arr-ok{box-shadow:inset 0 0 0 2px var(--gold),inset 0 0 14px #d9a44140!important}
+#bag.arr-ok,#loot-items.arr-ok{border-radius:4px}
 #gold-row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:11.5px}
 .tabc{display:block}
 .skill{margin-bottom:6px}
 .srow{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px}
 .srow small{color:#7d7666;font-size:9.5px;margin-left:4px}
 .srow .bon{color:#6ee36e;font-style:normal;font-size:10.5px;margin-left:3px}
-.sbar{height:6px;background:#0a0908;border:1px solid #000;border-radius:3px;margin-top:3px;
+.sbar{height:6px;background:var(--well);border:1px solid #000;border-radius:3px;margin-top:3px;
   overflow:hidden;box-shadow:inset 0 1px 3px #000b}
 .sbar i{display:block;height:100%;background:linear-gradient(#f0cd7a,#b8860b)}
+/* Ficha do personagem: linha de consulta, nome à esquerda e número à direita.
+   Sem ícone e sem barra de propósito — a coluna alinhada de números é o que se
+   lê de relance, e barra ali competiria com as perícias logo acima. */
+.fic{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11.5px;padding:2px 0}
+.fic + .fic{border-top:1px solid #ffffff08}
+.fic span{color:var(--dim);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fic b{color:var(--txt);font-weight:600;flex:none}
+.fic-h{margin:11px 0 3px;padding-top:7px;border-top:1px solid var(--line);
+  font:700 9.5px var(--serif);letter-spacing:.12em;color:var(--gold2);text-transform:uppercase}
 .note{font-size:10.5px;color:var(--dim);margin-top:8px;line-height:1.5}
 .spell{display:flex;align-items:center;gap:7px;padding:5px;border:1px solid var(--line);border-radius:4px;
-  margin-bottom:4px;cursor:pointer;background:linear-gradient(#232019,#191713)}
+  margin-bottom:4px;cursor:pointer;background:linear-gradient(var(--surface1),#100e0b)}
 .spell:hover{border-color:var(--gold);box-shadow:0 0 12px #d9a44133}
 .spell.locked{opacity:.4;cursor:default}
 .spell .ico{font-size:15px}
@@ -347,10 +502,10 @@ b{color:#fff}
 .sp-c{text-align:right;font-size:10px;color:#7fb0e8}
 .sp-c small{color:var(--dim);font-size:9px}
 .bt{display:flex;align-items:center;gap:6px;padding:3px 5px;border:1px solid transparent;cursor:pointer;font-size:11.5px}
-.bt:hover{background:#26221a}
+.bt:hover{background:var(--hover)}
 .bt.sel{border-color:#e05545;background:#2e1a17;box-shadow:inset 0 0 12px #e0554533}
 .bt span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bt .hb{width:52px;height:6px;background:#0c0d10;border:1px solid var(--line)}
+.bt .hb{width:52px;height:6px;background:var(--well);border:1px solid var(--line)}
 .bt .hb i{display:block;height:100%;background:#3cc44a}
 
 /* janelas */
@@ -361,9 +516,9 @@ b{color:#fff}
 .win{position:absolute;background-image:
     linear-gradient(90deg,transparent 0,transparent 49.6%,#d9a4410c 50%,transparent 50.4%),
     linear-gradient(0deg,transparent 0,transparent 49.6%,#d9a4410c 50%,transparent 50.4%),
-    linear-gradient(#201e1a,#161412);
+    linear-gradient(var(--surface2),var(--surface1));
   background-size:34px 34px,34px 34px,auto;
-  border:1px solid var(--line);border-radius:6px;
+  border:1px solid var(--line2);border-radius:6px;
   box-shadow:inset 0 1px 0 #ffffff12,0 16px 46px #000d;display:none;z-index:20;
   flex-direction:column;
   /* centralizada na tela: cada janela só declara tamanho, nunca posição */
@@ -375,7 +530,7 @@ b{color:#fff}
    quebrava o cabeçalho em duas fileiras tortas: o título encolhe, o botão não */
 .win h3 > :first-child{min-width:0}
 .win h3 button{flex:none;white-space:nowrap}
-.win h3 button,.win .foot button{background:linear-gradient(#332e24,#211e18);color:var(--txt);
+.win h3 button,.win .foot button{background:var(--stone);color:var(--txt);
   border:1px solid var(--line);border-radius:3px;padding:3px 9px;cursor:pointer;font:inherit;font-size:11px}
 .win h3 button:hover:not(:disabled),.win .foot button:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
 .win h3 button:disabled,.win .foot button:disabled{opacity:.4;color:var(--dim);cursor:default}
@@ -394,7 +549,7 @@ b{color:#fff}
 #shop-win{width:520px;overflow:hidden}
 #shop-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;max-height:56vh;overflow-y:auto}
 .srow2{display:flex;justify-content:space-between;gap:6px;padding:5px 7px;border:1px solid var(--line);
-  border-radius:4px;margin-bottom:3px;cursor:pointer;font-size:11.5px;background:linear-gradient(#232019,#191713)}
+  border-radius:4px;margin-bottom:3px;cursor:pointer;font-size:11.5px;background:linear-gradient(var(--surface1),#100e0b)}
 .srow2:hover{border-color:var(--gold)}
 .srow2 b{color:var(--gold);white-space:nowrap}
 /* Ficha da magia: janela pequena e de leitura, não painel. Herda a moldura
@@ -406,7 +561,7 @@ b{color:#fff}
 #spell-body .bad{color:var(--bad);margin-top:6px}
 #spell-body .bon{color:var(--good)}
 #spell-foot{padding:0 13px 11px;display:flex;justify-content:flex-end}
-#spell-foot button{background:linear-gradient(#332e24,#211e18);color:var(--txt);
+#spell-foot button{background:var(--stone);color:var(--txt);
   border:1px solid var(--line);padding:5px 14px;cursor:pointer;font:inherit}
 #spell-foot button:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
 #spell-foot button:disabled{opacity:.4;cursor:default}
@@ -426,7 +581,7 @@ b{color:#fff}
    de leitura empilhada, a ficha do bestiário é célula de grade clicável — o
    resto era cópia. */
 .task-card,.best-card{border:1px solid var(--line);border-radius:5px;
-  background:linear-gradient(#232019,#181614);font-size:11.5px}
+  background:linear-gradient(var(--surface1),#100e0b);font-size:11.5px}
 .task-card{padding:9px 11px;margin-bottom:8px;display:flex;flex-direction:column;gap:4px}
 .task-card b{font:600 12.5px var(--serif);color:var(--gold2)}
 .task-card i{font-style:normal;font-size:10.5px;color:var(--dim)}
@@ -438,7 +593,7 @@ b{color:#fff}
 .best-card b{display:block;font:700 12.5px var(--serif);color:var(--txt)}
 .best-card i{font-size:10px;font-style:normal}
 .best-card span{float:right;font-size:10px;color:var(--dim)}
-.bsbar{height:4px;background:#0a0908;border:1px solid #000;border-radius:2px;margin-top:5px;overflow:hidden;clear:both}
+.bsbar{height:4px;background:var(--well);border:1px solid #000;border-radius:2px;margin-top:5px;overflow:hidden;clear:both}
 .bsbar u{display:block;height:100%}
 .bd-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
 .bd-top b{font:700 15px var(--serif)}
@@ -447,14 +602,14 @@ b{color:#fff}
 .bd-stats b{color:var(--txt);float:right}
 .bd-loot{display:flex;justify-content:space-between;font-size:11.5px;padding:2px 0;border-bottom:1px solid #ffffff0d}
 .bd-loot i{font-style:normal;font-size:10.5px}
-button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);border-radius:3px;
+button.mini{background:var(--surface2);color:var(--txt);border:1px solid var(--line);border-radius:3px;
   padding:1px 7px;margin-left:6px;cursor:pointer;font:inherit;font-size:10.5px}
 #map-win{overflow:hidden}
 #map-canvas{display:block;image-rendering:pixelated;background:#000;border:1px solid var(--line);margin:10px;cursor:grab}
-#map-tabs{display:flex;border-top:1px solid var(--line);background:#131210}
+#map-tabs{display:flex;border-top:1px solid var(--line);background:var(--surface0)}
 #map-tabs .tab{flex:1;padding:7px 0;text-align:center;font:600 11px var(--serif);color:var(--dim);
   cursor:pointer;border-bottom:2px solid transparent}
-#map-tabs .tab.on{color:var(--gold);border-bottom-color:var(--gold);background:#1c1a16}
+#map-tabs .tab.on{color:var(--gold);border-bottom-color:var(--gold);background:var(--surface2)}
 #map-foot{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;font-size:11px;color:var(--dim)}
 #map-floor{color:var(--gold2);font:700 12px var(--serif)}
 #pick-win{width:340px;overflow:hidden}
@@ -471,17 +626,17 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
 #ui-list .sec i{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
 .ui-row{display:flex;align-items:center;gap:8px;padding:4px 7px;
   cursor:pointer;font-size:11.5px;border:1px solid transparent}
-.ui-row:hover{background:#26221a;border-color:#3a3227}
+.ui-row:hover{background:var(--hover);border-color:var(--line)}
 .ui-row .lbl{flex:1;min-width:0;font-size:11.5px;color:inherit;text-align:left;font-family:inherit}
 .ui-row.on .lbl{color:var(--gold2)}
 /* Marcador com o mesmo encaixe fundido dos slots da mochila. Liga/desliga acende
    a pedra inteira; escolha-de-grupo acende só o pino do meio — a forma distingue
    os dois antes da cor, que é a mesma. */
 .ck{flex:none;position:relative;width:13px;height:13px;border:1px solid var(--line);border-radius:2px;
-  background:#0a0908;box-shadow:inset 0 2px 4px #000c}
+  background:var(--well);box-shadow:inset 0 2px 4px #000c}
 .ui-row:hover .ck{border-color:var(--gold)}
 .ck.on{background:linear-gradient(#f0cd7a,#b8860b);box-shadow:inset 0 1px 0 #ffffff55,0 0 7px #d9a44155}
-.ck.rad.on{background:#0a0908;box-shadow:inset 0 2px 4px #000c}
+.ck.rad.on{background:var(--well);box-shadow:inset 0 2px 4px #000c}
 .ck.rad.on::after{content:"";position:absolute;inset:3px;background:linear-gradient(#f0cd7a,#b8860b)}
 /* linha de volume: nome à esquerda, cursor e número à direita */
 .ui-vol{display:flex;align-items:center;gap:8px;padding:3px 8px}
@@ -493,12 +648,12 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
    na calha, medida por --v, porque o Chromium não tem ::-moz-range-progress. */
 .ui-vol input{-webkit-appearance:none;appearance:none;width:98px;height:14px;background:none;cursor:pointer}
 .ui-vol input::-webkit-slider-runnable-track{height:6px;border:1px solid #000;border-radius:2px;
-  background:linear-gradient(#f0cd7a,#b8860b) left/var(--v,50%) 100% no-repeat,#0a0908;
+  background:linear-gradient(#f0cd7a,#b8860b) left/var(--v,50%) 100% no-repeat,var(--well);
   box-shadow:inset 0 1px 3px #000b}
 .ui-vol input::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:14px;margin-top:-5px;border-radius:2px;
-  background:linear-gradient(#3d3627,#211e18);border:1px solid var(--line);box-shadow:inset 0 1px 0 #ffffff30,0 1px 3px #000}
+  background:var(--stone);border:1px solid var(--line);box-shadow:inset 0 1px 0 #ffffff30,0 1px 3px #000}
 .ui-vol input:hover::-webkit-slider-thumb{border-color:var(--gold)}
-#tooltip{position:fixed;z-index:60;display:none;width:236px;background:#12100de8;border:1px solid var(--line);
+#tooltip{position:fixed;z-index:60;display:none;width:236px;background:#100e0bee;border:1px solid var(--line2);
   border-radius:5px;padding:9px 11px;font-size:11.5px;pointer-events:none;
   box-shadow:inset 0 1px 0 #ffffff12,0 10px 30px #000d}
 #tooltip .dim{color:var(--dim)}#tooltip .bad{color:var(--bad)}#tooltip .bon{color:#6ee36e}
@@ -528,7 +683,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
 /* a lista é quem rola: o card fica fixo e o painel afunda no fundo escuro.
    A moldura fica no wrapper porque a máscara do fade apagaria borda e fundo. */
 .character-scroll{display:flex;min-height:0;overflow:hidden;
-  border:1px solid #3a3428;border-radius:6px;background:#0b0a09;box-shadow:inset 0 2px 12px #000c}
+  border:1px solid var(--line);border-radius:6px;background:var(--well);box-shadow:inset 0 2px 12px #000c}
 #character-list{flex:1;display:flex;flex-direction:column;gap:8px;min-height:88px;overflow-y:auto;padding:8px;
   animation:list-fade linear both;animation-timeline:scroll(self block)}
 /* o fade acompanha o scroll: some no topo quando não há nada acima e na base no fim.
@@ -539,9 +694,9 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
   100%{mask-image:linear-gradient(#0000 0,#000 22px,#000 100%,#000 100%)}}
 .character-card{position:relative;display:grid;grid-template-columns:56px 1fr auto auto;align-items:center;gap:14px;padding:10px 14px;
   border:1px solid var(--line);border-left:3px solid var(--voc,var(--line));border-radius:6px;
-  background:linear-gradient(145deg,#25221c,#181614);cursor:pointer;transition:.16s ease}
+  background:linear-gradient(145deg,var(--surface2),var(--surface1));cursor:pointer;transition:.16s ease}
 .character-card:hover{border-color:#77633a;border-left-color:var(--voc,#77633a);transform:translateY(-1px);box-shadow:0 7px 18px #0008}
-.character-card.sel{border-color:var(--gold);border-left-color:var(--voc,var(--gold));background:linear-gradient(145deg,#312818,#1b1710);
+.character-card.sel{border-color:var(--gold);border-left-color:var(--voc,var(--gold));background:linear-gradient(145deg,#2b2418,var(--surface1));
   box-shadow:inset 0 0 22px #d9a44122,0 0 16px #d9a44122}
 .character-portrait{position:relative;width:56px;height:56px}
 .character-voc-icon{width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:50%;
@@ -561,7 +716,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
   color:#6b6459;font-size:12px;line-height:1;cursor:pointer;opacity:.5;transition:.16s ease}
 .character-card:hover .character-del{opacity:1}
 .character-del:hover{border-color:#8c3b34;background:#2a1614;color:#e0705f}
-.character-empty{padding:24px;text-align:center;color:#716b5e;border:1px dashed #443e33;border-radius:6px;background:#0e0d0b}
+.character-empty{padding:24px;text-align:center;color:#716b5e;border:1px dashed var(--line);border-radius:6px;background:var(--surface0)}
 .menu-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
 .menu-actions.one{grid-template-columns:1fr}
 .menu-actions.tres{grid-template-columns:1fr 1fr 1fr}
@@ -583,7 +738,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
 .loading .menu-sigil{width:100%;margin:0}
 .loading p{margin:0;color:var(--gold2);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
   text-shadow:0 2px 12px #000,0 0 24px #000}
-.loading-bar{width:100%;height:4px;border-radius:2px;background:#0d0c0a;border:1px solid #3a3428;overflow:hidden;
+.loading-bar{width:100%;height:4px;border-radius:2px;background:var(--surface0);border:1px solid var(--line);overflow:hidden;
   box-shadow:inset 0 1px 3px #000,0 1px 0 #ffffff08}
 .loading-bar i{display:block;width:38%;height:100%;border-radius:2px;
   background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:loading-slide 1.1s ease-in-out infinite}
@@ -626,7 +781,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
    a largura interna inteira. Piso de 880px: abaixo disso o painel quebra demais. */
 .create-card{--cardh:max(140px,min(380px,calc(92vh - 450px),calc((94vw - 120px)/4*1.502)));
   --cardw:calc(var(--cardh)/1.502);
-  position:relative;width:min(max(880px,calc(var(--cardw)*4 + 120px)),94vw);max-height:92vh;padding:30px 36px;background:linear-gradient(145deg,#211f1a,#141311);border:1px solid #5b513d;border-radius:9px;box-shadow:inset 0 1px 0 #ffffff16,0 25px 80px #000,0 0 0 100vmax #0506082b;overflow:auto}
+  position:relative;width:min(max(880px,calc(var(--cardw)*4 + 120px)),94vw);max-height:92vh;padding:30px 36px;background:linear-gradient(145deg,var(--surface2),var(--surface1));border:1px solid var(--line2);border-radius:9px;box-shadow:inset 0 1px 0 #ffffff16,0 25px 80px #000,0 0 0 100vmax #0506082b;overflow:auto}
 .create-top{position:relative;text-align:center;margin-bottom:14px}
 .create-top h1{margin:0;font:700 27px var(--serif);letter-spacing:.12em;color:var(--gold2);text-shadow:0 2px 0 #0008,0 0 26px #d9a44144}
 /* os losangos são conteúdo do ::before/::after pra não sujar o HTML */
@@ -634,7 +789,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
 .create-top p{margin:5px 0 0;color:var(--dim);font-size:11.5px;font-style:italic}
 /* o campo de nome é uma coluna centralizada, mas o rótulo alinha à esquerda dele */
 .name-field{width:min(620px,100%);margin:0 auto 14px}
-#name-input{display:block;width:100%;background:#0b0a09;border:1px solid var(--line);border-radius:5px;
+#name-input{display:block;width:100%;background:var(--well);border:1px solid var(--line);border-radius:5px;
   color:var(--txt);padding:11px 13px;font:inherit;outline:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238f8874' stroke-width='1.6'%3E%3Ccircle cx='12' cy='8' r='3.4'/%3E%3Cpath d='M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 12px center;background-size:17px}
@@ -669,7 +824,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
   box-shadow:inset 0 0 15px var(--voc,var(--gold)),0 0 12px #0008;
   font:700 27px var(--serif);color:var(--voc,var(--gold2));text-shadow:0 0 14px var(--voc,var(--gold))}
 /* divisor entre a descrição e os atributos */
-.voc-attrs{border-left:1px solid #4b4436;padding-left:20px}
+.voc-attrs{border-left:1px solid var(--line2);padding-left:20px}
 #voc-current-name{margin:0;font:700 22px var(--serif);letter-spacing:.08em;color:var(--voc,var(--gold2))}
 #voc-current-desc{margin:6px 0 0;color:#aaa292;font-size:12px;line-height:1.55}
 .voc-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
@@ -679,7 +834,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
   text-transform:uppercase;text-align:center}
 .voc-stats{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
 .voc-stat{display:flex;flex-direction:column;align-items:center;gap:1px;width:76px;padding:8px 4px;
-  border:1px solid #4b4436;border-radius:5px;background:#0f0e0c;color:#8f8874;font-size:10px}
+  border:1px solid var(--line2);border-radius:5px;background:var(--surface0);color:var(--dim);font-size:10px}
 .voc-stat i{font-style:normal;font-size:14px;line-height:1.1;color:var(--voc,var(--gold2))}
 .voc-stat.azul i{color:#4b8fe0}
 .voc-stat small{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;text-align:center}
@@ -691,7 +846,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
 .card{background-image:
     linear-gradient(90deg,transparent 0,transparent 49.6%,#d9a4410c 50%,transparent 50.4%),
     linear-gradient(0deg,transparent 0,transparent 49.6%,#d9a4410c 50%,transparent 50.4%),
-    linear-gradient(#211f1a,#151311);
+    linear-gradient(var(--surface2),var(--surface1));
   background-size:34px 34px,34px 34px,auto;
   border:1px solid var(--line);border-radius:8px;padding:24px 28px;width:560px;max-height:92vh;overflow-y:auto;box-shadow:inset 0 1px 0 #ffffff12,0 20px 60px #000}
 .card h1{margin:0 0 4px;font:700 30px var(--serif);color:var(--gold2);letter-spacing:.12em;text-shadow:0 2px 0 #0008,0 0 26px #d9a44155}
@@ -699,12 +854,9 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
 .im{width:1.15em;height:1.15em;vertical-align:-.18em}
 #stance button .im,#follow-btn .im{opacity:.5}
 #stance button.on .im,#follow-btn.on .im{opacity:1}
-#toolbar button{padding:6px}
-#toolbar button .im{width:24px;height:24px;vertical-align:middle}
-/* sem PNG para "sair": o glifo ocupa a mesma caixa de 24px dos ícones */
-#toolbar .gl{display:inline-flex;align-items:center;justify-content:center;font-size:17px;line-height:1}
+/* sem PNG para "contratos", "forja" e "sair": o glifo ocupa a mesma caixa dos ícones */
+#menu-list .gl{display:inline-flex;align-items:center;justify-content:center;font-size:15px;line-height:1}
 #stance button .im{width:22px;height:22px;vertical-align:middle}
-#shop-btn .im{width:17px;height:17px}
 #mute-btn .im{opacity:.55}
 #mute-btn.on .im{opacity:1}
 .win h3 .im{width:16px;height:16px;vertical-align:-.2em;margin-right:3px}
@@ -734,19 +886,20 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
 <body>
 
 <div id="app">
-  <div class="dock-arrow" data-d="l" title="barra da esquerda">‹</div>
   <aside id="lado-l" class="lado">
     <div class="faixa" id="faixa-l"></div>
     <div class="colunas"><div class="dock" id="dock-l0"></div><div class="dock" id="dock-l1"></div></div>
   </aside>
+  <div class="dock-arrow" data-d="l" title="barra da esquerda">‹</div>
 
   <div id="center">
     <div id="topbar">
       <div id="statusbars">
-        <div class="bar"><i id="hp-fill" style="width:100%"></i><span id="hp-text"></span></div>
-        <div class="bar"><i id="mp-fill" style="width:100%"></i><span id="mp-text"></span></div>
-        <div class="bar" style="height:13px"><i id="xp-fill" style="width:0"></i>
-          <span id="xp-text" style="line-height:11px"></span></div>
+        <div id="vitais">
+          <div class="bar"><i id="hp-fill" style="width:100%"></i><span id="hp-text"></span></div>
+          <div class="bar"><i id="mp-fill" style="width:100%"></i><span id="mp-text"></span></div>
+        </div>
+        <div id="xp-row"><div id="xp-rail"><i id="xp-fill" style="width:0"></i></div><b id="xp-nivel"></b></div>
       </div>
     </div>
 
@@ -756,20 +909,22 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
       <div id="toast"></div>
       <div id="hunt-label"></div>
       <div id="toolbar">
-        <button id="shop-btn"><img class="im" src="assets/icons/ui_shop.png" alt=""> Loja do Templo</button>
-        <div id="toolbar-right">
-          <button id="task-btn" title="Contratos de caça (T)">📜</button>
-          <button id="forja-btn" title="Forja — imbuements (F)">🔨</button>
-          <button id="best-btn" title="Bestiário (B)"><img class="im" src="assets/icons/ui_bestiary.png" alt=""></button>
-          <button id="map-btn" title="Mapa (M)"><img class="im" src="assets/icons/ui_map.png" alt=""></button>
-          <button id="ui-btn" title="Opções"><img class="im" src="assets/icons/ui_settings.png" alt=""></button>
-          <button id="mute-btn" class="on" title="som"><img class="im" src="assets/icons/ui_sound_on.png" alt=""></button>
-          <button id="logout-btn" title="Sair para a tela inicial"><span class="im gl">⏻</span></button>
+        <button id="menu-btn" aria-expanded="false">Menu</button>
+        <div id="menu-list" hidden>
+          <button id="shop-btn" hidden><img class="im" src="assets/icons/ui_shop.png" alt="">Loja do Templo</button>
+          <button id="task-btn"><span class="im gl">📜</span>Contratos <b>T</b></button>
+          <button id="forja-btn"><span class="im gl">🔨</span>Forja <b>R</b></button>
+          <button id="best-btn"><img class="im" src="assets/icons/ui_bestiary.png" alt="">Bestiário <b>B</b></button>
+          <button id="map-btn"><img class="im" src="assets/icons/ui_map.png" alt="">Mapa <b>M</b></button>
+          <button id="ui-btn"><img class="im" src="assets/icons/ui_settings.png" alt="">Opções</button>
+          <button id="mute-btn" class="on"><img class="im" src="assets/icons/ui_sound_on.png" alt="">Som</button>
+          <button id="logout-btn"><span class="im gl">⏻</span>Sair</button>
         </div>
       </div>
     </div>
 
-    <div id="hotbar-wrap"><div id="hotbar"></div></div>
+    <div id="hotbar-wrap"><div id="hotbar"></div>
+      <div id="hotbar-arrow" title="mais slots">˅</div></div>
 
     <div id="console">
       <div id="console-grip" title="arraste para redimensionar"></div>
@@ -783,6 +938,7 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
     </div>
   </div>
 
+  <div class="dock-arrow" data-d="r" title="barra da direita">›</div>
   <aside id="lado-r" class="lado">
     <div class="faixa" id="faixa-r"></div>
     <div class="colunas"><div class="dock" id="dock-r1"></div><div class="dock" id="dock-r0">
@@ -828,7 +984,6 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
     </section>
     </div></div>
   </aside>
-  <div class="dock-arrow" data-d="r" title="barra da direita">›</div>
 </div>
 
 <div class="win" id="loot-win">
@@ -1035,5 +1190,6 @@ button.mini{background:#2c2620;color:var(--txt);border:1px solid var(--line);bor
 <script src="src/game.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/hud.js"></script>
+<script src="src/arraste.js"></script>
 </body>
 </html>

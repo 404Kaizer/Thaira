@@ -1,0 +1,152 @@
+<meta charset="utf-8">
+<title>Campos de chão — #33</title>
+<style>
+  body{margin:0;background:#15151a;color:#ddd5c2;font:14px/1.5 "Segoe UI",system-ui,sans-serif;padding:28px}
+  h1{font:400 26px/1.1 Cinzel,Georgia,serif;color:#f0cd7a;letter-spacing:.03em;margin:0 0 6px}
+  p.lede{color:#8f8874;margin:0 0 26px;max-width:70ch}
+  .grade{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+  .cel{background:#1e1c18;border:1px solid #3a352b;padding:14px}
+  .linha{display:flex;gap:14px;align-items:flex-start}
+  .linha>figure{margin:0}
+  .linha figcaption{font:11px ui-monospace,Consolas,monospace;color:#6b6558;margin-top:4px;text-align:center}
+  .cel h2{font:600 11px "Segoe UI";letter-spacing:.14em;text-transform:uppercase;color:#d9a441;margin:0 0 10px}
+  canvas{display:block;image-rendering:pixelated;background:#2a2118}
+  .quadros{display:flex;gap:8px;margin-top:12px}
+  .quadros figure{margin:0;text-align:center}
+  .quadros figcaption{font:11px ui-monospace,Consolas,monospace;color:#6b6558;margin-top:3px}
+  .barra{margin:26px 0 0;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  label{font-size:13px;color:#8f8874;display:flex;gap:7px;align-items:center}
+  input[type=range]{width:150px}
+  select,button{background:#26241f;color:#ddd5c2;border:1px solid #3a352b;padding:5px 10px;font:13px inherit}
+</style>
+
+<h1>Campos de chão</h1>
+<p class="lede">Os quatro elementos que viram condição, no tamanho em que o jogo desenha e sobre o
+terreno do jogo. À esquerda, um tile animando; no meio, um campo de 5×5 — que é como o jogo mostra
+de verdade, e onde aparece se os tiles costuram ou desenham a grade; à direita, os quatro quadros do
+laço parados, para julgar cada um separado do movimento.</p>
+
+<div class="barra">
+  <label>Terreno <select id="terreno"></select></label>
+  <label>Zoom <input id="zoom" type="range" min="1" max="8" value="4"><span id="zval">4×</span></label>
+  <label>ms por quadro <input id="ms" type="range" min="60" max="400" value="150"><span id="msval">150</span></label>
+  <label><input id="parar" type="checkbox"> congelar</label>
+  <label>Fase <select id="fase"><option value="0">0 cheia (dano cheio)</option><option value="1">1 fraca (dano reduzido)</option><option value="2">2 mínima (não machuca)</option><option value="t">as três</option></select></label>
+</div>
+
+<div class="grade" id="grade"></div>
+
+<script src="../../src/art.js"></script>
+<script>
+/* Só art.js é carregado: o desenho do campo tem de ser julgável sem subir o
+   jogo inteiro. ELEM mora em data.js e traz dependência de mundo junto, então a
+   cópia das quatro cores fica aqui — se divergirem, é sinal de que a paleta
+   mudou e esta página precisa de uma olhada. */
+const ELEM = {
+  fire:   { n: 'Fogo',    cor: 0xff7a20 },
+  earth:  { n: 'Veneno',  cor: 0x7ac24a },
+  ice:    { n: 'Gelo',    cor: 0x8fdcff },
+  energy: { n: 'Energia', cor: 0x7fb8ff }
+};
+const ELS = ['fire', 'earth', 'ice', 'energy'];
+/* cor por terreno, copiada do TILE em world.js — sem ela a rocha saía verde e a
+   página mentia sobre o pior caso de contraste, que é justamente o chão escuro */
+const TERRENOS = { grass: 0x55913a, dirt: 0x7a5c30, rock: 0x5a6674,
+                   sand: 0xd8bd6e, snow: 0xdcecf7, swamp: 0x5f682a, cave: 0x4a4a52 };
+
+const $ = s => document.querySelector(s);
+const sel = $('#terreno');
+for (const t in TERRENOS) if (TEX_DRAW[t]) sel.add(new Option(t, t));
+
+const celulas = ELS.map(el => {
+  const d = document.createElement('div'); d.className = 'cel';
+  d.innerHTML = `<h2>${ELEM[el].n}</h2>`;
+  const linha = document.createElement('div'); linha.className = 'linha';
+  const fig1 = document.createElement('figure');
+  const vivo = document.createElement('canvas'); vivo.width = vivo.height = 32;
+  fig1.appendChild(vivo);
+  const c1 = document.createElement('figcaption'); c1.textContent = '1 tile'; fig1.appendChild(c1);
+  const fig2 = document.createElement('figure');
+  const campo = document.createElement('canvas'); campo.width = campo.height = 160;
+  fig2.appendChild(campo);
+  const c2 = document.createElement('figcaption'); c2.textContent = '5×5'; fig2.appendChild(c2);
+  linha.appendChild(fig1); linha.appendChild(fig2); d.appendChild(linha);
+  const q = document.createElement('div'); q.className = 'quadros';
+  const fixos = [];
+  for (let i = 0; i < CAMPO_FRAMES; i++) {
+    const f = document.createElement('figure');
+    const c = document.createElement('canvas'); c.width = c.height = 32;
+    f.appendChild(c);
+    const cap = document.createElement('figcaption'); cap.textContent = 'q' + i; f.appendChild(cap);
+    f.dataset.q = i;
+    q.appendChild(f); fixos.push(c);
+  }
+  d.appendChild(q);
+  $('#grade').appendChild(d);
+  return { el, vivo, campo, fixos };
+});
+
+function fundo(g, S) {
+  const kind = sel.value;
+  if (TEX_DRAW[kind]) {
+    const tex = tileTexture(kind, TERRENOS[kind]);
+    g.drawImage(tex, 0, 0, 32, 32, 0, 0, S, S);
+  } else { g.fillStyle = '#2a2118'; g.fillRect(0, 0, S, S); }
+}
+function faseAtual() { const v = $('#fase').value; return v === 't' ? null : +v; }
+function pinta(cv, el, q, S, fase) {
+  cv.width = cv.height = S;
+  const g = cv.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  fundo(g, S);
+  g.drawImage(campoSprite(el, q, 0, fase), 0, 0, S, S);
+}
+/* O campo de verdade: N×N tiles, com o mesmo quadro em todos — é assim que o
+   jogo desenha, e é aqui que aparece se o sprite costura com o vizinho ou se as
+   quinas de quatro tiles deixam buraco. Um tile sozinho nunca mostra isso. */
+function pintaCampo(cv, el, q, T, n) {
+  cv.width = cv.height = T * n;
+  const g = cv.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  const kind = sel.value;
+  const tex = TEX_DRAW[kind] ? tileTexture(kind, TERRENOS[kind]) : null;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    if (tex) g.drawImage(tex, (x % 3) * 32, (y % 3) * 32, 32, 32, x * T, y * T, T, T);
+    else { g.fillStyle = '#2a2118'; g.fillRect(x * T, y * T, T, T); }
+    // a borda do campo é irregular de propósito: campo cheio esconde a costura
+    /* "as três" pinta o campo com as fases lado a lado — coluna a coluna, da
+       cheia à mínima — que é o jeito de ver se a queda é legível de relance. */
+    const f = faseAtual();
+    const fase = f === null ? Math.min(2, (x * 3 / n) | 0) : f;
+    if ((x + y * 2) % 7 !== 3) g.drawImage(campoSprite(el, q, campoVarDe(x, y), fase), x * T, y * T, T, T);
+  }
+}
+
+function redraw(t) {
+  const S = 32 * (+$('#zoom').value);
+  const ms = +$('#ms').value;
+  const q = $('#parar').checked ? 0 : Math.floor(t / ms) % CAMPO_FRAMES;
+  for (const c of celulas) {
+    const f = faseAtual();
+    pinta(c.vivo, c.el, q, S, f === null ? 0 : f);
+    pintaCampo(c.campo, c.el, q, Math.max(16, S / 2), 6);
+    // os quadros parados viram as TRÊS FASES quando o seletor está em "as três"
+    c.fixos.forEach((cv, i) => f === null
+      ? pinta(cv, c.el, 0, 64, Math.min(2, i))
+      : pinta(cv, c.el, i, 64, f));
+  }
+  requestAnimationFrame(redraw);
+}
+$('#fase').addEventListener('change', () => {
+  const t = $('#fase').value === 't';
+  document.querySelectorAll('.quadros figure').forEach((f, i) => {
+    f.querySelector('figcaption').textContent = t
+      ? ['cheia', 'fraca', 'mínima', '—'][+f.dataset.q] : 'q' + f.dataset.q;
+    f.style.display = t && +f.dataset.q === 3 ? 'none' : '';
+  });
+});
+$('#zoom').addEventListener('input', e => $('#zval').textContent = e.target.value + '×');
+$('#ms').addEventListener('input', e => $('#msval').textContent = e.target.value);
+sel.addEventListener('change', () => { for (const k in TEX_CACHE) delete TEX_CACHE[k]; });
+requestAnimationFrame(redraw);
+</script>

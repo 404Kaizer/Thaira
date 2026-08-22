@@ -205,26 +205,34 @@ const ICO_SLOT = {
   helmet: '⛑️', armor: '🥋', legs: '👖', boots: '🥾', shield: '🛡️',
   amulet: '📿', ring: '💍', weapon: '⚔️', light: '🕯️'
 };
+/* Monta a <img> de um sprite. Vive fora do `item()` porque a moeda escolhe o
+   arquivo pela QUANTIDADE, na hora de desenhar, e não no cadastro. Devolve ''
+   quando não existe PNG, para quem chama cair no emoji de sempre.
+   O 1x é gravado no tamanho exato do slot, então em tela comum o pixel do
+   arquivo cai em cima do pixel da tela; em tela densa o srcset entrega o 2x e o
+   encaixe se repete. Sem isso o navegador reamostra e volta o borrão.
+   decoding="sync": no decode assíncrono (o padrão) a <img> recém-montada aparece
+   um frame depois do resto da célula. A célula é reaproveitada (ver itemCell),
+   então isso só pesa em item que entra na tela pela primeira vez — que é
+   justamente onde o pisca-pisca ainda apareceria.
+   A classe do slot deixa a mochila e o equipamento darem a anel, colar e bota o
+   tamanho que eles têm de verdade — a mesma régua do chão (CHAO_ESCALA em
+   render2d.js). Em linha de texto ela não casa com nada. */
+function spriteImg(spr, slot) {
+  if (typeof ICONES === 'undefined' || !ICONES.has(spr)) return '';
+  const dobro = ICONES2X.has(spr)
+    ? ` srcset="assets/icons/${spr}.png 1x, assets/icons/${spr}@2x.png 2x"` : '';
+  return `<img class="ii ii-${slot || 'x'}" decoding="sync" src="assets/icons/${spr}.png"${dobro} alt="">`;
+}
 const item = o => {
   if (!o.ico) o.ico = ICO_SLOT[o.slot] || '📦';
   const s = spriteOf(o);
   // `spr` fica guardado porque depois de trocar `ico` pelo <img> o spriteOf não
   // casa mais o emoji — e o desenho do item no chão precisa do nome do arquivo
   if (s) {
+    // `spr` fica guardado porque o desenho do item no chão precisa do nome do arquivo
     o.spr = s;
-    /* O 1x é gravado no tamanho exato do slot, então em tela comum o pixel do
-       arquivo cai em cima do pixel da tela; em tela densa o srcset entrega o 2x
-       e o encaixe se repete. Sem isso o navegador reamostra e volta o borrão. */
-    const dobro = typeof ICONES2X !== 'undefined' && ICONES2X.has(s)
-      ? ` srcset="assets/icons/${s}.png 1x, assets/icons/${s}@2x.png 2x"` : '';
-    /* decoding="sync": no decode assíncrono (o padrão) a <img> recém-montada
-       aparece um frame depois do resto da célula. A célula hoje é reaproveitada
-       (ver itemCell), então isso só pesa em item que entra na tela pela primeira
-       vez — que é justamente onde o pisca-pisca ainda apareceria. */
-    /* a classe do slot deixa a mochila e o equipamento darem a anel, colar e
-       bota o tamanho que eles têm de verdade — a mesma régua do chão
-       (CHAO_ESCALA em render2d.js). Em linha de texto ela não casa com nada. */
-    o.ico = `<img class="ii ii-${o.slot || 'x'}" decoding="sync" src="assets/icons/${s}.png"${dobro} alt="">`;
+    o.ico = spriteImg(s, o.slot);
   }
   return (ITEMS[o.id] = o, o);
 };
@@ -349,6 +357,42 @@ item({ id: 'ultimate_health_potion', n: 'Poção de Vida Primordial', ico: '🧪
 item({ id: 'supreme_mana_potion', n: 'Poção de Mana Abissal', ico: '🔷', use: { mp: 550 }, stack: true, lvl: 60, price: 800 });
 item({ id: 'ultimate_mana_potion', n: 'Poção de Mana Primordial', ico: '🔷', use: { mp: 950 }, stack: true, lvl: 90, price: 1900 });
 item({ id: 'gold', n: 'Moedas de Ouro', ico: '🪙', stack: true, price: 1 });
+
+/* ------------------------------------------------------------------ moedas
+   A moeda é camada de APRESENTAÇÃO, não economia nova. O valor continua sendo
+   uma unidade só, continua indo para `P.gold`, e loja, venda e save não sabem
+   que isto existe. O que muda é a PEÇA que o jogador vê no chão e no saque:
+   um monte de 4.000 unidades vira "40 moedas de ouro" em vez de "4000 moedas",
+   e um de 12 vira "12 de bronze".
+   `gold` fica onde está: umas oitenta tabelas de saque falam esse id, e ele
+   também é o que save antigo carrega na mochila. Ele é o bronze com outro nome.
+   O SPRITE varia com a quantidade (uma moeda, um punhado, uma pilha) e a COR
+   varia com o metal — as doze peças saem da mesma folha, tingidas em HSV pelo
+   assets/build_coins.py, e não de doze desenhos diferentes. */
+const COIN_MONTE = c => c === 1 ? '1' : c <= 50 ? 'few' : 'many';
+const COINS = [
+  { id: 'crystal_coin',  n: 'Moedas de Cristal', v: 10000 },
+  { id: 'platinum_coin', n: 'Moedas de Platina', v: 100 },
+  { id: 'gold_coin',     n: 'Moedas de Ouro',    v: 1 }
+];
+/* O ouro é a UNIDADE: todo preço do jogo já está escrito nele, e `P.gold` conta
+   nele. Platina e cristal são só empacotamento de 100 e de 10.000.
+   `gold` é o id legado das tabelas de saque e de save antigo — vale o mesmo que
+   `gold_coin`, e é o único motivo de os dois existirem. */
+const COIN_V = { gold: 1 };
+for (const c of COINS) {
+  COIN_V[c.id] = c.v;
+  item({ id: c.id, n: c.n, ico: '🪙', stack: true, price: c.v });
+  ITEMS[c.id].moeda = c.id;   // marca de moeda: o render usa para achar o monte
+}
+/* Escolhe a maior denominação que cabe e arredonda PARA BAIXO: assim o número
+   que aparece é exatamente o que entra em P.gold. Arredondar para cima daria ao
+   jogador dinheiro que a tabela de saque não prometeu. */
+function moedaDe(valor) {
+  valor = Math.max(1, Math.floor(valor));
+  const c = COINS.find(c => valor >= c.v) || COINS[COINS.length - 1];
+  return { id: c.id, count: Math.max(1, Math.floor(valor / c.v)) };
+}
 
 /* comida — cura pouco, mas é de graça e cai o tempo todo */
 /* Comida: além da mordida que cura na hora, `food` dá regeneração por um tempo —
@@ -901,6 +945,41 @@ const SHOP_STOCK = ['weak_health_potion', 'health_potion', 'strong_health_potion
      forma o desenho da partícula, lido por drawEffects
    Terra é o único ataque sem luz nenhuma de propósito: torrão e espinho não
    brilham, e é isso que o separa do sagrado, que é a mesma cor clara de longe. */
+/* Estados elementais no corpo. Até aqui o elemento decidia cor de partícula e
+   multiplicador de resistência, e mais nada: fogo não queimava, terra não
+   envenenava. Um estado é um efeito com relógio, então ele É um buff — entra no
+   mesmo `P.buffs` que já hospeda a lentidão, e ganha de graça a expiração, a
+   barra de status, o `recalc` e a limpeza no save. A criatura ganha o mesmo mapa
+   em `m.estados`, que é a estrutura que faltava do lado dela.
+
+   `dano` é fração do GOLPE que aplicou, não da vida máxima: assim o veneno de
+   quem bate fraco é fraco, e um chefe de 130 mil de vida não derrete por causa
+   de um tique percentual. Com o tique de 3 s, cada estado soma de 40% a 45% do
+   golpe inicial ao longo da duração — reforço, nunca a fonte principal.
+
+   `physical`, `holy` e `death` ficam de fora de propósito: são tipos de dano, e
+   não condições que o corpo carrega. Sagrado que queimasse seria fogo com outro
+   nome. */
+const ESTADOS = {
+  queimando:    { el: 'fire',   n: 'Queimando',    dano: .15, dur: 9000,  chance: .25 },
+  envenenado:   { el: 'earth',  n: 'Envenenado',   dano: .08, dur: 15000, chance: .25 },
+  eletrocutado: { el: 'energy', n: 'Eletrocutado', dano: .20, dur: 6000,  chance: .22 },
+  /* Gelo cobra em movimento, não em dano: congelar por dano seria fogo azul. O
+     `lento` reaproveita a lentidão da teia, que o recalc já sabe ler. */
+  congelado:    { el: 'ice',    n: 'Congelado',    dano: .05, dur: 9000,  chance: .28, lento: .35 },
+  /* SANGRANDO é o estado do cavaleiro, e o único SEM elemento: corte não é
+     matéria, é ferimento. Por isso traz a própria cor e a própria partícula em
+     vez de puxar de ELEM, e por isso `precisaSangue` — esqueleto, elemental e
+     quem mais tem sangue seco não sangra, o que reaproveita o `seco` que a
+     tabela de sangue já declara por classe.
+     Existir resolve uma assimetria: estado elemental nasceu inteiro do lado
+     mágico, porque espada e flecha são dano físico. O cavaleiro é quem menos dá
+     dano do jogo (ver #39) e agora tem a própria fonte de dano contínuo. */
+  sangrando:    { n: 'Sangrando', dano: .10, dur: 12000, chance: .30,
+                  cor: 0x8e1414, forma: 'caco', grav: 1, luz: 0, precisaSangue: true }
+};
+const ESTADO_DE = {};                                  // elemento -> id do estado
+for (const k in ESTADOS) if (ESTADOS[k].el) ESTADO_DE[ESTADOS[k].el] = k;
 const ELEM = {
   physical: { n: 'Físico',  cor: 0xd9c48a, luz: 0,   grav: 1,   forma: 'caco' },
   fire:     { n: 'Fogo',    cor: 0xff7a20, luz: 1,   grav: -1,  forma: 'brasa' },
@@ -946,6 +1025,67 @@ function resistOf(def, el) {
   if (def.res && def.res[e] !== undefined) return def.res[e];
   const c = RES[def.cls];
   return c && c[e] !== undefined ? c[e] : 1;
+}
+
+/* INTELIGÊNCIA por CLASSE, com override na ficha — a mesma forma do RES logo
+   acima e pelo mesmo motivo: a classe já existe, então 83 criaturas ganham o
+   eixo sem ganhar um campo.
+   NÃO é o `medo`, e a diferença importa: medo é instinto de sobrevivência,
+   inteligência é ler o chão. O ciclope é brutamontes e não recua por orgulho
+   (por isso não tem `medo`), mas enxerga a fogueira e dá a volta; o esqueleto
+   atravessa, porque não há ninguém em casa para decidir o contrário.
+   Hoje responde uma pergunta só — desviar de campo no chão? — e é onde a IA de
+   #24 cresce: escolher alvo, agrupar, recuar em bando são o mesmo eixo. */
+const INTEL = {
+  'Humanoide': 3, 'Demônio': 3, 'Celeste': 3, 'Dragão': 3,   // planeja
+  'Gigante': 2, 'Aberração': 2,                              // não planeja, mas evita
+  'Mamífero': 1, 'Réptil': 1, 'Aracnídeo': 1, 'Morto-vivo': 1,
+  'Inseto': 0, 'Elemental': 0                                // atravessa qualquer coisa
+};
+const INTEL_DESVIA = 2;   // daqui para cima a criatura contorna o que a machuca
+const intelOf = def => def.int !== undefined ? def.int
+  : (INTEL[def.cls] !== undefined ? INTEL[def.cls] : 1);
+
+/* Campo no chão (#33). O teto é o mesmo desenho do SANGUE_MAX — quem protege a
+   memória é a contagem, não o relógio.
+   FORCA: o resíduo é uma FRAÇÃO do golpe que o criou, não o golpe inteiro. Com
+   o valor cheio, atravessar uma Fúria dos Céus custava mais vida que levar a
+   magia na cara, porque cada tile cobrava um tique inteiro. É o botão de ajuste
+   do campo: sobe se o chão ficar inofensivo, desce se atravessar virar sentença.
+   CHANCE: a magia não acende a área inteira, acende PARTE dela — brasa pega
+   onde pega. Cobrir os 80 tiles de um raio 4 transformava a magia num muro e
+   apagava a escolha de por onde passar; espalhado, dá para costurar entre as
+   chamas, e a criatura esperta tem por onde contornar. */
+const CAMPO_DUR = 120000;
+const CAMPO_MAX = 300;
+const CAMPO_FORCA = .25;
+const CAMPO_CHANCE = .45;
+/* FASES. O campo dura dois minutos e vai MORRENDO em três degraus, em vez de
+   cobrar igual até apagar de repente. `ate` é a fração da duração em que a fase
+   termina e `dano` o que ela cobra do golpe guardado no tile.
+   A fase mínima não machuca: o chão continua marcado — brasa, mancha, geada —
+   mas atravessar sai de graça. Isso resolve o problema que dois minutos criam:
+   sem ela, um corredor incendiado ficaria intransitável por dois minutos
+   inteiros, e negar área por tanto tempo é mais forte do que uma magia deveria
+   ser. Com ela, a magia nega passagem por um minuto e deixa cicatriz pelo resto.
+   A fase TEM de ser visível no desenho, não só no número: o jogador precisa
+   olhar o tile e saber se dói (§20 — nada de indicador que só existe na regra).
+   Quem for mexer, mexa aqui: é a única régua das três fases, e o desenho, o
+   dano e o desvio da criatura leem todos dela. */
+const CAMPO_FASES = [
+  { n: 'cheia',  ate: .50, dano: 1 },     // 60s
+  { n: 'fraca',  ate: .80, dano: .4 },    // 36s
+  { n: 'minima', ate: 1,   dano: 0 }      // 24s — só a marca
+];
+/* Quem passa POR CIMA de quem está em pé no tile. Fogo e veneno ENVOLVEM: quem
+   entra na fogueira fica dentro dela, e quem atola no veneno fica atolado. Gelo
+   e energia são chão tratado — geada e carga ficam sob os pés, e passar por
+   cima esconderia a criatura atrás de uma placa azul sem ganhar leitura nenhuma.
+   Vale só para a entidade do PRÓPRIO tile: campo não tapa quem está noutro. */
+const CAMPO_ACIMA = { fire: true, earth: true };
+function campoFase(k) {
+  for (let i = 0; i < CAMPO_FASES.length; i++) if (k < CAMPO_FASES[i].ate) return i;
+  return CAMPO_FASES.length - 1;
 }
 
 /* --------------------------------------------------------------- monstros */
@@ -2084,9 +2224,9 @@ const SPELLS = [
   { id: 'exevo_gran_mas_vis', w: 'exevo gran mas vis', n: 'Explosão Suprema', type: 'aoe', lvl: 45, mana: 300, cd: 6000, voc: ['sorcerer'], base: 190, f: 9, el: 'energy', col: 0x9f7aff, r: 4, ico: '💥' },
   { id: 'exevo_gran_mas_frigo', w: 'exevo gran mas frigo', n: 'Tempestade de Gelo', type: 'aoe', lvl: 45, mana: 300, cd: 6000, voc: ['druid'], base: 158, f: 8.6, el: 'ice', col: 0xa8ecff, r: 4, ico: '💥' },
 
-  { id: 'exori', w: 'exori', n: 'Fúria', type: 'melee_aoe', lvl: 22, mana: 90, cd: 3000, voc: ['knight'], mult: 1.9, r: 1, col: 0xffd070, ico: '💢' },
-  { id: 'exori_gran', w: 'exori gran', n: 'Fúria Selvagem', type: 'melee_aoe', lvl: 40, mana: 170, cd: 5000, voc: ['knight'], mult: 3.4, r: 1, col: 0xff9040, ico: '💢' },
-  { id: 'exori_hur', w: 'exori hur', n: 'Lâmina Giratória', type: 'melee_aoe', lvl: 28, mana: 120, cd: 4000, voc: ['knight'], mult: 2.2, r: 2, col: 0xffb060, ico: '🌀' },
+  { id: 'exori', w: 'exori', n: 'Fúria', type: 'melee_aoe', lvl: 22, mana: 90, cd: 3000, voc: ['knight'], mult: 1.9, r: 1, col: 0xffd070, ico: '💢', estado: 'sangrando' },
+  { id: 'exori_gran', w: 'exori gran', n: 'Fúria Selvagem', type: 'melee_aoe', lvl: 40, mana: 170, cd: 5000, voc: ['knight'], mult: 3.4, r: 1, col: 0xff9040, ico: '💢', estado: 'sangrando' },
+  { id: 'exori_hur', w: 'exori hur', n: 'Lâmina Giratória', type: 'melee_aoe', lvl: 28, mana: 120, cd: 4000, voc: ['knight'], mult: 2.2, r: 2, col: 0xffb060, ico: '🌀', estado: 'sangrando' },
 
   { id: 'utani_hur', w: 'utani hur', n: 'Pressa', type: 'buff', lvl: 14, mana: 60, cd: 2000, voc: ['knight', 'ranger', 'sorcerer', 'druid'], buff: 'haste', val: 60, dur: 33000, ico: '💨' },
   { id: 'utani_gran_hur', w: 'utani gran hur', n: 'Pressa Forte', type: 'buff', lvl: 20, mana: 100, cd: 2000, voc: ['ranger', 'sorcerer', 'druid'], buff: 'haste', val: 110, dur: 22000, ico: '💨' },
@@ -2103,7 +2243,7 @@ const TODAS = ['knight', 'ranger', 'sorcerer', 'druid'];
 SPELLS.push(
   { id: 'exura_min', w: 'exura min', n: 'Curativo', type: 'heal', lvl: 1, mana: 15, cd: 1000, voc: TODAS, base: 16, f: 1.3, ico: '💚' },
   { id: 'utevo_lux_min', w: 'utevo lux min', n: 'Lampejo', type: 'buff', lvl: 1, mana: 8, cd: 1000, voc: TODAS, buff: 'light', val: 5, dur: 90000, ico: '🕯️' },
-  { id: 'exori_min', w: 'exori min', n: 'Golpe Rápido', type: 'melee', lvl: 1, mana: 15, cd: 1400, voc: ['knight'], mult: 1.3, col: 0xffd070, ico: '⚔️' },
+  { id: 'exori_min', w: 'exori min', n: 'Golpe Rápido', type: 'melee', lvl: 1, mana: 15, cd: 1400, voc: ['knight'], mult: 1.3, col: 0xffd070, ico: '⚔️', estado: 'sangrando' },
   { id: 'exori_min_san', w: 'exori min san', n: 'Dardo Sagrado', type: 'attack', lvl: 1, mana: 12, cd: 1400, voc: ['ranger'], base: 13, f: 1.7, el: 'holy', ico: '✨' },
   { id: 'exori_min_flam', w: 'exori min flam', n: 'Faísca', type: 'attack', lvl: 1, mana: 12, cd: 1400, voc: ['sorcerer'], base: 13, f: 1.7, el: 'fire', col: 0xff9a40, ico: '🔥' },
   { id: 'exori_min_frigo', w: 'exori min frigo', n: 'Lasca de Gelo', type: 'attack', lvl: 1, mana: 12, cd: 1400, voc: ['druid'], base: 13, f: 1.7, el: 'ice', col: 0xaee6ff, ico: '❄️' },

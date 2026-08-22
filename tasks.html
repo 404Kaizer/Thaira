@@ -131,7 +131,7 @@
     primeira leva de mundo e apresentação: o que foi construído, com quais identificadores e
     constantes, quais decisões não devem ser desfeitas, e o que segue pendente.
     Escrito para ser lido por quem não acompanhou a conversa — humano ou agente.
-    <b>488 verificações</b> passando em <code>tests/test.js</code>.
+    <b>577 verificações</b> passando em <code>tests/test.js</code>.
   </div>
   <div class="lede col" style="margin-top:14px;font-size:15px">
     <b>Se você só tem cinco minutos:</b> leia <em>Regras que não devem ser quebradas</em> e
@@ -145,8 +145,9 @@
     conferido linha a linha contra o código. Duas correções mudam como ele deve ser lido:
     a contagem de verificações estava em 600 e o valor real é <b>488</b>; e a seção
     <em>Regras que não devem ser quebradas</em> afirmava 32 invariantes travadas por teste, das
-    quais <b>18 não existiam</b> — estão marcadas <span class="tag warn">sem teste</span> lá
-    embaixo, e fechá-las é o item mais alto da fila. O resto do documento confere: as 16 constantes
+    quais <b>18 não existiam</b>. <b>Treze foram escritas no mesmo dia</b> (#43) e passam por
+    mutação; as <b>quatro</b> que sobram seguem marcadas
+    <span class="tag warn">sem teste</span> lá embaixo. O resto do documento confere: as 16 constantes
     de balanceamento, os números do #26 ao #38d e a contagem de criaturas, magias, hunts, POIs e
     imbuements foram todos remedidos e batem.
   </div>
@@ -223,7 +224,7 @@
         <tr><th scope="row">Pontos de interesse</th><td class="n">0</td><td class="now">39</td><td class="delta">5 tipos</td></tr>
         <tr><th scope="row">Imbuements</th><td class="n">0</td><td class="now">11</td><td class="delta">forja</td></tr>
         <tr><th scope="row">Ícones PNG</th><td class="n">0</td><td class="now">250</td><td class="delta">222 itens com arte própria, 77 emprestando genérico, <b>30 ainda em emoji</b> — ver #14</td></tr>
-        <tr><th scope="row">Verificações</th><td class="n">339</td><td class="now">488</td><td class="delta">+149. O documento dizia 600; era engano, conferido em 2026-08-18</td></tr>
+        <tr><th scope="row">Verificações</th><td class="n">339</td><td class="now">577</td><td class="delta">+238. O documento dizia 600 quando o real era 488; o #43 levou a 535 e o #32 a 577</td></tr>
       </tbody>
     </table>
   </div>
@@ -1124,11 +1125,13 @@
       <p>
         A auditoria conferiu uma a uma contra <code>tests/test.js</code>: das 32 invariantes que
         esta seção afirmava estarem travadas por teste, <b>18 não existiam</b> e 1 só valia pela
-        metade. Estão marcadas <span class="tag warn">sem teste</span> e
-        <span class="tag wait">parcial</span> abaixo, e não foram removidas de propósito — cada
-        uma continua sendo uma decisão de desenho que vale, só não tem nada guardando. Fechar essa
-        lacuna é o item mais alto da fila: o balanceamento do #38a–d foi o trabalho mais caro do
-        projeto e é justamente a parte sem rede.
+        metade. <b>Treze foram fechadas no #43</b>, incluindo as quatro do #38a–d que eram o buraco
+        mais caro — varinha sem magic level, inclinação de ML, cura contra vida e identidade do
+        druida. Cada uma foi conferida por <em>mutação</em>: o conserto é desfeito no fonte, um por
+        vez, e a suíte tem de acusar. Dezoito mutações, dezoito pegas.
+        Sobram <b>quatro</b>, marcadas <span class="tag warn">sem teste</span>, mais uma
+        <span class="tag wait">parcial</span>. Não foram removidas de propósito — cada uma continua
+        sendo uma decisão de desenho que vale, só não tem nada guardando.
       </p>
     </div>
     <p>
@@ -1156,10 +1159,10 @@
         virar estátua; quem atira fica parado e acerta por cima.</li>
       <li><strong>POI se saqueia uma vez só</strong> e o tesouro cai em tile andável.</li>
       <li><strong>O imbuement sobrevive ao save</strong>.</li>
-      <li><span class="tag warn">sem teste</span> <strong>Os 28 materiais da forja continuam caindo</strong>, e nenhum com chance irrisória.
+      <li class="feito"><strong>Os 28 materiais da forja continuam caindo</strong>, e nenhum com chance irrisória.
         É a trava contra a régua de loot cortar insumo de imbuement para fechar conta de ouro —
         quebra que não daria erro nenhum, só um jogador descobrindo que não dá mais para forjar.</li>
-      <li><span class="tag warn">sem teste</span> <strong>Todo saque bate a régua</strong> de dificuldade × natureza, e no mesmo tier
+      <li class="feito"><strong>Todo saque bate a régua</strong> de dificuldade × natureza, e no mesmo tier
         humanoide larga mais que bicho. A segunda sem a primeira permitiria uma tabela de números
         sem sabor; a primeira sem a segunda permitiria a bagunça voltar por dentro da classe.</li>
       <li><strong>Nenhuma criatura de Pesadelo</strong> nasce na superfície ou na montanha.</li>
@@ -1174,37 +1177,37 @@
       <li><strong>Um knight nível 300 escapa de tudo até tier 5</strong>, e só caçador de tier alto
         o alcança. As duas metades juntas: uma sozinha permitiria um mundo onde nada corre.</li>
 
-      <li><span class="tag warn">sem teste</span> <strong>Magia de dano não sai mais rápido que o ataque básico</strong> — e o teste
+      <li class="feito"><strong>Magia de dano não sai mais rápido que o ataque básico</strong> — e o teste
         <em>alterna</em> as magias, porque lançar a mesma repetidas vezes passava mesmo com o
         defeito presente. Junto: <strong>a cura sai durante o cooldown de dano</strong>, senão a
         próxima simplificação joga tudo no mesmo relógio e tira a defesa de quem conjura.</li>
-      <li><span class="tag warn">sem teste</span> <strong>A varinha não escala com magic level</strong>, o dano dela é a faixa da própria
+      <li class="feito"><strong>A varinha não escala com magic level</strong>, o dano dela é a faixa da própria
         arma, e <strong>a linha de varinhas cresce 5×+</strong> do primeiro ao último degrau. A
         terceira sem as duas primeiras deixaria alguém achatar a tabela e matar a progressão.</li>
-      <li><span class="tag warn">sem teste</span> <strong>O ganho por ponto de ML tem espalhamento limitado</strong> (teto de 6×; era 16,2×)
+      <li class="feito"><strong>O ganho por ponto de ML tem espalhamento limitado</strong> (teto de 6×; era 16,2×)
         e <strong>magia de base maior ainda escala mais</strong> — a régua achata, não iguala.
         Junto: <strong>a magia mais fraca sobreviveu à mudança</strong>, porque a ponta de baixo já
         estava certa.</li>
-      <li><span class="tag warn">sem teste</span> <strong>A cura não cresce mais rápido que a vida</strong>, medido nas quatro vocações. Era
+      <li class="feito"><strong>A cura não cresce mais rápido que a vida</strong>, medido nas quatro vocações. Era
         plana em 332% da barra do nível 50 ao 320 — cura total garantida em qualquer nível.</li>
-      <li><span class="tag warn">sem teste</span> <strong>O druida bate menos, cura mais e aguenta mais</strong> que o sorcerer, com faixa
+      <li class="feito"><strong>O druida bate menos, cura mais e aguenta mais</strong> que o sorcerer, com faixa
         nos dois extremos (dano no máximo 92%, sobrevivência no mínimo 140%). Só o sinal passava
         com 96%, que era a diferença acidental de antes de haver identidade.
         E <strong>a hierarquia de curandeiro</strong> druida &gt; ranger &gt; sorcerer &gt; knight.</li>
-      <li><span class="tag warn">sem teste</span> <strong>Nenhuma magia é mais fraca que uma de nível menor</strong> do mesmo tipo e
+      <li class="feito"><strong>Nenhuma magia é mais fraca que uma de nível menor</strong> do mesmo tipo e
         vocação — só nível estritamente menor conta, porque duas do mesmo nível são escolha de
         elemento, não degrau.</li>
-      <li><span class="tag warn">sem teste</span> <strong>Bicho manso não encalça, foge ao apanhar e não revida</strong> enquanto tem para
+      <li class="feito"><strong>Bicho manso não encalça, foge ao apanhar e não revida</strong> enquanto tem para
         onde correr. As três juntas: só "não persegue" faz saco de pancada; só "foge" não impede o
         coelho de caçar o jogador.</li>
       <li><span class="tag warn">sem teste</span> <strong>Toda fauna passiva declara a própria forma</strong> e <strong>só criatura noturna
         acende</strong>. A primeira nasceu de um defeito real: o vaga-lume sem <code>shape</code>
         caiu no <code>biped</code> padrão e virou uma criança humanoide sem quebrar teste nenhum.</li>
-      <li><span class="tag warn">sem teste</span> <strong>Criatura noturna nasce de noite e não de dia</strong>, verificado no
+      <li class="feito"><strong>Criatura noturna nasce de noite e não de dia</strong>, verificado no
         <code>refreshSpawns</code> de verdade e não só na ficha.</li>
-      <li><span class="tag warn">sem teste</span> <strong>Nenhuma cor crua em <code>ui.js</code></strong> — a varredura roda no fonte, então
+      <li class="feito"><strong>Nenhuma cor crua em <code>ui.js</code></strong> — a varredura roda no fonte, então
         hexadecimal novo quebra a suíte no mesmo dia.</li>
-      <li><span class="tag warn">sem teste</span> <strong>Terreno vizinho é distinguível</strong> (separação mínima de 60 em seis pares),
+      <li class="feito"><strong>Terreno vizinho é distinguível</strong> (separação mínima de 60 em seis pares),
         <strong>a saturação média do terreno fica acima de 33%</strong> e
         <strong>nenhum tile sai da faixa 10–90%</strong>. O teto importa tanto quanto o piso: uma
         régua que só empurrasse saturação para cima convidaria o neon que o §23 veta.</li>
@@ -1213,7 +1216,7 @@
       <li><span class="tag warn">sem teste</span> <strong>O número mostrado na ficha de magia sai da fórmula</strong>, para o personagem
         de agora — acompanha o magic level, e o cooldown exibido é o de <code>cdDe</code>, não o
         cru. Junto: <strong>todo tipo de magia sabe se descrever</strong>.</li>
-      <li><span class="tag warn">sem teste</span> <strong>Virar não move o personagem</strong>, as quatro direções são alcançáveis e
+      <li class="feito"><strong>Virar não move o personagem</strong>, as quatro direções são alcançáveis e
         <strong>morto não vira</strong>.</li>
       <li class="feito"><strong>Ninguém fica 3 s+ imóvel longe do jogador com vaga livre</strong> —
         14 minotauros contra um jogador encostado numa parede, com briga. É o #22, e o teste nasceu
@@ -1256,36 +1259,44 @@
   <div class="grupo">
     <div class="gtitle">Rede de segurança</div>
     <ul class="itens">
-      <li>
-        <span class="it-n">#43 · Fechar a lacuna de testes</span>
+      <li class="feito">
+        <span class="it-n">#43 · Fechar a lacuna de testes <span class="tag done">13 de 18</span></span>
         <span class="it-d">
-          Descoberto pela auditoria de 2026-08-18. A seção <em>Regras que não devem ser
-          quebradas</em> afirmava 32 invariantes travadas por teste; <b>18 não existem</b> em
-          <code>tests/test.js</code> e 1 só vale pela metade. Não é dívida de qualidade, é dívida de
-          <b>risco</b>: o #38a–d — relógio único de magia, varinha sem magic level,
-          <code>magPower</code>, identidade do druida — foi o trabalho mais caro do projeto e é
-          justamente a parte sem nada guardando. Um <code>revert</code> acidental passa verde.
+          Descoberto pela auditoria de 2026-08-18 e atacado no mesmo dia. Das 18 invariantes que a
+          seção de regras afirmava ter e não tinha, <b>13 foram escritas</b> — e o que estava sem
+          rede era justamente o mais caro: o #38a–d inteiro (varinha sem magic level, espalhamento
+          de ML, cura contra vida, identidade do druida), mais o relógio único de dano, a régua de
+          loot, os materiais da forja, a fauna passiva, a criatura noturna, o degrau de magia, as
+          cores do <code>ui.js</code>, a paleta e o virar sem andar. A suíte foi de 488 para
+          <b>535 verificações</b>.
         </span>
         <span class="it-d">
-          <b>Baratas</b> (varredura de tabela e fórmula, sem simular jogo): varinha sem ML;
-          espalhamento de ML limitado; cura não cresce mais que vida nas quatro vocações;
-          identidade do druida; nenhuma magia mais fraca que uma de nível menor; régua de loot
-          dificuldade × natureza; os 28 materiais da forja continuam caindo; nenhuma cor crua em
-          <code>ui.js</code>; as três invariantes de paleta.
-          <b>Caras</b> (precisam da simulação): relógio de dano alternando magias e cura durante o
-          cooldown; fauna passiva não encalça, foge ao apanhar, revida encurralada; criatura noturna
-          nasce de noite no <code>refreshSpawns</code> de verdade; marca de POI no chão; ficha de
-          magia derivada da fórmula; virar sem andar.
+          <b>Cada uma passou por mutação</b>, que é o único jeito de saber se um teste guarda
+          alguma coisa: o conserto é desfeito no fonte, um por vez, e a suíte tem de acusar.
+          Dezoito mutações, dezoito pegas. O processo achou três testes meus que <em>não</em>
+          pegavam a volta e foram refeitos — o de raridade vazava pela quantidade (que também
+          cresce com a skill), o do ícone conferia o arquivo em vez do caminho que a janela usa, e
+          o da criatura noturna media outros pontos do mundo em vez do seu, porque o spawn estava a
+          2 tiles e <code>refreshSpawns</code> não instancia ponto frio a menos de 7.
         </span>
         <span class="it-d">
-          <b>Antes de começar, duas ressalvas.</b> A invariante de paleta <em>falha hoje</em>:
-          SAND × TEMPLE dá separação 56, abaixo do mínimo de 60 que a seção afirma — escrever esse
-          teste exige antes decidir se a cor muda ou se a régua real é outra. E as caras são
-          simulação, que é a família dos testes que já oscilaram (#41): fixar estado inicial e
-          conferir em série de 10+ execuções antes de deixar entrar, sem afrouxar limiar para fazer
-          passar.
+          <b>Duas correções de rota que a medição obrigou</b>, e valem para quem for ler as regras:
+          o piso de sobrevivência do druida era afirmado em <b>140%</b> e o medido é 125% no nível
+          50 e 137% no 320 — número que nunca foi verdade, contrariado pelos próprios valores
+          registrados no #38d; ficou em 120%, que separa o deliberado (125%) do acidental de antes
+          de haver identidade (96%). E a cura do sorcerer <em>não</em> encolhe, fica plana em
+          63–64% da barra: a forma certa do invariante é "não cresce" mais "no fim de curva não
+          enche a barra sozinha", não "encolhe".
         </span>
-        <span class="it-t">esforço médio · retorno muito alto · nada bloqueia · faz todo o resto ficar mais barato</span>
+        <span class="it-d">
+          <b>Sobram quatro:</b> renascimento avisado a qualquer distância; toda fauna passiva
+          declara a própria forma; todo tipo de POI tem marca no chão; e o número da ficha de magia
+          sai da fórmula. Nenhuma é do bloco de balanceamento — são as mais baratas de perder.
+          <b>Dissolvida de graça:</b> a dúvida sobre a invariante de paleta falhar (SAND × TEMPLE a
+          56) não existia — os dois tiles nunca se tocam. Derivando os pares do mundo em vez de uma
+          lista à mão, o pior par real é GRASS/DIRT a 100, folgado acima do mínimo de 60.
+        </span>
+        <span class="it-t">13 de 18 fechadas · 18 mutações, 18 pegas · sobram 4, todas fora do balanceamento</span>
       </li>
     </ul>
   </div>
@@ -1334,6 +1345,13 @@
         <span class="it-n">#23 · Revisar cooldown de todas as magias</span>
         <span class="it-d">O piso resolveu o pior caso. Falta passar a tabela inteira: cura ainda em 1000 ms, GCD fixo de 900 ms para tudo, e comparação de dano por segundo entre magia e arma em cada faixa. Se o ataque básico virar variável por arma (ver #11), o piso precisa acompanhar.</span>
         <span class="it-t">esforço médio · é balanceamento, precisa de teste em jogo</span>
+      </li>
+      <li>
+        <span class="it-n">#45 · O campo de veneno não existe em jogo</span>
+        <span class="it-d">Achado ao montar a bancada do #33. O estado <code>envenenado</code> existe, o campo no chão funciona, o desenho e as três fases estão prontos — e <b>nada no jogo consegue criar um</b>. Terra é o único elemento que vira condição e não tem <b>nenhuma</b> magia de área nem runa: as duas magias de terra são <code>exori tera</code> (nv 13, golpe) e <code>exevo tera hur</code> (nv 26, onda), as duas do druida, e as três runas de área são duas de fogo e uma de gelo. Só dá para ver o campo de veneno pelo <code>/teste</code>.</span>
+        <span class="it-d">O buraco é maior que o veneno. <b>O jogo tem 5 magias de área no total</b>, e duas são sagradas — sagrado não vira estado, então não deixa campo. Quem consegue acender chão por magia própria: <b>sorcerer</b> (energia nv 45, fogo nv 55) e <b>druida</b> (gelo nv 45). <b>Cavaleiro e ranger não têm magia de área nenhuma que deixe campo</b> e dependem de runa, que ainda exige alvo selecionado. Metade das vocações está fora de um sistema inteiro.</span>
+        <span class="it-d"><b>O mínimo que fecha:</b> uma magia de área de terra para o druida — ele já tem a linha de terra inteira (golpe e onda), então é a única vocação em que ela não sai do nada. <b>O que resolve de verdade</b> é tratar a cobertura de área como régua e não como acaso: hoje ela é o resultado de as magias terem sido escritas uma a uma, sem ninguém perguntar quais elementos e quais vocações ficam de fora. Junto disso vale decidir se cavaleiro e ranger devem acender chão — pode ser que a resposta certa seja "não, e a runa é a porta deles", mas isso precisa ser <b>escolhido</b>, não herdado.</span>
+        <span class="it-t">esforço baixo (uma magia) ou médio (rever a cobertura de área) · é balanceamento, e o balanceamento está em pausa</span>
       </li>
       <li>
         <span class="it-n">#24 · Habilidades e mecânicas de criatura</span>
@@ -1442,6 +1460,19 @@
         <span class="it-d"><b>Feito em 2026-08-18:</b> <code>.task-card</code> e <code>.best-card</code> passaram a dividir uma moldura só — sobrou em cada uma apenas o que é papel de verdade (contrato é linha empilhada, ficha de bestiário é célula de grade clicável). Conferido no navegador: estilo computado idêntico ao de antes, zero mudança visual.</span>
         <span class="it-d"><b>Falta:</b> conferir hover, pressed e focus dos dois. A contagem de material na forja continua verde/vermelho — mas, ressalva à leitura antiga, ela mostra <code>2/5</code>, que já é pista não-cromática: a violação do §20 é menor do que estava escrito aqui.</span>
         <span class="it-t">esforço baixo · metade feita</span>
+      </li>
+      <li>
+        <span class="it-n">#44 · Auditoria dos efeitos visuais existentes</span>
+        <span class="it-d">Nasceu do #33. A primeira versão do campo no chão era o tile tingido na cor do elemento mais três partículas redondas subindo — e o dono do projeto não conseguiu dizer se era fogo, veneno ou gelo. A causa não era técnica: uma fórmula só, compartilhada pelos quatro elementos, com cor e gravidade como única diferença. <b>Cor sozinha não é identidade</b>; o que identifica é silhueta e movimento, e a régua que provou isso está registrada no #33.</span>
+        <span class="it-d"><b>Referência combinada com o dono do projeto: Tibia.</b> Sprite que ocupa o tile, quadros discretos (4, trocados a cada 150 ms), borda dura, cor saturada — não partícula interpolada, que é o que o §23 chama de efeito de motor moderno.</span>
+        <span class="it-d">Os efeitos que ainda não passaram por esse crivo, todos em <code>render2d.js</code> salvo nota: <b>impacto de golpe</b> (o <code>FX_PERFIL</code>, três perfis e sete formas de <code>ELEM</code>) · <b>esguicho e mancha de sangue</b> · <b>clarão de acerto</b> · <b>projétil e rastro</b> (<code>shoot</code>) · <b>corpo tingido do estado</b> (<code>tingido</code>) · <b>anel de aviso de nascimento</b> · <b>clima</b> (nuvem, chuva, poça, relâmpago) · <b>luz de tocha e halo</b> · <b>números flutuantes</b>. Suspeita principal, pela mesma causa do #33: o <code>impacto</code>, que também deriva sete elementos de uma fórmula só variando <code>forma</code> e <code>grav</code>.</span>
+        <span class="it-d"><b>Método que funcionou e deve ser repetido:</b> uma página de amostra fora do jogo (<code>tools/amostra/campos.html</code>), com o efeito animando ao lado dos quadros parados, sobre os terrenos de verdade e com a cor de terreno de verdade. Julgar dentro da hunt custa minutos por rodada; na página custa segundos, e é o que permite iterar até acertar em vez de aceitar a primeira versão. Ela também expôs dois erros que o jogo escondia — o campo de gelo virava um cata-vento por simetria radial, e o veneno sumia no capim por ter a mesma luminância.</span>
+        <span class="it-d"><b>Sem imagem de referência o agente desenha a descrição, não a coisa.</b> O campo de fogo levou quatro versões, e as três primeiras falharam pelo mesmo motivo: o agente não consulta imagem nenhuma, ele traduz para código a descrição que tem na cabeça — e "língua que afina para cima" vira literalmente um triângulo, isto é, um <i>spike</i>. Corrigido para "massa que enche o tile", virou lava; corrigido para "pilha de círculos", virou pino de boliche. Só fechou com o perfil de gota (raio caindo por potência, topo redondo pequeno, ponta que balança com k², base firme). <b>Encaminhamento: anexar um print da referência ao pedido.</b> É a diferença entre acertar na primeira e na quarta.</span>
+        <span class="it-d"><b>Com a referência em mãos, mais três causas de "efeito genérico", todas estruturais:</b> soma de senoides é periódica, e com uma abóbada simétrica por cima o fogo virou <i>ameia de castelo</i> — para silhueta irregular o certo é ruído (alturas sorteadas interpoladas por smoothstep), que não tem eixo de simetria por construção. Recortar camada interna por <b>recuo lateral fixo</b> produz aresta vertical reta: é o "quadrado no meio"; rebaixar só a altura faz a camada sumir sozinha onde a chama é fina e a silhueta interna acompanhar a externa. E camada interna que <b>copia o contorno</b> vira faixa fina acompanhando a borda, leitura de montanha sombreada — para virar MIOLO ela tem de puxar para uma abóbada centrada, esquecendo a crista aos poucos.</span>
+        <span class="it-d"><b>A energia estava com a topologia errada, não o traço:</b> eu desenhava linha ABERTA atravessando o tile (fita, depois zigue-zague) quando a referência é aura FECHADA em estrela espinhosa em volta de um núcleo claro. Nenhum ajuste de espessura ou cor teria chegado lá.</span>
+        <span class="it-d"><b>Três regras de silhueta que saíram daí e valem para os outros efeitos:</b> em 32×32 ponta não lê como chama, lê como pico; camada empilhada na horizontal lê como líquido estratificado; e sprite que encosta reto na borda do tile lê como <i>cortado pelo tile</i> — o contorno tem de morrer dentro do quadro.</span>
+        <span class="it-d"><b>Cuidado ao medir:</b> distância de cor e desvio de luminância aferem <i>legibilidade</i>, não <i>identidade</i>. Os dois campos ruins passavam folgados nas duas métricas. A única prova de identidade é olho humano na página de amostra.</span>
+        <span class="it-t">esforço médio · um efeito por vez, com a página de amostra no meio</span>
       </li>
     </ul>
   </div>
@@ -1647,34 +1678,34 @@
   <div class="grupo">
     <div class="gtitle">Combate: estados elementais</div>
     <ul class="itens">
-      <li>
-        <span class="it-n">#32 · Status elemental no corpo</span>
-        <span class="it-d">
-          Hoje o elemento só decide cor de partícula e multiplicador de resistência — nada queima,
-          nada envenena. Pedido: chance de aplicar estado ao acertar (queimando, envenenado,
-          eletrocutado, congelado), com dano ao longo do tempo, valendo para jogador e criatura.
-          Metade do pedido é <strong>visual</strong>: o corpo afetado mostra o estado, e o jogador
-          ganha indicador na barra de status. Reaproveitar <code>P.buffs</code>, que já é um mapa de
-          efeito com relógio e já hospeda um efeito ruim (<code>lento</code>), mais
-          <code>BUFF_LABEL</code>/<code>BUFF_ICO</code> e a tabela <code>ELEM</code>, que já tem cor
-          e forma de partícula por elemento. Criatura não tem estrutura equivalente e vai precisar
-          de uma. Regra de acúmulo: reaplicar reseta a duração, nunca empilha.
-        </span>
-        <span class="it-t">esforço médio-alto · destrava #24</span>
+      <li class="feito">
+        <span class="it-n">#32 · Status elemental no corpo <span class="tag done">feito</span></span>
+        <span class="it-d">Entregue em 2026-08-18. Quatro estados, um por elemento que é condição e não só tipo de dano: <b>queimando</b> (fogo), <b>envenenado</b> (terra), <b>eletrocutado</b> (energia) e <b>congelado</b> (gelo, que cobra em movimento e não em dano — congelar por dano seria fogo azul). Físico, sagrado e morte ficam de fora de propósito.</span>
+        <span class="it-d"><b>Um estado É um buff.</b> Entra no mesmo <code>P.buffs</code> que já hospedava a lentidão da teia, e ganha de graça a expiração, a barra de status, o <code>recalc</code> e a limpeza no save. A criatura ganhou o mapa que faltava do lado dela (<code>m.estados</code>), com a mesma forma, para o tique ser um só. O dano roda no relógio de 3 s que já existe — estado nenhum tem cronômetro próprio.</span>
+        <span class="it-d"><b>Decisões que valem registrar.</b> O dano é fração do <em>golpe que aplicou</em> e não da vida máxima: assim o veneno de quem bate fraco é fraco, e um chefe de 130 mil não derrete por um tique percentual. Imunidade barra o <em>estado inteiro</em>, não só o dano — dragão não pega fogo, e é isso que mantém a resistência elemental sendo a resposta certa. Reaplicar reseta a duração e nunca empilha. E estado que mata passa por <code>killMob</code> como qualquer golpe: veneno que mata larga loot e dá experiência.</span>
+        <span class="it-d"><b>A metade visual, em três tentativas.</b> Primeiro um anel no chão — não servia, o corpo do minotauro é mais largo que o tile e comia o anel inteiro. Depois o corpo tingido permanente — ficava ruído de fundo. O que ficou: o efeito <b>acompanha o dano</b>, como o clarão de acerto já fazia. No tique, o corpo acende na cor do elemento (<code>tingido</code>, a mesma técnica <code>source-in</code> da silhueta) e estoura a partícula do próprio elemento — 16 grandes contra as 9 miúdas do golpe, com a luz reforçada, então uma queimadura acende o chão em volta. Forma e gravidade saem de <code>ELEM</code>, então brasa sobe e caco cai sem uma linha de desenho por estado.</span>
+        <span class="it-d"><b>Sem emoji</b> (§17): o selo na barra é um losango na cor do elemento, que é a mesma pista que a partícula e o tiro da varinha já usam. E o <code>impacto</code> trocou três ternários aninhados por uma tabela de perfil — eram quatro casos.</span>
+        <span class="it-d"><b>Quem tem direito de aplicar.</b> Golpe e tiro <em>não</em> aplicam por serem de fogo: magia e habilidade aplicam por serem magia e habilidade, e arma só aplica se declarar a propriedade <code>estado</code> — que agora viaja do item pelo <code>itemStats</code> e pelo <code>weaponInfo</code>, e é por onde um imbuement de elemento entraria. Sem essa régua toda varinha de fogo queimava de graça e o estado virava imposto do lado mágico, com cavaleiro e ranger fora do sistema inteiro.</span>
+        <span class="it-d"><b>SANGRANDO, o estado do cavaleiro.</b> Único sem elemento — corte é ferimento, não matéria —, então traz a própria cor e a própria partícula em vez de puxar de <code>ELEM</code>. As quatro magias de golpe do knight (<code>exori</code>, <code>exori gran</code>, <code>exori hur</code>, <code>exori min</code>) declaram a propriedade. Quem tem <b>sangue seco não sangra</b>: a régua sai do campo <code>seco</code> que a tabela de sangue já declara por classe, então esqueleto e elemental ficam de fora sem lista nova para manter. E sangrar <b>pinta o chão</b>, pelo <code>manchaChao</code> que o combate já usa. Existir resolve uma assimetria real: o estado elemental nasceu inteiro do lado mágico porque espada e flecha são dano físico, e o cavaleiro é quem menos dá dano do jogo (ver #39).</span>
+        <span class="it-t">feito · destrava #33 e #24 · 26 invariantes novas, 19 mutações pegas</span>
       </li>
       <li>
-        <span class="it-n">#33 · Efeito elemental no chão</span>
-        <span class="it-d">
-          Magia de área deixa o chão afetado — fogo queimando, por exemplo — por um tempo, até
-          enfraquecer e apagar. Quem passa por cima recebe dano e o status.
-          <strong>Regra explícita: passar de novo reseta, nunca acumula.</strong>
-          <code>G.blood</code> serve de molde pronto: lista de marcas de chão com posição, andar,
-          tempo e duração, desenhada entre o piso e os volumes, com teto de quantidade protegendo a
-          memória. Vale para criatura também, o que vira ferramenta tática — empurrar a horda para
-          dentro do fogo. Decisão aberta: criatura deve desviar de campo? Se sim, mexe em
-          <code>passoAte</code>, e criatura que desvia de fogo é bem mais difícil de encurralar.
-        </span>
-        <span class="it-t">esforço médio · depende de #32</span>
+        <span class="it-n">#33 · Efeito elemental no chão <span class="tag done">feito</span></span>
+        <span class="it-d">Entregue em 2026-08-22. Magia de área deixa o chão afetado por 8 s. <code>G.blood</code> serviu de molde como previsto — lista de marca de chão com posição, andar, relógio e teto de quantidade (<code>CAMPO_MAX = 140</code>), desenhada entre o piso e os volumes. Quem deixa campo é só o elemento que vira estado, que é a mesma régua do <code>estadoDaMagia</code> e não uma segunda: sagrado, morte e físico estouram e acabam. Só <code>aoe</code>, não feixe nem cone — os dois são de travessia e carpetariam o mapa.</span>
+        <span class="it-d"><b>Três decisões do dono do projeto, todas contra a primeira versão que entreguei.</b> (1) <b>Criatura desvia por INTELIGÊNCIA</b>, não por regra única: <code>INTEL</code> por classe com override na ficha, na mesma forma do <code>RES</code>. Ciclope (Gigante 2) contorna, esqueleto (Morto-vivo 1) atravessa, e quem é imune não perde tempo desviando do que não o machuca. Inteligência <b>não</b> é o <code>medo</code> — medo é instinto de sobrevivência, inteligência é ler o chão, e o ciclope tem a segunda sem a primeira. (2) <b>Cada tile pisado cobra dano</b>, não a transição de fora para dentro; eu havia escolhido a transição por medo de tornar a travessia letal, e a decisão foi o contrário. (3) <b>A área não acende inteira</b> — <code>CAMPO_CHANCE = 0.45</code> espalha, e é o que deixa costurar entre as chamas.</span>
+        <span class="it-d"><b>O dano precisou de dois ajustes medidos.</b> O campo guardava o golpe cheio da magia (564 na Fúria dos Céus) e cada tile cobrava um tique inteiro: atravessar custava mais que levar a magia na cara. Com <code>CAMPO_FORCA = 0.25</code>, atravessar o diâmetro custa <b>84 de vida, 19% da barra no nível 60</b>, contra 340 antes. O dano se repete por tile; o <b>estado não acumula</b> — reaplicar só reseta o relógio.</span>
+        <span class="it-d"><b>Três fases, decisão do dono do projeto (2026-08-22).</b> O campo deixou de durar 8 s e passa a durar <b>dois minutos</b>, morrendo em degraus: <code>cheia</code> 60 s com dano cheio, <code>fraca</code> 36 s com 40% do dano, <code>minima</code> 24 s <b>sem dano nenhum</b> — sobra a marca no chão. Tudo sai de <code>CAMPO_FASES</code> em <code>data.js</code>, régua única de onde leem o dano, o desenho e o desvio da criatura.</span>
+        <span class="it-d">A fase mínima é o que torna os dois minutos jogáveis: sem ela um corredor incendiado ficaria intransitável por dois minutos inteiros, e negar área por tanto tempo é mais forte do que uma magia deveria ser. Com ela, a magia nega passagem por um minuto e deixa cicatriz pelo resto. <b>Duas consequências que caíram de graça:</b> a criatura inteligente não contorna brasa apagada — desviar do que não machuca seria burrice com cara de esperteza, e sai do mesmo <code>campoDano</code> que decide o dano, então os dois nunca divergem; e o <code>CAMPO_MAX</code> subiu de 140 para 300, porque com duração 15× maior o teto antigo despejaria campo vivo a cada duas magias.</span>
+        <span class="it-d"><b>Ordem de desenho: dois grupos, decisão do dono do projeto.</b> <code>CAMPO_ACIMA</code> em <code>data.js</code> separa quem ENVOLVE de quem é chão tratado. Fogo e veneno passam por cima de quem está em pé no tile — quem entra na fogueira fica dentro dela, quem atola no veneno fica atolado. Gelo e energia ficam sob os pés: geada e carga são chão, e passar por cima só esconderia a criatura atrás de uma placa azul sem ganhar leitura nenhuma.</span>
+        <span class="it-d"><b>E "por cima" vale só para o PRÓPRIO tile.</b> A primeira versão desenhava todos os campos depois de todos os andares, e aí o fogo de um tile tapava a criatura de outro. O certo é o campo sair DENTRO do laço de fileiras, logo depois das entidades daquela fileira: assim ele cobre quem está nele e a criatura da fileira da frente continua na frente. Conferido no jogo com três minotauros — um no fogo (coberto), um na fileira seguinte (intacto), um no gelo (por cima da geada).</span>
+        <span class="it-d">O glow entra na MESMA lista <code>luzes</code> que tocha, projétil mágico e impacto já usam, então o passe de luz e o bloom leem a mesma coisa e não há como um acender o que o outro não acende. A força sai do <code>luz</code> que a tabela ELEM já declara (fogo e energia brilham forte, terra quase nada), com piso de .4 porque campo no chão é matéria acesa mesmo quando o elemento não é luminoso — e cai por fase, que brasa apagando ilumina pouco.</span>
+        <span class="it-d"><b>A fase TEM de aparecer no desenho</b> (§20 — nada de indicador que só existe na regra): chama vira brasa, poça vira mancha, placa de gelo derrete, arco some. O teste mede isso pelas chamadas de desenho, e o limiar é <i>quanto</i> encolhe e não <i>se</i> encolhe: um limiar frouxo passou verde numa mutação que só tirava a camada de miolo do fogo e continuava chama cheia.</span>
+        <span class="it-d"><b>A parte visual foi rejeitada e refeita, e é a lição que mais vale.</b> A primeira versão tingia o tile na cor do elemento e soltava três partículas redondas subindo. Passou folgado nas métricas que eu escolhi — distância de cor entre 62 e 106, acima dos 60 da régua de paleta — e mesmo assim <b>não dava para dizer se era fogo, veneno ou gelo</b>. A causa: uma fórmula só para os quatro, variando cor e gravidade, que é reuso aplicado exatamente onde diferenciar era o requisito inteiro. A régua que sai daqui: <b>distância de cor mede legibilidade, não identidade</b>, e identidade só se afere com olho humano. Ver <b>#44</b>.</span>
+        <span class="it-d">A versão que ficou segue o Tibia, combinado com o dono do projeto: <code>CAMPO_DRAW</code> em <code>art.js</code>, <b>uma rotina de desenho por elemento</b>, pré-desenhada em sprite de 32×32 e estampada no tile — quatro quadros discretos a cada 150 ms, borda dura, sem interpolação. Fogo é língua que afina para cima com núcleo claro; veneno é massa escura rasteira que borbulha e estoura; gelo é placa trincada quase parada; energia é arco que estala e some, com um quadro vazio no laço. O quadro é compartilhado por todos os campos do mesmo elemento, senão um campo grande vira trinta animações fora de compasso.</span>
+        <span class="it-d"><b>Dois defeitos achados no caminho:</b> <code>w2s</code> devolve o centro do tile e o <code>drawFloor</code> o canto, meio tile de diferença — era o campo parecendo maior que o tile; e <code>newPlayer</code> não limpava <code>G.campos</code>, então personagem novo herdava chão em chamas.</span>
+        <span class="it-d"><b>Bancada:</b> <code>/teste</code> no chat monta um personagem capaz de produzir todo campo que o jogo sabe fazer, e a página <code>tools/amostra/campos.html</code> mostra os quatro animando ao lado dos quadros parados, sobre os terrenos de verdade.</span>
+        <span class="it-d"><b>Buraco de conteúdo que isto expôs:</b> não existe magia nem runa de <b>terra</b> em área, então o campo de veneno não é alcançável em jogo — o estado existe e o campo funciona, falta a magia. E nenhuma vocação alcança os três campos: sorcerer tem fogo e energia, druida tem gelo, cavaleiro e ranger dependem de runa. O jogo tem 5 magias de área no total, duas delas sagradas.</span>
+        <span class="it-t">feito · 36 invariantes novas, 18 mutações pegas · destrava #24 · abre #44</span>
       </li>
     </ul>
   </div>
@@ -1831,26 +1862,28 @@
       item que não estava na lista e passou à frente de todos.
     </p>
     <div class="aviso">
-      <h4>O próximo passo é fechar a lacuna de testes</h4>
+      <h4>O #43 fechou 13 das 18 — o topo da fila mudou</h4>
       <p>
-        Não é dívida de qualidade, é dívida de <em>risco</em>. O #38a–d foi o trabalho mais caro do
-        projeto — relógio único de magia, varinha sem ML, <code>magPower</code>, identidade do
-        druida — e <b>nada disso tem teste</b>. Um <code>revert</code> acidental passa verde. São 18
-        invariantes marcadas <span class="tag warn">sem teste</span> na seção de regras, e a maior
-        parte é varredura de tabela e fórmula, sem simular jogo. Todo item abaixo fica mais barato
-        depois que existir rede.
+        O buraco caro sumiu: o #38a–d inteiro passou a ter rede, e cada invariante nova foi
+        conferida por mutação (dezoito desfeitas, dezoito pegas). Sobram <b>quatro</b>, todas fora
+        do balanceamento e todas baratas — renascimento avisado, forma da fauna passiva, marca de
+        POI no chão e o número da ficha de magia. Valem uma tarde, não uma prioridade.
       </p>
       <p>
-        Um aviso para quem for escrever: <b>a invariante de paleta falha hoje</b>. A separação
-        SAND × TEMPLE dá 56, abaixo do mínimo de 60 que a seção afirma. Escrever esse teste exige
-        antes decidir se a cor muda ou se a régua real é outra.
+        Lição de método que saiu daqui: <b>derive a regra do mundo, não de uma lista à mão</b>. A
+        invariante de paleta parecia falhar (SAND × TEMPLE a 56, abaixo do mínimo de 60) — só que
+        esses dois tiles nunca se tocam. Varrendo os pares que de fato encostam, o pior é
+        GRASS/DIRT a 100. A lista escrita à mão inventava um problema e teria escondido os reais no
+        dia em que um bioma novo encostasse noutro.
       </p>
     </div>
     <p>
-      Depois dela, e ainda sem depender de decisão nenhuma: <strong>#32</strong> (status elemental
-      no corpo), que destrava o #33 e o #24 e faz o elemento parar de ser só cor de partícula; e
-      <strong>#18</strong> (NPCs), que é código novo, risco baixo, e melhora retroativamente as
-      fases 2 e 4.
+      Com o #32 fechado, os dois que ele destravou ficam baratos: <strong>#33</strong> (efeito
+      elemental no chão) reaproveita <code>G.blood</code> como molde e agora tem o estado pronto
+      para aplicar em quem pisa; e <strong>#24</strong> (habilidades de criatura) ganha um eixo
+      novo — hoje são quatro tipos e nenhum deles deixa marca no corpo.
+      Fora deles, <strong>#18</strong> (NPCs) segue destravado: é código novo, risco baixo, e
+      melhora retroativamente as fases 2 e 4.
     </p>
     <p>
       Na frente gráfica, o melhor troco é <strong>#14</strong> pelo caminho barato — três PNGs
@@ -1879,7 +1912,7 @@
 
 <footer>
   Thaira · RPG 2D dark-fantasy em JavaScript sem framework, com launcher Electron ·
-  488 verificações passando em <code>tests/test.js</code> ·
+  663 verificações passando em <code>tests/test.js</code> ·
   22 tarefas pendentes · conferido contra o código em 2026-08-18.
 </footer>
 

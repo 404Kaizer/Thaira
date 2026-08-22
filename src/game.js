@@ -3,7 +3,7 @@
 'use strict';
 
 const G = {
-  mobs: [], corpses: [], drops: [], proj: [], fx: [], blood: [], plates: new Map(),
+  mobs: [], corpses: [], drops: [], proj: [], fx: [], blood: [], campos: [], plates: new Map(),
   now: 0, target: null, path: [], pendingLoot: null, lootOpen: null,
   keys: {}, walkDir: null, started: false, lastSpawn: 0, lastRegen: 0, lastSave: 0, dead: false,
   pausa: 0, real: 0, abalo: null              // hitstop, relógio real e tremor de tela
@@ -42,10 +42,19 @@ function mkItem(id, rarity = 0, count = 1) {
 }
 function itemStats(it) {
   const b = ITEMS[it.id], s = {
-    name: b.n, ico: b.ico, slot: b.slot, wt: b.wt, el: b.el, lvl: b.lvl || 0, voc: b.voc,
+    name: b.n, ico: b.ico, slot: b.slot, wt: b.wt, el: b.el, estado: b.estado, lvl: b.lvl || 0, voc: b.voc,
     atk: b.atk || 0, def: b.def || 0, arm: b.arm || 0, dmg: b.dmg, price: b.price || 0,
     sell: b.sell || Math.round((b.price || 0) * 0.4), color: RARITY[it.r].color, bonus: {}
   };
+  /* Moeda troca de peça conforme a pilha: uma, um punhado, um monte. O sprite
+     não pode morar em ITEMS porque depende de `it.count`, que é da instância. */
+  if (b.moeda) {
+    const monte = COIN_MONTE(it.count || 1);
+    s.spr = b.moeda + '_' + monte;
+    // a classe leva o MONTE, não o metal: quem manda no tamanho é quantas moedas
+    // são, e o PNG sempre vem enchendo os 54px (o build_skins normaliza)
+    s.ico = spriteImg(s.spr, 'coin-' + monte) || s.ico;
+  }
   const add = o => { for (const k in o) s.bonus[k] = (s.bonus[k] || 0) + o[k]; };
   if (b.b) add(b.b);
   let atkPct = 0, defPct = 0;
@@ -100,6 +109,128 @@ const BUFF_DESC = {
   light: () => 'Ilumina o terreno ao redor'
 };
 const BUFF_RUIM = { lento: 1 };
+for (const k in ESTADOS) { BUFF_LABEL[k] = ESTADOS[k].n; BUFF_RUIM[k] = 1; }
+/* Sem BUFF_ICO para os estados: o §17 veta emoji como ícone de gameplay, e a
+   linguagem que o jogo já usa para elemento é a COR — a partícula, o tiro da
+   varinha e a seta de fraqueza saem todos de `ELEM[el].cor`. O selo na barra é
+   um losango dessa cor, que é a mesma pista que o jogador já aprendeu no chão. */
+const estadoIco = k => `<i class="stel" style="background:${cssCol(estiloEstado(k).cor)}"></i>`;
+/* Um estado é o mesmo objeto nos dois lados: { end, dano, el }. O jogador guarda
+   em `P.buffs` e a criatura em `m.estados` — mapas diferentes, forma igual, para
+   o tique ser um só. `alvo.buffs || alvo.estados` escolhe qual. */
+const mapaEstados = alvo => alvo === P ? P.buffs : (alvo.estados || (alvo.estados = {}));
+/* O efeito no corpo acompanha o DANO, não a posse do estado: queima quando
+   queima, e entre um tique e outro o corpo volta ao normal. É a mesma leitura do
+   clarão de acerto, que já é assim — efeito permanente vira ruído de fundo e
+   deixa de significar "aconteceu alguma coisa agora".
+   Quem diz que o estado CONTINUA ativo é o selo na barra e o relógio dele. */
+const ESTADO_FLASH = 1100;
+function marcaEstado(alvo, k) {
+  alvo.estadoT = G.now; alvo.estadoK = k;
+  impacto(alvo.x, alvo.y, 'estado', 0, estiloEstado(k));
+  /* Sangrando pinta o chão. É o `manchaChao` do combate, sem nada novo — e é a
+     leitura mais direta que o jogo tem: quem sangra deixa rastro. */
+  if (ESTADOS[k].precisaSangue)
+    manchaChao(alvo.x, alvo.y, alvo.z, cssCol(ESTADOS[k].cor), .3);
+}
+/* Quanto do efeito mostrar agora: 1 no instante do dano, 0 depois da janela.
+   O render usa isso de alfa, então o corpo acende e apaga em vez de piscar. */
+function estadoFlash(e) {
+  if (!e || !e.estadoK) return 0;
+  const k = 1 - (G.now - e.estadoT) / ESTADO_FLASH;
+  return k > 0 ? k : 0;
+}
+/* Estilo do efeito: a cor e a partícula saem do ELEMENTO quando há um, e da
+   própria ficha quando não há — é o caso do sangramento, que é ferimento e não
+   matéria. Devolver o mesmo formato nos dois casos deixa o `impacto` cego para a
+   diferença. */
+/* Uma magia aplica o estado que DECLARA; se não declarar, o do próprio elemento.
+   Assim o cavaleiro sangra por propriedade (as magias `melee` não têm elemento
+   nenhum) e o mago queima por natureza, sem duas regras separadas. */
+const estadoDaMagia = sp => sp.estado || ESTADO_DE[sp.el];
+const estiloEstado = k => {
+  const e = ESTADOS[k];
+  return e.el ? ELEM[e.el] : { cor: e.cor, forma: e.forma, grav: e.grav, luz: e.luz || 0 };
+};
+/* Aplica um estado PELA CHAVE, não pelo elemento: sangrando não tem elemento
+   nenhum, e amarrar a aplicação a ELEM deixaria o cavaleiro de fora para sempre.
+   Regra de acúmulo: reaplicar RESETA a duração e nunca empilha — duas
+   queimaduras não somam dois relógios.
+   Imunidade barra o estado inteiro, não só o dano: dragão não pega fogo. É isso
+   que faz a resistência elemental continuar sendo a resposta certa. E quem tem
+   sangue seco não sangra, o que sai do `seco` da tabela de sangue por classe.
+   `certo` pula o sorteio de chance, e existe por causa do campo no chão: um
+   golpe de fogo PODE queimar, mas quem está PARADO dentro da fogueira queima —
+   sortear ali daria "atravessei o incêndio e não senti nada", que é o mesmo
+   nada com passos extras. A imunidade continua barrando antes. */
+function aplicaEstado(alvo, k, golpe, certo) {
+  const e = ESTADOS[k]; if (!e) return;
+  const jogador = alvo === P;
+  if (e.precisaSangue) {
+    const sg = jogador ? null : (alvo.def.sangue || SANGUE_PADRAO);
+    if (sg && sg.seco) return;                       // esqueleto e elemental não sangram
+  }
+  const res = e.el
+    ? (jogador ? 1 - Math.min(.75, P.st.res[e.el] || 0) : resistOf(alvo.def, e.el))
+    : 1;
+  if (res <= 0) return;                              // imune não pega o estado
+  if (!certo && Math.random() >= e.chance) return;
+  const mapa = jogador ? P.buffs : (alvo.estados || (alvo.estados = {}));
+  const novo = !mapa[k];
+  mapa[k] = { end: G.now + e.dur, dano: Math.max(1, Math.round(golpe * e.dano * res)), estado: k, val: e.lento || 0 };
+  if (jogador) {
+    if (e.lento) recalc();
+    if (novo) log(`Você está ${e.n.toLowerCase()}.`, 'bad');
+    renderBars();
+  } else if (novo) log(`${alvo.n} está ${e.n.toLowerCase()}.`, 'cbt mana');
+}
+/* O tique roda no relógio de 3 s que já existe (o mesmo da regeneração e da
+   expiração de buff), então estado nenhum tem cronômetro próprio.
+   O dano da criatura passa por `killMob` como qualquer outro: veneno que mata
+   tem de largar loot e dar experiência igual a uma espadada. */
+/* UM tique de estado num alvo: tira a vida, mostra o número, acende o corpo e
+   resolve a morte. Saiu de dentro do laço porque o campo no chão cobra a ENTRADA
+   com o mesmo golpe do tique — dois caminhos de dano para o mesmo estado
+   divergiriam no dia em que um deles ganhasse uma regra. Devolve se matou. */
+function tiqueEstado(alvo, k) {
+  const jogador = alvo === P;
+  const b = (jogador ? P.buffs : alvo.estados)[k];
+  if (!b) return false;
+  alvo.hp -= b.dano;
+  float(alvo.x, alvo.y, '-' + b.dano, cssCol(estiloEstado(k).cor));
+  marcaEstado(alvo, k);
+  if (alvo.hp > 0) return false;
+  if (jogador) playerDeath(); else killMob(alvo);
+  return true;
+}
+function tickEstados() {
+  for (const k in ESTADOS) {
+    if (P.buffs[k] && !G.dead && tiqueEstado(P, k)) return;
+  }
+  for (const m of G.mobs) {
+    if (m.hp <= 0 || !m.estados) continue;
+    for (const k in m.estados) {
+      if (m.estados[k].end < G.now) { delete m.estados[k]; continue; }
+      if (tiqueEstado(m, k)) break;
+    }
+  }
+  renderBars();
+}
+/* CADA TILE de campo pisado cobra, por decisão de desenho do dono do projeto:
+   atravessar um campo grande custa tantas vezes quantos tiles você atravessar.
+   Sem isso o campo só cobraria de quem parasse em cima no instante do tique de
+   3 s, e correr por dentro sairia de graça — o que faz do campo decoração.
+   O DANO se repete; o ESTADO não acumula: reaplicar só reseta o relógio, que é a
+   regra que já valia. Então dez tiles doem dez vezes e deixam UMA queimadura. */
+function pisaCampo(alvo) {
+  const c = campoEm(alvo.x, alvo.y, alvo.z);
+  if (!c) return;
+  const dano = campoDano(c);
+  if (!dano) return;                 // fase mínima: a marca fica, o dano não
+  aplicaEstado(alvo, c.k, dano, true);
+  tiqueEstado(alvo, c.k);            // imune não pegou estado nenhum: não dói
+  if (alvo === P) renderBars();
+}
 const BONUS_LABEL = {
   atkPct: 'Ataque', defPct: 'Defesa', arm: 'Armadura', speed: 'Velocidade', maxhp: 'Vida Máx',
   maxmana: 'Mana Máx', crit: 'Crítico', lifesteal: 'Roubo de Vida', hpReg: 'Regen. Vida', mpReg: 'Regen. Mana',
@@ -114,6 +245,12 @@ const setCount = k => Object.values(P.eq).filter(it => it && ITEMS[it.id].set ==
 
 /* -------------------------------------------------------------- personagem */
 function newPlayer(name, voc) {
+  /* Personagem novo não herda chão em chamas. G.campos não vai para o save, mas
+     vive no mesmo processo: no navegador isso só apareceria em quem troca de
+     personagem sem recarregar, e na suíte apareceu na hora — um campo deixado
+     por uma magia de área de um bloco anterior queimava o bicho do bloco
+     seguinte, porque `saiDoTemplo` põe todo mundo no mesmo lugar. */
+  G.campos.length = 0;
   const p = {
     name, voc, level: 1, exp: 0, hp: 150, mana: 30, kills: 0,
     x: WORLD.temple.x, y: WORLD.temple.y + 2, z: SURF, px: WORLD.temple.x, py: WORLD.temple.y + 2, dir: 0,
@@ -186,7 +323,12 @@ function recalc() {
   if (P.buffs.sharp) st.sk.distance += P.buffs.sharp.val;
   // teia e paralisia entram como buff de valor negativo: já ganham de graça o
   // relógio de expiração e o ícone na barra, que o resto dos efeitos usa
-  if (P.buffs.lento) st.speed = Math.max(40, Math.round(st.speed * (1 - P.buffs.lento.val)));
+  /* Lentidão vem da teia (buff `lento`) ou de estado elemental (congelado), e
+     vale a MAIOR das duas — nunca a soma. Empilhar duas fontes pararia o jogador
+     de vez, que é pior que qualquer uma delas isolada. */
+  const lentidao = Math.max(P.buffs.lento ? P.buffs.lento.val : 0,
+    ...Object.keys(ESTADOS).map(k => (P.buffs[k] && ESTADOS[k].lento) || 0));
+  if (lentidao) st.speed = Math.max(40, Math.round(st.speed * (1 - lentidao)));
   P.st = st;
   P.hp = Math.min(P.hp, st.maxhp); P.mana = Math.min(P.mana, st.maxmana);
 }
@@ -195,12 +337,16 @@ const skillOf = k => (k === 'magic' ? P.ml.l : P.sk[k].l) + P.st.sk[k];
 function weaponInfo() {
   const it = P.eq.weapon;
   if (!it) return { wt: 'fist', atk: 7, range: 1 };
+  /* `estado` viaja junto: é a propriedade que dá a UMA arma o direito de aplicar
+     estado no golpe básico. Sem ela nenhuma aplica — golpe é golpe. É por aqui
+     que um imbuement de elemento entraria, já que ele vira afixo em `it.af` e o
+     itemStats já soma afixo. */
   const s = itemStats(it);
   // a varinha atira na cor do que ela lança: o roxo fixo fazia a Varinha do
   // Inferno cuspir a mesma bola da Varinha da Podridão. Roxo só sobra de reserva
-  if (s.wt === 'wand') return { wt: 'wand', dmg: s.dmg, range: 4, el: s.el, col: (ELEM[s.el] || 0).cor || 0xbb77ff };
-  if (s.wt === 'distance') return { wt: 'distance', atk: s.atk, range: ALCANCE_TIRO, col: 0xd9c48a };
-  return { wt: s.wt, atk: s.atk, range: 1 };
+  if (s.wt === 'wand') return { wt: 'wand', dmg: s.dmg, range: 4, el: s.el, estado: s.estado, col: (ELEM[s.el] || 0).cor || 0xbb77ff };
+  if (s.wt === 'distance') return { wt: 'distance', atk: s.atk, range: ALCANCE_TIRO, estado: s.estado, col: 0xd9c48a };
+  return { wt: s.wt, atk: s.atk, range: 1, estado: s.estado };
 }
 
 /* ----------------------------------------------------------- progressão */
@@ -260,7 +406,8 @@ function luzCarregada() {
 
 function bagAdd(it) {
   if (!it) return false;
-  if (it.id === 'gold') { P.gold += it.count; renderInv(); return true; }
+  // moeda não entra na mochila: vira saldo. `COIN_V` traz o valor da denominação.
+  if (COIN_V[it.id]) { P.gold += it.count * COIN_V[it.id]; renderInv(); return true; }
   if (ITEMS[it.id].stack) {
     const ex = P.bag.find(b => b.id === it.id && b.count < 100);
     if (ex) { ex.count += it.count; renderInv(); return true; }
@@ -303,13 +450,14 @@ function useRune(it, b) {
   } else {
     const m = G.target;
     if (!m || m.hp <= 0 || m.z !== P.z || distT(P.x, P.y, m.x, m.y) > 7) return log('Sem alvo válido para a runa.', 'bad');
-    if (r.type === 'attack') shoot(P.px, P.py, m.px, m.py, r.col, () => dealDamage(m, pow(r.base), r.el, cor), 22, r.el);
+    if (r.type === 'attack') shoot(P.px, P.py, m.px, m.py, r.col, () => dealDamage(m, pow(r.base), r.el, cor, r.estado || ESTADO_DE[r.el]), 22, r.el);
     else {
       const tiles = [];
       for (let dy = -r.r; dy <= r.r; dy++) for (let dx = -r.r; dx <= r.r; dx++) tiles.push([m.x + dx, m.y + dy]);
       tiles.forEach(([x, y], i) => setTimeout(() => fxBurst(x, y, r.col, 0.9), i * 14));
+      criaCampo(tiles, P.z, r.el, pow(r.base));      // runa de área deixa chão igual à magia
       G.mobs.filter(o => o.z === P.z && tiles.some(([x, y]) => x === o.x && y === o.y))
-        .forEach(o => dealDamage(o, pow(r.base), r.el, cor));
+        .forEach(o => dealDamage(o, pow(r.base), r.el, cor, r.estado || ESTADO_DE[r.el]));
     }
     sfx('rune');
   }
@@ -437,18 +585,32 @@ function fxBurst(x, y, color, scale = 1, el) {
    É um só efeito com três desenhos; o que muda é a partícula e como ela viaja.
    Sangue aqui NÃO deixa mancha no chão: mancha é coisa de morte, e uma poça por
    pancada cobriria a hunt inteira em um minuto. */
+/* Perfil da partícula por tipo. Tabela e não ternário encadeado: eram três casos
+   e o estado virou o quarto, aninhado dentro de dois outros.
+   `estado` é de propósito o mais forte de todos — fogo tem de parecer fogo, e
+   gelo, gelo. São 16 partículas grandes e lentas contra as 9 miúdas do golpe, e
+   a luz do elemento entra reforçada: uma queimadura ACENDE o chão em volta. */
+const FX_PERFIL = {
+  erro:   { n: 5,  v: [.3, 1.2], r: [.7, 2.3],  dur: 560, luz: 1 },
+  estado: { n: 16, v: [.5, 2.1], r: [1.8, 4.4], dur: 900, luz: 1.7 },
+  padrao: { n: 9,  v: [.3, 1.2], r: [.7, 2.3],  dur: 380, luz: 1 }
+};
 function impacto(x, y, tipo, cor, el) {
+  const q = FX_PERFIL[tipo] || FX_PERFIL.padrao;
   const p = [];
-  for (let i = 0, n = tipo === 'erro' ? 5 : 9; i < n; i++)
-    p.push({ a: Math.random() * Math.PI * 2, v: .3 + Math.random() * .9, r: .7 + Math.random() * 1.6 });
+  for (let i = 0; i < q.n; i++)
+    p.push({ a: Math.random() * Math.PI * 2,
+      v: q.v[0] + Math.random() * (q.v[1] - q.v[0]),
+      r: q.r[0] + Math.random() * (q.r[1] - q.r[0]) });
   /* `tipo` continua respondendo "que golpe foi este" (é o que o log e o teste
      leem); o elemento entra por fora e traz o DESENHO: forma da partícula, para
      onde ela vai e se acende o terreno. Sem elemento, nada muda do que era. */
-  const e = ELEM[el];
+  const e = typeof el === 'object' && el ? el : ELEM[el];
   G.fx.push({ kind: 'impacto', tipo, x, y, color: cssCol(e ? e.cor : (cor || SANGUE_PADRAO.cor)), p,
-    forma: e && e.forma, grav: e ? e.grav : 1, luz: e ? e.luz : 0,
-    t: G.now, dur: tipo === 'erro' ? 560 : 380 });
+    forma: e && e.forma, grav: e ? e.grav : 1, luz: e ? e.luz * q.luz : 0,
+    t: G.now, dur: q.dur });
 }
+
 
 const SANGUE_MAX = 60;
 function bloodSpray(x, y, z, sangue, forca = 1) {
@@ -481,6 +643,79 @@ function manchaChao(x, y, z, cor, forca = 1) {
   // pré-desenhar cada mancha num canvas resolve melhor que baixar o limite.
   while (G.blood.length > SANGUE_MAX) G.blood.shift();
 }
+
+/* ------------------------------------------------- campo no chão (#33) ---
+   A magia de área não estoura e some: ela deixa o chão queimando, envenenado,
+   gelado ou eletrificado por um tempo. Quem está em cima quando o relógio de 3s
+   bate pega o estado — e o estado é que cobra o dano, um mecanismo só em vez de
+   dois somando no mesmo alvo.
+   MOLDE É O G.blood, de propósito: lista de marca de chão com x/y/z, relógio,
+   duração e teto de quantidade, desenhada entre o piso e os volumes. O que muda
+   é que o campo é POR TILE e de borda dura, porque o jogador precisa saber qual
+   tile machuca — mancha irregular responderia "mais ou menos aqui".
+   Vale para criatura também, e é o que torna o campo tático: dá para empurrar a
+   horda para dentro do fogo. */
+const campoEm = (x, y, z) => G.campos.find(c => c.x === x && c.y === y && c.z === z);
+/* Quanto este campo cobra AGORA: o golpe guardado no tile vezes o multiplicador
+   da fase em que ele está. Zero na fase mínima, e é por isso que devolver o
+   número (e não a fase) é o certo — quem chama só precisa saber se dói. */
+const campoDano = c => c.dano * CAMPO_FASES[campoFase((G.now - c.t) / c.dur)].dano;
+/* Quem deixa campo: SÓ o elemento que tem estado, que é exatamente a régua do
+   `estadoDaMagia` e não uma segunda inventada aqui. Sagrado, morte e físico
+   estouram e acabam — não existe "chão sagrado" para pisar.
+   Só `aoe`, não `beam`/`wave`: aoe é a magia que marca uma ZONA, e feixe e cone
+   são de travessia — carpetar 15 tiles a cada lançamento estouraria o teto no
+   primeiro combate e apagaria a leitura de qual tile é perigoso. */
+function criaCampo(tiles, z, el, golpe) {
+  const k = ESTADO_DE[el];
+  if (!k || !golpe) return 0;
+  const forca = golpe * CAMPO_FORCA;
+  let n = 0;
+  for (const [x, y] of tiles) {
+    if (!isWalkable(x, y, z)) continue;              // parede não pega fogo
+    if (Math.random() >= CAMPO_CHANCE) continue;     // pega onde pega, não em tudo
+    const velho = campoEm(x, y, z);
+    /* Passar de novo RESETA e nunca acumula — um tile, um relógio. É a mesma
+       regra do estado, e aqui ela também impede dois campos empilhados no
+       mesmo tile cobrarem dois tiques. */
+    if (velho) Object.assign(velho, { k, el, dano: Math.max(velho.dano, forca), t: G.now });
+    else G.campos.push({ x, y, z, k, el, dano: forca, t: G.now, dur: CAMPO_DUR });
+    n++;
+  }
+  // ponytail: teto por empurrão, igual ao das manchas. Se um dia duas magias
+  // grandes juntas apagarem a primeira cedo demais, o corte por idade resolve.
+  while (G.campos.length > CAMPO_MAX) G.campos.shift();
+  return n;
+}
+/* Roda no relógio de 3 s que já existe, junto do tique de estado — campo nenhum
+   tem cronômetro próprio, pela mesma razão que estado nenhum tem. */
+function tickCampos() {
+  // ponytail: campos × mobs a cada 3 s (140 × ~40 no pior caso). Se um dia
+  // pesar, indexar G.mobs por tile no começo do tique corta para uma passada.
+  for (let i = G.campos.length - 1; i >= 0; i--) {
+    const c = G.campos[i];
+    if (G.now - c.t > c.dur) { G.campos.splice(i, 1); continue; }
+    const dano = campoDano(c);
+    if (!dano) continue;             // fase mínima não cobra de quem está parado nela
+    if (!G.dead && P.z === c.z && P.x === c.x && P.y === c.y) aplicaEstado(P, c.k, dano, true);
+    for (const m of G.mobs)
+      if (m.hp > 0 && m.z === c.z && m.x === c.x && m.y === c.y) aplicaEstado(m, c.k, dano, true);
+  }
+}
+/* Contornar o que machuca é INTELIGÊNCIA, não medo (ver INTEL em data.js): o
+   esqueleto atravessa a fogueira, o ciclope dá a volta. E só desvia de campo que
+   de fato o machuca — o elemental de fogo passa por cima do próprio fogo sem
+   pensar duas vezes, o que sai de graça do `resistOf` que já existe. */
+function evitaCampo(m, x, y) {
+  if (intelOf(m.def) < INTEL_DESVIA) return false;
+  const c = campoEm(x, y, m.z);
+  /* Contornar brasa apagada seria burrice com cara de esperteza: quem é
+     inteligente o bastante para ler o chão é inteligente o bastante para ver
+     que aquele já não queima. Sai de graça do `campoDano`, que é zero na fase
+     mínima — e é o mesmo número que decide o dano, então os dois nunca divergem. */
+  return !!c && campoDano(c) > 0 && resistOf(m.def, c.el) > 0;
+}
+
 /* `el` é opcional e só serve ao desenho: a cor continua vindo de quem atira,
    mas o rastro e a luz do projétil saem da tabela — flecha comum não acende
    nada, bola de fogo acende, torrão de terra não. */
@@ -611,7 +846,11 @@ function passoAte(m, gx, gy) {
   // ponytail: A* inteiro a cada passo de cada bicho (700 nós, lista aberta em
   // varredura linear). Se um dia houver dezenas perseguindo ao mesmo tempo,
   // guardar o caminho em m.path e só refazer quando o primeiro passo quebrar.
-  const bloq = (x, y) => occupied(x, y, m.z, m);
+  /* Campo no chão entra aqui e não numa busca própria: para quem pensa, tile
+     em chamas é tão intransitável quanto companheiro parado. E a segunda busca
+     (a que ignora corpos) ignora o campo junto, o que é a saída certa para o
+     bicho cercado de fogo — ele atravessa em vez de travar. */
+  const bloq = (x, y) => occupied(x, y, m.z, m) || evitaCampo(m, x, y);
   /* Dois orçamentos diferentes de propósito. A busca que desvia de criatura é a
      cara — numa horda ela abre muito nó e é ela que precisa de teto baixo. A
      que ignora corpos anda quase em linha reta num mapa aberto, então gasta
@@ -631,7 +870,7 @@ function passoVagar(m) {
   for (const [dx, dy] of DIRS) {
     const nx = m.x + dx, ny = m.y + dy;
     if (!isWalkable(nx, ny, m.z) || occupied(nx, ny, m.z, m)) continue;
-    if (noTemplo(nx, ny, m.z)) continue;
+    if (noTemplo(nx, ny, m.z) || evitaCampo(m, nx, ny)) continue;
     opcoes.push([nx, ny, distT(nx, ny, P.x, P.y)]);
   }
   if (!opcoes.length) return false;
@@ -649,6 +888,7 @@ function passoDeFuga(m) {
   for (const [dx, dy] of DIRS) {
     const nx = m.x + dx, ny = m.y + dy;
     if (!isWalkable(nx, ny, m.z) || occupied(nx, ny, m.z, m)) continue;
+    if (evitaCampo(m, nx, ny)) continue;             // fugir para dentro do fogo não é fuga
     const nd = distT(nx, ny, P.x, P.y) + Math.random() * .4;
     if (nd > bd) { bd = nd; best = [nx, ny]; }
   }
@@ -721,7 +961,7 @@ function updateMobs(dt) {
       if (dA <= r.range && dA > 1 && lineClear(m.x, m.y, P.x, P.y, m.z) && G.now > m.nextAtk) {
         m.nextAtk = G.now + 2200; m.atkT = G.now;
         const dmg = ri(r.min, r.max);
-        shoot(m.px, m.py, P.px, P.py, r.col, () => hitPlayer(dmg, m.n, r.el), 22, r.el);
+        shoot(m.px, m.py, P.px, P.py, r.col, () => hitPlayer(dmg, m.n, r.el, r.estado), 22, r.el);
       }
       if (r.recua) {
         if (d < r.range && G.now > m.nextStep) {
@@ -834,7 +1074,7 @@ function habilidade(m, d) {
     }
     return;
   }
-  if (h.dano) hitPlayer(ri(h.dano[0], h.dano[1]), m.n, h.el);
+  if (h.dano) hitPlayer(ri(h.dano[0], h.dano[1]), m.n, h.el, h.estado || ESTADO_DE[h.el]);
   if (h.lento) {
     P.buffs.lento = { val: h.lento, end: G.now + h.dur };
     recalc();
@@ -874,7 +1114,11 @@ function lerpEntity(e) {
     const k = clamp((G.now - e.stepT) / e.stepD, 0, 1);
     e.px = e.fx + (e.x - e.fx) * k; e.py = e.fy + (e.y - e.fy) * k;
     // chegou de verdade: é AQUI que a chegada acontece, não no tryStep
-    if (k >= 1) { e.stepD = 0; if (e === P) afterStep(); }
+    /* O campo cobra na CHEGADA e não no `tryStep`, pela mesma razão que os
+       portões de ação usam `tileDe`: o tryStep joga x/y no destino já no
+       primeiro quadro para reservar o tile, e cobrar ali queimaria o boneco
+       ainda parado no tile anterior. Vale para bicho também — é um funil só. */
+    if (k >= 1) { e.stepD = 0; pisaCampo(e); if (e === P) afterStep(); }
   } else { e.px = e.x; e.py = e.y; }
 }
 const atkPhase = e => { const k = (G.now - (e.atkT || -9e9)) / 320; return k > 0 && k < 1 ? k : 0; };
@@ -889,7 +1133,12 @@ function damageFormula(atk, skill, medio) {
   const mult = STANCE[P.stance || 'bal'].dmg * (1 + (P.buffs.rage ? P.buffs.rage.val / 100 : 0));
   return (medio ? (P.level / 5 + max) / 2 : rnd(P.level / 5, max)) * mult;
 }
-function dealDamage(m, raw, el, color) {
+/* `estK` é a CHAVE do estado a tentar, e vem sempre de quem bate — nunca é
+   deduzida do elemento aqui. Golpe e tiro não aplicam nada por serem de fogo:
+   magia e habilidade aplicam por serem magia e habilidade, e arma só aplica se
+   declarar a propriedade. Sem isso, toda varinha de fogo queimava de graça e o
+   estado virava imposto do lado mágico. */
+function dealDamage(m, raw, el, color, estK) {
   if (m.hp <= 0) return;
   if (P.charms && P.charms[m.id]) raw *= 1 + CHARM_BONUS;   // presa marcada no bestiário
   /* Resistência elemental. Imune sai antes de tudo: sem isto o `Math.max(1, ...)`
@@ -940,6 +1189,8 @@ function dealDamage(m, raw, el, color) {
   float(m.x, m.y, (crit ? '★' : '') + marca + dmg, crit ? '#ffb14a' : (color || '#ff6a6a'), crit);
   fxBurst(m.x, m.y, color || 0xff5555, 0.7, el);
   if (P.st.lifesteal) curar(dmg * P.st.lifesteal, 'roubo de vida');
+  // o estado entra com o golpe que ainda não matou: queimar um corpo é enfeite
+  if (m.hp > 0 && estK) aplicaEstado(m, estK, dmg);
   if (m.hp <= 0) killMob(m);
   renderBattle();
 }
@@ -962,7 +1213,12 @@ function killMob(m) {
     if (Math.random() > ch) continue;
     const stack = ITEMS[id].stack;
     const maestria = bestStage(m.id) === 3 ? 0.6 : 0;   // conhecer a criatura melhora o saque
-    items.push(mkItem(id, stack ? 0 : rollRarity(m.def.tier * 0.35 + maestria), stack && mn ? ri(mn, mx || mn) : 1));
+    const qtd = stack && mn ? ri(mn, mx || mn) : 1;
+    /* Dinheiro sai na maior denominação que couber, e não em milhares de moedas
+       de bronze. A tabela de saque continua escrita em unidades — nenhuma das
+       oitenta linhas precisou mudar. */
+    if (COIN_V[id]) { const mo = moedaDe(qtd * COIN_V[id]); items.push(mkItem(mo.id, 0, mo.count)); continue; }
+    items.push(mkItem(id, stack ? 0 : rollRarity(m.def.tier * 0.35 + maestria), qtd));
   }
   /* O que caiu vai para o chat antes de o corpo abrir: quem caça em série não
      precisa abrir cada saco para saber se valeu. Classe 'loot', não 'cbt': mora
@@ -1022,17 +1278,17 @@ function playerAttack() {
        O castSpell de tipo 'melee' já usava a faixa crua — o ataque básico era o
        único fora do padrão. */
     const base = rnd(w.dmg[0], w.dmg[1]);
-    shoot(P.px, P.py, m.px, m.py, w.col, () => dealDamage(m, base, w.el, '#c08bff'), 22, w.el);
+    shoot(P.px, P.py, m.px, m.py, w.col, () => dealDamage(m, base, w.el, '#c08bff', w.estado), 22, w.el);
     addMagic(6);   // no Tibia varinha não treina ML; aqui treina, senão mago que só ataca não evolui em nada
   } else if (w.wt === 'distance') {
     sfx('atk_distance', P.x, P.y);
     const dmg = damageFormula(w.atk, skillOf('distance'));
-    shoot(P.px, P.py, m.px, m.py, w.col, () => dealDamage(m, dmg, null, '#ffd280'), 22, 'physical');
+    shoot(P.px, P.py, m.px, m.py, w.col, () => dealDamage(m, dmg, null, '#ffd280', w.estado), 22, 'physical');
     addSkillTry('distance');
   } else {
     // o golpe de perto ganha o som da arma: espada, machado e clava não soam igual
     sfx('atk_' + (w.wt || 'fist'), P.x, P.y);
-    dealDamage(m, damageFormula(w.atk, skillOf(w.wt)), null, '#ff7a7a');
+    dealDamage(m, damageFormula(w.atk, skillOf(w.wt)), null, '#ff7a7a', w.estado);
     addSkillTry(w.wt);
   }
 }
@@ -1040,7 +1296,7 @@ function playerAttack() {
    se o golpe é mágico (tem elemento, e não é o físico) e de que cor ele é (a
    tabela). Dois campos que precisavam concordar eram dois campos que podiam
    discordar. Sem elemento = pancada física, que é o caso da garra e da mordida. */
-function hitPlayer(raw, src, el) {
+function hitPlayer(raw, src, el, estK) {
   if (G.dead) return;
   const mag = !!el && el !== 'physical';
   const guarda = STANCE[P.stance || 'bal'].def * (1 + (P.buffs.guard ? P.buffs.guard.val / 100 : 0));
@@ -1070,6 +1326,7 @@ function hitPlayer(raw, src, el) {
     if (dmg <= 0) { renderBars(); return; }
   }
   P.hp -= dmg;
+  if (P.hp > 0 && estK) aplicaEstado(P, estK, dmg);
   // apanhar merece a mesma leitura que bater: clarão no boneco e um tranco leve
   P.hitT = G.now; abalo(2);
   float(P.x, P.y, (resEl ? '▼' : '') + '-' + dmg, '#ff5555', 1);
@@ -1261,11 +1518,11 @@ function castSpell(sp) {
     recalc();
   } else if (sp.type === 'attack') {
     const m = G.target;
-    shoot(P.px, P.py, m.px, m.py, sp.col, () => dealDamage(m, power(sp.base) * rnd(0.85, 1.15), sp.el, '#' + sp.col.toString(16).padStart(6, '0')), 22, sp.el);
+    shoot(P.px, P.py, m.px, m.py, sp.col, () => dealDamage(m, power(sp.base) * rnd(0.85, 1.15), sp.el, '#' + sp.col.toString(16).padStart(6, '0'), estadoDaMagia(sp)), 22, sp.el);
   } else if (sp.type === 'melee') {
     const m = G.target, w = weaponInfo();
     const base = w.wt === 'wand' ? rnd(w.dmg[0], w.dmg[1]) : damageFormula(w.atk, skillOf(w.wt));
-    dealDamage(m, base * sp.mult, null, '#ffcc66');
+    dealDamage(m, base * sp.mult, null, '#ffcc66', estadoDaMagia(sp));
     if (w.wt !== 'wand') addSkillTry(w.wt);
     fxBurst(m.x, m.y, sp.col, 1);
   } else if (sp.type === 'taunt') {
@@ -1280,14 +1537,15 @@ function castSpell(sp) {
   } else {
     const tiles = spellTiles(sp);
     tiles.forEach(([x, y], i) => setTimeout(() => fxBurst(x, y, sp.col, 0.9, sp.el), i * 12));
+    if (sp.type === 'aoe') criaCampo(tiles, P.z, sp.el, power(sp.base));
     const hit = G.mobs.filter(m => m.z === P.z && tiles.some(([x, y]) => x === m.x && y === m.y));
     for (const m of hit) {
       if (sp.type === 'melee_aoe') {
         const w = weaponInfo();
         const base = w.wt === 'wand' ? rnd(w.dmg[0], w.dmg[1]) : damageFormula(w.atk, skillOf(w.wt));
-        dealDamage(m, base * sp.mult, null, '#ffcc66');
+        dealDamage(m, base * sp.mult, null, '#ffcc66', estadoDaMagia(sp));
         if (w.wt !== 'wand') addSkillTry(w.wt);
-      } else dealDamage(m, power(sp.base) * rnd(0.85, 1.15), sp.el, '#' + sp.col.toString(16).padStart(6, '0'));
+      } else dealDamage(m, power(sp.base) * rnd(0.85, 1.15), sp.el, '#' + sp.col.toString(16).padStart(6, '0'), estadoDaMagia(sp));
     }
     if (!hit.length) log(`${sp.n} não acertou ninguém.`);
   }
@@ -1358,6 +1616,10 @@ function abrirTesouro(p) {
   log(`${p.ico} Você saqueia ${p.n}: ${n} ${n === 1 ? 'item cai' : 'itens caem'} no chão.`, 'good');
   notify('💰', 'Tesouro saqueado', `${p.n} — ${n} ${n === 1 ? 'item' : 'itens'} no chão`);
 }
+function fecharLoot() {
+  G.lootOpen = null;
+  $('#loot-win').style.display = 'none';
+}
 function openLoot(c) {
   // clicar de novo no corpo já aberto reabre a mesma janela: o som é da ABERTURA,
   // senão cada clique de mira em cima do corpo vira um couro rasgando
@@ -1380,6 +1642,7 @@ function lootTempo() {
 }
 function renderLoot() {
   const c = G.lootOpen; if (!c) return;
+
   const box = $('#loot-items');
   $('#loot-all').disabled = !c.items.length;
   lootTempo();
@@ -1388,9 +1651,9 @@ function renderLoot() {
     if (bagAdd(it)) {
       c.items.splice(c.items.indexOf(it), 1);
       const s = itemStats(it);
-      log(`Você pegou ${it.id === 'gold' ? it.count + ' moedas de ouro' : s.name}.`, 'loot');
+      log(`Você pegou ${COIN_V[it.id] ? it.count + ' ' + s.name.toLowerCase() : s.name}.`, 'loot');
       sfx('loot');
-      renderLoot();
+      lootMudou(c);
     }
   }));
   // slots vazios até fechar a fileira: o corpo lê como recipiente, igual à mochila
@@ -1421,6 +1684,14 @@ function arrastaJanela(win) {
 function lootAll() {
   const c = G.lootOpen; if (!c) return;
   [...c.items].forEach(it => { if (bagAdd(it)) c.items.splice(c.items.indexOf(it), 1); });
+  lootMudou(c);
+}
+/* Esvaziou tirando item: a janela em branco não informa nada e fica no caminho
+   do próximo bicho, então fecha sozinha. O corpo continua no chão — clicar nele
+   reabre. Por isso o fecho mora aqui e não no `renderLoot`: lá ele impediria
+   abrir de propósito um corpo já vazio. */
+function lootMudou(c) {
+  if (!c.items.length) return fecharLoot();
   renderLoot();
 }
 
@@ -1573,7 +1844,9 @@ function renderBars() {
   $('#xp-fill').style.width = clamp((P.exp - prev) / (need - prev) * 100, 0, 100) + '%';
   $('#hp-text').textContent = `${Math.max(0, Math.round(P.hp))} / ${P.st.maxhp}`;
   $('#mp-text').textContent = `${Math.round(P.mana)} / ${P.st.maxmana}`;
-  $('#xp-text').textContent = `Nv ${P.level} · ${(need - P.exp).toLocaleString('pt-BR')} exp p/ subir`;
+  $('#xp-nivel').textContent = `Nv ${P.level}`;
+  // o quanto falta é consulta, não vigilância: mora no balão, não na faixa
+  $('#xp-row').title = `${(need - P.exp).toLocaleString('pt-BR')} de experiência para o nível ${P.level + 1}`;
   $('#gold-val').textContent = P.gold.toLocaleString('pt-BR');
   renderCombatStats();
   tickStatus();
@@ -1588,8 +1861,10 @@ function statusAtivos() {
   for (const k in P.buffs) {
     const b = P.buffs[k];
     out.push({
-      k, ico: BUFF_ICO[k] || '✨', n: BUFF_LABEL[k] || k,
-      desc: (BUFF_DESC[k] || (() => ''))(b.val),
+      k, ico: ESTADOS[k] ? estadoIco(k) : (BUFF_ICO[k] || '✨'), n: BUFF_LABEL[k] || k,
+      desc: ESTADOS[k]
+        ? `Perde <b>${b.dano}</b> de vida a cada 3s${ESTADOS[k].lento ? ` · Velocidade <b>−${Math.round(ESTADOS[k].lento * 100)}%</b>` : ''}`
+        : (BUFF_DESC[k] || (() => ''))(b.val),
       // escudo mágico não conta tempo: acaba quando a mana acaba
       seg: k === 'mshield' ? null : Math.max(0, Math.ceil((b.end - G.now) / 1000)),
       ruim: !!BUFF_RUIM[k]
@@ -1647,9 +1922,12 @@ function itemCell(it, onClick) {
     d.oncontextmenu = e => { e.preventDefault(); if (P.bag.includes(it)) { dropItem(it); hideTip(); } };
     CELULA.set(it, d);
   }
-  d.className = 'cell';                       // some com o .eq de quando estava equipado
-  d.style.left = d.style.top = '';            // e com a posição absoluta do paperdoll
-  d.style.borderColor = s.color + '88';
+  d.className = it.r ? 'cell r' + it.r : 'cell';  // some com o .eq de quando estava equipado
+  d.style.left = d.style.top = '';                // e com a posição absoluta do paperdoll
+  /* A cor da raridade entra como `color` e não como borda: as cantoneiras são
+     pseudo-elementos, e pseudo-elemento herda `color` — então uma atribuição
+     pinta borda e cantos de uma vez. Comum não marca nada (ver index.html). */
+  d.style.color = it.r ? s.color : '';
   d.lastChild.textContent = it.ch || (it.count > 1 ? it.count : '');
   d.onclick = onClick;
   return d;
@@ -1676,6 +1954,18 @@ const SLOT_POS = {
   helmet: [61, 0], armor: [61, 61], legs: [61, 122], boots: [61, 183],
   amulet: [0, 25], weapon: [0, 86], ring: [0, 147], shield: [122, 86], light: [122, 147]
 };
+/* Slot vazio mostra a própria peça em cinza, não o nome dela: 8px de texto no
+   escuro ninguém lia, e a silhueta diz o que entra ali sem depender de leitura.
+   A arte sai toda do novice_set — é o kit de nível 1, uma família visual só, e
+   já vem no padrão de 54px do slot (os genéricos helmet/armor/shield são da
+   leva antiga de 64px e apareciam como um quadrado cinza reamostrado).
+   A arma segue a vocação: placeholder de espada na mão de um druida seria
+   mentira. O nome continua no `title`, para o caso ambíguo. */
+const PH_SLOT = {
+  helmet: 'leather_helmet', amulet: 'bronze_amulet', armor: 'leather_armor', shield: 'wooden_shield',
+  legs: 'leather_legs', boots: 'leather_boots', ring: 'iron_ring', light: 'torch'
+};
+const PH_ARMA = { knight: 'short_sword', ranger: 'short_bow', sorcerer: 'wand_of_vortex', druid: 'snakebite_rod' };
 const EQ_VAZIO = {};
 function renderInv() {
   const cells = [];
@@ -1683,9 +1973,11 @@ function renderInv() {
     const it = P.eq[slot];
     let d;
     if (it) { d = itemCell(it, () => unequip(slot)); d.classList.add('eq'); }
-    else if (!(d = EQ_VAZIO[slot])) {
-      d = EQ_VAZIO[slot] = document.createElement('div');
-      d.className = 'cell eq empty'; d.innerHTML = `<span class="lbl">${SLOT_LABEL[slot]}</span>`;
+    else if (!(d = EQ_VAZIO[slot + P.voc])) {
+      const spr = slot === 'weapon' ? PH_ARMA[P.voc] : PH_SLOT[slot];
+      d = EQ_VAZIO[slot + P.voc] = document.createElement('div');
+      d.className = 'cell eq empty'; d.title = SLOT_LABEL[slot];
+      d.innerHTML = `<img class="ii ii-${slot} slot-ph" src="assets/icons/${spr}.png" alt="">`;
     }
     d.style.left = SLOT_POS[slot][0] + 'px'; d.style.top = SLOT_POS[slot][1] + 'px';
     cells.push(d);
@@ -1710,6 +2002,46 @@ function renderSkills() {
       <b>${lvl}${bonus ? `<i class="bon">+${bonus}</i>` : ''}</b></div>
       <div class="sbar"><i style="width:${clamp(cur / need * 100, 0, 100)}%"></i></div>`;
     box.appendChild(d);
+  }
+  renderFicha(box);
+}
+/* Ficha do personagem, embaixo das perícias: só nome e número, sem ícone e sem
+   barra. Barra é para o que progride; isto é estado atual, e estado se lê de
+   relance numa coluna alinhada.
+   Tudo sai de `P.st` — o MESMO objeto que o combate consulta — e o ataque sai da
+   fórmula de dano de verdade, não de uma cópia. Número de ficha que diverge do
+   número que bate é pior do que número nenhum.
+   Vida e mana atuais ficam de fora: renderSkills roda no máximo a cada golpe, e
+   um contador que anda a cada tick nasceria velho aqui. Eles já estão na barra
+   do topo, ao vivo. */
+const FICHA_RES_MAX = .75;
+function fichaLinhas() {
+  const w = weaponInfo();
+  const atk = w.wt === 'wand' ? `${w.dmg[0]}–${w.dmg[1]}`
+    : Math.round(0.09 * w.atk * (skillOf(w.wt === 'fist' ? 'fist' : w.wt) + 4) + P.level / 5);
+  const pct = v => Math.round(v * 100) + '%';
+  const grupos = [['Combate', [
+    ['Ataque', atk], ['Defesa', P.st.def], ['Velocidade', P.st.speed],
+    ['Crítico', pct(P.st.crit)], ['Roubo de vida', pct(P.st.lifesteal)]
+  ]], ['Vitalidade', [
+    ['Vida máxima', P.st.maxhp], ['Mana máxima', P.st.maxmana],
+    ['Regen. de vida', P.st.hpReg], ['Regen. de mana', P.st.mpReg]
+  ]]];
+  const res = Object.keys(P.st.res).filter(k => P.st.res[k] > 0 && ELEM[k]).sort();
+  if (res.length) grupos.push(['Resistências',
+    res.map(k => ['Resist. a ' + ELEM[k].n, pct(Math.min(FICHA_RES_MAX, P.st.res[k]))])]);
+  return grupos;
+}
+function renderFicha(box) {
+  for (const [titulo, linhas] of fichaLinhas()) {
+    const h = document.createElement('div'); h.className = 'fic-h'; h.textContent = titulo;
+    box.appendChild(h);
+    for (const [n, v] of linhas) {
+      const d = document.createElement('div'); d.className = 'fic';
+      d.innerHTML = `<span></span><b></b>`;
+      d.firstChild.textContent = n; d.lastChild.textContent = v;
+      box.appendChild(d);
+    }
   }
 }
 /* ---------------------------------------------------- descrição de magia
@@ -1808,19 +2140,30 @@ function renderSpells() {
     box.appendChild(d);
   }
 }
-/* barra de habilidades: slots livres, magia OU item (poção, runa). 20 pra
-   render em fileira única e esticar de ponta a ponta do elemento (flex-grow
-   no CSS), não só os 12 originais que sobravam espaço vazio na barra.
+/* barra de habilidades: slots livres, magia OU item (poção, runa).
+   HOT_FILA por fileira, HOT_FILAS fileiras. A barra nasce com uma só e o botão
+   da ponta abre as outras — quem usa doze atalhos não paga 40 buracos de altura
+   de tela, e quem usa quarenta não fica sem lugar.
    Tecla padrão F1–F12 nos 12 primeiros; do 13 em diante nasce sem tecla
    ("?") — clique no rótulo do canto e aperte a tecla nova; Esc cancela. */
-const HOT_SLOTS = 20;
+const HOT_FILA = 20, HOT_FILAS = 2;
+const HOT_SLOTS = HOT_FILA * HOT_FILAS;
 const HOT_KEYS_DEFAULT = Array.from({ length: HOT_SLOTS }, (_, i) => i < 12 ? 'f' + (i + 1) : null);
 const hotKeyLabel = k => k ? k.toUpperCase() : '?';
+/* Crescer HOT_SLOTS não pode zerar a barra de quem já jogava: antes o teste era
+   `length !== HOT_SLOTS`, e qualquer mudança no número apagava os atalhos
+   salvos. Agora completa com vazio e corta o excedente. */
+function hotAjusta(a, molde) {
+  if (!Array.isArray(a)) return molde();
+  while (a.length < HOT_SLOTS) a.push(null);
+  a.length = HOT_SLOTS;
+  return a;
+}
 function hotDefault() {
   const bar = new Array(HOT_SLOTS).fill(null);
   knownSpells().slice(0, 8).forEach((sp, i) => bar[i] = { k: 'spell', id: sp.id });
-  bar[HOT_SLOTS - 2] = { k: 'item', id: 'health_potion' };
-  bar[HOT_SLOTS - 1] = { k: 'item', id: 'mana_potion' };
+  bar[HOT_FILA - 2] = { k: 'item', id: 'health_potion' };
+  bar[HOT_FILA - 1] = { k: 'item', id: 'mana_potion' };
   return bar;
 }
 function hotEntry(slot) {
@@ -1846,16 +2189,23 @@ function setHotkey(i, key) {
 }
 function renderHotbar() {
   const bar = $('#hotbar');
-  if (!P.hotbar || P.hotbar.length !== HOT_SLOTS) P.hotbar = hotDefault();
-  if (!P.hotkeys || P.hotkeys.length !== HOT_SLOTS) P.hotkeys = HOT_KEYS_DEFAULT.slice();
+  P.hotbar = hotAjusta(P.hotbar, hotDefault);
+  P.hotkeys = hotAjusta(P.hotkeys, () => HOT_KEYS_DEFAULT.slice());
   /* mesmo motivo da mochila (ver itemCell): o slot é reaproveitado e só volta a
      ser remontado quando o conteúdo muda de verdade, senão o ícone pisca a cada
      magia lançada. */
   for (let i = 0; i < HOT_SLOTS; i++) {
     const e = hotEntry(P.hotbar[i]);
     const d = bar.children[i] || bar.appendChild(document.createElement('div'));
-    const html = `<b>${hotKeyLabel(P.hotkeys[i])}</b><span>${e ? e.ico : '+'}</span><i>${e ? e.n : 'vazio'}</i><u></u>`;
-    d.className = 'hk' + (e ? '' : ' vazio');
+    /* O slot mostra ÍCONE, TECLA e QUANTIDADE — nada de nome. O rótulo não
+       cabia em 25px e saía "Lasca de G…", "Poç…": texto cortado não informa, só
+       ocupa. O nome vive no balão (§16).
+       A quantidade fica, e num selo de canto próprio: ela estava DENTRO do
+       rótulo cortado ("Poção ×5"), então justamente o número que decide se você
+       aguenta mais uma luta era o primeiro a sumir.
+       Slot vazio também não escreve "vazio": o furo já diz isso. */
+    const html = `<b>${hotKeyLabel(P.hotkeys[i])}</b><span>${e ? e.ico : '+'}</span><i></i><u></u>`;
+    d.className = 'hk' + (e ? '' : ' vazio') + (i >= HOT_FILA ? ' fila2' : '');
     if (d._html !== html) {
       d._html = html; d.innerHTML = html; delete d.dataset.q;   // tickHotbar reescreve a quantidade
       const key = d.firstChild;
@@ -1867,11 +2217,13 @@ function renderHotbar() {
     } else d.firstChild.textContent = hotKeyLabel(P.hotkeys[i]);   // desfaz o '…' do rebind
     d.onclick = () => e ? hotUse(i) : abrirPicker(i);
     d.oncontextmenu = ev => { ev.preventDefault(); P.hotbar[i] = null; renderHotbar(); };
-    d.title = e ? `${e.n} — ${hotKeyLabel(P.hotkeys[i])} · botão direito limpa` : 'clique para escolher';
-    /* magia no slot ganha o balão rico; item continua no `title` do navegador,
-       que já basta para poção e runa */
-    d.onmouseenter = e && e.sp ? ev => showSpellTip(ev, e.sp) : null;
-    d.onmouseleave = e && e.sp ? hideTip : null;
+    d.title = e ? '' : 'clique para escolher';
+    /* Com o nome fora do slot, o balão passa a ser a ÚNICA forma de saber o que
+       está ali — então tem de ser o balão do jogo, não o `title` do navegador,
+       que demora quase um segundo e não pertence a esta interface. */
+    d.onmouseenter = !e ? null : e.sp ? ev => showSpellTip(ev, e.sp)
+      : ev => tipEm(ev, `<b>${e.n}</b><div class="dim tiny">${hotKeyLabel(P.hotkeys[i])} · botão direito limpa</div>`);
+    d.onmouseleave = e ? hideTip : null;
   }
 }
 /* só o cooldown/mana muda a cada frame — remontar a barra inteira em 60fps é desperdício */
@@ -1891,7 +2243,7 @@ function tickHotbar() {
       const tem = P.bag.some(b => b.id === e.itemId);
       d.classList.toggle('nomana', !tem);
       const q = P.bag.filter(b => b.id === e.itemId).reduce((a, b) => a + (b.ch || b.count || 1), 0);
-      if (d.dataset.q !== String(q)) { d.dataset.q = q; d.children[2].textContent = e.n + (q ? ' ×' + q : ''); }
+      if (d.dataset.q !== String(q)) { d.dataset.q = q; d.children[2].textContent = q || ''; }
     }
   }
 }
@@ -2287,7 +2639,7 @@ function afterStep() {
     const dr = G.drops.find(d => d.z === P.z && d.x === lx && d.y === ly);
     if (dr && bagAdd(dr.it)) G.drops.splice(G.drops.indexOf(dr), 1);
   }
-  $('#shop-btn').style.display = shopNear() ? 'block' : 'none';
+  $('#shop-btn').hidden = !shopNear();   // linha do menu: `hidden` não briga com o display:flex dela
   // o quadro de contratos muda de cara ao pisar no templo (aceitar/receber liberam)
   if (G.perto !== shopNear()) {
     G.perto = shopNear();
@@ -2474,11 +2826,44 @@ function bindInput(canvas) {
     const txt = e.target.value.trim().toLowerCase(); e.target.value = '';
     e.target.blur();
     if (!txt) return;
+    if (txt === '/teste') { bancadaTeste(); return; }
     const sp = SPELLS.find(s => s.w === txt);
     if (sp) { castSpell(sp); return; }
     say(P, txt);
     log('Você diz: ' + txt);
   });
+}
+
+/* ponytail: bancada de teste, digitada no chat como `/teste`. Existe para o #33
+   e o #24 poderem ser experimentados à mão — apagar esta função e a linha que a
+   chama no handler do chat devolve o jogo ao que era, sem rastro em save nem em
+   UI. Não é menu, não é tecla, não aparece no `H`: quem não souber o nome não
+   esbarra nela.
+   MEXE NO PERSONAGEM ATIVO — rode num personagem novo, não no que você joga. */
+function bancadaTeste() {
+  P.level = 60; P.exp = expForLevel(60); P.ml = { l: 60, t: 0 };
+  P.gold += 50000;
+  const kit = { rune_explosion: 4, rune_gfb: 4, rune_avalanche: 4,
+                great_health_potion: 5, great_mana_potion: 5 };
+  for (const id in kit) for (let i = 0; i < kit[id]; i++) bagAdd(mkItem(id));
+  recalc(); P.hp = P.st.maxhp; P.mana = P.st.maxmana;
+  renderInv(); renderBars(); renderHotbar();
+  log('Bancada: nível 60, magic level 60, runas e poções na mochila.', 'good');
+  /* O que ESTE personagem consegue acender, derivado das tabelas em vez de uma
+     lista à mão — magia de área nova entra aqui sozinha. */
+  const minhas = SPELLS.filter(s => s.type === 'aoe' && ESTADO_DE[s.el] && (!s.voc || s.voc.includes(P.voc)));
+  log(minhas.length
+    ? 'Campo por magia: ' + minhas.map(s => `${s.w} → ${ELEM[s.el].n}`).join(' · ')
+    : 'Sua vocação não tem magia de área que deixe campo — vá pelas runas.', minhas.length ? 'good' : 'bad');
+  const runas = Object.keys(ITEMS).filter(k => ITEMS[k].rune && ITEMS[k].rune.type === 'aoe' && ESTADO_DE[ITEMS[k].rune.el]);
+  log('Campo por runa (toda vocação, precisa de alvo): ' + runas.map(k => `${ITEMS[k].n} → ${ELEM[ITEMS[k].rune.el].n}`).join(' · '));
+  /* Elemento que tem estado mas nenhuma área que o produza: hoje é a terra, e
+     sem isto o veneno de chão parece defeito do #33 quando é falta de magia. */
+  const orfaos = Object.keys(ESTADO_DE).filter(el =>
+    !SPELLS.some(s => s.type === 'aoe' && s.el === el) &&
+    !runas.some(k => ITEMS[k].rune.el === el));
+  if (orfaos.length)
+    log(`Sem área no jogo, então sem campo: ${orfaos.map(e => ELEM[e].n).join(', ')}. Não é defeito do campo.`, 'bad');
 }
 
 /* ------------------------------------------------------------- placas/fx */
@@ -2562,7 +2947,7 @@ function updateFx() {
   for (let i = G.corpses.length - 1; i >= 0; i--) {
     const c = G.corpses[i];
     if (G.now - c.t > (c.ttl || 120000)) {
-      if (G.lootOpen === c) { G.lootOpen = null; $('#loot-win').style.display = 'none'; }
+      if (G.lootOpen === c) fecharLoot();
       G.corpses.splice(i, 1);
     }
   }
@@ -2794,7 +3179,7 @@ function frame(t) {
     G.lastSpawn = G.now; refreshSpawns(); renderBattle();
     const c = G.lootOpen;                       // saiu de perto do corpo: fecha o saque
     if (c && (c.z !== P.z || distAcao(P, c) > 1)) {
-      G.lootOpen = null; $('#loot-win').style.display = 'none';
+      fecharLoot();
     }
     else if (c) lootTempo();                    // relógio do próprio corpo correndo à vista
   }
@@ -2805,6 +3190,8 @@ function frame(t) {
       P.mana = Math.min(P.st.maxmana, P.mana + P.st.mpReg);
     }
     for (const k in P.buffs) if (P.buffs[k].end < G.now) { delete P.buffs[k]; recalc(); log('Efeito acabou: ' + (BUFF_LABEL[k] || k)); }
+    tickEstados();
+    tickCampos();
     regenMobs();
     // vira o dia: sem aviso o jogador acha que a tela quebrou
     const noite = ehNoite();
@@ -2852,7 +3239,20 @@ function startGame(name, voc, saved, charIdArg) {
      itemIcon só pede o PNG no primeiro desenho, então o primeiro drop de cada
      tipo nascia como o quadradinho de raridade e só virava ícone quando a
      imagem chegava — alguns quadros depois de o bicho morrer. */
-  for (const id in ITEMS) if (ITEMS[id].spr) itemIcon(ITEMS[id].spr);
+  /* Aquece a DENSIDADE que a tela vai usar. O laço pedia só o 1x, mas o srcset
+     entrega o @2x em tela densa — e é esse o arquivo que a <img> do saque
+     busca. Em monitor HiDPI, portanto, nenhum ícone estava aquecido de verdade
+     e todo item novo aparecia com atraso, que era o defeito relatado. */
+  const denso = devicePixelRatio > 1;
+  const aquece = spr => {
+    itemIcon(spr);                                  // canvas: o chão desenha o 1x
+    if (denso && ICONES2X.has(spr)) new Image().src = `assets/icons/${spr}@2x.png`;
+  };
+  for (const id in ITEMS) if (ITEMS[id].spr) aquece(ITEMS[id].spr);
+  /* Moeda não tem `spr` fixo: o arquivo depende da QUANTIDADE, então o laço
+     acima não a alcança. Como dinheiro é o drop mais frequente do jogo, era
+     justamente o ícone que mais aparecia atrasado. */
+  for (const c of COINS) for (const m of ['1', 'few', 'many']) aquece(c.id + '_' + m);
   const tela = $('#loading-screen');
   tela.classList.remove('fade');
   tela.style.display = 'flex';
@@ -2900,12 +3300,30 @@ function restaurarBichos(saved) {
     m.hp = Math.min(m.maxhp, Math.max(1, o.hp));
   }
 }
+/* Save é fronteira de confiança: o arquivo é de uma versão do jogo que pode não
+   ser esta. Um id que deixou de existir fazia `itemStats` ler `undefined.n` e o
+   jogo NÃO ABRIA — tela de carregamento para sempre, sem mensagem, e o
+   personagem parecia perdido. Aconteceu de verdade ao tirar `bronze_coin`.
+   A peça some, o resto entra. Perder um item vale mais que perder o save. */
+function limparItensSumidos(p, saved) {
+  const vive = it => it && ITEMS[it.id];
+  const sumiu = [];
+  const filtra = lista => lista.filter(it => vive(it) || (sumiu.push(it && it.id), false));
+  p.bag = filtra(p.bag || []);
+  for (const slot in p.eq || {}) if (p.eq[slot] && !vive(p.eq[slot])) { sumiu.push(p.eq[slot].id); p.eq[slot] = null; }
+  for (const c of saved.corpses || []) if (c.items) c.items = filtra(c.items);
+  (saved.drops || []).forEach(d => { if (d.it && !vive(d.it)) sumiu.push(d.it.id); });
+  saved.drops = (saved.drops || []).filter(d => !d.it || vive(d.it));
+  p.hotbar = (p.hotbar || []).map(h => h && h.k === 'item' && !ITEMS[h.id] ? null : h);
+  if (sumiu.length) console.warn('itens de versão antiga removidos do save:', [...new Set(sumiu)].join(', '));
+}
 function finishStart(canvas, saved, name, voc) {
   buildMinimaps();
   showScreen(null);
 
   if (saved) {
     P = saved.p; P.buffs = {}; P.cd = {}; P.nextStep = P.nextAtk = 0;
+    limparItensSumidos(P, saved);
     P.best = P.best || {}; P.charm = P.charm || 0; P.charms = P.charms || {};
     P.stance = P.stance || 'bal'; if (P.follow === undefined) P.follow = true; P.seen = P.seen || {};
     delete P.say;
@@ -3108,7 +3526,7 @@ function cycleVoc(delta) {
 addEventListener('DOMContentLoaded', () => {
   $('#loot-all').onclick = lootAll;
   arrastaJanela($('#loot-win'));
-  $('#loot-close').onclick = () => { $('#loot-win').style.display = 'none'; G.lootOpen = null; };
+  $('#loot-close').onclick = fecharLoot;
   $('#respawn-btn').onclick = respawn;
   $('#shop-btn').onclick = () => { $('#shop-win').style.display = 'flex'; renderShop(); };
   $('#shop-close').onclick = () => $('#shop-win').style.display = 'none';
@@ -3134,9 +3552,22 @@ addEventListener('DOMContentLoaded', () => {
   };
   $('#mute-btn').onclick = () => {
     const ligado = audioToggle();
-    $('#mute-btn').innerHTML = `<img class="im" src="assets/icons/ui_sound_${ligado ? 'on' : 'off'}.png" alt="">`;
+    $('#mute-btn img').src = `assets/icons/ui_sound_${ligado ? 'on' : 'off'}.png`;
     $('#mute-btn').classList.toggle('on', !!ligado);
   };
+  /* Menu único: o botão abre, escolher uma opção ou clicar em qualquer outro
+     lugar fecha. O clique no próprio botão não pode chegar ao document, senão
+     ele fecharia no mesmo evento que abriu. */
+  const menuB = $('#menu-btn'), menuL = $('#menu-list');
+  menuB.onclick = e => {
+    e.stopPropagation();
+    menuL.hidden = !menuL.hidden;
+    menuB.setAttribute('aria-expanded', String(!menuL.hidden));
+  };
+  document.addEventListener('click', () => {
+    if (menuL.hidden) return;
+    menuL.hidden = true; menuB.setAttribute('aria-expanded', 'false');
+  });
   // nome e explicação de cada indicador moram no data- do próprio elemento
   document.querySelectorAll('#combat-stats .cst').forEach(c => {
     c.onmouseenter = e => tipEm(e, `<b>${c.dataset.n}</b><div class="dim">${c.dataset.d}</div>`);

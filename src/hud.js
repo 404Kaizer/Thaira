@@ -32,6 +32,7 @@ const HUD_DEF = () => ({
   panels: HUD_PANELS.reduce((o, p, i) => (o[p.id] = { dock: p.dock, col: 0, largo: false, h: 0, ord: i, open: true, show: true }, o), {}),
   bits: HUD_BITS.reduce((o, b) => (o[b.id] = true, o), {}),
   status: 'edge',      // edge | sidebar | both | none
+  hotAberto: false,    // segunda fileira da barra de habilidades
   cols: { l: 0, r: 1 },  // colunas abertas por lado: 0 fechado, 1, ou 2
   consoleH: 148
 });
@@ -47,6 +48,7 @@ function hudLoad() {
       panels: Object.assign(base.panels, d.panels || {}),
       bits: Object.assign(base.bits, d.bits || {}),
       status: d.status || base.status,
+      hotAberto: !!d.hotAberto,
       cols: Object.assign(base.cols, d.cols || {}),
       consoleH: d.consoleH || base.consoleH
     };
@@ -55,7 +57,7 @@ function hudLoad() {
 const hudSave = () => localStorage.setItem(HUD_KEY, JSON.stringify(HUD));
 
 /* ------------------------------------------------------------- aplicar */
-function hudApply(protegido) {
+function hudApply() {
   for (const s of ['l', 'r']) {
     document.querySelector('#lado-' + s).hidden = !HUD.cols[s];
     for (const c of [0, 1]) document.querySelector(`#dock-${s}${c}`).hidden = c >= HUD.cols[s];
@@ -96,7 +98,13 @@ function hudApply(protegido) {
     if (el) el.style.display = HUD.bits[b.id] ? '' : 'none';
   }
   document.querySelector('#console').style.height = HUD.consoleH + 'px';
-  hudEncaixa(protegido);
+  // segunda fileira da barra de habilidades: a seta mostra o que o clique faz
+  const hw = document.querySelector('#hotbar-wrap'), ha = document.querySelector('#hotbar-arrow');
+  if (ha) {
+    hw.classList.toggle('aberto', HUD.hotAberto);
+    ha.textContent = HUD.hotAberto ? '˄' : '˅';
+    ha.title = HUD.hotAberto ? 'menos slots' : 'mais slots';
+  }
   hudResize();
 }
 /* o canvas encolheu/cresceu junto com as sidebars */
@@ -113,36 +121,16 @@ function hudMove(id, campo) {
   // o botão alterna o que está NA TELA, não o que está guardado
   if (campo === 'open') cfg.open = document.querySelector('#panel-' + id).classList.contains('fechado');
   else cfg[campo] = !cfg[campo];                           // show | largo
-  hudApply(campo === 'open' ? id : null); hudSave(); hudOptions(true);
+  hudApply(); hudSave(); hudOptions(true);
 }
 
-/* Coluna cheia recolhe de baixo para cima até caber, em vez de cortar o que
-   sobra. Recolhido não some: o cabeçalho continua ali e um clique reabre — e
-   como nada disso toca em `open`, o layout que o jogador escolheu volta inteiro
-   assim que houver espaço de novo. `protegido` é o painel que ele acabou de
-   abrir: esse não pode ser o primeiro a fechar, senão o clique não faz nada.
-   ponytail: se nem com todos recolhidos couber (abrir o equipamento, de 413px
-   fixos, numa coluna de 444 com mais três), o resto ainda é cortado na borda da
-   coluna. Sai arrastando um painel para a outra coluna; se virar incômodo, o
-   passo é esconder o excedente em vez de meio-desenhar. */
-function hudEncaixa(protegido) {
-  for (const s of ['l', 'r']) {
-    if (!HUD.cols[s]) continue;
-    const lado = document.querySelector('#lado-' + s);
-    const recuo = parseFloat(getComputedStyle(lado).paddingBottom) || 0;
-    const caixas = [[document.querySelector('#faixa-' + s), lado.getBoundingClientRect().bottom - recuo]];
-    for (let c = 0; c < HUD.cols[s]; c++) {
-      const d = document.querySelector(`#dock-${s}${c}`);
-      caixas.push([d, d.getBoundingClientRect().bottom]);
-    }
-    for (const [caixa, limite] of caixas) {
-      const vis = [...caixa.children].filter(e => e.classList.contains('panel') && e.style.display !== 'none');
-      const vaza = () => vis.length && vis[vis.length - 1].getBoundingClientRect().bottom > limite + .5;
-      for (let i = vis.length - 1; i >= 0 && vaza(); i--)
-        if (vis[i].id !== 'panel-' + protegido) vis[i].classList.add('fechado');
-    }
-  }
-}
+/* A coluna NÃO recolhe painel nenhum sozinha. Antes, quando o último painel
+   passava do fim da coluna, ela fechava os de baixo até caber — abrir uma aba
+   ao máximo recolhia todas as outras, e o jogador perdia o layout que tinha
+   montado sem ter pedido nada.
+   Não precisa: `.panel{flex:0 1 auto}` já espreme os elásticos e cada corpo
+   rola por dentro do próprio quadro (ver `.panel .pb`). O piso é o `min-height`
+   de 34px por painel — sete deles cabem em qualquer coluna real. */
 
 /* --------------------------------------------------------------- arraste */
 /* Arrastar o cabeçalho leva o painel para outra coluna e outra posição. Mouse
@@ -159,9 +147,7 @@ function hudSolta(id, s, col, ordem, i) {
   const nova = ordem.filter(x => x !== id);
   nova.splice(Math.min(i, nova.length), 0, id);
   nova.forEach((x, k) => HUD.panels[x].ord = k);
-  // protegido: cair no fim de uma coluna cheia recolhia na hora o painel que
-  // você acabou de arrastar, como se o arraste não tivesse funcionado
-  hudApply(id); hudSave(); hudOptions(true);
+  hudApply(); hudSave(); hudOptions(true);
 }
 
 /* a coluna mais próxima de onde soltou fica com o painel; metade da tela decide
@@ -228,9 +214,7 @@ addEventListener('mousemove', e => {
   HUD.panels[red.id].h = h;
   red.pb.style.height = h + 'px';
 });
-// hudApply refaz a conta do que cabe: crescer um painel pode espremer os de
-// baixo além do piso, e sem isso a coluna só se acertava na próxima mudança
-addEventListener('mouseup', () => { if (red) { const id = red.id; red = null; hudApply(id); hudSave(); } });
+addEventListener('mouseup', () => { if (red) { red = null; hudApply(); hudSave(); } });
 
 addEventListener('mouseup', () => {
   if (!arr) return;
@@ -356,6 +340,9 @@ addEventListener('DOMContentLoaded', () => {
   document.querySelector('#ui-close').onclick = () => document.querySelector('#ui-win').style.display = 'none';
   document.querySelector('#ui-reset').onclick = () => { HUD = HUD_DEF(); hudApply(); hudSave(); hudOptions(true); };
   // a seta cicla o lado: 1 coluna -> 2 colunas -> fechado
+  document.querySelector('#hotbar-arrow').onclick = () => {
+    HUD.hotAberto = !HUD.hotAberto; hudApply(); hudSave();
+  };
   document.querySelectorAll('.dock-arrow').forEach(a => a.onclick = () => {
     HUD.cols[a.dataset.d] = (HUD.cols[a.dataset.d] + 1) % 3;
     hudApply(); hudSave(); hudOptions(true);

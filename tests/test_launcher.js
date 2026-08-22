@@ -28,9 +28,10 @@ servidor.listen(0, '127.0.0.1', async () => {
   /* O ícone quebra em silêncio: caminho errado no BrowserWindow não dá erro
      nenhum, o Electron só cai no átomo padrão. Foi assim que o `app.png`
      inexistente sobreviveu. */
-  const ico = path.join(__dirname, '..', 'build', 'icon.ico');
-  assert.ok(fs.existsSync(ico), 'build/icon.ico sumiu — a janela volta pro ícone do Electron');
-  assert.ok(fs.readFileSync(ico).readUInt16LE(2) === 1, 'build/icon.ico não é um .ico de verdade');
+  const ico = servidor.ICONE;
+  assert.ok(ico && fs.existsSync(ico), 'o ícone que o BrowserWindow usa não existe — a janela volta pro ícone do Electron');
+  assert.ok(/\.ico$/i.test(ico), 'no Windows o ícone tem de ser .ico: a barra de tarefas quer a folha multi-tamanho');
+  assert.ok(fs.readFileSync(ico).readUInt16LE(2) === 1, 'o arquivo apontado não é um .ico de verdade');
 
   console.log('launcher ok');
   servidor.close();
