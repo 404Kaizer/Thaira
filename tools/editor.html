@@ -1,0 +1,668 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Editor de mapas — Thaira</title>
+<style>
+  :root {
+    --bg: #12100e; --painel: #1b1815; --linha: #2e2822; --texto: #d8cdb8;
+    --fraco: #8a7f6d; --ouro: #d8c27a; --perigo: #b4553a; --bom: #6f9a52;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--texto); overflow: hidden;
+         font: 13px/1.5 ui-sans-serif, system-ui, sans-serif;
+         display: grid; grid-template-rows: auto auto 1fr auto; }
+  h1 { font: 600 15px/1.2 ui-serif, Georgia, serif; color: var(--ouro); margin: 0; display: inline; }
+  header { padding: 7px 12px; border-bottom: 1px solid var(--linha); }
+  header span { color: var(--fraco); margin-left: 10px; font-size: 12px; }
+  .barra { display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+           padding: 6px 12px; border-bottom: 1px solid var(--linha); background: var(--painel); }
+  .sep { width: 1px; height: 20px; background: var(--linha); }
+  button, input[type=text] {
+    background: #241f1a; color: var(--texto); border: 1px solid var(--linha);
+    padding: 3px 8px; font: inherit; cursor: pointer; border-radius: 0; }
+  button.on { background: var(--ouro); color: #17140f; border-color: var(--ouro); }
+  button:hover:not(.on) { border-color: var(--fraco); }
+  button b { font-weight: 600; opacity: .5; margin-left: 5px; font-size: 10.5px;
+             font-family: ui-monospace, monospace; }
+  button.on b { opacity: .65; }
+
+  .palco { display: grid; grid-template-columns: 214px 1fr; min-height: 0; }
+  #paleta { border-right: 1px solid var(--linha); overflow-y: auto; padding: 6px 6px 20px;
+            background: var(--painel); }
+  .grupo { color: var(--ouro); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
+           margin: 10px 2px 4px; border-bottom: 1px solid var(--linha); padding-bottom: 2px; }
+  .grupo:first-child { margin-top: 2px; }
+  .linhas { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+  .tl { display: flex; align-items: center; gap: 5px; padding: 2px 4px; font-size: 11px;
+        border: 1px solid transparent; cursor: pointer; user-select: none; }
+  .tl:hover { border-color: var(--linha); }
+  .tl.on { border-color: var(--ouro); background: #2a241c; }
+  .sw { width: 14px; height: 14px; border: 1px solid #0007; flex: none; }
+  .sw.barra { box-shadow: inset 0 0 0 2px #0009; }
+
+  .visor { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #0a0908; }
+  canvas { display: block; image-rendering: pixelated; cursor: crosshair; }
+  canvas.pan { cursor: grabbing; }
+  #log { position: absolute; right: 10px; bottom: 10px; width: 46ch; max-height: 44%;
+         overflow: auto; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.45;
+         color: var(--fraco); background: #17140fe8; border: 1px solid var(--linha);
+         padding: 7px 9px; margin: 0; white-space: pre-wrap; }
+  #log:empty { display: none; }
+  #log.ruim { border-color: var(--perigo); color: #e0b3a4; }
+
+  .rodape { display: flex; gap: 16px; align-items: center; padding: 4px 12px;
+            border-top: 1px solid var(--linha); background: var(--painel);
+            font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--fraco); }
+  .rodape .dica { margin-left: auto; opacity: .8; }
+  .aviso { color: var(--perigo); }
+  .ok { color: var(--bom); }
+</style>
+
+<header>
+  <h1>Editor de mapas</h1>
+  <span>o script <b>semeia</b>, você <b>corrige</b> — gravar aplica o seu patch e recompõe o mapa que o jogo carrega</span>
+</header>
+
+<div class="barra">
+  <label>Mapa <input id="nome" type="text" value="varrokgaard" style="width:112px"></label>
+  <button id="carregar">carregar</button>
+  <span class="sep"></span>
+  <span id="andares"></span>
+  <span class="sep"></span>
+  <button class="fer on" data-f="pincel">pincel<b>B</b></button>
+  <button class="fer" data-f="balde">balde<b>G</b></button>
+  <button class="fer" data-f="retangulo">retângulo<b>R</b></button>
+  <button class="fer" data-f="conta-gotas">conta-gotas<b>I</b></button>
+  <span class="sep"></span>
+  <button class="tam on" data-r="0">1×1<b>1</b></button>
+  <button class="tam" data-r="1">3×3<b>2</b></button>
+  <button class="tam" data-r="2">5×5<b>3</b></button>
+  <span class="sep"></span>
+  <button id="verTudo">ver tudo<b>0</b></button>
+  <button id="desfazer">desfazer<b>^Z</b></button>
+  <span class="sep"></span>
+  <button id="gravar">gravar e recompor<b>^S</b></button>
+  <button id="limpar">descartar</button>
+</div>
+
+<div class="palco">
+  <div id="paleta"></div>
+  <div class="visor" id="visor">
+    <canvas id="cv"></canvas>
+    <pre id="log"></pre>
+  </div>
+</div>
+
+<div class="rodape">
+  <span id="sob">&nbsp;</span>
+  <span id="estado"></span>
+  <span id="lupa"></span>
+  <span class="dica">roda = zoom no cursor · botão direito arrasta · gravar recompõe e avisa o jogo aberto</span>
+</div>
+
+<script src="../src/data.js"></script>
+<script src="../src/art.js"></script>
+<script src="../src/world.js"></script>
+<script>
+/* O editor carrega o world.js DE VERDADE, como a planta faz. A paleta, as cores
+   e o mapa saem da fonte única — copiar id ou cor para cá criaria a segunda
+   fonte de verdade que a virada de mundo existe para não ter, e a página
+   mentiria no dia seguinte. */
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), ctx = cv.getContext('2d');
+
+/* CÂMERA. A primeira versão dimensionava o canvas em W*px e desenhava o mapa
+   inteiro: no zoom 8 isso dava 1536 px de canvas, que transbordava a página e
+   empurrava tudo para o canto — e mudar o zoom redesenhava a partir de (0,0),
+   então o que você estava olhando saía voando. Agora o canvas é uma JANELA do
+   tamanho do visor, `cam` é o tile do canto superior esquerdo, e o zoom é
+   ancorado no cursor. É o mesmo modelo do jogo, e pela mesma razão. */
+let z = 0, px = 4, camX = 0, camY = 0;
+let pincel = T.GRASS, ferramenta = 'pincel', raio = 0;
+let base = null;                 // o mapa como o script o deixou, para o diff
+let mexidos = new Map();         // "z:i" -> tile, só o que difere da base
+let pilha = [];                  // desfazer: cada traço é um lote
+let arrastando = null, panning = null, hover = null;
+
+const chave = (zz, i) => zz + ':' + i;
+const nomeTile = t => Object.keys(T).find(k => T[k] === t) || String(t);
+const cssCor = t => '#' + TILE[t].c.toString(16).padStart(6, '0');
+const trava = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* --------------------------------------------------------------- a paleta
+   Agrupada, e não uma lista de 39 nomes em ordem de id. Trinta e nove itens em
+   duas colunas sem ordem que se leia é um índice, não uma paleta: para achar
+   CROP você lia a lista inteira. Os grupos são os do vocabulário do #48, que é
+   como os tiles foram pensados. */
+const GRUPOS = [
+  ['terreno', ['GRASS', 'DIRT', 'SAND', 'WATER', 'ROCK', 'TREE', 'SNOW', 'SWAMP', 'LAVA', 'VOID']],
+  ['madeira', ['WALL', 'FLOOR', 'DOOR', 'FENCE', 'CROP', 'PIER', 'HAY', 'PROP']],
+  ['pedra',   ['SWALL', 'PAVE', 'RUBBLE', 'TEMPLE']],
+  ['subsolo', ['CFLOOR', 'CWALL', 'ORE', 'GRAVEL', 'WEB', 'WEBF', 'BONE', 'ASH', 'MOSS']],
+  ['móveis',  ['WELL', 'CART', 'BARREL', 'MILL']],
+  ['marcas',  ['GORE', 'RUNE']],
+  ['escadas', ['UP', 'DOWN']]
+];
+function paleta() {
+  const p = $('#paleta');
+  p.innerHTML = '';
+  const postos = new Set();
+  const bloco = (titulo, nomes) => {
+    const h = document.createElement('div'); h.className = 'grupo'; h.textContent = titulo;
+    const g = document.createElement('div'); g.className = 'linhas';
+    for (const nome of nomes) {
+      if (T[nome] === undefined) continue;
+      postos.add(nome);
+      const t = T[nome], d = document.createElement('div');
+      d.className = 'tl' + (t === pincel ? ' on' : '');
+      d.innerHTML = '<span class="sw' + (TILE[t].walk ? '' : ' barra') + '" style="background:' +
+        cssCor(t) + '"></span><span>' + nome.toLowerCase() + '</span>';
+      d.title = nome + ' · ' + (TILE[t].walk ? 'andável' : 'barra o passo') +
+        (TILE[t].span ? ' · ocupa ' + TILE[t].span[0] + '×' + TILE[t].span[1] + ' tiles' : '');
+      d.onclick = () => { pincel = t; paleta(); desenha(); };
+      g.appendChild(d);
+    }
+    p.appendChild(h); p.appendChild(g);
+  };
+  for (const [titulo, nomes] of GRUPOS) bloco(titulo, nomes);
+  /* Tile que entrar na tabela e não estiver em GRUPOS aparece aqui em vez de
+     sumir da paleta: a lista de grupos é escrita à mão e vai envelhecer. */
+  const sobra = Object.keys(T).filter(k => !postos.has(k));
+  if (sobra.length) bloco('sem grupo', sobra);
+}
+
+/* -------------------------------------------------------------- o desenho */
+function ajusta() {
+  const v = $('#visor');
+  cv.width = v.clientWidth; cv.height = v.clientHeight;
+  ctx.imageSmoothingEnabled = false;
+  desenha();
+}
+const colunas = () => Math.ceil(cv.width / px) + 1;
+const linhas = () => Math.ceil(cv.height / px) + 1;
+
+function limitaCam() {
+  /* Meia tela de folga dos dois lados: travar a câmera na borda exata impede de
+     trabalhar no tile 0 com conforto, e mapa menor que o visor ficaria colado
+     no canto — que é o defeito que esta reforma veio consertar. */
+  camX = trava(camX, -cv.width / px / 2, W - cv.width / px / 2);
+  camY = trava(camY, -cv.height / px / 2, H - cv.height / px / 2);
+}
+
+function desenha() {
+  if (!base) return;
+  limitaCam();
+  const x0 = Math.floor(camX), y0 = Math.floor(camY);
+  const ox = (camX - x0) * px, oy = (camY - y0) * px;
+  ctx.fillStyle = '#0a0908'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const t = WORLD.floors[z].t;
+  for (let j = 0; j < linhas(); j++) for (let i = 0; i < colunas(); i++) {
+    const x = x0 + i, y = y0 + j;
+    if (x < 0 || y < 0 || x >= W || y >= H) continue;
+    ctx.fillStyle = cssCor(t[y * W + x]);
+    ctx.fillRect(Math.round(i * px - ox), Math.round(j * px - oy), Math.ceil(px), Math.ceil(px));
+  }
+  const telaX = x => Math.round((x - camX) * px), telaY = y => Math.round((y - camY) * px);
+
+  /* Grade só quando o tile é grande o bastante para ela não virar ruído. Sem
+     grade não se conta tile, e contar tile é metade do trabalho de editar. */
+  if (px >= 7) {
+    ctx.strokeStyle = 'rgba(0,0,0,.24)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= colunas(); i++) { const sx = Math.round(i * px - ox) + .5; ctx.moveTo(sx, 0); ctx.lineTo(sx, cv.height); }
+    for (let j = 0; j <= linhas(); j++) { const sy = Math.round(j * px - oy) + .5; ctx.moveTo(0, sy); ctx.lineTo(cv.width, sy); }
+    ctx.stroke();
+  }
+
+  /* O que VOCÊ mexeu fica marcado enquanto não grava. Sem isso não há como
+     saber o que é seu e o que é meu, e a primeira coisa que se perde num editor
+     é a noção do que já foi tocado. */
+  ctx.strokeStyle = 'rgba(216,194,122,.9)'; ctx.lineWidth = px >= 4 ? 1 : 2;
+  for (const k of mexidos.keys()) {
+    const [kz, ki] = k.split(':').map(Number);
+    if (kz !== z) continue;
+    const x = ki % W, y = (ki / W) | 0;
+    if (x < x0 - 1 || y < y0 - 1 || x > x0 + colunas() || y > y0 + linhas()) continue;
+    ctx.strokeRect(telaX(x) + .5, telaY(y) + .5, Math.max(1, px - 1), Math.max(1, px - 1));
+  }
+
+  // spawn e hunt: não se editam aqui ainda, mas apagar um tile com bicho em
+  // cima sem ver o bicho seria pior
+  ctx.fillStyle = '#ffd25a';
+  const r = Math.max(2, px * .34);
+  for (const s of WORLD.spawns) if (s.z === z) {
+    const sx = telaX(s.x), sy = telaY(s.y);
+    if (sx < -px || sy < -px || sx > cv.width || sy > cv.height) continue;
+    ctx.fillRect(sx + px / 2 - r / 2, sy + px / 2 - r / 2, r, r);
+  }
+  ctx.strokeStyle = 'rgba(255,90,60,.85)'; ctx.lineWidth = 1.5;
+  for (const h of WORLD.hunts) if (h.z === z) {
+    ctx.beginPath(); ctx.arc(telaX(h.x) + px / 2, telaY(h.y) + px / 2, h.r * px, 0, 7); ctx.stroke();
+  }
+
+  /* O pincel embaixo do cursor. Com raio 2, ou com objeto de 2×3, é impossível
+     acertar onde a coisa cai sem ver a marca ANTES de clicar. */
+  if (hover && ferramenta !== 'conta-gotas') {
+    const sp = TILE[pincel].span;
+    const [hx, hy] = hover;
+    let ax, ay, aw, ah;
+    if (ferramenta === 'retangulo' && arrastando && arrastando.ret) {
+      ax = Math.min(arrastando.x, hx); ay = Math.min(arrastando.y, hy);
+      aw = Math.abs(hx - arrastando.x) + 1; ah = Math.abs(hy - arrastando.y) + 1;
+    } else if (sp) { ax = hx; ay = hy; aw = sp[0]; ah = sp[1]; }
+    else { ax = hx - raio; ay = hy - raio; aw = raio * 2 + 1; ah = raio * 2 + 1; }
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+    ctx.strokeRect(telaX(ax) + .5, telaY(ay) + .5, aw * px - 1, ah * px - 1);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(telaX(ax) + .5, telaY(ay) + .5, aw * px - 1, ah * px - 1);
+  }
+  estado();
+}
+
+function estado() {
+  const n = mexidos.size;
+  $('#estado').innerHTML = n
+    ? '<span class="aviso">● ' + n + ' tile' + (n > 1 ? 's' : '') + ' por gravar</span>'
+    : '<span class="ok">● nada pendente</span>';
+  $('#lupa').textContent = px.toFixed(1).replace('.0', '') + '× ';
+}
+
+/* ------------------------------------------------------------ a edição */
+function poe(x, y, t, lote) {
+  if (x < 0 || y < 0 || x >= W || y >= H) return;
+  const i = y * W + x, k = chave(z, i), atual = WORLD.floors[z].t[i];
+  if (atual === t) return;
+  lote.push([k, atual]);
+  WORLD.floors[z].t[i] = t;
+  /* O patch é DIFF contra a base, não histórico: pintar grama sobre grama que
+     já era grama tem de sumir do patch, senão ele cresce para sempre com
+     correções que não corrigem nada. */
+  if (base[z][i] === t) mexidos.delete(k); else mexidos.set(k, t);
+}
+
+function pintar(x, y, lote) {
+  const sp = TILE[pincel].span;
+  if (sp) {                                    // objeto grande: pinta o rastro inteiro
+    for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) poe(x + i, y + j, pincel, lote);
+    return;
+  }
+  for (let j = -raio; j <= raio; j++) for (let i = -raio; i <= raio; i++) poe(x + i, y + j, pincel, lote);
+}
+
+/* Balde com pilha explícita e não recursão: 192×192 é 36 mil tiles, e o
+   navegador estoura a pilha de chamadas bem antes disso num continente.
+   E com FREIO: o primeiro teste foi um clique no oceano, que virou 19.646 tiles
+   de uma vez — e um patch de 19 mil linhas no git. Um balde num campo cercado
+   pinta dezenas; um balde numa região aberta pinta metade do mapa, e a
+   diferença não se enxerga antes de clicar. Então ele MEDE e pergunta. */
+const BALDE_AVISA = 400;
+function balde(x, y, lote) {
+  const alvo = WORLD.floors[z].t[y * W + x];
+  if (alvo === pincel) return;
+  const p = [[x, y]], visto = new Set(), area = [];
+  while (p.length) {
+    const [cx, cy] = p.pop(), i = cy * W + cx;
+    if (cx < 0 || cy < 0 || cx >= W || cy >= H || visto.has(i)) continue;
+    if (WORLD.floors[z].t[i] !== alvo) continue;
+    visto.add(i); area.push([cx, cy]);
+    p.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+  }
+  if (area.length > BALDE_AVISA && !confirm(
+      'O balde vai pintar ' + area.length + ' tiles de ' + nomeTile(alvo).toLowerCase() +
+      ' em ' + nomeTile(pincel).toLowerCase() + '.\n\nIsso é ' +
+      (area.length / (W * H) * 100).toFixed(1) + '% do andar. Continuar?')) return;
+  for (const [cx, cy] of area) poe(cx, cy, pincel, lote);
+}
+
+const tileSob = e => {
+  const r = cv.getBoundingClientRect();
+  return [Math.floor((e.clientX - r.left) / px + camX), Math.floor((e.clientY - r.top) / px + camY)];
+};
+const dentro = ([x, y]) => x >= 0 && y >= 0 && x < W && y < H;
+
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('mousedown', e => {
+  e.preventDefault();
+  /* Arrastar com o botão DIREITO ou do MEIO move o mapa. Sem isso, no zoom alto
+     só dava para chegar nos tiles que calhassem de estar na tela ao carregar. */
+  if (e.button === 1 || e.button === 2) {
+    panning = { x: e.clientX, y: e.clientY, cx: camX, cy: camY };
+    cv.classList.add('pan');
+    return;
+  }
+  if (e.button !== 0) return;
+  const t = tileSob(e);
+  if (!dentro(t)) return;
+  if (ferramenta === 'conta-gotas') { pincel = WORLD.floors[z].t[t[1] * W + t[0]]; paleta(); desenha(); return; }
+  const lote = [];
+  if (ferramenta === 'balde') { balde(t[0], t[1], lote); if (lote.length) pilha.push(lote); desenha(); return; }
+  if (ferramenta === 'retangulo') { arrastando = { x: t[0], y: t[1], lote, ret: 1 }; return; }
+  arrastando = { lote };
+  pintar(t[0], t[1], lote);
+  desenha();
+});
+
+cv.addEventListener('mousemove', e => {
+  if (panning) {
+    camX = panning.cx - (e.clientX - panning.x) / px;
+    camY = panning.cy - (e.clientY - panning.y) / px;
+    desenha();
+    return;
+  }
+  const t = tileSob(e);
+  hover = dentro(t) ? t : null;
+  if (hover) {
+    const [x, y] = hover, tt = WORLD.floors[z].t[y * W + x];
+    const s = WORLD.spawns.find(sp => sp.z === z && sp.x === x && sp.y === y);
+    const h = WORLD.hunts.find(hh => hh.z === z && Math.hypot(hh.x - x, hh.y - y) <= hh.r);
+    $('#sob').textContent = String(x).padStart(3) + ',' + String(y).padStart(3) + '  ' +
+      nomeTile(tt).toLowerCase() + (TILE[tt].walk ? '' : ' (barra)') +
+      (base[z][y * W + x] !== tt ? '  ← mexido' : '') +
+      (s ? '  · spawn ' + (MONSTERS[s.m] ? MONSTERS[s.m].n : s.m) : '') +
+      (h ? '  · hunt ' + h.n : '');
+  } else $('#sob').innerHTML = '&nbsp;';
+  if (arrastando && !arrastando.ret && hover) pintar(hover[0], hover[1], arrastando.lote);
+  desenha();
+});
+
+addEventListener('mouseup', e => {
+  if (panning) { panning = null; cv.classList.remove('pan'); return; }
+  if (!arrastando) return;
+  if (arrastando.ret) {
+    const t = tileSob(e);
+    if (dentro(t)) {
+      const x0 = Math.min(arrastando.x, t[0]), x1 = Math.max(arrastando.x, t[0]);
+      const y0 = Math.min(arrastando.y, t[1]), y1 = Math.max(arrastando.y, t[1]);
+      for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) poe(i, j, pincel, arrastando.lote);
+    }
+  }
+  if (arrastando.lote.length) pilha.push(arrastando.lote);
+  arrastando = null;
+  desenha();
+});
+cv.addEventListener('mouseleave', () => { hover = null; $('#sob').innerHTML = '&nbsp;'; desenha(); });
+
+/* ZOOM PELA RODA, ANCORADO NO CURSOR: o tile embaixo do ponteiro continua
+   embaixo dele depois de ampliar. Era um menu com cinco valores fixos, e
+   escolher zoom num menu obriga a tirar a mão do mapa e a perder o lugar —
+   reescalar a partir do canto é o que fazia "tudo ficar espremido no canto". */
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const alvoX = camX + mx / px, alvoY = camY + my / px;
+  const novo = trava(px * (e.deltaY > 0 ? 1 / 1.2 : 1.2), 1, 28);
+  if (novo === px) return;
+  px = novo;
+  camX = alvoX - mx / px; camY = alvoY - my / px;
+  desenha();
+}, { passive: false });
+
+function verTudo() {
+  px = Math.max(1, Math.min(cv.width / W, cv.height / H));
+  camX = W / 2 - cv.width / px / 2;
+  camY = H / 2 - cv.height / px / 2;
+  desenha();
+}
+
+function desfazer() {
+  const lote = pilha.pop();
+  if (!lote) return;
+  for (let i = lote.length - 1; i >= 0; i--) {
+    const [k, antes] = lote[i];
+    const [kz, ki] = k.split(':').map(Number);
+    WORLD.floors[kz].t[ki] = antes;
+    if (base[kz][ki] === antes) mexidos.delete(k); else mexidos.set(k, antes);
+  }
+  desenha();
+}
+
+/* ------------------------------------------------------- carregar e gravar */
+/* ABERTO POR file:// NÃO FUNCIONA, e a mensagem do navegador para isso é
+   "Failed to fetch" — que não diz nada a quem só deu duplo clique no arquivo.
+   O editor precisa de servidor por dois motivos independentes: `fetch` de
+   arquivo local é bloqueado pelo navegador, e gravar depende do POST que só o
+   tools/serve.py atende. Então a página detecta e ENSINA. */
+function semServidor() {
+  /* ABERTO POR DUPLO CLIQUE NO .HTML. Isto nao tem conserto do lado da pagina:
+     o navegador nao deixa arquivo local ler outro arquivo local nem subir
+     servidor, e o editor precisa das duas coisas -- ler o mapa e gravar o
+     patch. O que a pagina PODE fazer e parar de mostrar o erro cru do
+     navegador ("Failed to fetch") e dizer qual arquivo clicar. */
+  document.body.innerHTML =
+    '<div style="padding:30px;max-width:70ch;line-height:1.75">' +
+    '<h1 style="color:#d8c27a;font:600 19px/1.3 ui-serif,Georgia,serif;margin:0 0 10px">' +
+    'Clique no Editor.bat, não neste arquivo</h1>' +
+    '<p>Esta página está aberta como <code>' + location.protocol + '</code>. O navegador não ' +
+    'deixa um arquivo local ler outro nem subir servidor — e o editor precisa das duas coisas: ' +
+    'ler o mapa e gravar o seu patch. Não há como a página resolver isso sozinha.</p>' +
+    '<p style="color:#d8c27a"><b>Na pasta do projeto, dê duplo clique em ' +
+    '<code>Editor.bat</code>.</b></p>' +
+    '<p>Ele abre o jogo e o editor lado a lado. Você edita, grava com ' +
+    '<code>Ctrl+S</code>, e o jogo ao lado se atualiza sozinho — sem terminal, sem servidor ' +
+    'para subir na mão. Dentro do jogo, <code>F9</code> também abre o editor.</p>' +
+    '<p style="color:#8a7f6d;font-size:12px;margin-top:22px">Se preferir o navegador: ' +
+    '<code>python tools/serve.py 8765</code> na raiz do projeto e abra ' +
+    '<code>localhost:8765/tools/editor.html</code>.</p></div>';
+}
+
+function carregar(nome, manterVista) {
+  if (location.protocol === 'file:') { semServidor(); return Promise.resolve(); }
+  const url = '../maps/' + nome + '.json';
+  return fetch(url)
+    .then(r => { if (!r.ok) throw new Error('o servidor respondeu ' + r.status); return r.json(); })
+    .then(o => {
+      const vista = { z, px, camX, camY };
+      mapaAplica(o);
+      /* A BASE é o mapa recém-carregado, e o arquivo já vem COM o patch
+         aplicado (o script grava depois de aplicá-lo). Então o diff daqui é
+         contra o estado atual, e gravar duas vezes sem mexer em nada dá patch
+         vazio — que é o certo: o patch acumula no arquivo, não na sessão. */
+      base = WORLD.floors.map(f => f.t.slice());
+      mexidos = new Map(); pilha = [];
+      ajusta();
+      if (manterVista && vista.z < FLOORS) {
+        z = vista.z; px = vista.px; camX = vista.camX; camY = vista.camY;
+        andares(); desenha();
+      } else {
+        /* Abre na SUPERFÍCIE e não no andar 0: em Varrokgaard o andar 0 é a
+           ponte sobre o muro, doze tiles num mar de vazio, e o editor abria
+           numa tela preta. Quem edita edita a terra. */
+        z = SURF;
+        andares(); verTudo();
+      }
+      document.title = 'Editor — ' + nome;
+      /* O MAPA ESTÁ ATRASADO EM RELAÇÃO AO PATCH? Aconteceu de verdade: um
+         servidor antigo gravou o patch e não recompôs, o mapa ficou com 262
+         tiles enquanto o patch tinha 727, e de fora isso parece "editei,
+         gravei e sumiu tudo". Nada se perde nesse estado, mas ninguém sabe
+         olhando — então o editor conta quantos tiles do patch de disco NÃO
+         estão no mapa que ele acabou de carregar, e avisa. */
+      fetch('../maps/' + nome + '.patch.json').then(r => r.ok ? r.json() : null)
+        .then(pt => {
+          if (!pt) return;
+          let fora = 0, total = 0;
+          for (const kz in pt.tiles || {}) {
+            const iz = +kz;
+            if (iz >= FLOORS) { fora += pt.tiles[kz].length; total += pt.tiles[kz].length; continue; }
+            for (const [x, y, t] of pt.tiles[kz]) {
+              total++;
+              if (x < W && y < H && WORLD.floors[iz].t[y * W + x] !== t) fora++;
+            }
+          }
+          if (!fora) return;
+          const log = $('#log');
+          log.className = 'ruim';
+          log.textContent = [
+            'O MAPA ESTÁ ATRASADO EM RELAÇÃO AO SEU PATCH.',
+            '',
+            fora + ' dos ' + total + ' tiles do patch não estão no mapa carregado.',
+            'O patch foi gravado e o mapa não foi recomposto — quase sempre um',
+            'servidor rodando uma versão antiga do tools/serve.py.',
+            '',
+            'NADA SE PERDEU: o patch está no disco. Para aplicar agora:',
+            '    node tools/mapas/' + nome + '.js',
+            'e reinicie o servidor para a recomposição voltar a ser automática.'
+          ].join('\n');
+        }).catch(() => {});
+    })
+    .catch(e => alert('mapa "' + nome + '" não carregou.\n\n' + e.message +
+      '\n\nTentei: ' + new URL(url, location.href).href +
+      '\n\nSe o caminho acima não aponta para a pasta maps/ do projeto, o servidor ' +
+      'não está servindo a raiz do repositório — rode "python tools/serve.py 8765" de dentro dela.'));
+}
+
+function andares() {
+  const d = $('#andares'); d.innerHTML = '';
+  for (let i = 0; i < FLOORS; i++) {
+    const b = document.createElement('button');
+    b.innerHTML = (FLOOR_NAMES[i] || ('andar ' + i)) + '<b>F' + (i + 1) + '</b>';
+    b.className = i === z ? 'on' : '';
+    b.onclick = () => { z = i; andares(); desenha(); };
+    d.appendChild(b);
+  }
+}
+
+function gravar() {
+  const nome = $('#nome').value.trim();
+  /* O patch ACUMULA no arquivo, não na sessão. Somar é o certo — mas somar
+     CALADO não é, e isso custou uma medição: um balde de teste no oceano deixou
+     19.646 tiles no arquivo, e a gravação seguinte de 31 tiles reportou 31
+     enquanto escrevia 19.686. */
+  let antes = 0;
+  /* LER O PATCH DE DISCO É PRÉ-REQUISITO DA GRAVAÇÃO, e falhar aqui em silêncio
+     apagaria todo o acumulado: o patch novo é o antigo MAIS esta sessão, então
+     um `catch` que devolve `{}` grava só o que você fez hoje e joga fora o resto.
+     Só o 404 é condição normal — significa "ainda não há patch". Qualquer outra
+     coisa ABORTA, e o que estava na tela continua na tela. */
+  fetch('../maps/' + nome + '.patch.json')
+    .then(r => {
+      if (r.ok) return r.json();
+      if (r.status === 404) return { tiles: {} };
+      throw new Error('o patch existente respondeu ' + r.status);
+    })
+    .then(velho => {
+      antes = Object.values(velho.tiles || {}).reduce((a, v) => a + v.length, 0);
+      const saida = { nome, tiles: velho.tiles || {} };
+      for (const [k, t] of mexidos) {
+        const [kz, ki] = k.split(':').map(Number);
+        (saida.tiles[kz] = saida.tiles[kz] || []).push([ki % W, (ki / W) | 0, t]);
+      }
+      // um tile mexido duas vezes vale a última: o patch é estado, não histórico
+      for (const kz in saida.tiles) {
+        const ultimo = new Map();
+        for (const [x, y, t] of saida.tiles[kz]) ultimo.set(y * W + x, t);
+        saida.tiles[kz] = [...ultimo].map(([i, t]) => [i % W, (i / W) | 0, t]);
+      }
+      const total = Object.values(saida.tiles).reduce((a, v) => a + v.length, 0);
+      if (total > 2000 && !confirm(
+          'O patch vai ficar com ' + total + ' tiles (' + antes +
+          ' já estavam no arquivo, ' + mexidos.size + ' são desta sessão).' +
+          '\n\nPatch desse tamanho costuma ser balde dado sem querer numa região ' +
+          'aberta. Gravar mesmo assim?')) return null;
+      $('#log').className = ''; $('#log').textContent = 'gravando e recompondo…';
+      return fetch('/patch/' + nome, { method: 'POST', body: JSON.stringify(saida) });
+    })
+    .then(r => r && r.json())
+    .then(r => {
+      if (!r) { $('#log').textContent = ''; return; }
+      const novos = mexidos.size;
+      mexidos = new Map(); pilha = [];
+      const log = $('#log');
+      /* SERVIDOR SEM RECOMPOSIÇÃO. O `serve.py` só ganhou o `recompoe` depois
+         que o editor existia, e um servidor que já estava rodando continua com
+         o código velho: ele GRAVA o patch e não recompõe, então o mapa do jogo
+         fica parado no que era antes e parece que a edição sumiu. Foi o que
+         aconteceu de verdade — 727 tiles no patch e o mapa com 262.
+         O patch nunca esteve em risco, mas o susto sim. Agora isso grita. */
+      if (r.recompos === undefined) {
+        log.className = 'ruim';
+        log.textContent =
+          'O PATCH FOI GRAVADO (' + r.tiles + ' tiles), MAS O MAPA NÃO FOI RECOMPOSTO.\n\n' +
+          'Este servidor está rodando uma versão do tools/serve.py anterior à\n' +
+          'recomposição automática. Nada se perdeu — o patch está no disco.\n\n' +
+          'Pare o servidor e suba de novo:\n' +
+          '    python tools/serve.py 8765\n\n' +
+          'Depois recarregue esta página. Para aplicar agora sem reiniciar:\n' +
+          '    node tools/mapas/' + nome + '.js';
+        $('#estado').innerHTML = '<span class="aviso">● gravado, mas NÃO recomposto</span>';
+        desenha();
+        return;
+      }
+      log.textContent = r.log || '';
+      log.className = r.recompos ? '' : 'ruim';
+      $('#estado').innerHTML = '<span class="ok">● gravado: ' + r.tiles + ' no patch (' +
+        novos + ' desta sessão, ' + antes + ' de antes)</span>';
+      /* RECARREGA SEMPRE, mantendo a vista — inclusive quando a conferência
+         reprova. A primeira versão não recarregava nesse caso, achando que
+         "mapa duvidoso não vira base sem olhar"; está errado, porque o mapa em
+         disco JÁ é o que o jogo carrega, e o editor mostrando outra coisa é a
+         única situação de fato perigosa. O aviso é o log em vermelho, não
+         esconder o resultado.
+         A vista é preservada porque jogar a câmera para o mapa inteiro a cada
+         gravação faria perder o ponto em que se está trabalhando. */
+      /* AVISA O JOGO. O `node` da composição já rodou no servidor e o
+         maps/<nome>.json já é o novo — mas quem estiver com o jogo aberto tem a
+         versão antiga em memória, e era isso o "gravei e não aparece nada no
+         jogo". `BroadcastChannel` é nativo, alcança as outras abas da mesma
+         origem, e não faz nada se não houver ninguém ouvindo. */
+      if (typeof BroadcastChannel === 'function')
+        new BroadcastChannel('thaira-mapa').postMessage({ mapa: nome });
+      return carregar(nome, true);
+    })
+    .catch(e => alert('não gravou: ' + e.message +
+      '\n\nO POST só existe no tools/serve.py. Se você abriu por file:// ou por outro ' +
+      'servidor, não vai gravar.'));
+}
+
+/* ------------------------------------------------------------- ligações */
+$('#carregar').onclick = () => carregar($('#nome').value.trim());
+$('#desfazer').onclick = desfazer;
+$('#gravar').onclick = gravar;
+$('#verTudo').onclick = verTudo;
+$('#limpar').onclick = () => {
+  if (!mexidos.size || !confirm('Descartar ' + mexidos.size + ' tile(s) mexido(s) nesta sessão?')) return;
+  for (const [k] of mexidos) {
+    const [kz, ki] = k.split(':').map(Number);
+    WORLD.floors[kz].t[ki] = base[kz][ki];
+  }
+  mexidos = new Map(); pilha = []; desenha();
+};
+const marca = (sel, b) => document.querySelectorAll(sel).forEach(o => o.classList.toggle('on', o === b));
+document.querySelectorAll('.fer').forEach(b => b.onclick = () => { ferramenta = b.dataset.f; marca('.fer', b); desenha(); });
+document.querySelectorAll('.tam').forEach(b => b.onclick = () => { raio = +b.dataset.r; marca('.tam', b); desenha(); });
+
+/* Atalho de uma tecla para ferramenta e tamanho: com os dois a um toque, a mão
+   não sai do mapa para ir à barra e voltar — que é metade do "ruim de mexer".
+   Andar vai em F1..F9 para não brigar com 1..3, que são o tamanho do pincel. */
+const TECLA_FER = { b: 'pincel', g: 'balde', r: 'retangulo', i: 'conta-gotas' };
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const k = e.key.toLowerCase();
+  if (e.ctrlKey && k === 'z') { e.preventDefault(); return desfazer(); }
+  if (e.ctrlKey && k === 's') { e.preventDefault(); return gravar(); }
+  if (e.ctrlKey) return;
+  if (/^f\d+$/.test(k)) {
+    const i = +k.slice(1) - 1;
+    if (i >= 0 && i < FLOORS) { e.preventDefault(); z = i; andares(); desenha(); }
+    return;
+  }
+  if (TECLA_FER[k]) {
+    ferramenta = TECLA_FER[k];
+    marca('.fer', document.querySelector('.fer[data-f="' + ferramenta + '"]'));
+    return desenha();
+  }
+  if (k >= '1' && k <= '3') {
+    raio = +k - 1;
+    marca('.tam', document.querySelector('.tam[data-r="' + raio + '"]'));
+    return desenha();
+  }
+  if (k === '0') return verTudo();
+});
+addEventListener('resize', ajusta);
+/* Sair com coisa não gravada é a perda mais boba que um editor permite. */
+addEventListener('beforeunload', e => { if (mexidos.size) { e.preventDefault(); e.returnValue = ''; } });
+
+paleta();
+carregar('varrokgaard');
+</script>

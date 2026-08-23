@@ -1,0 +1,682 @@
+<meta charset="utf-8">
+<title>Aleto — composição do mundo</title>
+<style>
+  :root{
+    --ink:#0b0c0f; --surface:#15151a; --surface2:#1e1c18; --raise:#26241f;
+    --line:#3a352b; --line-soft:#2a261f;
+    --txt:#ddd5c2; --dim:#8f8874; --mute:#6b6558;
+    --gold:#d9a441; --gold2:#f0cd7a;
+    --done:#7fd08a; --wait:#e0a05a; --warn:#e0705f;
+    --serif:"Cinzel","Trajan Pro",Georgia,"Times New Roman",serif;
+    --sans:"Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:ui-monospace,"Cascadia Code",Consolas,"DejaVu Sans Mono",monospace;
+    --measure:74ch;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+      --line:#bdb6a6; --line-soft:#cdc7b9;
+      --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+      --gold:#7d5a15; --gold2:#5e430f;
+      --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+    }
+  }
+  :root[data-theme="light"]{
+    --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+    --line:#bdb6a6; --line-soft:#cdc7b9;
+    --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+    --gold:#7d5a15; --gold2:#5e430f;
+    --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--txt);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px 96px}
+  .col{max-width:var(--measure)}
+  h1,h2,h3,h4{text-wrap:balance;margin:0}
+  a{color:var(--gold2)}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+  header{padding:64px 0 36px;border-bottom:1px solid var(--line)}
+  .eyebrow{font:600 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin-bottom:18px}
+  h1{font:400 clamp(32px,5.5vw,50px)/1.08 var(--serif);letter-spacing:.03em;color:var(--gold2)}
+  .lede{margin-top:20px;color:var(--dim);font-size:17px}
+  .lede b{color:var(--txt);font-weight:600}
+
+  section{padding:48px 0;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:0}
+  h2{font:600 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+     margin-bottom:22px;display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  h3{font:600 17px/1.4 var(--sans);color:var(--txt);margin:26px 0 8px}
+  h3:first-child{margin-top:0}
+  h4{font:600 14px var(--sans);color:var(--gold2);margin:18px 0 6px}
+  p{margin:0 0 14px;max-width:var(--measure)}
+  p:last-child{margin-bottom:0}
+  strong{color:var(--gold2);font-weight:600}
+  code{font:0.87em var(--mono);background:var(--surface2);border:1px solid var(--line-soft);
+       border-radius:3px;padding:1px 5px;color:var(--txt);white-space:nowrap}
+  ul,ol{max-width:var(--measure);margin:0 0 14px;padding-left:20px}
+  li{margin-bottom:6px}
+
+  .band{overflow-x:auto;margin:0 -4px 8px}
+  table{border-collapse:collapse;width:100%;min-width:540px;font-variant-numeric:tabular-nums}
+  caption{text-align:left;color:var(--mute);font-size:13px;padding-bottom:10px}
+  th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  thead th{font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);
+           border-bottom:1px solid var(--line)}
+  tbody th{font:400 14px var(--sans);color:var(--txt);font-weight:500}
+  td{font-size:14px;color:var(--dim)}
+  td.n{font-family:var(--mono);font-size:13.5px}
+  td.now{color:var(--gold2);font-family:var(--mono);font-size:13.5px}
+  td.delta{color:var(--done);font-size:13px}
+
+  .fases{display:grid;gap:2px;background:var(--line-soft);border:1px solid var(--line-soft);margin-bottom:8px}
+  .fase{background:var(--surface);padding:20px 22px;display:grid;grid-template-columns:auto 1fr;gap:18px}
+  .num{font:400 13px var(--mono);color:var(--gold);padding:3px 18px 0 0;border-right:1px solid var(--line-soft)}
+  .fase p,.fase li{color:var(--dim);font-size:14.5px}
+  .why{margin-top:10px;padding-left:14px;border-left:2px solid var(--line);color:var(--mute);
+       font-size:13.5px;font-style:italic}
+
+  .fix{background:var(--surface);border:1px solid var(--line-soft);border-left:2px solid var(--done);
+       padding:16px 20px;margin-bottom:2px}
+  .fix h4{margin-top:0}
+  .fix p{font-size:14px;color:var(--dim);margin-bottom:8px}
+  .causa{font-size:13.5px;color:var(--mute)}
+  .causa b{color:var(--warn);font-weight:600}
+
+  .grupo{margin-bottom:28px}
+  .gtitle{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+  ul.itens{list-style:none;margin:0;padding:0;display:grid;gap:2px;max-width:none}
+  ul.itens li{background:var(--surface);border-left:2px solid var(--wait);padding:13px 18px;
+              display:grid;gap:4px;margin:0}
+  ul.itens li.debt{border-left-color:var(--mute)}
+  .it-n{font:600 15px var(--sans);color:var(--txt)}
+  .it-d{font-size:13.5px;color:var(--dim)}
+  .it-t{font-size:12.5px;color:var(--mute);font-family:var(--mono)}
+
+  /* Selo de estado. Retangular e sem preenchimento: é rótulo, não botão. */
+  .tag{font:600 10px var(--sans);letter-spacing:.09em;text-transform:uppercase;
+       padding:2px 6px;border:1px solid var(--line);border-radius:2px;
+       white-space:nowrap;margin-left:6px}
+  .tag.warn{color:var(--warn);border-color:var(--warn)}
+  .tag.wait{color:var(--wait);border-color:var(--wait)}
+  .tag.done{color:var(--done);border-color:var(--done)}
+  ul.itens li.feito{border-left-color:var(--done)}
+  /* Na lista de invariantes (ul simples, com marcador), o que entrou nesta leva
+     ganha o marcador em verde — some no meio das 30 antigas sem isso. */
+  li.feito::marker{color:var(--done)}
+
+  .aviso{background:var(--surface2);border:1px solid var(--line);border-left:3px solid var(--warn);
+         padding:18px 20px;margin-bottom:14px;max-width:var(--measure)}
+  .aviso h4{color:var(--warn);margin-top:0}
+  .aviso p{font-size:14px;color:var(--dim)}
+
+  footer{padding:36px 0 0;color:var(--mute);font-size:13px;border-top:1px solid var(--line)}
+
+  @media (max-width:640px){
+    .fase{grid-template-columns:1fr;gap:10px}
+    .num{border-right:0;border-bottom:1px solid var(--line-soft);padding:0 0 8px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Thaira · composição do mundo · rascunho 2</div>
+  <h1>Aleto</h1>
+  <div class="lede col">
+    Segunda volta, com as 18 decisões respondidas em 2026-08-22.
+    Aleto é a <b>segunda</b> terra de Thaira — níveis 15 a 60 —, tem elenco fechado,
+    320×320, e o mapa não mostra nada além do nome dos lugares que você já encontrou.
+    O subsolo são quatro sistemas fechados, e o que sobra em aberto está marcado
+    <span class="tag wait">a decidir</span> no fim.
+  </div>
+</header>
+
+<section>
+  <h2>A história</h2>
+  <div class="col">
+    <p>Aleto foi governada por um rei que todos acreditavam estar <b>usando</b> uma coisa velha
+    enterrada sob a terra. Um herói o destronou por isso.</p>
+    <p>Estavam enganados, e o herói também. <b>A coisa é que usava o rei.</b> Destronado o rei, ela
+    precisou de outra mão — e a mão mais próxima era a de quem tinha acabado de vencer. O herói
+    conseguiu selá-la antes de entender o que já estava dentro dele. Selou os dois.</p>
+    <p>Sobre o selo ergueram um posto de vigia. Em volta do posto cresceu Vigília, e a cidade
+    esqueceu o que estava vigiando — ou preferiu esquecer, porque o que está lá embaixo tem o nome
+    do herói dela. Foram gerações de paz.</p>
+    <p><b>O selo rachou.</b> Não estourou: rachou. O que sai dele sobe devagar, e o que espera no
+    fundo da racha é um paladino que já foi o melhor homem de Aleto.</p>
+  </div>
+  <div class="aviso">
+    <h4>O que a reviravolta compra</h4>
+    <p>O <b>Paladino Renegado</b> deixa de ser uma criatura sem endereço e vira o <b>chefe de
+    Aleto</b> — e não numa hunt qualquer: no selo, debaixo da cidade. Enfrentá-lo é o que abre a
+    descida para a terra seguinte. E a cidade inteira ganha sentido: ela não está ali por acaso, está
+    montando guarda sobre o próprio herói sem querer dizer isso em voz alta.</p>
+  </div>
+</section>
+
+<section>
+  <h2>O que Aleto é</h2>
+  <div class="band">
+    <table>
+      <thead><tr><th>Eixo</th><th>Decidido</th></tr></thead>
+      <tbody>
+        <tr><th>Posição</th><td class="now">A <b>segunda</b> terra. Antes dela vem <b>Varrokgaard</b> (níveis 1 a 15, saída aos 10)</td></tr>
+        <tr><th>Faixa</th><td class="now">15 a 60. O teto não sobe — quem quiser passar a vida aqui, passa</td></tr>
+        <tr><th>Superfície</th><td class="now">320 × 320, com costa ao sul — ~2,8× a área de Varrokgaard, que é o piso de 192²</td></tr>
+        <tr><th>Hunts</th><td class="now">6, cada uma dentro de um lugar, sem hunt solta no mato</td></tr>
+        <tr><th>Mapa</th><td class="now">Só o <b>nome dos lugares</b>, e só depois de encontrados. Sem marcador, sem ícone, sem círculo</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why">"O nome da hunt é o nome do lugar onde ela está" acaba com uma duplicação que hoje
+  existe: <i>Covil dos Minotauros</i> deixa de ser uma entidade com nome próprio e passa a ser
+  simplesmente o que há dentro das Ruínas de Aleto. Um lugar, um nome.</p>
+</section>
+
+<section>
+  <h2>O elenco — e o que não mora aqui</h2>
+  <p>A regra que você definiu: <b>não é a classe que se muda, é o grupo</b>. Ciclope mora em Aleto e
+  gigante do gelo não, mesmo sendo a mesma classe. Uma catacumba pode ter só vampiros e não a
+  família inteira de mortos-vivos.</p>
+  <div class="band">
+    <table>
+      <caption>Quem tem endereço em Aleto.</caption>
+      <thead><tr><th>Grupo</th><th>Quantos</th><th>Onde, e por quê</th></tr></thead>
+      <tbody>
+        <tr><th>Orcs</th><td class="n">5</td><td>Planalto Quebrado — acampamento de guerra, porque orc monta acampamento e vai embora</td></tr>
+        <tr><th>Anões</th><td class="n">3</td><td>Serra Cinzenta — cavaram atrás de metal e chegaram perto do que não deviam</td></tr>
+        <tr><th>Minotauros</th><td class="n">4</td><td>Ruínas de Aleto — ocuparam a capital, não a construíram</td></tr>
+        <tr><th>Ciclopes</th><td class="n">3</td><td>Colina — os três de nível baixo. Gigante do gelo, Beemote e Colosso ficam de fora</td></tr>
+        <tr><th>Mortos-vivos rasos</th><td class="n">8</td><td>Pântano do Selo e a cripta embaixo dele — é o que vaza da racha. Banshee, Vampiro e Morvhen ficam de fora</td></tr>
+        <tr><th>Aracnídeos</th><td class="n">5</td><td>Bosque Tecido — a magia que vazou pegou na floresta</td></tr>
+        <tr><th>Ssarai</th><td class="n">novos</td><td>As duas lagoas. NPCs, não inimigos</td></tr>
+        <tr><th>Fauna</th><td class="n">ambiente</td><td>Cervo, javali, lobo, rato, besouro. <b>Textura, não conteúdo</b> — sem hunt e sem chefe</td></tr>
+        <tr><th class="now">O Paladino</th><td class="now">1</td><td class="now">No selo, sob Vigília. O chefe da terra — <b>vida como está, matável a qualquer nível</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="aviso">
+    <h4>O que NÃO existe em Aleto, e é isso que lhe dá identidade</h4>
+    <p><b>Nenhum dragão.</b> <b>Nenhum demônio.</b> <b>Nenhum elemental.</b> <b>Nenhum celeste.</b>
+    <b>Nenhuma aberração.</b> E, dentro das famílias que existem, nenhum gigante do gelo, nenhum
+    vampiro, nenhum lich. Cinco classes inteiras e a metade alta de três outras <b>simplesmente não
+    estão aqui</b> — e quando o jogador encontrar a primeira delas, vai saber que saiu de Aleto sem
+    ninguém precisar avisar.</p>
+    <p>Saíram também, para a <b>ilha inicial</b>, o Bosque dos Lobos (nv 8) e o Ninho de Insetos
+    (nv 10), com <b>Presa-Branca</b> e a <b>Rainha do Enxame</b>. Lobo e besouro continuam em Aleto
+    como bicho de mato, sem serem desafio.</p>
+  </div>
+</section>
+
+<section>
+  <h2>A superfície</h2>
+  <p>Esquema, não mapa. Seis lugares com hunt, duas vilas, uma cidade e as entradas do subsolo.</p>
+
+  <div class="band">
+  <svg viewBox="0 0 128 134" style="width:100%;max-width:none;display:block;background:#12100c;border:1px solid #3a352b" role="img" aria-label="Esquema da superfície de Aleto, rascunho 2">
+    <defs><style>
+      .rot{font:3.6px "Segoe UI",sans-serif;fill:#ddd5c2;font-weight:600}
+      .sub{font:2.7px "Segoe UI",sans-serif;fill:#8f8874}
+      .nv{font:2.6px ui-monospace,Consolas,monospace;fill:#d9a441}
+    </style></defs>
+
+    <path d="M0 110 L18 106 L40 112 L62 108 L86 114 L106 110 L128 116 L128 134 L0 134 Z" fill="#1d3a4a"/>
+    <path d="M0 0 L128 0 L128 116 L106 110 L86 114 L62 108 L40 112 L18 106 L0 110 Z" fill="#33401f"/>
+
+    <!-- serra, oeste, com topo frio -->
+    <path d="M0 30 L16 24 L28 40 L24 62 L30 80 L14 90 L0 84 Z" fill="#4a4a52"/>
+    <path d="M2 32 L14 27 L22 40 L16 52 L4 54 Z" fill="#5a6674"/>
+    <path d="M4 32 L13 28 L18 36 L8 40 Z" fill="#c8d4dc"/>
+    <text class="rot" x="3" y="62">Serra Cinzenta</text>
+    <text class="sub" x="3" y="66">anões · topo com neve</text>
+    <text class="nv" x="3" y="70">nv 30</text>
+
+    <!-- planalto orc -->
+    <path d="M34 0 L74 0 L78 16 L64 30 L40 26 L30 12 Z" fill="#5a4a2a"/>
+    <text class="rot" x="41" y="12">Planalto Quebrado</text>
+    <text class="sub" x="41" y="16">acampamento de guerra orc</text>
+    <text class="nv" x="41" y="20">nv 15</text>
+
+    <!-- ruínas -->
+    <path d="M86 0 L128 0 L128 30 L106 36 L88 24 Z" fill="#3f3a34"/>
+    <path d="M96 8 L118 6 L120 22 L100 26 Z" fill="#55504a"/>
+    <text class="rot" x="93" y="14">Ruínas de Aleto</text>
+    <text class="sub" x="93" y="18">a capital do rei · minotauros</text>
+    <text class="nv" x="93" y="22">nv 35</text>
+
+    <!-- bosque tecido -->
+    <path d="M96 44 L124 42 L128 64 L118 78 L98 72 L92 56 Z" fill="#243a26"/>
+    <text class="rot" x="99" y="56">Bosque Tecido</text>
+    <text class="sub" x="99" y="60">a floresta que a magia torceu</text>
+    <text class="nv" x="99" y="64">nv 50</text>
+
+    <!-- colina dos ciclopes -->
+    <path d="M56 30 L76 32 L80 46 L66 52 L54 44 Z" fill="#4a4230"/>
+    <text class="rot" x="55" y="40">Colina do Ferreiro</text>
+    <text class="sub" x="57" y="44">ciclopes</text>
+    <text class="nv" x="70" y="40">nv 40</text>
+
+    <!-- mata ambiente -->
+    <path d="M28 44 L48 40 L52 54 L42 62 L28 58 Z" fill="#2e4a2a"/>
+    <text class="rot" x="29" y="50">Mata Mansa</text>
+    <text class="sub" x="29" y="54">cervo, javali · sem hunt</text>
+
+    <!-- pântano -->
+    <path d="M14 90 L34 86 L44 98 L38 110 L18 106 L10 98 Z" fill="#3a4028"/>
+    <text class="rot" x="16" y="96">Pântano do Selo</text>
+    <text class="sub" x="16" y="100">a racha mais rasa</text>
+    <text class="nv" x="16" y="104">nv 25</text>
+
+    <!-- lagoas -->
+    <ellipse cx="82" cy="86" rx="12" ry="8" fill="#1d3a4a"/>
+    <ellipse cx="106" cy="100" rx="11" ry="7" fill="#1d3a4a"/>
+    <path d="M91 90 Q98 94 97 98 Q101 100 101 99" stroke="#1d3a4a" stroke-width="2.4" fill="none"/>
+    <text class="rot" x="70" y="78">Lagoa Alta</text>
+    <text class="sub" x="70" y="82">Ssarai · comercia</text>
+    <text class="rot" x="97" y="112">Lagoa Morta</text>
+    <text class="sub" x="97" y="116">Ssaruk · não perdoou</text>
+
+    <!-- vigília -->
+    <circle cx="60" cy="66" r="11" fill="#5a3f2e"/>
+    <circle cx="60" cy="66" r="6.5" fill="#6b4a34"/>
+    <rect x="57.6" y="63.6" width="4.8" height="4.8" fill="#d9a441"/>
+    <text class="rot" x="47" y="84">Vigília</text>
+    <text class="sub" x="47" y="88">a cidade sobre o selo</text>
+
+    <!-- a doca: onde o barco encosta -->
+    <path d="M56 106 L64 106 L64 111 L56 111 Z" fill="#5a4630"/>
+    <path d="M59 111 L59 117 M61 111 L61 117" stroke="#5a4630" stroke-width="1.2"/>
+    <path d="M52 120 q4 -3 9 0 q4 3 9 0" stroke="#8f8874" stroke-width=".9" fill="none"/>
+    <path d="M60 118 L60 112" stroke="#8f8874" stroke-width=".7"/>
+    <text class="rot" x="66" y="109">O Porto</text>
+    <text class="sub" x="66" y="113">o barco da ilha</text>
+
+    <g stroke="#7a6a4a" stroke-width=".9" fill="none" stroke-dasharray="2.5 2">
+      <path d="M60 106 L60 78"/>
+      <path d="M60 55 L58 32 L56 27"/><path d="M71 64 L92 54"/><path d="M70 71 L80 81"/>
+      <path d="M49 66 L28 56"/><path d="M54 75 L38 90"/><path d="M64 55 L88 26"/>
+      <path d="M66 60 L60 46"/>
+    </g>
+
+    <!-- entradas do subsolo -->
+    <g fill="#0b0c0f" stroke="#d9a441" stroke-width=".8">
+      <rect x="58" y="64" width="4" height="4"/>
+      <rect x="16" y="48" width="4" height="4"/>
+      <rect x="26" y="94" width="4" height="4"/>
+      <rect x="108" y="58" width="4" height="4"/>
+      <rect x="106" y="16" width="4" height="4"/>
+    </g>
+    <text class="nv" x="3" y="130">▣ entrada de subsolo — cinco, e nenhuma leva à outra · ▬ estrada</text>
+  </svg>
+  </div>
+</section>
+
+<section>
+  <h2>A chegada</h2>
+  <p><b>Aleto se alcança de barco.</b> Vindo da ilha inicial, o jogador desembarca numa doca na costa
+  sul e sobe pela estrada até Vigília — perto o bastante para não virar caminhada, longe o bastante
+  para a cidade <b>aparecer</b> em vez de já estar ali.</p>
+  <p class="why">A doca é um <b>lugar</b>, não um local de conteúdo: não tem loja, não tem hunt, não
+  tem nada a saquear. Existe para a chegada ter um momento. Vigília continua no centro porque é para
+  ela que o jogador volta o tempo todo — vender, forjar, pegar contrato, comprar bênção —, e hub no
+  meio poupa a viagem que ninguém quer fazer duas vezes.</p>
+  <div class="aviso">
+    <h4>As duas formas de ir embora de um lugar, e elas não se confundem</h4>
+    <p><b>Barco é travessia lateral</b> — entre terras, de igual para igual, e volta. <b>Racha é
+    descida</b> — para baixo, para pior, e o que está lá embaixo não convida ninguém. Uma se compra
+    com passagem; a outra se abre passando por cima do que a guarda.</p>
+    <p><b>O barco vai e volta.</b> Uma viagem só de ida apagaria a ilha inicial do jogo para sempre —
+    e quem quiser voltar a pescar lá, ou buscar o que deixou, deve poder. Custa o mesmo: o mesmo
+    barqueiro dos dois lados.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Os quatro sistemas</h2>
+  <p>O andar −1 deixa de existir. Não há "a caverna": há a Mina, o Labirinto, o Ninho e o Selo, cada
+  um fechado em si, com a própria forma, o próprio tamanho e a própria quantidade de níveis. Sair de
+  um para entrar noutro é <b>subir, atravessar a superfície e descer de novo</b> — com uma exceção,
+  escondida, lá embaixo.</p>
+
+  <div class="band">
+  <svg viewBox="0 0 208 62" style="width:100%;display:block;background:#12100c;border:1px solid #3a352b" role="img" aria-label="As quatro formas de subsolo">
+    <defs><style>
+      .cav{fill:#4a4234}.nome{font:4px "Segoe UI",sans-serif;fill:#d9a441;font-weight:600}
+      .car{font:3.2px "Segoe UI",sans-serif;fill:#8f8874}
+    </style></defs>
+
+    <!-- SELO: câmara e corredor, apertado, com poço descendo -->
+    <g transform="translate(4,6)">
+      <rect x="0" y="0" width="44" height="44" fill="#1a1712"/>
+      <g class="cav">
+        <rect x="4" y="6" width="12" height="9"/><rect x="24" y="4" width="10" height="8"/>
+        <rect x="30" y="20" width="11" height="10"/><rect x="6" y="26" width="9" height="11"/>
+        <rect x="18" y="32" width="13" height="8"/>
+        <rect x="15" y="10" width="10" height="2"/><rect x="29" y="11" width="2" height="10"/>
+        <rect x="14" y="30" width="2" height="4"/><rect x="30" y="30" width="2" height="6"/>
+        <rect x="30" y="36" width="2" height="4"/><rect x="9" y="16" width="2" height="11"/>
+      </g>
+      <circle cx="36" cy="25" r="2.6" fill="#0b0c0f" stroke="#d9a441" stroke-width=".6"/>
+      <text class="nome" x="0" y="-1">O Selo</text>
+      <text class="car" x="0" y="49">câmara e corredor · duas bocas · desce</text>
+    </g>
+
+    <!-- MINA: ortogonal, galerias longas, poços -->
+    <g transform="translate(56,6)">
+      <rect x="0" y="0" width="44" height="44" fill="#1a1712"/>
+      <g class="cav">
+        <rect x="4" y="8" width="36" height="3"/><rect x="4" y="20" width="36" height="3"/>
+        <rect x="4" y="32" width="30" height="3"/>
+        <rect x="10" y="8" width="3" height="27"/><rect x="22" y="8" width="3" height="27"/>
+        <rect x="34" y="8" width="3" height="15"/>
+        <rect x="16" y="14" width="6" height="5"/><rect x="26" y="24" width="7" height="6"/>
+      </g>
+      <circle cx="11.5" cy="14" r="2.2" fill="#0b0c0f" stroke="#d9a441" stroke-width=".6"/>
+      <circle cx="23.5" cy="28" r="2.2" fill="#0b0c0f" stroke="#d9a441" stroke-width=".6"/>
+      <text class="nome" x="0" y="-1">A Mina</text>
+      <text class="car" x="0" y="49">ortogonal · três níveis · poços</text>
+    </g>
+
+    <!-- LABIRINTO: denso, corredor de largura única -->
+    <g transform="translate(108,6)">
+      <rect x="0" y="0" width="44" height="44" fill="#1a1712"/>
+      <g class="cav">
+        <rect x="4" y="4" width="36" height="2.6"/><rect x="4" y="4" width="2.6" height="36"/>
+        <rect x="4" y="37.4" width="36" height="2.6"/><rect x="37.4" y="4" width="2.6" height="36"/>
+        <rect x="11" y="11" width="22" height="2.6"/><rect x="11" y="11" width="2.6" height="15"/>
+        <rect x="30.4" y="11" width="2.6" height="22"/><rect x="18" y="30.4" width="15" height="2.6"/>
+        <rect x="18" y="18" width="2.6" height="13"/><rect x="18" y="18" width="9" height="2.6"/>
+        <rect x="24.4" y="18" width="2.6" height="7"/>
+      </g>
+      <text class="nome" x="0" y="-1">O Labirinto</text>
+      <text class="car" x="0" y="49">construído · um nível · sem atalho</text>
+    </g>
+
+    <!-- NINHO: orgânico, câmaras e tubos -->
+    <g transform="translate(160,6)">
+      <rect x="0" y="0" width="44" height="44" fill="#1a1712"/>
+      <g class="cav">
+        <ellipse cx="13" cy="12" rx="8" ry="6"/><ellipse cx="32" cy="16" rx="7" ry="7"/>
+        <ellipse cx="22" cy="30" rx="9" ry="7"/><ellipse cx="35" cy="35" rx="6" ry="5"/>
+        <ellipse cx="9" cy="33" rx="6" ry="5"/>
+      </g>
+      <g stroke="#4a4234" stroke-width="2.6" fill="none">
+        <path d="M20 14 Q26 12 26 16"/><path d="M15 18 Q17 26 19 26"/>
+        <path d="M30 23 Q28 27 27 28"/><path d="M29 33 Q31 34 30 35"/>
+        <path d="M14 32 Q17 31 14 31"/>
+      </g>
+      <text class="nome" x="0" y="-1">O Ninho</text>
+      <text class="car" x="0" y="49">escavado por bicho · sem uma reta</text>
+    </g>
+  </svg>
+  </div>
+  <p class="why">As quatro plantas são o argumento: nenhuma poderia ser confundida com a outra de
+  relance, e a forma já diz quem a fez. Mina tem ângulo reto porque alguém a cavou com plano; o
+  Ninho não tem uma reta porque foi comido; o Labirinto é regular demais para ser natural, e é essa
+  regularidade que denuncia que um homem o construiu.</p>
+
+  <div class="grupo">
+    <ul class="itens">
+      <li>
+        <span class="it-n">O Selo — duas bocas, dois momentos</span>
+        <span class="it-d"><b>Cripta e Racha viraram um sistema só</b>, e a ficção melhorou com isso:
+        são a mesma ferida vista em duas profundidades. A boca de cima fica no <b>Pântano</b>, onde a
+        racha chega mais raso — é a Cripta, nv 25, com <b>Osgar, Senhor dos Ossos</b> e o que vaza
+        dela. A boca de baixo fica <b>sob o templo de Vigília</b>, e é a descida que termina no
+        <b>Paladino</b>.</span>
+        <span class="it-d"><b>O gancho:</b> já na Cripta, de nível 25, dá para <b>ver</b> a racha —
+        um poço que desce e não se alcança dali. Uma promessa feita 35 níveis antes de poder ser
+        cobrada, e o jogador entende sozinho que aquilo continua.</span>
+        <span class="it-t">~1.500 tiles · Cripta rasa e larga, Racha estreita e funda</span>
+      </li>
+      <li>
+        <span class="it-n">A Mina — a única feita com plano</span>
+        <span class="it-d">Boca na <b>Serra Cinzenta</b>, nv 30, <b>Durnak, Rei sob a Pedra</b>.
+        Galerias retas que se cruzam em ângulo, câmaras regulares, escoramento, e <b>poços verticais</b>
+        ligando três níveis — a única do jogo em que descer é parte da planta e não um acidente do
+        terreno.</span>
+        <span class="it-d">É a maior das quatro, porque mina se espalha. E é aqui que os anões
+        cavaram até <b>esbarrar na parede errada</b>.</span>
+        <span class="it-t">~1.800 tiles · três níveis · leva a ligação escondida</span>
+      </li>
+      <li>
+        <span class="it-n">O Labirinto — o que o rei construiu e não contou</span>
+        <span class="it-d">Sob as <b>Ruínas</b>, nv 35, <b>Amaruk, Rei Minotauro</b>. Corredor de
+        largura única, becos sem saída de propósito, regularidade que nenhuma caverna teria — e é
+        isso que entrega que foi construído.</span>
+        <span class="it-d"><b>Por que um rei constrói um labirinto sob o próprio palácio?</b> Porque
+        estava cavando na direção do que dormia embaixo, e não queria que ninguém o seguisse. O
+        labirinto não chega ao selo — <b>aponta para ele</b>. Os minotauros só se mudaram para dentro
+        muito depois.</span>
+        <span class="it-t">~1.600 tiles · um nível só, porque labirinto se lê no plano</span>
+      </li>
+      <li>
+        <span class="it-n">O Ninho — o único que não foi cavado</span>
+        <span class="it-d">Pelo <b>Bosque Tecido</b>, nv 50, <b>Mãe das Ninhadas</b>. Câmaras
+        arredondadas ligadas por tubos, sem uma linha reta e sem parede de pedra — o limite é teia. Os
+        níveis não são andares: são câmaras empilhadas por onde se desce pela própria teia.</span>
+        <span class="it-d">É o menor e o mais fechado. Também é o único onde a planta muda de verdade
+        entre uma visita e outra, porque teia se refaz.</span>
+        <span class="it-t">~800 tiles · o menor · vertical sem escada</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="aviso">
+    <h4>A única ligação, e por que ela precisa ser a única</h4>
+    <p>Os anões, cavando fundo demais atrás de metal, <b>esbarraram na parede do Labirinto</b> — a
+    obra de um rei que ninguém sabia existir. Taparam e não contaram. É a única passagem subterrânea
+    de Aleto entre dois sistemas, e ela liga o nv 30 ao nv 35.</p>
+    <p>Se tudo se ligasse, não haveria o que descobrir. É porque <b>nada mais se liga</b> que essa
+    passagem vale alguma coisa — e ela ainda conta uma parte da história de graça: o rei cavava para
+    baixo, e os anões, gerações depois, cavaram até dar de cara com isso.</p>
+  </div>
+
+  <div class="band">
+    <table>
+      <caption>O que os quatro somam, contra o que existe hoje.</caption>
+      <thead><tr><th>Sistema</th><th>Tiles</th><th>Níveis</th><th>Entrada</th></tr></thead>
+      <tbody>
+        <tr><th>O Selo</th><td class="n">~1.500</td><td class="n">2 + descida</td><td>Pântano · Vigília</td></tr>
+        <tr><th>A Mina</th><td class="n">~1.800</td><td class="n">3</td><td>Serra Cinzenta</td></tr>
+        <tr><th>O Labirinto</th><td class="n">~1.600</td><td class="n">1</td><td>Ruínas de Aleto</td></tr>
+        <tr><th>O Ninho</th><td class="n">~800</td><td class="n">2 soltos</td><td>Bosque Tecido</td></tr>
+        <tr><th class="now">Total</th><td class="now">~5.700</td><td class="now">—</td><td class="now">4 bocas + 1 secreta</td></tr>
+        <tr><th>Hoje</th><td class="n">200.704</td><td class="n">4 andares</td><td>28 escadas, <b>todas no mesmo lugar</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why">Trinta e cinco vezes menos tile, e todos desenhados. A conta que importa não é o
+  tamanho: é que hoje 200 mil tiles produzem <b>uma</b> experiência de subsolo, e 5.700 produzem
+  quatro.</p>
+</section>
+
+<section>
+  <h2>Os Ssarai — quem eles são</h2>
+  <div class="col">
+    <p><b>Eles não eram lagartos. Eles eram os vigias.</b></p>
+    <p>Os Ssarai descendem das famílias que ocupavam o posto sobre o selo, geração após geração,
+    sempre ali, sempre perto. Ficar perto daquilo por tempo demais cobra: escama, pupila fendida,
+    sangue frio. Não aconteceu com ninguém de uma vez — aconteceu com uma linhagem, devagar.</p>
+    <p>Foram exilados <b>pela aparência</b>. Mas a aparência deles é a <b>prova</b> de que o que está
+    sob a cidade é real e está ativo. Vigília não expulsou um povo estranho: expulsou a evidência.
+    <b>Expulsar os Ssarai foi o ato de esquecer.</b></p>
+  </div>
+  <div class="aviso">
+    <h4>A briga das duas vilas é uma pergunta só</h4>
+    <p><i>Um dever continua sendo dever quando quem você serve te expulsou?</i></p>
+    <p><b>Ssarai, na Lagoa Alta,</b> responde que sim. Nunca largaram o posto — só o mudaram de
+    lugar. Vigiam a água, porque as lagoas escoam para onde o selo está mais raso, e é ali que
+    primeiro se percebe quando alguma coisa muda embaixo. Comerciam com Vigília porque ainda se
+    consideram a serviço dela. A cidade não sabe disso.</p>
+    <p><b>Ssaruk, na Lagoa Morta,</b> responde que não. Trocaram o nome — <i>Ssarai</i> era o nome
+    da vigília, e largaram o nome junto com o dever. Não comerciam, não avisam, não impedem. Olham.</p>
+    <p>O riacho corre de cima para baixo: a água dos que ficaram passa pelos que partiram todo dia.</p>
+  </div>
+  <h3>O detalhe que os torna um relógio, não um enfeite</h3>
+  <p><b>Os jovens estão mais mudados que os velhos.</b> É o contrário do que deveria acontecer se a
+  transformação viesse de uma proximidade antiga. Está <b>acelerando</b> — e acelerou desde que o
+  selo rachou, embora eles não saibam ligar as duas coisas. Os Ssarai acham que é castigo por terem
+  falhado; os Ssaruk, prova de que estavam certos. O jogador enxerga sozinho: os anciãos parecem
+  quase humanos, e as crianças têm escama até no rosto.</p>
+  <p class="why">A arte é menor do que parece, porque o povo é <b>humano em transformação</b> e não
+  homem-lagarto: proporção humana, roupa humana, mudança na pele, no olho e na mão. Três sprites
+  cobrem — jovem (muito mudado), adulto e ancião (quase humano) —, e a diferença entre Ssarai e
+  Ssaruk é cor de roupa, não corpo.</p>
+</section>
+
+<section>
+  <h2>As pessoas de Aleto</h2>
+  <p>Quatro com nome. Cada uma sabe um pedaço da história, <b>e nenhuma sabe que sabe</b> — é o
+  jogador que junta.</p>
+  <div class="grupo">
+    <div class="gtitle">Vigília</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">Quem vende</span>
+        <span class="it-d">Compra peixe e pérola de alguém que nunca nomeia. Se insistirem, muda de
+        assunto. <b>É assim que o jogador descobre que as lagoas existem</b> — não por um marcador no
+        mapa, por um comerciante desconversando sobre o próprio estoque.</span>
+      </li>
+      <li>
+        <span class="it-n">Quem cuida do templo</span>
+        <span class="it-d">Faz um rito toda manhã, no chão do templo, sobre a laje. Sabe as palavras
+        de cor. <b>Não sabe o que elas querem dizer</b> — o pai dele também não sabia. É a cidade
+        inteira em um NPC: guarda com perfeição uma coisa que esqueceu por quê.</span>
+      </li>
+      <li>
+        <span class="it-n">Otar — a ponte do riacho</span>
+        <span class="it-d">O velho que conta o que aconteceu com o rei, e conta <b>errado</b>: para
+        ele o rei usava a coisa e o herói venceu. É a versão que Vigília ensina há gerações. O jogador
+        ouve isso cedo e só descobre que é mentira lá embaixo, sozinho.</span>
+      </li>
+    </ul>
+  </div>
+  <div class="grupo">
+    <div class="gtitle">As duas lagoas</div>
+    <ul class="itens">
+      <li>
+        <span class="it-n">Sael — Lagoa Alta</span>
+        <span class="it-d">A mais velha dos Ssarai, e <b>a que menos parece um</b>: escama só nas mãos
+        e no pescoço, olho ainda humano. Mantém a vigília da água porque foi o que a mãe fez, e a mãe
+        dela antes. Comercia com Vigília e considera isso serviço, não negócio.</span>
+        <span class="it-d">Os netos dela têm escama no rosto. Ela sabe o que isso significa e não
+        fala sobre.</span>
+      </li>
+      <li>
+        <span class="it-n">Ruun — Lagoa Morta</span>
+        <span class="it-d">Quem trocou o nome da vila. Novo, e <b>mudado a ponto de não passar por
+        humano em lugar nenhum</b> — o corpo dele é o argumento inteiro. Não vende, não avisa, não
+        impede. Responde ao jogador com educação e com nada.</span>
+      </li>
+    </ul>
+  </div>
+  <div class="aviso">
+    <h4>A ironia que se lê sem uma linha de texto</h4>
+    <p>Quem <b>manteve</b> o dever é a que ainda parece gente. Quem <b>largou</b> é o que virou outra
+    coisa. Sael e Ruun estão a um riacho de distância um do outro, e basta olhar para os dois na
+    mesma tarde para entender a discussão inteira das duas vilas.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Lugares, não só achados</h2>
+  <p class="why">Duas das seis hunts ficam <b>na superfície</b> e não têm subsolo: o Acampamento Orc
+  (nv 15) e a Colina do Ferreiro (nv 40). Com as quatro de baixo, a progressão alterna céu e pedra —
+  15 no campo, 25 na cripta, 30 na mina, 35 no labirinto, 40 na Colina do Ferreiro, 50 no ninho.</p>
+  <p>POI se parte em dois. <b>Achado</b> é o que já existe — acampamento, ruína, ninho, túmulo,
+  tesouro: tem guarda e tem loot. <b>Lugar</b> é novo e não tem nem um nem outro.</p>
+  <p>Os dois se descobrem do mesmo jeito, pela dica ao chegar perto — que <b>já está implementada</b>
+  e hoje é estragada pelo mapa, que mostra os 39 de uma vez desde o minuto zero.</p>
+  <div class="grupo">
+    <div class="gtitle">Lugares propostos para Aleto</div>
+    <ul class="itens">
+      <li><span class="it-n">O poço fundo — Lagoa Alta</span><span class="it-d">Onde a pesca rende de verdade. Os Ssarai sabem, e é por isso que a vila está ali.</span></li>
+      <li><span class="it-n">O veio exposto — Serra Cinzenta</span><span class="it-d">Minério à vista na rocha, fora da mina. Sem anão, sem briga.</span></li>
+      <li><span class="it-n">A pedra do enforcado — estrada do norte</span><span class="it-d">Só uma pedra com um nome. Alguém morreu ali e o nome ficou.</span></li>
+      <li><span class="it-n">O mirante — alto da Serra</span><span class="it-d">De onde se vê Aleto inteira. Não faz nada. É para olhar.</span></li>
+      <li><span class="it-n">A ponte do riacho — onde Otar fica</span><span class="it-d">O único que conta o que aconteceu com o rei, e conta errado, porque foi o que lhe contaram.</span></li>
+      <li><span class="it-n">A doca — costa sul</span><span class="it-d">Onde o barco encosta. Um barqueiro, tábua gasta e a linha d'água. Nada mais.</span></li>
+      <li><span class="it-n">A porta que não abre — Ruínas</span><span class="it-d">Selada por dentro. Não abre nesta terra.</span></li>
+    </ul>
+  </div>
+  <p class="why">São eles que fazem 320×320 parecer um lugar habitado em vez de oito marcos com mato
+  entre eles — e num mapa desse tamanho, dois minutos e meio de ponta a ponta, o mato entre os marcos
+  é a maior parte do que o jogador atravessa. Nenhum dá experiência nem item; o poço e o veio dão o que a coleta já dá, só que num
+  lugar que vale a pena procurar.</p>
+</section>
+
+<section>
+  <h2>O que muda no código</h2>
+  <div class="fases">
+    <div class="fase"><div class="num">01</div><div>
+      <h3>A página que desenha o andar inteiro</h3>
+      <p>Primeiro, porque sem ela você não consegue julgar nada do que eu compuser. Imagem do andar
+      completo, com os nomes, do mesmo jeito que a página dos campos de chão funcionou.</p>
+    </div></div>
+    <div class="fase"><div class="num">02</div><div>
+      <h3>Mapa vira arquivo · <code>genWorld</code> vira <code>loadWorld</code></h3>
+      <p>Medido: o mapa de hoje congelado dá 139 KB. O de Aleto, com 320×320 e cinco sistemas
+      escavados, fica na mesma ordem — ~108 KB, um caractere por tile. Sem build, sem dependência.</p>
+      <p class="why">Os saves quebram, e você já disse que pode.</p>
+    </div></div>
+    <div class="fase"><div class="num">03</div><div>
+      <h3>Vigília e a Mata Mansa</h3>
+      <p>As duas menores e as primeiras que o jogador vê ao chegar da ilha. Com as criaturas colocadas
+      uma a uma, no lugar das faixas de distância do templo.</p>
+    </div></div>
+    <div class="fase"><div class="num">04</div><div>
+      <h3>Uma região por vez</h3>
+      <p>O gerador antigo continua preenchendo o que ainda não foi desenhado, então o jogo nunca fica
+      injogável enquanto o mundo é trocado.</p>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Os rostos dos Ssarai</h2>
+  <p>A única arte nova que Aleto pede. <b>Não são homens-lagarto:</b> são pessoas mudando, e o quanto
+  mudaram conta a idade ao contrário — quanto mais novo, mais escama.</p>
+  <div class="band">
+    <table>
+      <caption>O que é legível num sprite de 32×32, que é o tamanho real.</caption>
+      <thead><tr><th>Idade</th><th>Pele</th><th>Olho</th><th>Cabeça</th></tr></thead>
+      <tbody>
+        <tr><th>Ancião</th><td class="now">tom humano, escama só nas mãos e no pescoço</td><td>humano</td><td>cabelo branco</td></tr>
+        <tr><th>Adulto</th><td class="now">tom esverdeando, escama no antebraço e no maxilar</td><td>pupila em fenda</td><td>sem cabelo</td></tr>
+        <tr><th>Jovem</th><td class="now">escama até o rosto, tom claramente réptil</td><td>réptil inteiro</td><td>crista baixa</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why">Em 32×32 quase nada de anatomia se lê. O que se lê é <b>tom de pele, pixel do olho e
+  silhueta da cabeça</b> — e por sorte esses três bastam para contar a história, porque são
+  exatamente os três que mudam. Mão alongada e dedo a mais não sobrevivem ao tamanho e ficam de fora.</p>
+  <p>Ssarai e Ssaruk usam o <b>mesmo corpo</b>. A diferença é cor de roupa: a Lagoa Alta ainda veste
+  o tom do posto de vigia, e a Lagoa Morta abandonou também isso.</p>
+  <div class="aviso">
+    <h4>Isto não se decide no papel</h4>
+    <p>A leva dos campos de chão provou que descrição vira desenho literal — "língua que afina para
+    cima" saiu como espeto. Os três rostos vão para uma <b>página de amostra</b>, lado a lado e no
+    tamanho real, do mesmo jeito que os campos foram. Eu desenho, você olha e aponta.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Continua em aberto</h2>
+  <div class="grupo">
+    <ul class="itens">
+      <li class="debt"><span class="it-n">Desenhar os três rostos</span><span class="it-d">A régua está escrita; falta a página de amostra e o desenho. É a última pendência de Aleto.</span></li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  Thaira · composição de Aleto, rascunho 2 · 2026-08-22 · nada implementado ·
+  18 decisões respondidas · 5 itens de andar em aberto.
+</footer>
+
+</div>

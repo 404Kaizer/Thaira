@@ -1,0 +1,236 @@
+<meta charset="utf-8">
+<title>Vocabulário de tiles — #48</title>
+<style>
+  body{margin:0;background:#15151a;color:#ddd5c2;font:14px/1.5 "Segoe UI",system-ui,sans-serif;padding:24px}
+  h1{font:400 26px/1.1 Cinzel,Georgia,serif;color:#f0cd7a;letter-spacing:.03em;margin:0 0 6px}
+  p.lede{color:#8f8874;margin:0 0 20px;max-width:78ch}
+  .barra{margin:0 0 20px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  label{font-size:13px;color:#8f8874;display:flex;gap:7px;align-items:center}
+  select{background:#26241f;color:#ddd5c2;border:1px solid #3a352b;padding:5px 10px;font:13px inherit}
+  .grade{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .cel{background:#1e1c18;border:1px solid #3a352b;padding:12px}
+  .cel h2{font:600 11px "Segoe UI";letter-spacing:.14em;text-transform:uppercase;color:#d9a441;margin:0 0 4px}
+  .cel .nota{color:#6b6558;font-size:12px;margin:0 0 9px;max-width:46ch}
+  canvas{display:block;image-rendering:pixelated;background:#0d0d10}
+  .tiras{display:flex;gap:8px;flex-wrap:wrap;max-width:1180px}
+  figure{margin:0;text-align:center;width:96px}
+  figcaption{font:10.5px ui-monospace,Consolas,monospace;color:#8f8874;margin-top:3px;line-height:1.3}
+  figcaption b{color:#ddd5c2;font-weight:600;display:block}
+</style>
+
+<h1>Vocabulário de tiles</h1>
+<p class="lede">Os tiles do #48 no tamanho em que o jogo desenha e sobre o terreno do jogo. Cada
+cena é um lugar que já existe escrito nos documentos das duas terras — não há tile aqui sem
+endereço. <b>Esta página não é a planta:</b> a planta diz se a topologia fecha, e quem diz se a
+casa parece casa é olhar de perto. Julgue no zoom 1, que é o do jogo; os outros servem para achar
+o defeito, não para aprovar.</p>
+
+<div class="barra">
+  <label>Zoom <select id="zoom"><option selected>1</option><option>2</option><option>3</option><option>4</option></select>×</label>
+  <label>Chão em volta <select id="fora"><option value="GRASS">grama</option><option value="DIRT">terra</option><option value="SAND">areia</option><option value="SNOW">neve</option><option value="CFLOOR">caverna</option></select></label>
+  <label>Luz <select id="luz"><option value="">meio-dia</option><option value="1">caverna</option><option value="2">abismo</option><option value="4">coração</option></select></label>
+</div>
+
+<div class="grade" id="grade"></div>
+
+<script src="../../src/art.js"></script>
+<script src="../../src/world.js"></script>
+<script>
+/* art.js e world.js, e nada mais: T, TILE, TILE_CHAR e as texturas saem do
+   PRÓPRIO jogo. Copiar cor ou id para cá criaria a segunda fonte de verdade que
+   a virada de mundo existe para não ter — a página mentiria no dia seguinte. */
+const $ = s => document.querySelector(s);
+
+/* As cenas, escritas como o mapa é escrito: um caractere por tile, do TILE_CHAR.
+   Pequenas de propósito — o que se julga aqui é o material, e cena grande
+   esconde material ruim atrás de composição. */
+const CENAS = [
+  ['Os móveis da vila', 'O poço na praça, a carroça na rua, os barris encostados na parede e o moinho no alto. Sem eles a vila tinha casa, rua e templo — e nada do que se põe ENTRE eles, que é o que faz uma rua parecer usada. Curral não é tile: é cerca em volta de terra batida, e está no canto de baixo.', [
+    'aaaaaaaaaaaaadddddd',
+    'aaaa@aaaaaaadddd&dd',
+    'aaaaaaaaaaaadddddddd',
+    'aaaaaaa%aaaadddddddd',
+    'aaaaaaaaaaaadddddddd',
+    'aMMMMDMMMMaadddddddd',
+    'aMPPPPPPPPMa$dddgggg',
+    'aMPPPPPPPPMa$ddggggg',
+    'aMMMMMMMMMMaaddggggg',
+    'aaaaaaaaaaaaaddggggg',
+    'ggFFFFFFFFFFggggggg',
+    'ggFddddddddFgggHHHH',
+    'ggFddddddddFgggHHHH',
+    'ggFFFFFFFFFFgggHHHH'
+  ]],
+  ['A vila — Varrok', 'Casa de tábua com porta, paiol de palha ao lado, cerca cortando, trigal e o caminho de terra. Nenhum tile de pedra: era ele que fazia todos estes papéis.', [
+    'gggggggggggHHHHHHH',
+    'gMMMMMMMMgyyyyHHHH',
+    'gMPPPPPPMgyyyyHHHH',
+    'gMPPPPPPMgyyyyHHHH',
+    'gMPPPPPPMgyyyyHHHH',
+    'gMPPPPPPMgyyyyHHHH',
+    'gMPPPPPPMgyyyyHHHH',
+    'gMMMMDMMMgyyyyHHHH',
+    'gddddddddddgHHHHHH',
+    'ddddddddddddgHHHHH',
+    'FFFFFFFFFFFFFFFFFF',
+    'gggggggggggggggggg',
+    'ggggggggggggggggHH'
+  ]],
+  ['O Trapiche', 'Tábua sobre a água, e é o único jeito de ter píer sem aterrar a costa de areia. A fresta entre as pranchas mostra o escuro de baixo.', [
+    'ggggggggg',
+    'gggsssggg',
+    'sssssssss',
+    'wwwjjjwww',
+    'wwwjjjwww',
+    'wwwjjjwww',
+    'wwwwwwwww',
+    'wwwwwwwww'
+  ]],
+  ['Vigília — a cidade sobre o selo', 'Bloco esquadrejado, calçada e a laje gravada do templo. A regularidade é o que denuncia que um homem construiu — é ela que separa o Labirinto do rei de uma caverna qualquer.', [
+    'ddaaaaaaaaaaaaadd',
+    'daaaSSSSSSSSSaaad',
+    'aaaaS#######Saaaa',
+    'aaaaS##rrr##Saaaa',
+    'aaaaS##rrr##Saaaa',
+    'aaaaS##rrr##Saaaa',
+    'aaaaS###D###Saaaa',
+    'daaaaaaaaaaaaaaad',
+    'ddaaaaaaaaaaaaadd'
+  ]],
+  ['Ruínas de Aleto', 'O que sobrou da capital: bloco caído, entulho, musgo tomando o chão. A parede em pé é a mesma pedra lavrada — o que mudou foi o que ficou dela.', [
+    'mmgggmmmggmmmgg',
+    'mSSSSmmSSmmmSSm',
+    'mSuuuummuummuSm',
+    'gSuummmmuummmSm',
+    'gSuummuuuummmSg',
+    'mmuummmmuummmmg',
+    'mmmSSmmuummSSmg',
+    'ggmmmmmmmmmmmgg'
+  ]],
+  ['A Mina — a única feita com plano', 'Galeria de brita com escoramento em pé e o veio no meio da rocha. O veio é rocha, e é para ser: quem o acha é o metal desenhado, não uma cor diferente vista do outro lado do andar.', [
+    'CCCCCCCCCCCCCCCC',
+    'CkkkkkkkkkkkkkkC',
+    'CkIkkkkOOkkkkIkC',
+    'CkkkkkkOkkkkkkkC',
+    'CkkkkkkkkkkkkkkC',
+    'CkIkkkkkkkOOkIkC',
+    'CkkkkkkkkkkOkkkC',
+    'CCCCCCCCCCCCCCCC'
+  ]],
+  ['O Ninho — o único que não foi cavado', 'Sem parede de pedra: o limite é teia. Câmara arredondada, chão de teia pisada, e a parede que se refaz entre uma visita e outra.', [
+    'WWWWWWWWWWWWWW',
+    'WWeeeeeeeeeeWW',
+    'WeeeeeeeeeeeeW',
+    'WeeeeeeeeeeeeW',
+    'WWeeeeeeeeeeWW',
+    'WWWeeeeeeeeWWW',
+    'WWWWWeeeeWWWWW',
+    'WWWWWWWWWWWWWW'
+  ]],
+  ['O Selo — a cripta', 'Ossada no chão, a mancha do que aconteceu ali, cinza e a laje do selo. Sangue de combate e campo elemental continuam sendo do motor e passam por cima; estes ficam.', [
+    'CCCCCCCCCCCCCCC',
+    'CbbbbzzzzzbbbbC',
+    'CbbxxxzzzxxxbbC',
+    'CbxxxxxrxxxxxbC',
+    'CbxxxxrrrxxxxbC',
+    'CbbxxxxrxxxxbbC',
+    'CbbbbzzzzzbbbbC',
+    'CCCCCCCCCCCCCCC'
+  ]]
+];
+
+const SOZINHOS = [
+  ['M', 'parede', 'tábua e prumo'], ['P', 'piso', 'tábua corrida'], ['D', 'porta', 'motivo, não ruído'],
+  ['F', 'cerca', 'barra o pé, não a vista'], ['H', 'lavoura', 'leira e o pé nela'],
+  ['j', 'trapiche', 'tábua sobre a água'], ['y', 'palha', 'monte sem eixo'], ['I', 'escora', 'viga em pé'],
+  ['S', 'bloco', 'fiada com amarração'], ['a', 'calçada', 'pedra miúda'], ['u', 'entulho', 'caco com sombra'],
+  ['O', 'veio', 'rocha com metal fosco'], ['k', 'brita', 'grão anguloso'],
+  ['W', 'teia', 'fio esticado'], ['e', 'teia pisada', 'fio frouxo e bolo'],
+  ['b', 'ossada', 'osso longo e órbita'], ['z', 'cinza', 'pó com monte e cova'],
+  ['m', 'musgo', 'pedra por baixo'], ['x', 'mancha', 'poça velha e respingo'],
+  ['r', 'selo', 'sulco gravado']
+];
+
+/* O mesmo par de passes do drawFloor: chão inteiro primeiro, volumes depois.
+   Sem isso a parede da fileira de cima seria apagada pelo chão da de baixo. */
+/* A luz do andar, do PRÓPRIO FLOOR_AMBIENCE. Sem isto eu julgaria a brita da
+   mina em luz de meio-dia e a deixaria escura demais para o lugar em que ela
+   mora — que é medir com régua diferente da do jogo. */
+function desenha(cv, linhas, z, foraId) {
+  const W = linhas[0].length, H = linhas.length;
+  cv.width = W * 32 * z; cv.height = (H + 1) * 32 * z;
+  const g = cv.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.scale(z, z);
+  const em = (x, y) => (y < 0 || y >= H || x < 0 || x >= W || CHAR_TILE[linhas[y][x]] === undefined)
+    ? foraId : CHAR_TILE[linhas[y][x]];
+  const oy = 32;                                  // folga em cima: parede sobe do tile
+
+  for (let y = -1; y <= H; y++) for (let x = 0; x < W; x++) {
+    const d = TILE[em(x, y)];
+    if (d.hide || d.top > 0.5) continue;
+    const cx = ((x % 3) + 3) % 3 * 32, cy = ((y % 3) + 3) % 3 * 32;
+    g.drawImage(tileTexture(d.tex || 'dirt', d.c), cx, cy, 32, 32, x * 32, y * 32 + oy, 32, 32);
+    /* A mesma transição do drawFloor, sem a espuma (que depende do relógio do
+       jogo): julgar tile sem a borda que o jogo desenha é julgar outra coisa. */
+    const p0 = TERRAIN_PRIO[d.tex] || 0;
+    let orto = 0;
+    for (let m = 0; m < 8; m++) {
+      if (m > 3 && (orto >> (m - 4) & 1 || orto >> ((m - 3) & 3) & 1)) continue;
+      const nd = TILE[em(x + EDGE_DIR[m][0], y + EDGE_DIR[m][1])];
+      if (nd.hide || nd.top > 0.5 || (TERRAIN_PRIO[nd.tex] || 0) <= p0) continue;
+      if (m < 4) orto |= 1 << m;
+      g.drawImage(borderSprite(nd.tex, nd.c, m), x * 32, y * 32 + oy, 32, 32);
+    }
+  }
+  for (let y = -1; y <= H; y++) for (let x = 0; x < W; x++) {
+    const t = em(x, y), d = TILE[t];
+    if (d.top > 0.5) g.drawImage(paredeSprite(d, ((x * 92837111) ^ (y * 689287499)) >>> 29), x * 32, y * 32 + oy - WALL_TOP, 32, WALL_H);
+    else if (d.obj)
+      g.drawImage(OBJ_DRAW[d.obj](em(x - 1, y) === t || em(x + 1, y) === t),
+        x * 32, y * 32 + oy - CERCA_TOP, 32, CERCA_H);
+  }
+  const amb = FLOOR_AMBIENCE[+($('#luz').value || 1)].amb;
+  if ($('#luz').value && amb) {
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = 'multiply';
+    g.fillStyle = amb; g.fillRect(0, 0, cv.width, cv.height);
+    g.globalCompositeOperation = 'source-over';
+  }
+}
+
+function cel(titulo, nota) {
+  const d = document.createElement('div');
+  d.className = 'cel';
+  d.innerHTML = `<h2>${titulo}</h2>` + (nota ? `<p class="nota">${nota}</p>` : '');
+  $('#grade').appendChild(d);
+  return d;
+}
+
+function monta() {
+  const z = +$('#zoom').value, foraId = T[$('#fora').value];
+  $('#grade').innerHTML = '';
+  for (const [titulo, nota, linhas] of CENAS) {
+    const c = document.createElement('canvas');
+    cel(titulo, nota).appendChild(c);
+    desenha(c, linhas, z, foraId);
+  }
+  const d = cel('um de cada vez', 'Cada tile cercado do chão escolhido acima: é o recorte em que se vê se o material se distingue do que está em volta.');
+  const tiras = document.createElement('div');
+  tiras.className = 'tiras';
+  d.appendChild(tiras);
+  for (const [ch, nome, nota] of SOZINHOS) {
+    const fora = TILE_CHAR[foraId];
+    const f = document.createElement('figure');
+    const c = document.createElement('canvas');
+    f.appendChild(c);
+    f.insertAdjacentHTML('beforeend', `<figcaption><b>${nome}</b>${nota}</figcaption>`);
+    tiras.appendChild(f);
+    // sempre 1×: é o tamanho do jogo, e é nele que a aprovação vale
+    desenha(c, [fora.repeat(3), fora + ch + fora, fora.repeat(3)], 1, foraId);
+  }
+}
+
+$('#zoom').onchange = $('#fora').onchange = $('#luz').onchange = monta;
+monta();
+</script>

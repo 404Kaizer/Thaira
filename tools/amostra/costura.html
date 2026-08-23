@@ -1,0 +1,115 @@
+<meta charset="utf-8">
+<title>Teste de costura — #19</title>
+<style>
+  body{margin:0;background:#15151a;color:#ddd5c2;font:14px/1.5 "Segoe UI",system-ui,sans-serif;padding:24px}
+  h1{font:400 26px/1.1 Cinzel,Georgia,serif;color:#f0cd7a;letter-spacing:.03em;margin:0 0 6px}
+  p.lede{color:#8f8874;margin:0 0 18px;max-width:80ch}
+  .barra{margin:0 0 18px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  label{font-size:13px;color:#8f8874;display:flex;gap:7px;align-items:center}
+  select,input[type=file]{background:#26241f;color:#ddd5c2;border:1px solid #3a352b;padding:5px 10px;font:13px inherit}
+  .grade{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .cel{background:#1e1c18;border:1px solid #3a352b;padding:12px}
+  .cel h2{font:600 11px "Segoe UI";letter-spacing:.14em;text-transform:uppercase;color:#d9a441;margin:0 0 4px}
+  .cel .nota{color:#6b6558;font-size:12px;margin:0 0 9px;max-width:40ch}
+  canvas{display:block;image-rendering:pixelated;background:#0d0d10}
+  .aviso{background:#1e1c18;border:1px solid #3a352b;border-left:3px solid #e0705f;padding:14px 18px;
+         max-width:80ch;margin:0 0 18px;color:#8f8874;font-size:13px}
+  .aviso b{color:#e0705f}
+</style>
+
+<h1>Teste de costura</h1>
+<p class="lede">A pergunta do #19, e a única que importa antes de gerar arte de terreno em quantidade:
+<b>o tile aguenta ser reduzido ao tamanho do jogo, e aguenta ficar lado a lado?</b> Um PNG de
+1024×1024 tem mil vezes mais pixel do que cabe num tile de 32. O que sobra depois de reduzir é o
+que o jogador vai ver — e é isso que esta página mostra, ao lado da textura procedural de hoje,
+que é o padrão a bater.</p>
+
+<div class="aviso">
+  <b>Como ler.</b> Olhe a coluna <b>4×4 no tamanho do jogo</b>: é ali que a grade aparece, se
+  aparecer. Procure três coisas — linha reta na emenda entre tiles, o mesmo detalhe repetindo em
+  posição fixa, e canto mais escuro que o miolo (luz assada). Qualquer uma das três reprova.
+</div>
+
+<div class="barra">
+  <label>PNG <input type="file" id="arq" accept="image/*"></label>
+  <label>Reduzir para <select id="alvo"><option value="96" selected>96 (a folha 3×3 do jogo)</option><option value="32">32 (um tile só, repete)</option></select></label>
+  <label>Zoom do lado a lado <select id="zoom"><option value="1" selected>1× (o do jogo)</option><option value="2">2×</option><option value="4">4×</option></select></label>
+</div>
+
+<div class="grade" id="grade"></div>
+
+<script src="../../src/art.js"></script>
+<script src="../../src/world.js"></script>
+<script>
+/* Compara com a textura do PRÓPRIO jogo, não com uma lembrança dela: sem o
+   padrão ao lado, qualquer coisa parece razoável sozinha. */
+const $ = s => document.querySelector(s);
+const NB = 4;                                            // 4×4 tiles: menos que isso não mostra grade
+
+function cel(titulo, nota) {
+  const d = document.createElement('div');
+  d.className = 'cel';
+  d.innerHTML = `<h2>${titulo}</h2>` + (nota ? `<p class="nota">${nota}</p>` : '');
+  $('#grade').appendChild(d);
+  return d;
+}
+
+/* Reduz para o tamanho do jogo em UM passo, que é o que o navegador faz ao
+   desenhar. Reduzir em vários passos suaviza e mentiria a favor do PNG. */
+function reduz(img, alvo) {
+  const c = _canvas(alvo), g = c.getContext('2d');
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(img, 0, 0, alvo, alvo);
+  return c;
+}
+
+/* Ladrilha NB×NB recortando como o jogo recorta: a folha de 96 dá 3×3 recortes
+   distintos e o tile de 32 repete sempre o mesmo. É a diferença entre chão que
+   varia e chão que carimba. */
+function ladrilha(folha, zoom) {
+  const n = folha.width / 32;
+  const c = _canvas2(NB * 32 * zoom, NB * 32 * zoom), g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  for (let y = 0; y < NB; y++) for (let x = 0; x < NB; x++)
+    g.drawImage(folha, (x % n) * 32, (y % n) * 32, 32, 32,
+      x * 32 * zoom, y * 32 * zoom, 32 * zoom, 32 * zoom);
+  return c;
+}
+
+function coluna(titulo, nota, folha, zoom) {
+  const d = cel(titulo, nota);
+  const a = _canvas2(folha.width * 2, folha.height * 2), ga = a.getContext('2d');
+  ga.imageSmoothingEnabled = false;
+  ga.drawImage(folha, 0, 0, a.width, a.height);
+  a.style.marginBottom = '10px';
+  d.appendChild(a);
+  d.insertAdjacentHTML('beforeend',
+    `<p class="nota">a folha, 2× — acima. abaixo, ${NB}×${NB} tiles no tamanho do jogo.</p>`);
+  d.appendChild(ladrilha(folha, zoom));
+}
+
+let carregada = null;
+function monta() {
+  const zoom = +$('#zoom').value, alvo = +$('#alvo').value;
+  $('#grade').innerHTML = '';
+  /* O padrão a bater sai do próprio TEX_DRAW e do próprio TILE: comparar com uma
+     cópia da grama envelheceria no dia em que a paleta mudasse. */
+  coluna('procedural — o que o jogo faz hoje',
+    'Desenhada em 96×96, costurada por construção: a rotina roda 9× deslocada, então o que sai por uma borda entra pela outra.',
+    tileTexture('grass', TILE[T.GRASS].c), zoom);
+  if (carregada)
+    coluna('o PNG, reduzido para ' + alvo,
+      'Reduzido em um passo só, como o navegador faria. É este o tile que o jogador veria.',
+      reduz(carregada, alvo), zoom);
+}
+
+$('#arq').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const img = new Image();
+  img.onload = () => { carregada = img; monta(); };
+  img.src = URL.createObjectURL(f);
+};
+$('#zoom').onchange = $('#alvo').onchange = monta;
+monta();
+</script>

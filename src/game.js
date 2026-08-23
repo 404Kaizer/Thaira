@@ -770,7 +770,17 @@ function occupied(x, y, z, self) {
    atira (continua vendo e acertando). Pedra e parede de caverna cortam os dois,
    que é o certo — ninguém enxerga através de uma montanha. Criatura nunca entra
    na conta: bicho não tapa a mira de bicho. */
-const tapaVista = (x, y, z) => TILE[tileAt(x, y, z)].top > 0.5;
+/* Porta FECHADA tapa a vista, e com ela o tiro, a magia e o aggro — os três
+   passam por `lineClear`, que passa por aqui. Sem esta linha a porta barrava o
+   pé e não barrava mais nada: dava para flechar e queimar através dela, e o
+   bicho do outro lado enxergava o jogador e vinha. Porta que não protege de
+   nada não é porta.
+   Aberta ela some da conta, que é o ponto: o vão é vão. */
+const tapaVista = (x, y, z) => {
+  const t = tileAt(x, y, z);
+  if (t === T.DOOR) return !portaAberta(x, y, z);
+  return TILE[t].top > 0.5;
+};
 /* Zona segura: o piso do templo é a própria fronteira, então não existe raio
    mágico aqui — quem está no tile TEMPLE não é perseguido nem atingido, e
    criatura nenhuma pisa nele. A geração já não NASCE spawn perto (world.js),
@@ -2704,6 +2714,16 @@ function bindInput(canvas) {
     // Ctrl + esquerdo: só corpo/item. Nunca anda, então nunca disputa com o
     // clique esquerdo puro — corpo no meio do caminho parava de travar passagem.
     if (e.button === 0 && e.ctrlKey) {
+      /* PORTA: Ctrl + esquerdo, e só isso. Andar contra ela NÃO abre — a porta
+         só se opera de propósito, senão o jogador atravessa a casa sem perceber
+         que abriu, e a porta deixa de ter serventia contra o que vem atrás.
+         Vem antes do corpo/saque porque uma porta e um corpo não disputam o
+         mesmo tile: a porta é o próprio tile, o corpo está EM CIMA de um. */
+      if (tileAt(t[0], t[1], P.z) === T.DOOR && distT(t[0], t[1], P.x, P.y) <= 1) {
+        const aberta = usaPorta(t[0], t[1], P.z);
+        sfx('stairs');
+        return log(aberta ? 'Você abre a porta.' : 'Você fecha a porta.');
+      }
       const c = corpseAt(t[0], t[1]);
       if (c && distAcao(P, c) <= 1) G.dragCorpse = c;
       else lootTile(t[0], t[1]);
@@ -3132,7 +3152,9 @@ function save() {
   const { st, ...rest } = P;
   const agora = Date.now();
   const d = {
-    seed: WORLD.seed, p: rest, corpses: G.corpses, drops: G.drops,
+    // de que MAPA este personagem é. Sem isto, um save feito no mundo gerado
+    // voltaria com coordenadas de outra terra no dia em que houver arquivo.
+    seed: WORLD.seed, mapa: WORLD.mapa || null, p: rest, corpses: G.corpses, drops: G.drops,
     mobs: G.mobs.filter(m => m.hp > 0).map(m => ({ i: WORLD.spawns.indexOf(m.sp), x: m.x, y: m.y, hp: m.hp }))
       .filter(o => o.i >= 0),
     mortos: WORLD.spawns.map((sp, i) => sp.dead > agora ? [i, sp.dead] : null).filter(Boolean),
@@ -3140,7 +3162,10 @@ function save() {
        sobrevive ao respawn de proximidade: o veterano que você deixou com 20%
        de vida precisa ser o mesmo quando você voltar, senão o `hp` restaurado
        cai pro teto de um bicho comum e a briga recomeça do zero. */
-    elites: WORLD.spawns.map((sp, i) => sp.el >= 0 ? [i, sp.el] : null).filter(Boolean)
+    elites: WORLD.spawns.map((sp, i) => sp.el >= 0 ? [i, sp.el] : null).filter(Boolean),
+    /* Porta que você deixou aberta continua aberta ao voltar. É estado de
+       partida e não de mapa, então mora aqui e não no arquivo da terra. */
+    portas: [...WORLD.portas]
   };
   const id = ACTIVE_CHARACTER_ID || charId();
   ACTIVE_CHARACTER_ID = id;
@@ -3150,6 +3175,47 @@ function save() {
   localStorage.setItem(ACTIVE_CHARACTER_KEY, id);
   // Compatibilidade com a versão anterior do jogo.
   localStorage.setItem(SAVE_KEY, JSON.stringify(d));
+}
+
+/* ------------------------------------------------- o mapa mudou lá fora
+   O editor grava o patch, o servidor recompõe, e o jogo continua com a versão
+   ANTIGA em memória — era esse o "gravei e não aparece nada no jogo". O aviso
+   vem por `BroadcastChannel`, que é nativo e funciona entre abas da mesma
+   origem: o editor emite depois de recompor, e quem estiver com o jogo aberto
+   troca o mundo debaixo dos pés sem perder o personagem.
+   Recarregar a PÁGINA seria mais simples e bem pior: perde a sessão, o clima, o
+   relógio e o que estiver no chão. Trocar só o mundo é o que deixa editar e
+   olhar ao mesmo tempo, que é o laço todo do editor. */
+function recarregaMapa(nome) {
+  if (!P || WORLD.mapa !== nome) return;
+  return fetch('maps/' + nome + '.json?t=' + Date.now())
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(o => {
+      /* Os bichos vivos apontam para objetos do array de spawns ANTIGO, que o
+         `mapaAplica` substitui. Sem tirá-los antes, cada um fica segurando um
+         `sp` órfão e o respawn deles nunca mais fecha. */
+      for (const m of [...G.mobs]) removeMob(m, false);
+      G.mobs.length = 0; G.target = null; G.path = [];
+      G.corpses.length = 0; G.drops.length = 0; G.proj.length = 0;
+      G.fx.length = 0; G.blood.length = 0; G.campos.length = 0;
+      mapaAplica(o);
+      buildMinimaps();
+      /* O terreno pode ter mudado embaixo do personagem — e vai ter, porque o
+         que se edita é justamente onde se está olhando. É o mesmo resgate do
+         carregamento de save. */
+      if (P.z >= FLOORS || P.z < 0) P.z = SURF;
+      const resgate = chaoMaisPerto(P.x, P.y, P.z);
+      if (resgate) { [P.x, P.y] = resgate; P.px = P.x; P.py = P.y; }
+      $('#floor-label').textContent = FLOOR_NAMES[P.z];
+      refreshSpawns(true);
+      log('O mapa foi recomposto no editor e recarregado.' +
+        (resgate ? ' Você foi posto no chão mais próximo.' : ''), 'good');
+    })
+    .catch(e => log('o mapa mudou mas não recarregou: ' + e.message, 'bad'));
+}
+if (typeof BroadcastChannel === 'function') {
+  const canal = new BroadcastChannel('thaira-mapa');
+  canal.onmessage = e => e.data && e.data.mapa && recarregaMapa(e.data.mapa);
 }
 
 /* --------------------------------------------------------------- loop */
@@ -3268,13 +3334,18 @@ function startGame(name, voc, saved, charIdArg) {
     if (charIdArg) { ACTIVE_CHARACTER_ID = charIdArg; localStorage.setItem(ACTIVE_CHARACTER_KEY, charIdArg); }
     const canvas = $('#c');
     const seed = saved ? saved.seed : (Math.random() * 1e9) | 0;
-    genWorld(seed);
-    resizeCam(canvas);
-    finishStart(canvas, saved, name, voc);
-    setTimeout(() => {
-      tela.classList.add('fade');
-      setTimeout(() => tela.style.display = 'none', LOADING_FADE);
-    }, Math.max(0, LOADING_MIN - (performance.now() - t0)));
+    /* O mundo pode vir de ARQUIVO agora. O personagem guarda de que mapa ele é,
+       senão um save feito no mundo gerado voltaria com coordenadas de outra
+       terra. Sem mapa nomeado, `carregaMundo` sorteia pela semente como sempre —
+       é o que mantém o jogo jogável enquanto as terras não estão desenhadas. */
+    carregaMundo(seed, saved ? saved.mapa : MAPA_ATUAL).then(() => {
+      resizeCam(canvas);
+      finishStart(canvas, saved, name, voc);
+      setTimeout(() => {
+        tela.classList.add('fade');
+        setTimeout(() => tela.style.display = 'none', LOADING_FADE);
+      }, Math.max(0, LOADING_MIN - (performance.now() - t0)));
+    });
   };
   requestAnimationFrame(() => requestAnimationFrame(construir));
   setTimeout(construir, 120); // rAF não roda em aba sem renderização; o timer garante a partida
@@ -3287,6 +3358,10 @@ function startGame(name, voc, saved, charIdArg) {
    entra: o bicho voltou nesse meio-tempo, que é o comportamento certo. */
 function restaurarBichos(saved) {
   const agora = Date.now();
+  /* As portas ANTES dos bichos: `refreshSpawns` mais abaixo instancia criatura,
+     e criatura instanciada com a porta ainda fechada calcularia caminho por um
+     mapa que muda no tique seguinte. */
+  WORLD.portas = new Set(saved.portas || []);
   for (const [i, ate] of saved.mortos || [])
     if (WORLD.spawns[i] && ate > agora) WORLD.spawns[i].dead = ate;
   // antes de qualquer spawnMob: é o `sp.el` que decide a definição do bicho
@@ -3329,6 +3404,17 @@ function finishStart(canvas, saved, name, voc) {
     delete P.say;
     G.corpses = saved.corpses || [];
     G.drops = saved.drops || [];
+    /* O MAPA PODE TER MUDADO EMBAIXO DELE. O save guarda a posição, e desde que
+       existe editor a terra muda entre uma sessão e outra — e o primeiro lugar
+       que se pinta por cima é justamente onde o personagem parou. Sem este
+       resgate ele acorda dentro da parede; cercado, fica preso num save que não
+       tem conserto de dentro do jogo. Vale também para andar que sumiu. */
+    if (P.z >= FLOORS || P.z < 0) P.z = SURF;
+    const resgate = chaoMaisPerto(P.x, P.y, P.z);
+    if (resgate) {
+      [P.x, P.y] = resgate; P.px = P.x; P.py = P.y;
+      log('O terreno mudou onde você estava. Você foi posto no chão mais próximo.', 'good');
+    }
     restaurarBichos(saved);
     recalc();
   }

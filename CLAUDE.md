@@ -24,6 +24,51 @@ Rules:
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - SEMPRE rode `graphify update .` ao terminar de implementar qualquer solicitação que tenha mexido em código, antes de dar a tarefa por concluída. Não é opcional nem "quando lembrar": é o último passo de toda implementação (AST-only, sem custo de API). Se o comando falhar, avise em vez de ignorar em silêncio.
 
+## Documentos do projeto
+
+Estes arquivos são a memória do projeto. **Leia antes de propor ou implementar qualquer coisa** — eles guardam decisões já tomadas, e propor de novo o que já foi decidido (ou desfazer sem saber) é o desperdício mais caro aqui.
+
+- **tasks.html** — estado técnico, fila de pendências, correções feitas e *armadilhas conhecidas*. É o documento de repasse: se você só puder ler um, leia este.
+- **mundo_varrokgaard.html** e **mundo_aleto.html** — a lore e a planta das duas terras: história, elenco de criaturas, regiões, subsolo e o que **não** existe em cada uma.
+- **proposta_24.html** — proposta de alinhamento das habilidades de criatura, com as decisões ainda em aberto.
+
+Regras:
+
+- **Mapa: o script semeia, o editor corrige.** `tools/mapas/<terra>.js` compõe e se confere; `tools/editor.html` grava só o DIFF em `maps/<terra>.patch.json`, que o script aplica no fim, antes das conferências. Rodar o script nunca apaga correção feita à mão — e por isso **não edite `maps/*.json` na mão**: ele é saída, e a próxima execução o reescreve.
+- O mundo é **autoral, não gerado**. `genWorld` continua vivo só para rascunho; o mapa de verdade vem de `maps/*.json`. Antes de mexer em geração de mundo, leia a seção "A virada de mundo" do tasks.html.
+- **SEMPRE atualize o tasks.html** ao terminar qualquer implementação, junto com o `graphify update .`. Não é opcional: sem isso o documento envelhece em silêncio — já aconteceu de ele passar três commits desatualizado e afirmar 32 invariantes travadas por teste das quais 18 não existiam.
+- Se a lore mudar, o documento da terra é a fonte — atualize-o, não o código sozinho.
+
+## Manter esta memória
+
+Este arquivo entra no contexto de **toda** sessão; o tasks.html só quando alguém o abre. Por isso os dois têm trabalhos diferentes, e misturar arruína os dois — um CLAUDE.md inchado deixa de ser lido com atenção, e aí a regra que importa se perde no meio da história.
+
+- **Aqui**: decisão que restringe trabalho futuro, regra de método, e onde as coisas moram. Curto.
+- **No tasks.html**: o que foi feito, o que falta, medições, números e a história de cada correção.
+
+O teste para saber onde vai: *isto muda **como** eu trabalho, ou registra **o que** aconteceu?* O primeiro vem para cá; o segundo vai para o tasks.html.
+
+**Ao terminar qualquer trabalho, atualize os dois** — o tasks.html sempre, este arquivo quando surgir decisão ou regra nova. E regra que deixou de ser geral, **tire daqui**: este arquivo também encolhe.
+
+## Decisões que não se re-discutem
+
+Cada uma custou uma volta inteira de trabalho. Reabrir sem motivo novo é desperdício; o histórico de cada uma está no tasks.html.
+
+- **O mundo é autoral, não gerado.** Mapa procedural não tem profundidade: o monstro está onde uma faixa de distância mandou, e nenhum lugar tem identidade. Autoral não significa desenhado à mão pelo dono — significa **decidido e congelado**.
+- **Meça com a régua do jogo.** Medir com régua diferente é pior do que não medir: dá alarme falso, e o alarme falso esconde o verdadeiro. Já aconteceu três vezes — distância de cor medindo legibilidade quando eu queria identidade, componentes conexos com 4 vizinhos quando o jogo anda em 8, e a planta de cima julgando um lugar de andar. **Arte se julga no tamanho e na luz do jogo**: aprovar no 4× deixa passar o que não lê no 1×, e julgar tile de caverna em luz de meio-dia o deixa escuro demais para onde ele mora.
+- **Piso de 192×192 para superfície.** Mapa menor lê grande na planta e minúsculo andando — Varrokgaard a 64² se atravessa em dez segundos, e foi por isso que ela caiu. A exceção é o lugar que **exige** ser pequeno (sistema de subsolo, gruta, sala), nunca o que ficou pequeno por descuido. A planta não mede distância percorrida; só andando se sabe.
+- **Sombra é do MOTOR, não assada no sprite.** Elipse pálida pintada dentro do desenho entra no passe de luz junto com o objeto: escurece com ele à noite e para de separá-lo do chão — o objeto vira papel no chão. Quem prega no chão é o `dropShadow` (mancha de contato **mais** silhueta projetada, alfa seguindo o sol); o sprite só declara `cx` e `feet`. Cerca e escoramento ficam de fora porque correm em linha, e sombra projetada por tile num lance de cerca vira serrilha.
+- **Objeto grande ocupa mais de um tile.** Um tile tem 32 px: poço, moinho, carroça e fonte desenhados dentro de um só serão sempre pequenos, por construção, e nenhum ajuste de desenho conserta isso. O tile declara `span: [w, h]`, a âncora (canto noroeste) desenha o objeto inteiro e os demais tiles do rastro só bloqueiam. Antes de desenhar, pergunte **quantos tiles esta coisa ocupa no mundo**, não como encolhê-la para caber em um.
+- **Cor de material é constante própria, e isso vale contra o CHÃO em que a coisa se apoia.** O poço tinha pedra a distância 13 do `PAVE` sob ele e sumia dentro da calçada. Quando objeto e chão são do mesmo material, quem os separa é o objeto ser mais velho, mais molhado ou mais escuro — nunca a mesma cor em outro tom.
+- **Bioma e geografia se estudam antes de desenhar.** Rio é **bacia**, não mancha: nasce em terreno alto, corre sempre para baixo, **recebe** afluente (nunca se divide), meandra no curso baixo e desemboca. Um tile solto de água no meio da mata é geologicamente impossível. E rio traz mata junto — a faixa da margem (mata-galeria) é mais densa que o entorno e forma o corredor por onde o bicho anda. Vila medieval **não tem grade**: as ruas emergem do uso, a igreja fica perto da estrada de entrada e não no centro do palco, e o padrão linear é o de aldeia feita por ordem de um senhor. Não construa bioma nem arquitetura no escuro.
+- **Estrada sobre rio é ponte, e forma geométrica nunca cria terra.** As duas falham caladas: o `caminho` pinta terra sobre a água e o rio vira dique; o disco encostado na costa emenda no continente e engorda a silhueta sem desconectar nada, então a conferência passa verde. Guarde o leito e converta no fim; pinte região só onde já é terra.
+- **A planta de cima não julga lugar de andar.** Ela diz se a topologia fecha e se há conteúdo inalcançável. Não diz nada sobre como é estar lá dentro — isso só se sabe jogando.
+- **Um material, um significado.** Se parede, casa, mureta e pedra solta forem todas do mesmo tile, o mapa vira entulho e nada se distingue de nada.
+- **Elenco fechado por terra, e não classe inteira.** Nem todo mapa precisa de toda classe, nem de uma classe inteira. **A ausência caracteriza tanto quanto a presença.**
+- **Tileset feito à mão é forma, contorno e luz por objeto.** Ruído com tom sorteado por pixel lê como tinta jogada no chão. O que funciona é sempre a mesma receita: objeto discreto, paleta de poucos tons fixos (`_tons`), sombra de um lado e luz do outro, e a mesma direção de luz para todos. Luz por OBJETO costura entre tiles; luz assada no quadro inteiro é o que estraga tile. E o chão é calmo — a riqueza mora na junta entre terrenos e no que está em cima dele, não no chão ficar ocupado.
+- **Descrição vira desenho literal.** Pedir "língua que afina para cima" produz um espeto. Para arte, o caminho é imagem de referência mais uma página de amostra onde o dono julga — nunca prosa.
+- **Reuso é errado quando diferenciar é o requisito.** Uma fórmula só para quatro elementos deu quatro bolinhas de cores diferentes. A escada do ponytail vale para lógica, não para identidade visual. Corolário caro: **cor de material é constante própria, não a cor do tile multiplicada** — veio, entulho e musgo nasceram todos errados por escalar a cor do vizinho em vez de ter a sua.
+
 ## 1. PROJECT IDENTITY
 
 THAIRA is a 2D dark-fantasy RPG.

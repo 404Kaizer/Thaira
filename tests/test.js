@@ -139,7 +139,7 @@ vm.runInContext(`
     damageFormula, skillOf, recalc, G, creatureSprite, TEX_DRAW, tileTexture, decoSprite, buildMinimaps, drawWorld, w2s,
     corDoCeu, ehNoite, ambienteAgora, climaAgora, souCoberto, FLOOR_AMBIENCE, silhouette, edgeShadow, cloudTexture,
     horaDoJogo, CLIMA_AVISO, poolTexture,
-    TERRAIN_PRIO, edgeMask, _mulberry, RANGER_DIR, SHEET_POS, rangerSprite,
+    TERRAIN_PRIO, OBJ_DRAW, PAREDE_DRAW, CERCA_TOP, WALL_TOP, paredeSprite, cercaSprite, escoraSprite, teiaSprite, edgeMask, _mulberry, RANGER_DIR, SHEET_POS, rangerSprite,
     SANGUE_CLASSE, SANGUE_PADRAO, SANGUE_MAX, bloodSpray, plateAnchor, resizeCam, CAM,
     itemCell, showTip, hideTip, tipCheck,
     HUNTS, huntAt, BEST_DIFF, MOB_META, bestStage, bestiaryKill, bestKills, toggleCharm, spawnCorpse, CHARM_COST, CHARM_BONUS,
@@ -154,7 +154,7 @@ vm.runInContext(`
     COLETA, SKILLS_COLETA, colher, coletaDe, COLETA_EXITO, COLETA_SORTE, chaveTile, ALCANCE_TIRO, lineClear, IMBUEMENTS, imbuir, contaMat, renderForja,
     magPower, MAG_K, lootEV, lootAlvo, updateFx, virarPara, refreshSpawns, playerAttack, DIRS, DANO_TIPOS, cdDe, ATAQUE_MS,
     distAcao, emZonaSegura, ESTADOS, ESTADO_DE, aplicaEstado, tickEstados, estadoFlash, frame, tingido, FX_PERFIL, estiloEstado, estadoDaMagia, itemStats,
-    CAMPO_DRAW, campoSprite, INTEL, INTEL_DESVIA, intelOf, CAMPO_DUR, CAMPO_MAX, CAMPO_FORCA, CAMPO_CHANCE, CAMPO_FASES, campoFase, campoDano, criaCampo, campoEm, tickCampos, evitaCampo, passoAte, spellTiles,
+    mapaSerializa, mapaAplica, TILE_CHAR, CHAR_TILE, tileAt, TILE, T, CAMPO_DRAW, campoSprite, INTEL, INTEL_DESVIA, intelOf, CAMPO_DUR, CAMPO_MAX, CAMPO_FORCA, CAMPO_CHANCE, CAMPO_FASES, campoFase, campoDano, criaCampo, campoEm, tickCampos, evitaCampo, passoAte, spellTiles,
     getForjaSlot: () => forjaSlot, setForjaSlot: v => forjaSlot = v,
     getHUD: () => HUD, setHUD: v => HUD = v, getP: () => P });
 
@@ -1417,13 +1417,113 @@ A(/Elementos/.test(S.fichaEsqueleto) && /Sagrado/.test(S.fichaEsqueleto) && /imu
   'a ficha do esqueleto mostra fraqueza a Sagrado e imunidade a Morte');
 A(!/Elementos/.test(S.fichaOrc), 'criatura sem entrada no bestiário não revela elemento');
 
+/* 29c-bis. PORTA: colisão e mecânica. Nasceu de um relato de que porta não
+   barrava nada — `T.DOOR` é `walk:true` na tabela, e sem estado ela era um
+   buraco na parede com desenho de porta. */
+vm.runInContext(`
+  const px = WORLD.temple.x, py = WORLD.temple.y;
+  /* Uma casinha de teste ao lado do templo — e o terreno é DEVOLVIDO no fim.
+     A primeira versão não devolvia, e três blocos adiante o teste da área de
+     fogo passou a falhar porque as paredes continuavam lá: estado de mundo
+     compartilhado é a mesma armadilha que a seção "Armadilhas conhecidas"
+     documenta para estado inicial de assertiva probabilística. */
+  const zz = WORLD.temple.z, T0 = WORLD.floors[zz].t;
+  const antes = [];
+  const põe = (x, y, t) => { antes.push([x, y, T0[y * W + x]]); T0[y * W + x] = t; };
+  for (let i = -1; i <= 1; i++) { põe(px + 4 + i, py - 1, T.WALL); põe(px + 4 + i, py + 1, T.WALL); }
+  põe(px + 3, py, T.WALL); põe(px + 5, py, T.FLOOR); põe(px + 4, py, T.DOOR);
+  globalThis.rFechada = isWalkable(px + 4, py, zz);
+  /* PORTA FECHADA TAPA A VISTA. Sem isto ela barrava o pé e não barrava mais
+     nada: dava para flechar e queimar através dela, e o bicho do outro lado
+     enxergava o jogador e vinha. Foi o segundo relato do dono do projeto sobre
+     a mesma porta, e é o que separa "obstáculo" de abrigo. */
+  globalThis.rVistaFechada = lineClear(px + 5, py, px + 3, py, zz);
+  usaPorta(px + 4, py, zz);
+  globalThis.rAberta  = isWalkable(px + 4, py, zz);
+  globalThis.rVistaAberta = lineClear(px + 5, py, px + 3, py, zz);
+  usaPorta(px + 4, py, zz);
+  globalThis.rFechaDeNovo = isWalkable(px + 4, py, zz);
+  /* ANDAR CONTRA A PORTA NÃO ABRE. Houve uma versão em que abria, e o dono do
+     projeto reprovou: a porta se abria sozinha ao passar e o jogador nem
+     percebia que tinha aberto, o que a esvazia de função contra o que vem
+     atrás. Abrir é gesto de propósito — Ctrl + clique. */
+  P.x = P.px = px + 5; P.y = P.py = py; P.z = zz; P.nextStep = 0;
+  globalThis.rAndouNaoAbriu = (tryStep(P, px + 4, py) === false) && !portaAberta(px + 4, py, zz);
+  globalThis.rNaoAtravessou = P.x === px + 5;
+  /* E o caminho do jogador NÃO atravessa porta fechada: prometer passagem por
+     onde está fechado é pior que dizer que não dá para chegar. */
+  globalThis.rCaminhoBarra = findPath(px + 5, py, px + 3, py, zz) === null;
+  for (const [x, y, t] of antes) T0[y * W + x] = t;   // devolve o chão
+  WORLD.portas = new Set();
+`, ctx);
+A(S.rAndouNaoAbriu === true, 'andar contra a porta fechada NÃO abre: abrir é gesto de propósito');
+A(S.rNaoAtravessou === true, 'e o passo não passa');
+A(S.rFechada === false, 'porta nasce FECHADA e barra o passo');
+A(S.rAberta === true, 'e abre');
+A(S.rFechaDeNovo === false, 'e fecha de novo — as duas metades, senão passa uma porta que só abre');
+/* As duas juntas, e é a segunda que pega o defeito relatado: só barrar o pé
+   deixa passar flecha, magia e o olhar do bicho. */
+A(S.rVistaFechada === false, 'porta fechada corta a linha: nada de flechar nem enxergar através dela');
+A(S.rVistaAberta === true, 'e aberta o vão é vão');
+A(S.rCaminhoBarra === true, 'o caminho do jogador não atravessa porta fechada');
+/* E o terceiro relato: aberta e fechada tinham o MESMO desenho, então abrir não
+   mudava nada na tela e o jogador só descobria tentando passar. Duas texturas
+   distintas, e as duas com rotina e com prioridade de borda — sem prioridade o
+   tile cai calado no 0 e some sob a borda de qualquer vizinho. */
+A(!!S.TEX_DRAW.door && !!S.TEX_DRAW.door_open, 'porta aberta e fechada têm desenhos distintos');
+A(S.TERRAIN_PRIO.door_open !== undefined, 'e a porta aberta tem prioridade de borda');
+
+/* 29c-quater. O MAPA MUDA EMBAIXO DO PERSONAGEM. Desde que existe editor de
+   mapas, a terra muda entre uma sessao e outra — e o primeiro lugar que se
+   pinta por cima e justamente onde o personagem parou, porque e para la que se
+   olha. O save guarda a posicao crua; sem resgate ele acorda DENTRO da parede,
+   e cercado fica preso num save que nao tem conserto de dentro do jogo. */
+vm.runInContext(`
+  const zRes = WORLD.temple.z, tRes = WORLD.floors[zRes].t;
+  const bxRes = WORLD.temple.x, byRes = WORLD.temple.y;
+  const antesRes = [];
+  const poeRes = (x, y, t) => { antesRes.push([x, y, tRes[y * W + x]]); tRes[y * W + x] = t; };
+  // soterra o personagem: o tile dele e os oito em volta viram parede
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) poeRes(bxRes + i, byRes + j, T.SWALL);
+  globalThis.rSoterrado = !isWalkable(bxRes, byRes, zRes);
+  const achRes = chaoMaisPerto(bxRes, byRes, zRes);
+  globalThis.rAchou = !!achRes && isWalkable(achRes[0], achRes[1], zRes);
+  globalThis.rPerto = achRes ? Math.max(Math.abs(achRes[0] - bxRes), Math.abs(achRes[1] - byRes)) : -1;
+  // quem esta em chao bom NAO e movido
+  globalThis.rNaoMexe = chaoMaisPerto(achRes[0], achRes[1], zRes) === null;
+  // coordenada fora do mapa tambem tem de ser resgatada
+  globalThis.rFora = !!chaoMaisPerto(W + 50, H + 50, zRes);
+  for (const [x, y, t] of antesRes) tRes[y * W + x] = t;
+`, ctx);
+A(S.rSoterrado === true, 'o cenário do teste soterra mesmo o personagem');
+A(S.rAchou === true, 'quem foi soterrado pela edição do mapa é posto em chão andável');
+A(S.rPerto === 2, 'e no anel mais próximo que tem chão, não em qualquer lugar');
+/* A outra metade, e é ela que impede o conserto de virar defeito: resgate que
+   move quem está bem teleportaria o personagem a cada carregamento. */
+A(S.rNaoMexe === true, 'e quem está em chão bom não é movido');
+A(S.rFora === true, 'coordenada fora do mapa também é resgatada — a terra pode encolher');
+
 /* 29d. velocidade por natureza: a régua do jogador é 220 */
 {
   const M = S.MONSTERS, v = k => M[k].spd;
   A(v('wolf') - v('bug') >= 60, `a natureza pesa: lobo x besouro (${v('wolf')} x ${v('bug')})`);
   A(v('dragon') > v('orc') + 30, `dragão não anda como orc (${v('dragon')} x ${v('orc')})`);
   A(['bug', 'rotworm', 'cyclops', 'skeleton', 'ghoul'].every(k => v(k) < 220), 'os pesados ficam abaixo do jogador');
-  A(['wolf', 'spider', 'giant_spider', 'dragon', 'demon'].every(k => v(k) >= 245), 'os caçadores partem de 245, acima da régua 220 do jogador');
+  /* Esta linha dizia o CONTRÁRIO até 2026-08-23 — afirmava que os caçadores
+     partem de 245, "acima da régua 220 do jogador" — e com isso travava o
+     defeito no lugar em vez de guardar contra ele. Escapar a pé é o modelo que
+     o data.js diz seguir, e medido, 68 das 83 criaturas passavam um jogador de
+     nível 1: rato, lebre e cervo inclusive. Teste que afirma o número errado é
+     pior que teste nenhum, porque dá cobertura ao que devia acusar. */
+  A(Object.values(M).filter(d => d.tier <= 2).every(d => d.spd < 220),
+    'nenhuma criatura de tier 0 a 2 passa o jogador nível 1: escapar a pé existe desde o começo');
+  /* Mesmo tier, três naturezas: é assim que se afirma "a natureza pesa" sem
+     cravar número, e sem deixar alguém achatar as classes ao recalibrar. */
+  A(v('wolf') > v('orc') && v('orc') > v('fire_beetle'),
+    `no mesmo tier, caçador > andarilho > peso morto (${v('wolf')}/${v('orc')}/${v('fire_beetle')})`);
+  A(Object.values(M).some(d => d.spd > 325) &&
+    Object.values(M).filter(d => d.spd > 325).every(d => d.tier >= 10),
+    'e só o tier alto alcança um knight nível 300 — as duas metades, senão passa um mundo onde nada corre');
   A(new Set(Object.values(M).map(d => d.spd)).size >= 12, 'as velocidades não caem todas no mesmo punhado de valores');
   A(Object.values(M).every(d => !d.medo || (d.medo > 0 && d.medo < .6)), 'medo é uma fração de vida sensata');
 }
@@ -2197,6 +2297,139 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
        para cima convidaria o neon que o §23 do CLAUDE.md veta. */
     const fora = tiles.filter(t => sat(cor(t)) < .10 || sat(cor(t)) > .90);
     A(!fora.length, `nenhum tile fora da faixa 10–90% de saturação (${fora.length} fora)`);
+  }
+
+  /* --- #48: vocabulário de tile, um material por significado -------------- */
+  /* A vila de Varrokgaard virou pedregulho porque casa, mureta e matacão eram
+     todos T.ROCK. É essa a confusão que se trava aqui, e SÓ ela: exigir 60 de
+     distância entre todo par de tile construído seria medir identidade com a
+     régua de legibilidade, que é o erro que o CLAUDE.md registra — parede e
+     cerca são a mesma madeira de propósito, e quem as separa é a silhueta.
+     Adjacência real continua guardada pelo teste de paleta derivado do mundo. */
+  {
+    const cor = t => S.TILE[t].c;
+    const dist = (a, b) => Math.abs((a >> 16 & 255) - (b >> 16 & 255))
+      + Math.abs((a >> 8 & 255) - (b >> 8 & 255)) + Math.abs((a & 255) - (b & 255));
+    /* Lista explícita do que é COISA CONSTRUÍDA — tile novo de construção entra
+       aqui. Natural e orgânico (veio, brita, cinza, musgo, ossada, teia) fica
+       de fora de propósito: são da família da pedra, e o veio em especial tem
+       de ser perto dela, senão minério se avista do outro lado do andar em vez
+       de se procurar. */
+    const CONSTRUIDO = ['WALL', 'FLOOR', 'DOOR', 'FENCE', 'CROP', 'PIER', 'HAY', 'PROP',
+                        'SWALL', 'PAVE', 'RUBBLE', 'GORE', 'RUNE'];
+    const perto = CONSTRUIDO.filter(k => dist(cor(S.T[k]), cor(S.T.ROCK)) < 60);
+    A(!perto.length, `coisa construída não se confunde com rocha (${perto.join(', ')})`);
+
+    /* Dois tiles de TERRENO com a mesma textura e a mesma cor são o mesmo tile
+       com dois nomes — é assim que um vocabulário volta a encolher sem ninguém
+       notar.
+       Objeto fica de fora, e a régua é a que o próprio #48b escreveu: num tile
+       de objeto, `c` e `tex` são o CHÃO sob o objeto, não o material dele. Duas
+       coisas em cima da mesma terra batida têm de ter a mesma terra batida —
+       carroça e barril, cerca e escoramento —, e quem as separa é a SILHUETA.
+       Aplicar distância de cor aqui é medir legibilidade achando que se mede
+       identidade, que é o erro que este projeto já cometeu três vezes.
+       O que guarda o objeto é a linha logo abaixo: sprite próprio, um por um. */
+    const iguais = [];
+    const chaves = Object.keys(S.T);
+    const ehObj = d => !!(d.obj || d.parede);
+    for (let i = 0; i < chaves.length; i++) for (let j = i + 1; j < chaves.length; j++) {
+      const a = S.TILE[S.T[chaves[i]]], b = S.TILE[S.T[chaves[j]]];
+      if (ehObj(a) || ehObj(b)) continue;
+      if (a.tex && a.tex === b.tex && dist(a.c, b.c) < 30) iguais.push(chaves[i] + '/' + chaves[j]);
+    }
+    A(!iguais.length, `nenhum par de tiles de terreno é o mesmo material com dois nomes (${iguais.join(', ')})`);
+
+    /* E a contrapartida: nenhum objeto empresta o desenho de outro. É isto que
+       impede o vocabulário de encolher pelo lado dos objetos, agora que a cor
+       deles deixou de ser a prova. */
+    const desenhos = chaves.map(k => S.TILE[S.T[k]]).filter(ehObj).map(d => d.obj || d.parede);
+    A(new Set(desenhos).size === desenhos.length,
+      `cada objeto tem desenho próprio (${desenhos.join(', ')})`);
+
+    /* Sem rotina de textura o tileTexture estoura, e sem prioridade o tile cai
+       calado na prioridade 0 e some sob a borda de qualquer vizinho. Os dois
+       são silenciosos o bastante para atravessar uma revisão inteira. */
+    const semTex = [], semPrio = [];
+    for (const k in S.T) {
+      const tex = S.TILE[S.T[k]].tex;
+      if (!tex) continue;
+      if (!S.TEX_DRAW[tex]) semTex.push(k + ':' + tex);
+      if (S.TERRAIN_PRIO[tex] === undefined) semPrio.push(k + ':' + tex);
+    }
+    A(!semTex.length, `toda textura de tile tem rotina em TEX_DRAW (${semTex.join(', ')})`);
+    A(!semPrio.length, `toda textura de tile tem prioridade de borda (${semPrio.join(', ')})`);
+    /* OBJETO DE MAIS DE UM TILE. Nasceu do relato de que o poço ficava minúsculo:
+       um tile tem 32 px, e poço, moinho e fonte desenhados dentro de um só serão
+       pequenos por construção. Quem prova a necessidade é o moinho — dois tiles
+       MILL lado a lado desenhavam DOIS MOINHOS colados.
+       As duas metades juntas: o sprite tem de ter o tamanho que o `span` promete
+       (senão a âncora desenha esticado ou sobra buraco), e quem tem `span` tem de
+       barrar o passo — objeto multi-tile andável seria desenho por cima do
+       jogador em metade do rastro. */
+    for (const k in S.T) {
+      const d = S.TILE[S.T[k]];
+      if (!d.span) continue;
+      const [sw, sh] = d.span;
+      A(sw >= 1 && sh >= 1 && (sw > 1 || sh > 1), `${k} declara span de mais de um tile (${sw}x${sh})`);
+      A(!d.walk, `${k} barra o passo em todo o rastro`);
+      const alto = d.obj ? S.CERCA_TOP : S.WALL_TOP;
+      const spr = d.obj ? S.OBJ_DRAW[d.obj](false) : S.PAREDE_DRAW[d.parede](d.tex, d.c, 0);
+      A(spr.width === 32 * sw, `o desenho de ${k} tem a largura do span (${spr.width} para ${32 * sw})`);
+      A(spr.height === alto + 32 * sh, `e a altura (${spr.height} para ${alto + 32 * sh})`);
+    }
+
+    /* E o lado de LÁ da mesma régua, que é o que pega o defeito de verdade:
+       todo desenho maior que um tile TEM de ter `span`. A primeira versão só
+       conferia os tiles que já declaravam span — tirar o span do poço deixava a
+       suíte inteira verde, e o resultado no jogo seria o desenho de 64 px
+       espremido em 32. O silêncio é sempre desse lado: sobra sprite, falta
+       declaração, e nada acusa. */
+    for (const k in S.T) {
+      const d = S.TILE[S.T[k]];
+      if (!d.obj && !d.parede) continue;
+      /* A assinatura é a do `paredeSprite`: (tex, cor, variante). A teia usa os
+         três; o moinho ignora, porque desenho de prédio não varia por tile. */
+      const spr = d.obj ? S.OBJ_DRAW[d.obj](false) : S.PAREDE_DRAW[d.parede](d.tex, d.c, 0);
+      if (spr.width > 32) A(!!d.span, `${k} desenha ${spr.width}px de largura e declara span`);
+      const alto = d.obj ? S.CERCA_TOP : S.WALL_TOP;
+      if (spr.height > alto + 32) A(!!d.span, `${k} desenha ${spr.height}px de altura e declara span`);
+    }
+
+    /* Parede com física própria: `parede` sem desenho cai em undefined e o 2º
+       passe estoura no primeiro quadro em que o tile aparece na tela.
+       A segunda metade entrou com o moinho: quem declara desenho de parede TEM
+       de ser parede. Um prédio com `top` de objeto seria desenhado pelo passe
+       errado e o jogador enxergaria através dele. */
+    for (const k in S.T) {
+      const d = S.TILE[S.T[k]];
+      if (!d.parede) continue;
+      A(!!S.PAREDE_DRAW[d.parede], `${k} tem desenho de parede (${d.parede})`);
+      A(d.top > 0.5 && !d.walk, `${k} é prédio: tapa a vista e barra o pé (top ${d.top})`);
+    }
+
+    /* Parede barra os dois; objeto barra só o pé. As duas juntas, porque só a
+       primeira passaria com uma cerca que não barrasse nada, e só a segunda
+       passaria com a cerca virando mureta — o defeito de origem do #46. */
+    for (const k of ['WALL', 'SWALL', 'WEB', 'ORE'])
+      A(!S.TILE[S.T[k]].walk && S.TILE[S.T[k]].top > 0.5, `${k} barra o passo e a vista`);
+    /* Objeto de tile é a terceira categoria e existe justamente por causa deles:
+       cerca e escoramento barram o pé sem barrar a vista. Todo `obj` declarado
+       tem de ter desenho, senão o tile some do 2º passe sem erro nenhum. */
+    for (const k in S.T) {
+      const d = S.TILE[S.T[k]];
+      if (!d.obj) continue;
+      A(!d.walk && d.top > 0 && d.top <= 0.5, `${k} barra o pé e deixa ver por cima (top ${d.top})`);
+      A(!!S.OBJ_DRAW[d.obj], `${k} tem desenho de objeto (${d.obj})`);
+    }
+    for (const k of ['DOOR', 'FLOOR', 'CROP', 'PIER', 'HAY', 'PAVE', 'RUBBLE', 'GRAVEL',
+                     'WEBF', 'BONE', 'ASH', 'MOSS', 'GORE', 'RUNE'])
+      A(S.TILE[S.T[k]].walk && S.TILE[S.T[k]].top === 0, `${k} é chão: atravessa a pé`);
+
+    /* O veio entra na mineração e a parede de caverna continua fora — a trava
+       contra o recurso infinito de 46.899 tiles voltar por uma porta nova. */
+    A(S.COLETA.mining.tiles.includes('ORE') && !S.COLETA.mining.tiles.includes('CWALL'),
+      'o veio é minerável e a parede de caverna não');
   }
 
   /* --- #38a: o relógio único de dano, medido ALTERNANDO magias ------------ */
@@ -3062,6 +3295,91 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
   A(S.temFora && S.voltarDoeu > 0, `sair e voltar cobra outra vez (${S.voltarDoeu} de vida)`);
   A(S.relogioReiniciou, 'e o relógio do estado reinicia, sem empilhar um segundo');
   A(S.umBuffSo === 1, 'o dano se repete mas o ESTADO não acumula — três passagens, um buff só');
+}
+
+/* ============================================ mapa como arquivo (passo 2) == */
+{
+  /* Ida e volta: o mundo gerado vira texto e o texto vira o MESMO mundo. Sem
+     esta trava, o dia em que um tile novo entrar em T sem entrar em TILE_CHAR o
+     mapa carrega calado com o chão errado — e o defeito só aparece jogando. */
+  A(S.TILE_CHAR.length === Object.keys(S.T).length,
+    `toda entrada de T tem caractere no mapa (${S.TILE_CHAR.length} de ${Object.keys(S.T).length})`);
+  A(new Set(S.TILE_CHAR).size === S.TILE_CHAR.length, 'nenhum caractere de tile repetido — dois tiles iguais no arquivo');
+
+  vm.runInContext(`(() => {
+    genWorld(4242);
+    const conta = () => {
+      let and = 0, esc = 0;
+      for (let z = 0; z < FLOORS; z++) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const t = tileAt(x, y, z);
+        if (TILE[t].walk) and++;
+        if (t === T.UP || t === T.DOWN) esc++;
+      }
+      return { and, esc, sp: WORLD.spawns.length, h: WORLD.hunts.length, p: WORLD.pois.length,
+               w: W, h2: H, f: FLOORS, tx: WORLD.temple.x, ty: WORLD.temple.y, nomes: FLOOR_NAMES.join('|') };
+    };
+    globalThis.antesDoMapa = conta();
+    const txt = JSON.stringify(mapaSerializa('teste'));
+    globalThis.tamanhoKB = Math.round(txt.length / 1024);
+    /* zera tudo antes de recarregar: se mapaAplica esquecer um campo, o teste
+       tem de acusar em vez de ler o resto que sobrou na memória */
+    WORLD.floors = []; WORLD.spawns = []; WORLD.hunts = []; WORLD.pois = [];
+    mapaAplica(JSON.parse(txt));
+    globalThis.depoisDoMapa = conta();
+    globalThis.nomeDoMapa = WORLD.mapa;
+    /* Um mapa PEQUENO, escrito à mão. É o teste que importa: o arquivo é quem
+       manda no tamanho, e sem isto W e H poderiam continuar cravados em 224
+       que nada acusaria — o mundo gerado tem justamente 224. */
+    const linhas = z => {
+      const L = [];
+      for (let y = 0; y < 10; y++) {
+        let l = '';
+        for (let x = 0; x < 12; x++) l += (x === 0 || y === 0 || x === 11 || y === 9) ? 'R' : (z ? 'c' : 'g');
+        L.push(l);
+      }
+      return L.join(String.fromCharCode(10));   // sem barra invertida: este bloco vive dentro de template literal
+    };
+    mapaAplica({ nome: 'anao', w: 12, h: 10, andares: 2, sup: 0, origem: 1,
+      nomes: ['Cima', 'Baixo'], templo: { x: 5, y: 5, z: 0 },
+      hunts: [], pois: [], spawns: [{ x: 3, y: 3, z: 0, m: 'rat' }],
+      tiles: [linhas(0), linhas(1)] });
+    globalThis.anao = {
+      w: W, h: H, f: FLOORS, nomes: FLOOR_NAMES.join('|'),
+      meio: tileAt(5, 5, 0), borda: tileAt(0, 0, 0), baixo: tileAt(5, 5, 1),
+      foraDireita: isWalkable(12, 5, 0), dentro: isWalkable(5, 5, 0),
+      sp: WORLD.spawns.length
+    };
+
+    /* e o gerador continua vivo: sem nome de mapa, sorteia como sempre */
+    genWorld(777);
+    globalThis.geradorVivo = WORLD.floors.length === FLOORS && WORLD.spawns.length > 0 && WORLD.mapa === null;
+    /* e volta ao tamanho DELE. Sem esta, o gerador herdava as dimensões do
+       último mapa carregado e quebrava nas escadas — que foi como este teste
+       nasceu. */
+    globalThis.geradorRestaurou = { w: W, h: H, f: FLOORS, sup: SURF, nomes: FLOOR_NAMES.length };
+  })();`, ctx);
+
+  const a = S.antesDoMapa, b = S.depoisDoMapa;
+  for (const k of ['and', 'esc', 'sp', 'h', 'p', 'w', 'h2', 'f', 'tx', 'ty', 'nomes'])
+    A(a[k] === b[k], `ida e volta preserva ${k}: ${a[k]} -> ${b[k]}`);
+  A(S.nomeDoMapa === 'teste', 'o mundo carregado sabe de que mapa veio — o save precisa disso');
+  {
+    const n = S.anao;
+    A(n.w === 12 && n.h === 10 && n.f === 2,
+      `o ARQUIVO manda no tamanho: ${n.w}x${n.h} em ${n.f} andares, e não os 224x224x6 do gerador`);
+    A(n.nomes === 'Cima|Baixo', 'e manda também nos nomes dos andares');
+    A(n.meio === S.T.GRASS && n.baixo === S.T.CFLOOR && n.borda === S.T.ROCK,
+      'cada caractere volta como o tile certo, no andar certo');
+    A(n.dentro && !n.foraDireita, 'a borda do mapa passa a ser a do arquivo — 12 de largura, não 224');
+    A(n.sp === 1, 'e os spawns do arquivo entram inteiros');
+  }
+  A(S.geradorVivo, 'o gerador continua vivo e marca o mundo como SEM mapa');
+  {
+    const r = S.geradorRestaurou, a = S.antesDoMapa;
+    A(r.w === a.w && r.h === a.h2 && r.f === a.f && r.nomes === a.f,
+      `o gerador reafirma o tamanho DELE depois de um mapa menor (${r.w}x${r.h}x${r.f}, e não 12x10x2)`);
+  }
+  console.log(`  mapa de ${a.w}x${a.h2}x${a.f} congelado em ${S.tamanhoKB} KB`);
 }
 
 console.log(`  espada ${T2.sk.sword.l} · escudo ${T2.sk.shielding.l} após 2 min de treino`);

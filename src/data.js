@@ -2062,7 +2062,10 @@ const HUNTS = [
    última linha é o consolo, o que sai quando nada melhor cai. */
 const COLETA = {
   mining: {
-    tiles: ['ROCK'], n: 'minerar', v: 'minera', seg: 90, alcance: 1, ferramenta: ['pickaxe'],
+    /* ROCK é o afloramento que o gerador espalha; ORE é o veio que o AUTOR põe
+       no mapa — mesma tabela, porque o que muda é onde ele está, não o que sai.
+       Parede de caverna continua fora: era o único recurso sem fim do jogo. */
+    tiles: ['ROCK', 'ORE'], n: 'minerar', v: 'minera', seg: 90, alcance: 1, ferramenta: ['pickaxe'],
     tab: [['gold_ingot', .0025, 65], ['small_diamond', .005, 55], ['small_sapphire', .012, 35],
     ['small_ruby', .012, 35], ['mithril_ore', .07, 48], ['iron_ore', .10, 18],
     ['silver_ore', .20, 28], ['copper_ore', .55, 10], ['coal', 1, 10]]
@@ -2302,14 +2305,26 @@ for (const id in ITEMS) {
    alto passa a vocação lenta no fim. Escapar a pé continua possível — é assim
    no Tibia também, onde dragão anda a 86 contra os 220 do jogador — e o perigo
    mora em ser cercado, não em ser corrido.
+   As BASES desceram em 2026-08-23, e o defeito era de origem: o #27 consertou o
+   topo da escada e deixou as bases onde estavam, acima do jogador. Medido, 68
+   das 83 criaturas passavam um jogador de nível 1 — inclusive RATO e LEBRE, de
+   tier 0. Escapar a pé não era possível de ninguém, o que é o contrário do
+   modelo que este comentário diz seguir.
+   As duas pontas foram preservadas de propósito, e cada uma custou um número:
+   o ganho por tier subiu de 7 para 12 para o TOPO não descer junto — assim
+   `abyssal_god` continua em 349, exatamente onde o #27 o deixou; e o espaço
+   ENTRE as classes continua sendo 30 e 30, porque a primeira tentativa baixou
+   as bases sem cuidar disso e comprimiu peso morto contra caçador de 60 para
+   30. Isso teria trocado natureza por força sem ninguém pedir, e o teste do
+   lobo contra o besouro pegou. O que mudou é só o pé da escada.
    Roda no fim do arquivo porque depende de `cls`, que os laços de MOB_META e as
    chamadas de mob()/boss() terminam de escrever acima. */
 const VEL_BASE = {
-  Inseto: 185, Gigante: 185, 'Morto-vivo': 185,                                  // peso morto: arrasta
-  Humanoide: 215, 'Réptil': 215, 'Aberração': 215, Celeste: 215,                 // anda sobre pernas
-  'Mamífero': 245, 'Aracnídeo': 245, 'Dragão': 245, 'Demônio': 245, Elemental: 245  // caça, voa, desliza
+  Inseto: 125, Gigante: 125, 'Morto-vivo': 125,                                  // peso morto: arrasta
+  Humanoide: 155, 'Réptil': 155, 'Aberração': 155, Celeste: 155,                 // anda sobre pernas
+  'Mamífero': 185, 'Aracnídeo': 185, 'Dragão': 185, 'Demônio': 185, Elemental: 185  // caça, voa, desliza
 };
-const VEL_TIER = 7;    // ganho por tier; 12 tiers = +84 do mais fraco ao mais forte
+const VEL_TIER = 12;   // ganho por tier; 12 tiers = +144 do mais fraco ao mais forte
 const VEL_CHEFE = 20;  // chefe é a versão perigosa da própria família, inclusive nas pernas
 for (const id in MONSTERS) {
   const m = MONSTERS[id];

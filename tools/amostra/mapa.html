@@ -1,0 +1,326 @@
+<meta charset="utf-8">
+<title>Planta dos andares — visão de autor</title>
+<style>
+  :root{
+    --ink:#15151a; --surf:#1e1c18; --raise:#26241f; --line:#3a352b;
+    --txt:#ddd5c2; --dim:#8f8874; --mute:#6b6558; --gold:#d9a441; --gold2:#f0cd7a;
+    --done:#7fd08a; --warn:#e0705f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--txt);
+       font:14px/1.5 "Segoe UI",system-ui,sans-serif;padding:20px}
+  h1{font:400 24px/1.1 Cinzel,Georgia,serif;color:var(--gold2);letter-spacing:.03em;margin:0 0 4px}
+  p.lede{color:var(--dim);margin:0 0 18px;max-width:78ch}
+  .barra{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px;
+         background:var(--surf);border:1px solid var(--line);padding:10px 14px}
+  label{font-size:12.5px;color:var(--dim);display:flex;gap:6px;align-items:center;white-space:nowrap}
+  input[type=range]{width:110px}
+  input[type=number],select{background:var(--raise);color:var(--txt);border:1px solid var(--line);
+                            padding:4px 7px;font:13px inherit;width:96px}
+  button{background:var(--raise);color:var(--txt);border:1px solid var(--line);
+         padding:5px 12px;font:13px inherit;cursor:pointer}
+  button:hover{border-color:var(--gold)}
+  button.on{background:#3a3222;border-color:var(--gold);color:var(--gold2)}
+  .andares{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+  .andares button{font-size:12.5px}
+  .palco{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+  canvas{image-rendering:pixelated;background:#0b0c0f;border:1px solid var(--line);display:block}
+  .lado{min-width:250px;max-width:330px}
+  .cx{background:var(--surf);border:1px solid var(--line);padding:12px 14px;margin-bottom:10px}
+  .cx h2{font:600 11px "Segoe UI";letter-spacing:.14em;text-transform:uppercase;
+         color:var(--gold);margin:0 0 8px}
+  table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+  td{padding:2px 0;font-size:12.5px;color:var(--dim)}
+  td.v{text-align:right;color:var(--txt);font-family:ui-monospace,Consolas,monospace}
+  td.v.ruim{color:var(--warn)}
+  td.v.bom{color:var(--done)}
+  .leg{display:flex;gap:5px;align-items:center;font-size:12px;color:var(--dim);margin-bottom:3px}
+  .sw{width:11px;height:11px;border:1px solid #0006;flex:none}
+  #sob{font:12.5px ui-monospace,Consolas,monospace;color:var(--gold2);min-height:1.4em}
+</style>
+
+<h1>Planta dos andares</h1>
+<p class="lede">Visão de <b>autor</b>, não do jogador: mostra tudo, inclusive o que o jogador nunca
+deveria ver. Serve para julgar um andar inteiro de relance — se tem forma, se tem vazio demais, e
+principalmente <b>quantos pedaços separados ele tem</b>, que é o defeito que a composição de Aleto
+está tentando consertar.</p>
+
+<div class="barra">
+  <label>Mapa <input id="nome" type="text" value="varrokgaard" style="width:130px"></label>
+  <button id="carregar">Carregar</button>
+  <label>Semente <input id="semente" type="number" value="12345"></label>
+  <button id="gerar">Gerar</button>
+  <button id="sortear">Sortear</button>
+  <label>Zoom <input id="zoom" type="range" min="1" max="8" value="4"><span id="zv">4px</span></label>
+  <label>Camadas</label>
+  <button class="cam on" data-c="spawn">spawns</button>
+  <button class="cam on" data-c="hunt">hunts</button>
+  <button class="cam on" data-c="poi">POIs</button>
+  <button class="cam on" data-c="esc">escadas</button>
+  <button class="cam on" data-c="nome">nomes</button>
+  <button class="cam" data-c="grade">grade</button>
+  <button class="cam" data-c="comp">componentes</button>
+</div>
+<div class="andares" id="andares"></div>
+
+<div class="palco">
+  <div>
+    <canvas id="cv"></canvas>
+    <div id="sob">&nbsp;</div>
+  </div>
+  <div class="lado">
+    <div class="cx">
+      <h2>Este andar</h2>
+      <table id="stats"></table>
+    </div>
+    <div class="cx">
+      <h2>Ligação</h2>
+      <table id="lig"></table>
+      <p style="font-size:12px;color:var(--mute);margin:8px 0 0">
+        Componente = pedaço de chão isolado. Se o maior tem quase tudo, o andar é
+        <b>uma sala só</b> e todo buraco cai no mesmo lugar.</p>
+    </div>
+    <div class="cx">
+      <h2>Legenda</h2>
+      <div id="legenda"></div>
+    </div>
+  </div>
+</div>
+
+<script src="../../src/data.js"></script>
+<script src="../../src/art.js"></script>
+<script src="../../src/world.js"></script>
+<script>
+/* Reaproveita o `buildMinimaps` que o jogo já tem para pintar o terreno: ele já
+   percorre os tiles e usa a cor de TILE, então redesenhar aqui seria uma segunda
+   fonte de verdade que sairia do ar no dia em que uma cor mudasse. As camadas
+   de cima (spawn, hunt, POI, escada) é que são desta página. */
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), g = cv.getContext('2d');
+let z = 1, px = 4, comps = null;
+const cam = { spawn: 1, hunt: 1, poi: 1, esc: 1, nome: 1, grade: 0, comp: 0 };
+
+const COR = {
+  spawn: '#e0705f', spawnHunt: '#f0cd7a', spawnBoss: '#ff4d4d',
+  hunt: '#d9a441', poi: '#7fd08a', esc: '#8fdcff', templo: '#ffffff'
+};
+
+/* Componentes conexos por flood-fill. É a métrica que motivou a composição
+   nova: hoje as 28 escadas da caverna caem todas no mesmo pedaço. */
+function componentes(z) {
+  const id = new Int32Array(W * H).fill(-1), tam = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    if (id[i] >= 0 || !isWalkable(x, y, z)) continue;
+    const k = tam.length; let n = 0; const pilha = [[x, y]]; id[i] = k;
+    while (pilha.length) {
+      const [cx, cy] = pilha.pop(); n++;
+      // oito vizinhos, o mesmo DIRS do jogo: medir com régua diferente da do
+      // jogo dá alarme falso — caminho diagonal de um tile é andável e uma
+      // varredura ortogonal o declara cortado
+      for (const [dx, dy] of DIRS) {
+        const nx = cx + dx, ny = cy + dy, j = ny * W + nx;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H || id[j] >= 0 || !isWalkable(nx, ny, z)) continue;
+        id[j] = k; pilha.push([nx, ny]);
+      }
+    }
+    tam.push(n);
+  }
+  return { id, tam };
+}
+// cor estável por componente, para dois pedaços vizinhos nunca saírem iguais
+const corComp = k => `hsl(${(k * 47) % 360} 70% 55%)`;
+
+function desenha() {
+  cv.width = W * px; cv.height = H * px;
+  g.imageSmoothingEnabled = false;
+
+  if (cam.comp && comps) {
+    const img = g.createImageData(W, H);
+    for (let i = 0; i < W * H; i++) {
+      const k = comps.id[i];
+      let r = 11, gg = 12, b = 15;
+      if (k >= 0) {
+        const c = corComp(k);
+        const d = document.createElement('canvas').getContext('2d');
+        d.fillStyle = c; const m = d.fillStyle.match(/\w\w/g);
+        [r, gg, b] = m ? m.map(h => parseInt(h, 16)) : [200, 200, 200];
+      }
+      img.data[i*4] = r; img.data[i*4+1] = gg; img.data[i*4+2] = b; img.data[i*4+3] = 255;
+    }
+    const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+    tmp.getContext('2d').putImageData(img, 0, 0);
+    g.drawImage(tmp, 0, 0, cv.width, cv.height);
+  } else {
+    g.drawImage(miniCanvas[z], 0, 0, cv.width, cv.height);
+  }
+
+  if (cam.grade && px >= 4) {
+    g.strokeStyle = 'rgba(255,255,255,.06)'; g.lineWidth = 1;
+    for (let x = 0; x <= W; x += 8) { g.beginPath(); g.moveTo(x*px, 0); g.lineTo(x*px, cv.height); g.stroke(); }
+    for (let y = 0; y <= H; y += 8) { g.beginPath(); g.moveTo(0, y*px); g.lineTo(cv.width, y*px); g.stroke(); }
+  }
+
+  if (cam.hunt) {
+    for (const h of WORLD.hunts) {
+      if (h.z !== z) continue;
+      g.strokeStyle = COR.hunt; g.lineWidth = 1.5; g.globalAlpha = .8;
+      g.beginPath(); g.arc(h.x*px + px/2, h.y*px + px/2, h.r*px, 0, 7); g.stroke();
+      g.globalAlpha = 1;
+    }
+  }
+  if (cam.spawn) {
+    const r = Math.max(1, px * .34);
+    for (const s of WORLD.spawns) {
+      if (s.z !== z) continue;
+      g.fillStyle = s.boss ? COR.spawnBoss : s.hunt ? COR.spawnHunt : COR.spawn;
+      g.beginPath(); g.arc(s.x*px + px/2, s.y*px + px/2, s.boss ? r*2.4 : r, 0, 7); g.fill();
+    }
+  }
+  if (cam.poi) {
+    for (const p of WORLD.pois) {
+      if (p.z !== z) continue;
+      const x = p.x*px + px/2, y = p.y*px + px/2, s = Math.max(3, px);
+      g.fillStyle = COR.poi;
+      g.beginPath(); g.moveTo(x, y-s); g.lineTo(x+s, y); g.lineTo(x, y+s); g.lineTo(x-s, y);
+      g.closePath(); g.fill();
+    }
+  }
+  if (cam.esc) {
+    g.fillStyle = COR.esc;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const t = tileAt(x, y, z);
+      if (t !== T.UP && t !== T.DOWN) continue;
+      g.fillRect(x*px - px*.5, y*px - px*.5, px*2, px*2);
+    }
+  }
+  if (z === SURF) {
+    g.strokeStyle = COR.templo; g.lineWidth = 2;
+    g.strokeRect(WORLD.temple.x*px - px*2, WORLD.temple.y*px - px*2, px*4, px*4);
+  }
+  if (cam.nome) {
+    g.font = `${Math.max(10, px*2.4)}px "Segoe UI", sans-serif`;
+    g.textAlign = 'center'; g.lineJoin = 'round';
+    for (const h of WORLD.hunts) {
+      if (h.z !== z) continue;
+      const x = h.x*px + px/2, y = h.y*px + px/2 - h.r*px - 4;
+      g.lineWidth = 3; g.strokeStyle = '#000a';
+      g.strokeText(`${h.n} · nv ${h.lvl}`, x, y);
+      g.fillStyle = COR.hunt; g.fillText(`${h.n} · nv ${h.lvl}`, x, y);
+    }
+    for (const p of WORLD.pois) {
+      if (p.z !== z || px < 3) continue;
+      const x = p.x*px + px/2, y = p.y*px + px/2 + px*4;
+      g.lineWidth = 3; g.strokeStyle = '#000a';
+      g.strokeText(p.n, x, y); g.fillStyle = COR.poi; g.fillText(p.n, x, y);
+    }
+  }
+}
+
+function stats() {
+  const t = WORLD.floors[z].t;
+  let and = 0; for (let i = 0; i < t.length; i++) if (TILE[t[i]].walk) and++;
+  const sp = WORLD.spawns.filter(s => s.z === z);
+  let esc = 0;
+  for (let i = 0; i < t.length; i++) if (t[i] === T.UP || t[i] === T.DOWN) esc++;
+  const linha = (k, v, cls) => `<tr><td>${k}</td><td class="v ${cls||''}">${v}</td></tr>`;
+  $('#stats').innerHTML =
+    linha('tiles', (W*H).toLocaleString('pt-BR')) +
+    linha('andáveis', and.toLocaleString('pt-BR')) +
+    linha('% andável', (and/(W*H)*100).toFixed(0) + '%') +
+    linha('pontos de spawn', sp.length) +
+    linha('· em hunt', sp.filter(s => s.hunt && !s.boss).length) +
+    linha('· mundo aberto', sp.filter(s => !s.hunt).length) +
+    linha('· chefe', sp.filter(s => s.boss).length) +
+    linha('hunts', WORLD.hunts.filter(h => h.z === z).length) +
+    linha('POIs', WORLD.pois.filter(p => p.z === z).length) +
+    linha('tiles de escada', esc);
+
+  comps = componentes(z);
+  const ord = [...comps.tam].sort((a,b) => b-a);
+  const tot = ord.reduce((a,b) => a+b, 0) || 1;
+  const dom = ord[0] / tot * 100;
+  // em que componente cada escada cai
+  const nosEsc = new Set();
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const tt = tileAt(x, y, z);
+    if (tt === T.UP || tt === T.DOWN) nosEsc.add(comps.id[y*W+x]);
+  }
+  $('#lig').innerHTML =
+    linha('componentes', ord.length) +
+    linha('maior', ord[0] ? ord[0].toLocaleString('pt-BR') : 0) +
+    linha('% no maior', dom.toFixed(1) + '%', dom > 90 ? 'ruim' : dom < 60 ? 'bom' : '') +
+    linha('com 20+ tiles', comps.tam.filter(x => x >= 20).length) +
+    linha('componentes com escada', nosEsc.size, nosEsc.size <= 1 ? 'ruim' : 'bom') +
+    linha('8 maiores', ord.slice(0,8).join(', '));
+}
+
+function legenda() {
+  const it = [['spawn de mundo aberto', COR.spawn], ['spawn de hunt', COR.spawnHunt],
+              ['chefe', COR.spawnBoss], ['raio da hunt', COR.hunt],
+              ['POI', COR.poi], ['escada', COR.esc], ['templo', COR.templo]];
+  $('#legenda').innerHTML = it.map(([n,c]) =>
+    `<div class="leg"><span class="sw" style="background:${c}"></span>${n}</div>`).join('');
+}
+
+function andares() {
+  $('#andares').innerHTML = FLOOR_NAMES.map((n,i) =>
+    `<button data-z="${i}" class="${i===z?'on':''}">${n}</button>`).join('');
+  $('#andares').querySelectorAll('button').forEach(b =>
+    b.onclick = () => { z = +b.dataset.z; andares(); stats(); desenha(); });
+}
+
+/* Carrega um mapa DESENHADO. É a outra metade da página: sem isto eu componho
+   no escuro e você julga por descrição. O caminho sobe dois níveis porque a
+   ferramenta mora em tools/amostra. */
+function carregar(nome) {
+  return fetch('../../maps/' + nome + '.json')
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(o => {
+      mapaAplica(o);
+      buildMinimaps();
+      z = Math.min(z, FLOORS - 1);
+      andares(); stats(); desenha();
+      document.title = 'Planta — ' + nome;
+    })
+    .catch(e => alert('mapa "' + nome + '" não carregou: ' + e.message));
+}
+
+function gerar(seed) {
+  $('#semente').value = seed;
+  genWorld(seed);
+  buildMinimaps();
+  andares(); stats(); desenha();
+}
+
+$('#carregar').onclick = () => carregar($('#nome').value.trim());
+$('#gerar').onclick = () => gerar(+$('#semente').value | 0);
+$('#sortear').onclick = () => gerar(Math.floor(Math.random() * 1e6));
+$('#zoom').oninput = e => { px = +e.target.value; $('#zv').textContent = px + 'px'; desenha(); };
+document.querySelectorAll('.cam').forEach(b => b.onclick = () => {
+  cam[b.dataset.c] = cam[b.dataset.c] ? 0 : 1;
+  b.classList.toggle('on', !!cam[b.dataset.c]);
+  desenha();
+});
+cv.onmousemove = e => {
+  const r = cv.getBoundingClientRect();
+  const x = Math.floor((e.clientX - r.left) / px), y = Math.floor((e.clientY - r.top) / px);
+  if (x < 0 || y < 0 || x >= W || y >= H) return;
+  const t = tileAt(x, y, z);
+  const nome = Object.keys(T).find(k => T[k] === t) || t;
+  const h = huntAt(x, y, z), p = poiAt(x, y, z);
+  const sp = WORLD.spawns.find(s => s.z === z && s.x === x && s.y === y);
+  const c = comps ? comps.id[y*W+x] : -1;
+  $('#sob').textContent =
+    `${x},${y}  ${nome}${TILE[t].walk ? '' : ' (parede)'}` +
+    (c >= 0 ? `  comp#${c} (${comps.tam[c]} tiles)` : '') +
+    (sp ? `  spawn: ${MONSTERS[sp.m] ? MONSTERS[sp.m].n : sp.m}${sp.boss ? ' [CHEFE]' : ''}` : '') +
+    (h ? `  hunt: ${h.n}` : '') + (p ? `  POI: ${p.n}` : '');
+};
+cv.onmouseleave = () => $('#sob').innerHTML = '&nbsp;';
+
+legenda();
+/* Abre já no mapa desenhado: é o que estamos compondo. Se não existir, cai no
+   gerador, que é o estado de quem clonou o projeto agora. */
+carregar('varrokgaard').catch(() => gerar(12345));
+</script>

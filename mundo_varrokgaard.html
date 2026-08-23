@@ -1,0 +1,499 @@
+<meta charset="utf-8">
+<title>Varrokgaard — a ilha inicial</title>
+<style>
+  :root{
+    --ink:#0b0c0f; --surface:#15151a; --surface2:#1e1c18; --raise:#26241f;
+    --line:#3a352b; --line-soft:#2a261f;
+    --txt:#ddd5c2; --dim:#8f8874; --mute:#6b6558;
+    --gold:#d9a441; --gold2:#f0cd7a;
+    --done:#7fd08a; --wait:#e0a05a; --warn:#e0705f;
+    --serif:"Cinzel","Trajan Pro",Georgia,"Times New Roman",serif;
+    --sans:"Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:ui-monospace,"Cascadia Code",Consolas,"DejaVu Sans Mono",monospace;
+    --measure:74ch;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+      --line:#bdb6a6; --line-soft:#cdc7b9;
+      --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+      --gold:#7d5a15; --gold2:#5e430f;
+      --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+    }
+  }
+  :root[data-theme="light"]{
+    --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+    --line:#bdb6a6; --line-soft:#cdc7b9;
+    --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+    --gold:#7d5a15; --gold2:#5e430f;
+    --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--txt);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px 96px}
+  .col{max-width:var(--measure)}
+  h1,h2,h3,h4{text-wrap:balance;margin:0}
+  a{color:var(--gold2)}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+  header{padding:64px 0 36px;border-bottom:1px solid var(--line)}
+  .eyebrow{font:600 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin-bottom:18px}
+  h1{font:400 clamp(32px,5.5vw,50px)/1.08 var(--serif);letter-spacing:.03em;color:var(--gold2)}
+  .lede{margin-top:20px;color:var(--dim);font-size:17px}
+  .lede b{color:var(--txt);font-weight:600}
+
+  section{padding:48px 0;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:0}
+  h2{font:600 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+     margin-bottom:22px;display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  h3{font:600 17px/1.4 var(--sans);color:var(--txt);margin:26px 0 8px}
+  h3:first-child{margin-top:0}
+  h4{font:600 14px var(--sans);color:var(--gold2);margin:18px 0 6px}
+  p{margin:0 0 14px;max-width:var(--measure)}
+  p:last-child{margin-bottom:0}
+  strong{color:var(--gold2);font-weight:600}
+  code{font:0.87em var(--mono);background:var(--surface2);border:1px solid var(--line-soft);
+       border-radius:3px;padding:1px 5px;color:var(--txt);white-space:nowrap}
+  ul,ol{max-width:var(--measure);margin:0 0 14px;padding-left:20px}
+  li{margin-bottom:6px}
+
+  .band{overflow-x:auto;margin:0 -4px 8px}
+  table{border-collapse:collapse;width:100%;min-width:540px;font-variant-numeric:tabular-nums}
+  caption{text-align:left;color:var(--mute);font-size:13px;padding-bottom:10px}
+  th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  thead th{font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);
+           border-bottom:1px solid var(--line)}
+  tbody th{font:400 14px var(--sans);color:var(--txt);font-weight:500}
+  td{font-size:14px;color:var(--dim)}
+  td.n{font-family:var(--mono);font-size:13.5px}
+  td.now{color:var(--gold2);font-family:var(--mono);font-size:13.5px}
+  td.delta{color:var(--done);font-size:13px}
+
+  .fases{display:grid;gap:2px;background:var(--line-soft);border:1px solid var(--line-soft);margin-bottom:8px}
+  .fase{background:var(--surface);padding:20px 22px;display:grid;grid-template-columns:auto 1fr;gap:18px}
+  .num{font:400 13px var(--mono);color:var(--gold);padding:3px 18px 0 0;border-right:1px solid var(--line-soft)}
+  .fase p,.fase li{color:var(--dim);font-size:14.5px}
+  .why{margin-top:10px;padding-left:14px;border-left:2px solid var(--line);color:var(--mute);
+       font-size:13.5px;font-style:italic}
+
+  .fix{background:var(--surface);border:1px solid var(--line-soft);border-left:2px solid var(--done);
+       padding:16px 20px;margin-bottom:2px}
+  .fix h4{margin-top:0}
+  .fix p{font-size:14px;color:var(--dim);margin-bottom:8px}
+  .causa{font-size:13.5px;color:var(--mute)}
+  .causa b{color:var(--warn);font-weight:600}
+
+  .grupo{margin-bottom:28px}
+  .gtitle{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+  ul.itens{list-style:none;margin:0;padding:0;display:grid;gap:2px;max-width:none}
+  ul.itens li{background:var(--surface);border-left:2px solid var(--wait);padding:13px 18px;
+              display:grid;gap:4px;margin:0}
+  ul.itens li.debt{border-left-color:var(--mute)}
+  .it-n{font:600 15px var(--sans);color:var(--txt)}
+  .it-d{font-size:13.5px;color:var(--dim)}
+  .it-t{font-size:12.5px;color:var(--mute);font-family:var(--mono)}
+
+  /* Selo de estado. Retangular e sem preenchimento: é rótulo, não botão. */
+  .tag{font:600 10px var(--sans);letter-spacing:.09em;text-transform:uppercase;
+       padding:2px 6px;border:1px solid var(--line);border-radius:2px;
+       white-space:nowrap;margin-left:6px}
+  .tag.warn{color:var(--warn);border-color:var(--warn)}
+  .tag.wait{color:var(--wait);border-color:var(--wait)}
+  .tag.done{color:var(--done);border-color:var(--done)}
+  ul.itens li.feito{border-left-color:var(--done)}
+  /* Na lista de invariantes (ul simples, com marcador), o que entrou nesta leva
+     ganha o marcador em verde — some no meio das 30 antigas sem isso. */
+  li.feito::marker{color:var(--done)}
+
+  .aviso{background:var(--surface2);border:1px solid var(--line);border-left:3px solid var(--warn);
+         padding:18px 20px;margin-bottom:14px;max-width:var(--measure)}
+  .aviso h4{color:var(--warn);margin-top:0}
+  .aviso p{font-size:14px;color:var(--dim)}
+
+  footer{padding:36px 0 0;color:var(--mute);font-size:13px;border-top:1px solid var(--line)}
+
+  @media (max-width:640px){
+    .fase{grid-template-columns:1fr;gap:10px}
+    .num{border-right:0;border-bottom:1px solid var(--line-soft);padding:0 0 8px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Thaira · composição do mundo · a ilha inicial</div>
+  <h1>Varrokgaard</h1>
+  <div class="lede col">
+    A primeira terra. Níveis 1 a 15, saída liberada aos 10, e tudo o que o jogo pede que o jogador
+    saiba fazer é ensinado aqui — sem tutorial, sem seta, sem caixa de texto. Cada mecânica tem um
+    <b>lugar</b> que a ensina, e o jogador aprende indo.
+  </div>
+</header>
+
+<section>
+  <h2>O que é</h2>
+  <div class="col">
+    <p>Varrokgaard é interior: uma ilha de fazenda e plantação que abastece Vigília e nunca precisou
+    de mais do que isso. Não tem herói, não tem ruína, não tem história antiga. A coisa mais
+    importante que já aconteceu ali foi a colheita do ano passado.</p>
+    <p>Até que <b>os monstros se soltaram</b>. Ninguém em Varrokgaard sabe por quê — nem tem como
+    saber, porque a causa está a um mar de distância, sob uma cidade de que eles só conhecem o nome.
+    Ergueram uma Cerca Nova atravessando a ilha, puseram guarda nela, e continuaram plantando do lado
+    de dentro.</p>
+  </div>
+  <div class="aviso">
+    <h4>O fio que amarra as duas terras</h4>
+    <p>Em Varrokgaard todo mundo repete a mesma frase sem entender: <i>"os bichos se soltaram, não se
+    sabe de onde"</i>. Em Aleto o jogador descobre de onde. <b>A ilha tutorial não é um prólogo
+    isolado — é a mesma história vista de longe demais para se enxergar.</b> E não custa uma linha de
+    conteúdo: é só o que os NPCs dizem.</p>
+  </div>
+</section>
+
+<section>
+  <h2>A ilha</h2>
+  <div class="band">
+  <svg viewBox="0 0 128 96" style="width:100%;display:block;background:#12100c;border:1px solid #3a352b" role="img" aria-label="Esquema de Varrokgaard">
+    <defs><style>
+      .rot{font:3.4px "Segoe UI",sans-serif;fill:#ddd5c2;font-weight:600}
+      .sub{font:2.6px "Segoe UI",sans-serif;fill:#8f8874}
+      .nv{font:2.5px ui-monospace,Consolas,monospace;fill:#d9a441}
+      .apr{font:2.6px "Segoe UI",sans-serif;fill:#7fd08a;font-weight:600}
+    </style></defs>
+
+    <rect x="0" y="0" width="128" height="96" fill="#16303e"/>
+    <!-- ilha -->
+    <path d="M26 10 L58 6 L86 12 L100 26 L104 48 L96 70 L76 86 L50 88 L28 78 L18 58 L18 30 Z" fill="#3d4a22"/>
+    <!-- metade selvagem, ao norte -->
+    <path d="M26 10 L58 6 L86 12 L100 26 L101 40 L20 40 L18 30 Z" fill="#2c3a1c"/>
+    <!-- mata -->
+    <path d="M30 12 L52 9 L58 24 L44 34 L28 28 Z" fill="#24401f"/>
+    <text class="rot" x="31" y="20">Mata Funda</text>
+    <text class="sub" x="31" y="24">lobos e javalis</text>
+    <text class="nv" x="31" y="28">nv 8</text>
+    <!-- pedreira / gruta -->
+    <path d="M70 14 L94 18 L98 32 L78 36 L66 26 Z" fill="#4a4a52"/>
+    <text class="rot" x="72" y="24">Pedreira Rasa</text>
+    <text class="sub" x="72" y="28">minério à vista</text>
+    <circle cx="90" cy="31" r="2.6" fill="#0b0c0f" stroke="#d9a441" stroke-width=".7"/>
+    <text class="nv" x="94" y="33">A Goela · nv 10</text>
+
+    <!-- Cerca Nova -->
+    <g stroke="#8a6a3a" stroke-width="1.4">
+      <path d="M20 41 L101 41" stroke-dasharray="1.6 1.4"/>
+    </g>
+    <rect x="56" y="39" width="7" height="4" fill="#6b4a34" stroke="#d9a441" stroke-width=".6"/>
+    <text class="rot" x="65" y="47">A Cerca Nova</text>
+    <text class="sub" x="65" y="51">a guarda deixa passar. avisa antes</text>
+
+    <!-- campos -->
+    <path d="M24 46 L62 44 L70 60 L54 70 L28 66 Z" fill="#5c6a24"/>
+    <g stroke="#47521c" stroke-width=".7">
+      <path d="M28 50 L64 48 M28 55 L66 53 M29 60 L67 58 M31 65 L58 64"/>
+    </g>
+    <text class="rot" x="30" y="56">Os Trigais</text>
+    <text class="sub" x="30" y="60">plantação · rato, lebre, cobra</text>
+    <text class="apr" x="30" y="64">atacar · saquear</text>
+
+    <!-- bosque de corte -->
+    <path d="M74 46 L98 48 L100 62 L82 66 L72 58 Z" fill="#2e4a2a"/>
+    <text class="rot" x="76" y="55">Corte Velho</text>
+    <text class="apr" x="76" y="59">lenhar</text>
+
+    <!-- vila -->
+    <circle cx="60" cy="76" r="10" fill="#5a3f2e"/>
+    <circle cx="60" cy="76" r="5.6" fill="#6b4a34"/>
+    <rect x="58" y="74" width="4" height="4" fill="#d9a441"/>
+    <text class="rot" x="46" y="92">Varrok</text>
+    <text class="apr" x="60" y="92">andar · equipar · usar · magia</text>
+
+    <!-- píer -->
+    <rect x="84" y="76" width="10" height="3" fill="#5a4630"/>
+    <path d="M88 79 L88 84 M92 79 L92 84" stroke="#5a4630" stroke-width="1"/>
+    <text class="rot" x="96" y="78">O Trapiche</text>
+    <text class="apr" x="96" y="82">pescar</text>
+
+    <!-- doca -->
+    <rect x="40" y="84" width="9" height="3" fill="#5a4630"/>
+    <path d="M43 87 L43 92 M46 87 L46 92" stroke="#5a4630" stroke-width="1"/>
+    <path d="M30 92 q5 -3 10 0 q5 3 10 0" stroke="#8f8874" stroke-width=".8" fill="none"/>
+    <text class="rot" x="20" y="86">O Embarcadouro</text>
+    <text class="sub" x="20" y="90">o barco · nv 10</text>
+
+    <!-- o cabo: acampamento minotauro, cercado por um cordao que nao expulsa ninguem -->
+    <path d="M92 52 L104 48 L104 64 L94 66 Z" fill="#4a2c2c"/>
+    <path d="M95 56 L99 52 L103 56 M96 62 L100 58 L104 62" stroke="#8a5a3a" stroke-width=".8" fill="none"/>
+    <path d="M88 48 L90 68" stroke="#e0705f" stroke-width=".9" stroke-dasharray="1.4 1.4" fill="none"/>
+    <text class="rot" x="78" y="46">Cabo do Sal</text>
+    <text class="sub" x="70" y="72">acampamento · ninguém sabe por quê</text>
+    <text class="nv" x="70" y="76">nv 20</text>
+    <text class="nv" x="4" y="93">▬▬ Cerca Nova · ▣ boca da Goela · verde = mecânica ensinada ali</text>
+  </svg>
+  </div>
+  <p class="why"><b>Duas construções, e elas não se confundem.</b> A <b>Cerca Nova</b> é estacaria
+  de madeira e corta a ilha em duas metades desiguais: o sul é fazenda, o norte é onde os bichos
+  ficaram. É o que uma fazenda ergue em uma estação, e o material diz isso. O <b>muro de Varrok</b>
+  é outra coisa: pedra lavrada de dois tiles, em volta da vila e só dela, com torre nos cantos —
+  não se atravessa por um portão, e sim por uma <b>ponte</b>: sobe-se a escada de fora, anda-se por
+  cima do muro e desce-se do lado de dentro. Cerca separa lavoura de mato; muro protege quem dorme.
+  <b>E há um rio.</b> Nasce na Pedreira Rasa, que é a parte alta da ilha, recebe o afluente da Mata
+  Funda, meandra pela lavoura e desemboca na enseada do oeste — que por isso deixa de ser um
+  recorte de costa e passa a ser a <b>foz</b>. É ele que explica onde a Mata Funda está (a mata do
+  curso alto), onde os Trigais estão (a várzea, plana e úmida) e por que a vila fica onde fica. A ilha é <b>192×192</b> — o piso de tamanho de mapa —, o que dá
+  cerca de <b>um minuto e meio</b> de caminhada de ponta a ponta, contra os 320×320 de Aleto.
+  Era 64×64, e foi essa a primeira coisa que o dono do projeto reprovou: dez segundos atravessam
+  uma ilha, e a planta de cima não mede distância percorrida.</p>
+</section>
+
+<section>
+  <h2>Em Varrokgaard não se tem vocação</h2>
+  <div class="col">
+    <p>Na ilha o personagem é <b>aprendiz</b>: veste qualquer coisa, empunha arco e varinha, usa a
+    primeira magia de qualquer escola. Nada é barrado por vocação, porque <b>ainda não há vocação</b>.</p>
+    <p>A escolha acontece <b>no Embarcadouro</b>, na hora de embarcar. Não antes.</p>
+  </div>
+  <div class="aviso">
+    <h4>Escolher depois de experimentar, não antes de entender</h4>
+    <p>Hoje a vocação se escolhe numa tela de criação, lendo três linhas sobre cada uma. O jogador
+    decide o jogo inteiro antes de ter jogado um minuto — e nenhuma descrição consegue dizer como é
+    a sensação de puxar um arco contra a de conjurar.</p>
+    <p>Trocando de lugar, a ilha inteira vira o argumento: você matou lobo de espada, atirou na Mata
+    Funda, queimou besouro na Goela, pescou, minerou. <b>Quando escolhe, escolhe sabendo.</b> E o
+    tutorial deixa de ensinar por texto — ensina por deixar tentar.</p>
+  </div>
+  <h3>O peso é o que se perde, não o que se ganha</h3>
+  <p>A pergunta no cais não deve ser "o que você quer ser". Deve ser dita pelo que fecha: você passou
+  dez níveis atirando, e o cavaleiro nunca mais vai puxar um arco direito. É aí que a escolha pesa —
+  e é por isso que ela vale mais no fim da ilha do que no começo.</p>
+  <p class="why">Isto casa com a outra decisão do Embarcadouro: sair aos 10 já cobra caro porque
+  Aleto começa em 15. Agora cobra duas vezes — quem tem pressa também <b>escolhe a vocação com menos
+  base para escolher</b>. Um portão, dois preços, nenhum aviso.</p>
+  <h3>O que isso pede do código</h3>
+  <div class="grupo">
+    <ul class="itens">
+      <li><span class="it-n">Um quinto perfil: aprendiz</span><span class="it-d">Números medianos em tudo, e só existe em Varrokgaard. As quatro vocações continuam como estão.</span></li>
+      <li><span class="it-n">Os portões de vocação passam a perguntar onde você está</span><span class="it-d">O que hoje barra por <code>voc</code> — equipar e conjurar — não barra na ilha.</span></li>
+      <li><span class="it-n">A escolha, uma vez</span><span class="it-d">Proponho <b>definitiva</b>: é dela que vem o peso. Se um dia houver como trocar, que seja caro e tarde.</span></li>
+      <li><span class="it-n">Quem sobe de nível sem vocação usa a média</span><span class="it-d">Vida, mana e velocidade por nível saem da vocação; até o 15 o aprendiz usa o meio-termo das quatro. <b>No embarque os pontos se recalculam para a escolha</b> — a barra muda na hora, e isso é proposital: o corpo acompanha a decisão.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Cada mecânica tem um lugar</h2>
+  <p>Nada é ensinado por caixa de texto. O jogador aprende porque o lugar pede.</p>
+  <div class="band">
+    <table>
+      <thead><tr><th>Mecânica</th><th>Onde</th><th>Como o lugar ensina</th></tr></thead>
+      <tbody>
+        <tr><th>andar</th><td class="now">Varrok</td><td>a vila é pequena e não tem como se perder</td></tr>
+        <tr><th>pegar · soltar · equipar · usar</th><td class="now">Varrok</td><td>alguém entrega o primeiro par de coisas e não explica como vestir</td></tr>
+        <tr><th>atacar · mirar</th><td class="now">Os Trigais</td><td>rato e lebre entre a plantação — não revidam de verdade</td></tr>
+        <tr><th>saquear</th><td class="now">Os Trigais</td><td>o primeiro corpo cai a dois passos de onde você matou</td></tr>
+        <tr><th>usar habilidade</th><td class="now">Varrok</td><td>a primeira magia — de qualquer escola, porque ainda não há vocação</td></tr>
+        <tr><th>pescar</th><td class="now">O Trapiche</td><td>é o único lugar da vila que dá para a água</td></tr>
+        <tr><th>lenhar</th><td class="now">Corte Velho</td><td>mata rala, do lado seguro da Cerca Nova</td></tr>
+        <tr><th>minerar</th><td class="now">Pedreira Rasa</td><td>minério à vista na rocha, já do lado de lá do portão</td></tr>
+        <tr><th>caçar de verdade</th><td class="now">Mata Funda · nv 8</td><td>lobo revida, anda em grupo e persegue</td></tr>
+        <tr><th class="now">o que cada vocação é</th><td class="now">a ilha inteira</td><td class="now">arco, varinha, espada e escudo, todos disponíveis — a escolha é no cais</td></tr>
+        <tr><th class="now">que existe o inalcançável</th><td class="now">Cabo do Sal · nv 20</td><td class="now">você vê, não pode, e volta depois</td></tr>
+        <tr><th>entrar num subsolo</th><td class="now">A Goela · nv 10</td><td>a primeira boca de caverna da vida do personagem</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="why">A ordem não é imposta — é <b>topográfica</b>. Píer e Campos ficam colados na vila;
+  Corte fica na borda; Pedreira e Mata ficam do outro lado do portão. Quem for direto para a Mata Funda no
+  nível 1 apanha, e aprende assim mesmo.</p>
+</section>
+
+<section>
+  <h2>O elenco: nada NASCIDO aqui tem mente</h2>
+  <p>Das 24 criaturas de tier 0 a 2 que o jogo tem, Varrokgaard fica com <b>15</b> — e todas são
+  bicho solto. Mais uma exceção, que é o assunto da seção seguinte.</p>
+  <div class="band">
+    <table>
+      <thead><tr><th>Grupo</th><th>Quem</th><th>Onde</th></tr></thead>
+      <tbody>
+        <tr><th>Mamífero</th><td>Rato, Lebre-parda, Cervo-cinzento, Rato de Caverna, Lobo, Javali, Lobo Atroz</td><td>Campos e Mata</td></tr>
+        <tr><th>Réptil</th><td>Cobra, Naja</td><td>capim dos Campos, pedra da Pedreira Rasa</td></tr>
+        <tr><th>Inseto</th><td>Besouro Gigante, Vaga-lume, Besouro de Fogo, Verme Podre</td><td>a Goela</td></tr>
+        <tr><th>Aracnídeo</th><td>Aranha, Aranha Venenosa</td><td>a Goela</td></tr>
+        <tr><th class="now">Chefes</th><td class="now"><b>Presa-Branca, o Alfa</b> (Mata) · <b>Rainha do Enxame</b> (Gruta)</td><td class="now">os dois únicos</td></tr>
+        <tr><th class="now">A exceção</th><td class="now"><b>Minotauros</b> — Minotauro, Arqueiro e Guarda em número, e <b>um</b> Mago</td><td class="now">Cabo do Sal · nv 20 · não são daqui · sem chefe</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="aviso">
+    <h4>Ficam de fora os orcs e os mortos-vivos, e é essa a identidade da ilha</h4>
+    <p>Existem cinco humanoides e quatro mortos-vivos de nível baixo no jogo. Nenhum entra aqui.
+    <b>Nada em Varrokgaard tem mente</b> — não há inimigo que planeje, que use arma, que fale. Só
+    bicho solto.</p>
+    <p>O troco vem depois: o primeiro inimigo <b>pensante</b> da vida do personagem é um orc no
+    Planalto Quebrado de Aleto, e ele carrega lança e monta acampamento. Isso é um degrau que se
+    sente — e só existe porque a ilha se absteve.</p>
+    <p>Mantém também o morto-vivo colado ao selo, que é onde ele significa alguma coisa.</p>
+    <p><b>E é essa abstenção que dá peso à única exceção.</b> Numa ilha onde nenhum inimigo pensa, um
+    acampamento montado por quem pensa não passa despercebido — vira <i>a</i> coisa errada do lugar,
+    em vez de mais uma entre várias.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Cabo do Sal — o acampamento que não devia estar ali</h2>
+  <div class="col">
+    <p>Num cabo de pedra na costa leste, <b>dentro</b> da Cerca Nova, há um acampamento de minotauros.
+    Não atacaram a vila. Não pediram nada. Não foram embora. Chegaram, montaram e ficaram.</p>
+    <p>A guarda de Varrokgaard não conseguiu expulsá-los, então fez a única coisa que sabia: puxou um
+    cordão em volta e passou a impedir que qualquer um se aproxime. É por isso que ninguém passa —
+    não porque haja perigo do lado de lá da ilha, mas porque o perigo <b>já entrou</b> e ninguém
+    consegue tirar.</p>
+  </div>
+  <div class="aviso">
+    <h4>Sem motivo aparente, e é para continuar assim</h4>
+    <p>Ninguém em Varrokgaard sabe por que eles vieram. A guarda não sabe. O único que poderia saber
+    é o Mago, e ele não fala — nem quando perde. O jogo <b>não conta</b>.
+    Minotauro não é bicho de saque, não é minerador, não tem nada a ganhar numa ilha de plantação — e
+    é justamente a falta de motivo que faz a coisa incomodar.</p>
+    <p>Existe um fio disponível para quando fizer falta: em Aleto, os minotauros ocupam as ruínas de
+    um rei que passou a vida cavando na direção do selo. Se um dia isso precisar de resposta, ela está
+    ali. <b>Até lá, é para ficar sem resposta.</b></p>
+  </div>
+  <h3>Nível 20 numa ilha que acaba no 15</h3>
+  <p>É de propósito, e faz três coisas de uma vez. <b>Não dá para limpar morando na ilha</b> — quem
+  vive ali vê o acampamento e não pode fazer nada, que é exatamente o que os moradores sentem.
+  <b>Dá um motivo para voltar</b>, e é o que faz o barco de volta valer a passagem que decidimos
+  manter. E <b>é a primeira coisa no jogo que o jogador não consegue resolver na hora</b> — a lição
+  de que existe conteúdo esperando é ensinada aqui, cedo, sem tirar nada de ninguém.</p>
+  <h3>Um mago, e nenhum chefe</h3>
+  <p>O acampamento tem <b>exatamente um Minotauro Mago</b>, e ele <b>não é chefe</b>: mesma vida,
+  mesmo dano, mesmo saque de um Minotauro Mago qualquer. Nenhum número inflado, nenhuma coroa, nenhum
+  aviso na tela quando cai.</p>
+  <p>O que o destaca é ser <b>o único</b>. Num acampamento de guerreiros e arqueiros, há um que
+  conjura, e há só ele. É o mais próximo de uma resposta que a ilha oferece — e matá-lo não responde
+  nada. Um jogador desatento mata sem perceber que matou o único.</p>
+  <p class="why"><b>Singularidade por escassez, não por número.</b> É diferente de tudo que o jogo tem
+  hoje: as 17 hunts marcam o especial engordando os atributos. Aqui o especial é aritmético — um.</p>
+  <div class="aviso">
+    <h4>E é a primeira coisa do desenho que o gerador de hoje não consegue expressar</h4>
+    <p>A hunt é povoada por núcleos, e cada ponto sorteia a espécie de um pool
+    (<code>mobAleatorio()</code>). Não existe forma de dizer "exatamente um destes, aqui" — dá para
+    dizer "provavelmente aparece algum", que não é a mesma coisa e nunca vai ser.</p>
+    <p>Com colocação autoral, é um ponto de spawn escrito à mão. <b>O Mago é pequeno demais para
+    justificar a mudança de mapa sozinho — mas é a prova de que ela abre coisas que hoje não têm como
+    ser pedidas.</b></p>
+  </div>
+  <p><b>Ele renasce como qualquer outro</b>, no relógio normal — a unicidade é do lugar, não da
+  partida. Se um dia fizer sentido que ele morra de vez, aí é decisão nova.</p>
+</section>
+
+<section>
+  <h2>Os dois portões</h2>
+  <div class="grupo">
+    <ul class="itens">
+      <li>
+        <span class="it-n">A Cerca Nova — deixa passar</span>
+        <span class="it-d">A guarda não está ali para barrar o jogador: está para <b>os bichos não
+        entrarem na plantação</b>. Passa quem quiser; a guarda avisa e deixa ir. É o que explica por
+        que o sul da ilha é seguro sem precisar de zona segura mágica.</span>
+      </li>
+      <li>
+        <span class="it-n">O Embarcadouro — não deixa, até o nível 10</span>
+        <span class="it-d">O barqueiro não embarca ninguém abaixo do nível 10. É a única trava dura
+        da ilha, e é a que você decidiu: <b>sair aos 10 é proposital, e cobra</b> — Aleto começa em
+        15, então quem tem pressa chega despreparado e descobre sozinho.</span>
+      </li>
+      <li>
+        <span class="it-n">O cordão do Cabo do Sal — não deixa, e não explica</span>
+        <span class="it-d">A guarda não libera e não diz o motivo. Insistindo, deixa passar com um
+        aviso — guarda não é carcereiro —, e quem passa entende sozinho por que ninguém queria falar
+        no assunto. Do alto da Pedreira Rasa, em dia claro, ainda dá para ver a costa de Aleto no
+        horizonte, do outro lado.</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>As pessoas de Varrok</h2>
+  <p>Três, e nenhuma delas gosta de você por você ser quem é. A regra que segui: <b>ninguém dá nada
+  de graça a um forasteiro sem nada</b> — se dá, tem motivo, e o motivo não é bondade.</p>
+  <div class="grupo">
+    <ul class="itens">
+      <li>
+        <span class="it-n">Halda — o Paiol</span>
+        <span class="it-d">Guarda as ferramentas, a semente e, desde a Cerca Nova, também as armas.
+        Entrega o primeiro equipamento porque <b>é o trabalho dela</b>: a ilha decidiu que todo mundo
+        que consegue segurar uma ferramenta sai equipado. Não é presente, é inventário — e ela anota.
+        Seca, sem discurso, sem "boa sorte, escolhido".</span>
+        <span class="it-d"><b>O detalhe que carrega tudo:</b> o equipamento é <b>usado</b>, e tem um
+        nome riscado no cabo. Halda não diz de quem era. Ninguém pergunta duas vezes.</span>
+        <span class="it-t">resolve a pendência do primeiro equipamento · uma linha na descrição do item</span>
+      </li>
+      <li>
+        <span class="it-n">O guarda da Cerca Nova</span>
+        <span class="it-d">Não tem nome porque troca — são vários, em turnos, e nenhum deles quer
+        estar ali. Deixam passar e avisam. É o único NPC do jogo que <b>repete a mesma frase</b> de
+        propósito: a frase é do posto, não da pessoa.</span>
+      </li>
+      <li>
+        <span class="it-n">Torvald — o Embarcadouro</span>
+        <span class="it-d">Leva e traz. Não embarca ninguém abaixo do nível 10, e é ele quem faz a
+        pergunta da vocação — <b>o NPC mais importante da abertura do jogo</b>, e o menos parecido com
+        um mestre.</span>
+        <span class="it-d">Ele pergunta porque já levou todo mundo que foi embora daqui, e viu voltar
+        os poucos que voltaram. Não recomenda nada. Só diz o que fecha: <i>"se escolher a espada, o
+        arco não te obedece mais. Pensa antes de subir."</i></span>
+      </li>
+    </ul>
+  </div>
+  <p class="why">Halda e o Paiol dão a Varrok um segundo prédio com função — antes só havia templo e
+  loja. E os três juntos cobrem o que a vila precisa: <b>equipar, avisar, embarcar</b>. Nenhum deles
+  dá missão, porque Varrokgaard não tem missão: tem trabalho.</p>
+</section>
+
+<section>
+  <h2>Lugares</h2>
+  <p>Sem loot, sem guarda, descobertos ao chegar perto — como em Aleto.</p>
+  <div class="grupo">
+    <ul class="itens">
+      <li><span class="it-n">O poço seco — Os Trigais</span><span class="it-d">Fundo demais para um poço de fazenda. Está seco desde antes de qualquer um lembrar.</span></li>
+      <li><span class="it-n">O barco na pedra — costa oeste</span><span class="it-d">Encalhado há tanto tempo que virou paisagem. As crianças brincam nele.</span></li>
+      <li><span class="it-n">O alto da Pedreira Rasa</span><span class="it-d">De onde se vê o mar inteiro — e, em dia limpo, a costa de Aleto.</span></li>
+      <li><span class="it-n">A pedra do meio — sob a Cerca Nova</span><span class="it-d">A Cerca Nova foi construída em volta dela porque ninguém quis mexer. Ninguém sabe dizer por quê.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Números</h2>
+  <div class="band">
+    <table>
+      <thead><tr><th>Eixo</th><th>Varrokgaard</th><th>Aleto, para comparar</th></tr></thead>
+      <tbody>
+        <tr><th>Superfície</th><td class="now">192 × 192</td><td class="n">320 × 320</td></tr>
+        <tr><th>Terra firme</th><td class="now">12.719 tiles <span class="n">medidos</span></td><td class="n">~68.000</td></tr>
+        <tr><th>Subsolo</th><td class="now">1 gruta · 2.774 tiles · 1 nível</td><td class="n">4 sistemas · ~5.700</td></tr>
+        <tr><th>Hunts</th><td class="now">3 — duas de faixa, uma acima dela</td><td class="n">6</td></tr>
+        <tr><th>Criaturas</th><td class="now">15 + 2 chefes + 4 minotauros · 164 pontos de spawn</td><td class="n">28 + 6 chefes + o Paladino</td></tr>
+        <tr><th>Faixa</th><td class="now">1 a 15 · sai aos 10 · <b>o Cabo do Sal é nv 20</b></td><td class="n">15 a 60</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Em aberto</h2>
+  <div class="grupo">
+    <ul class="itens">
+    </ul>
+  </div>
+</section>
+
+<footer>
+  Thaira · composição de Varrokgaard · 2026-08-22 · nada implementado ·
+  ilha inicial, níveis 1 a 15, saída aos 10.
+</footer>
+
+</div>

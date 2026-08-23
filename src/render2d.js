@@ -383,7 +383,12 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
       if (def.tex === 'lava' && z === P.z)
         luzes.push({ x: sx + t / 2, y: sy + t / 2, r: t * 2.2, cor: '#ff8c32', a0: .8, a1: .3 });
     } else {
-      g2.drawImage(tileTexture(def.tex || 'dirt', def.c), cropX, cropY, TS, TS, sx, sy, t, t);
+      /* A porta é o único tile cuja TEXTURA muda em jogo, e é aqui que ela
+         muda: o resto do render não conhece porta, só pergunta ao tile qual é a
+         textura dele. Fechada e aberta com o mesmo desenho era o defeito — abrir
+         não mudava nada na tela. */
+      const tex = tt === T.DOOR && portaAberta(x, y, z) ? 'door_open' : (def.tex || 'dirt');
+      g2.drawImage(tileTexture(tex, def.c), cropX, cropY, TS, TS, sx, sy, t, t);
     }
     tileBorders(x, y, z, def, sx, sy, t);
     if (tt === T.DOWN || tt === T.UP) g2.drawImage(stairSprite(tt === T.DOWN), sx, sy, t, t);
@@ -435,7 +440,47 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
     if (def.hide && !bucket) continue;                    // buraco ainda pode ter alguém em cima
     const sx = telaX(x), sy = telaY(y);
     if (!def.hide) {
-      if (def.top > 0.5) g2.drawImage(wallSprite(def.tex, def.c), sx, sy - WALL_TOP * S, t, WALL_H * S);
+      // a variante sai do TILE, mesmo embaralhamento da deco: parede de desenho
+      // (teia) repetindo o mesmo sprite a cada 32 px vira papel de parede
+      /* OBJETO DE MAIS DE UM TILE. Um tile tem 32 px, e poço, moinho e fonte
+         desenhados dentro de um só serão pequenos por construção — nenhum
+         ajuste de desenho conserta isso. Quem declara `span` ocupa o rastro
+         inteiro no mapa, mas só a ÂNCORA (o canto noroeste) desenha, e desenha
+         a coisa toda; os outros tiles do rastro apenas bloqueiam.
+         O moinho provou a necessidade do jeito mais direto: dois tiles MILL
+         lado a lado desenhavam DOIS MOINHOS colados.
+         ponytail: a âncora é "não tenho vizinho igual a oeste nem ao norte", o
+         que basta para objeto isolado. Dois objetos iguais encostados leriam
+         como um só — se um dia isso acontecer, o caminho é um id de canto. */
+      const sp = def.span;
+      if (sp && (tileAt(x - 1, y, z) === tt || tileAt(x, y - 1, z) === tt)) {
+        // rastro: bloqueia e não desenha
+      } else if (sp) {
+        const alto = def.obj ? CERCA_TOP : WALL_TOP;
+        const spr = def.obj ? OBJ_DRAW[def.obj]() : PAREDE_DRAW[def.parede]();
+        /* A sombra vem do MOTOR, a mesma da árvore e do boneco: mancha de
+           contato mais silhueta projetada, inclinada pelo sol e com a alfa
+           seguindo `solF`. Baixa o objeto no chão em vez de deixá-lo boiando.
+           A projetada sozinha não basta e a de contato sozinha também não — é a
+           de contato que prende, e é a projetada que dá direção. */
+        dropShadow(spr, sx + t * sp[0] / 2, sy + t * (sp[1] - 1) + t * CHAO);
+        g2.drawImage(spr, sx, sy - alto * S, t * sp[0], (alto + 32 * sp[1]) * S);
+      } else if (def.top > 0.5) g2.drawImage(paredeSprite(def, ((x * 92837111) ^ (y * 689287499)) >>> 29),
+        sx, sy - WALL_TOP * S, t, WALL_H * S);
+      // objeto de tile (cerca, escoramento) sai no 2º passe, com os volumes: no
+      // 1º viraria risco pintado no chão e o jogador passaria por cima do que
+      // devia estar na frente dele. O eixo vem do vizinho IGUAL — é o que faz a
+      // cerca correr no sentido da cerca e a escora no sentido da galeria.
+      else if (def.obj) {
+        const spr = OBJ_DRAW[def.obj](tileAt(x - 1, y, z) === tt || tileAt(x + 1, y, z) === tt);
+        /* Cerca e escoramento CORREM em linha, e sombra projetada por tile num
+           lance de cerca vira serrilha; quem tem sombra de motor é o objeto
+           SOLTO — carroça, barril, poço. É o `sombra` da ficha do tile que
+           decide, e não o nome do objeto, senão o render volta a conhecer tile
+           por tile. */
+        if (def.sombra) dropShadow(spr, sx + t / 2, sy + t * CHAO);
+        g2.drawImage(spr, sx, sy - CERCA_TOP * S, t, CERCA_H * S);
+      }
       const d = deco.get(y * W + x);
       if (d) {
         // 9 variantes por `x*7+y*13` repetiam em diagonal e a olho nu; 16 com as
@@ -489,7 +534,7 @@ const peY = it => it.k === 'bicho' ? it.e.py : it.by;
    lado. O canto diagonal só entra quando nenhum dos dois ortogonais dele já
    cobriu aquela quina — senão sai mancha dobrada, mais escura que o resto.
    Parede e buraco ficam de fora: não são chão, quem cuida deles é o 2º passe. */
-const NB8 = [[0, -1], [1, 0], [0, 1], [-1, 0], [1, -1], [1, 1], [-1, 1], [-1, -1]];
+const NB8 = EDGE_DIR;                                   // a ordem é a das máscaras, e mora com elas
 function tileBorders(x, y, z, def, sx, sy, t) {
   const p0 = TERRAIN_PRIO[def.tex] || 0;
   const praia = def.tex === 'water';
@@ -500,6 +545,7 @@ function tileBorders(x, y, z, def, sx, sy, t) {
     if (nd.hide || nd.top > 0.5) continue;
     if ((TERRAIN_PRIO[nd.tex] || 0) <= p0) continue;
     if (m < 4) orto |= 1 << m;
+    // o borderSprite já traz o contorno da junta assado dentro dele
     g2.drawImage(borderSprite(nd.tex, nd.c, m), sx, sy, t, t);
     /* Espuma: só no tile de água e só nas ortogonais — a máscara de canto é
        radial e a faixa sairia curva, e o canto quase sempre já tem um dos dois
@@ -1064,7 +1110,7 @@ function bloomPass() {
 let vinCv = null;
 const GRADE_A = .30, VINHETA_A = .38;
 function gradePass() {
-  if (!FLOOR_AMBIENCE[P.z].amb) {
+  if (!ambienteDe(P.z).amb) {
     const [r, g, b] = corDoCeu(horaDoDia());
     const f = 128 / Math.max(1, r * .3 + g * .6 + b * .1);
     g2.globalCompositeOperation = 'soft-light';

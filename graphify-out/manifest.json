@@ -1,7 +1,7 @@
 {
   ".claude/launch.json": {
-    "mtime": 1786913289.3160968,
-    "ast_hash": "21eadecca07f7ba496070772c90c8378",
+    "mtime": 1787491304.461116,
+    "ast_hash": "686d69220362b5262cf4c78bf93599ca",
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
@@ -40,8 +40,8 @@
     "semantic_hash": ""
   },
   "src/art.js": {
-    "mtime": 1787402822.0894227,
-    "ast_hash": "08f488497b1fbc44cb6024420fb992a4",
+    "mtime": 1787468764.5117452,
+    "ast_hash": "1f92f92a51cf6db23f2f6efc8a1ea36e",
     "semantic_hash": ""
   },
   "src/audio.js": {
@@ -50,13 +50,13 @@
     "semantic_hash": ""
   },
   "src/data.js": {
-    "mtime": 1787374808.7250035,
-    "ast_hash": "ac8e9d00609edb8e4e7ed6c4204aa82f",
+    "mtime": 1787462497.9202294,
+    "ast_hash": "ebaa19c5b4a56dc504b0c5bff161b6be",
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1787371300.1138525,
-    "ast_hash": "76e40a3e65edc6258e72124e5704877c",
+    "mtime": 1787495565.5601192,
+    "ast_hash": "40dc3260aa315cf65b667cd2cdf09e2a",
     "semantic_hash": ""
   },
   "src/hud.js": {
@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1787374808.726006,
-    "ast_hash": "7f46292e857a5c051141e3f188819a73",
+    "mtime": 1787468880.4473908,
+    "ast_hash": "3f0e0fc9e30300e35fa9573e47728c9e",
     "semantic_hash": ""
   },
   "src/ui.js": {
@@ -75,18 +75,18 @@
     "semantic_hash": ""
   },
   "src/world.js": {
-    "mtime": 1787071690.7496817,
-    "ast_hash": "1836e2565ef88ed507364cbd840604e5",
+    "mtime": 1787496471.8588011,
+    "ast_hash": "9b2134d9f3dca44dce9353aee8cd92a9",
     "semantic_hash": ""
   },
   "tests/test.js": {
-    "mtime": 1787374547.6125453,
-    "ast_hash": "5b758c022e9f34598def033170d7ceb0",
+    "mtime": 1787493663.9782672,
+    "ast_hash": "418fdd285374a5c61d0971404e8ede3f",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1786882311.0477526,
-    "ast_hash": "be6939f7fc1fd58256aee3a1cb58ef58",
+    "mtime": 1787492042.5277724,
+    "ast_hash": "db38f482159c3ff896d431b38621dc49",
     "semantic_hash": ""
   },
   "assets/CREDITOS.md": {
@@ -3080,13 +3080,13 @@
     "semantic_hash": ""
   },
   "tools/serve.py": {
-    "mtime": 1786821901.7466507,
-    "ast_hash": "73a2e1d79ad6af1a6afe2744daa31277",
+    "mtime": 1787497500.8492267,
+    "ast_hash": "049a32b35fda1378877a2d92fb1bb6b3",
     "semantic_hash": ""
   },
   "main.js": {
-    "mtime": 1787178858.6043482,
-    "ast_hash": "c6a497740ef7b47646cbb4c461f08d4a",
+    "mtime": 1787498311.3839006,
+    "ast_hash": "4bc01f56fb0fd702a3934a9d082f365a",
     "semantic_hash": ""
   },
   "package.json": {
@@ -3170,8 +3170,8 @@
     "semantic_hash": ""
   },
   "tasks.html": {
-    "mtime": 1787403409.3356621,
-    "ast_hash": "c6f47bd69265588b39d0b0bb5105c57c",
+    "mtime": 1787498374.5500035,
+    "ast_hash": "0ed096eacd6482cc853c6fc67658a6dd",
     "semantic_hash": ""
   },
   "assets/skins/creatures/cyclops/cyclops_brute/cyclops_anim.png": {
@@ -5587,6 +5587,96 @@
   "tools/amostra/campos.html": {
     "mtime": 1787371512.0982597,
     "ast_hash": "134a598939404eea38687135935f4b1c",
+    "semantic_hash": ""
+  },
+  "mundo_aleto.html": {
+    "mtime": 1787458739.831689,
+    "ast_hash": "44826201112f66d6b85baf6f8315649b",
+    "semantic_hash": ""
+  },
+  "mundo_varrokgaard.html": {
+    "mtime": 1787466577.4793715,
+    "ast_hash": "cd6899e414c4f76cb64750297b069116",
+    "semantic_hash": ""
+  },
+  "proposta_24.html": {
+    "mtime": 1787406336.489023,
+    "ast_hash": "291360e3d2d86e6ab7f28baf167729d7",
+    "semantic_hash": ""
+  },
+  "tools/amostra/mapa.html": {
+    "mtime": 1787432257.637039,
+    "ast_hash": "a3d6c08892939ff9869c9dba4e1b574f",
+    "semantic_hash": ""
+  },
+  "maps/mundo.json": {
+    "mtime": 1787421728.2141263,
+    "ast_hash": "63f371c134d018f97116aa24dd4ecead",
+    "semantic_hash": ""
+  },
+  "tools/congela_mapa.js": {
+    "mtime": 1787421698.970971,
+    "ast_hash": "e22ee7a57311e95fe54eb4df89cf8615",
+    "semantic_hash": ""
+  },
+  "maps/varrokgaard.json": {
+    "mtime": 1787497533.0230603,
+    "ast_hash": "4101f1161f8efaf4a634dce8cb335568",
+    "semantic_hash": ""
+  },
+  "tools/compor.js": {
+    "mtime": 1787496471.8577106,
+    "ast_hash": "215e0bdda9a99bcb4ae606cf4a369575",
+    "semantic_hash": ""
+  },
+  "tools/mapas/varrokgaard.js": {
+    "mtime": 1787491202.9534824,
+    "ast_hash": "c538b09825293183512226ab110902f2",
+    "semantic_hash": ""
+  },
+  "tools/amostra/construido.html": {
+    "mtime": 1787464960.7297392,
+    "ast_hash": "f57cee164cadc3686e4f21005d5a3932",
+    "semantic_hash": ""
+  },
+  "tools/amostra/costura.html": {
+    "mtime": 1787452037.295283,
+    "ast_hash": "24d88bf65911c757a6f6d508159480be",
+    "semantic_hash": ""
+  },
+  "tools/planta_png.js": {
+    "mtime": 1787460501.5164413,
+    "ast_hash": "26fb6764ac2561153b01b0fbaf7ee37a",
+    "semantic_hash": ""
+  },
+  "tools/amostra/planta_varrokgaard_0.png": {
+    "mtime": 1787466289.3368518,
+    "ast_hash": "ab9b1119589e113607f2fe92eac0d588",
+    "semantic_hash": ""
+  },
+  "tools/amostra/planta_varrokgaard_1.png": {
+    "mtime": 1787468236.66791,
+    "ast_hash": "5f7325fdabd2a9ba3fa3a5e4be24f0f4",
+    "semantic_hash": ""
+  },
+  "tools/editor.html": {
+    "mtime": 1787498311.385906,
+    "ast_hash": "416902e7a273bcdd9c6ca175bf8056bf",
+    "semantic_hash": ""
+  },
+  "maps/varrokgaard.patch.json": {
+    "mtime": 1787498168.8777509,
+    "ast_hash": "37a287098aaf1caa01ec47b359730113",
+    "semantic_hash": ""
+  },
+  "maps/_semPatch.json": {
+    "mtime": 1787497532.760257,
+    "ast_hash": "2a0d13280b13d9d2510018b227a321a3",
+    "semantic_hash": ""
+  },
+  "maps/varrokgaard.patch.bak.json": {
+    "mtime": 1787497514.2100313,
+    "ast_hash": "37a287098aaf1caa01ec47b359730113",
     "semantic_hash": ""
   }
 }

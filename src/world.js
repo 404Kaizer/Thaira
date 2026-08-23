@@ -7,11 +7,48 @@
    própria família de criatura, o próprio loot e o próprio chefe. Andar novo é
    barato aqui (o gerador de caverna já é genérico), então quando a curva
    precisar de mais fôlego, o caminho é FLOORS+1 e mais um pool de spawn. */
-const W = 224, H = 224, FLOORS = 6, SURF = 1;   // 0=montanha 1=superfície 2=caverna 3=abismo 4=fenda 5=coração
-const FLOOR_NAMES = ['Pico da Montanha (+1)', 'Superfície (0)', 'Caverna (-1)', 'Abismo (-2)', 'Fenda (-3)', 'Coração do Abismo (-4)'];
-const DEEP = 4;   // a partir daqui é endgame: mais lava, mais elite, sem meio-termo
+/* `let` e não `const` porque o tamanho do mapa passou a vir do ARQUIVO: cada
+   terra tem o seu (Varrokgaard 192×192, Aleto 320×320), e um sistema de subsolo
+   tem o dele. Os valores abaixo são o do gerador, que continua sendo o mundo
+   enquanto nenhuma terra estiver desenhada. Quem troca é o `mapaAplica`. */
+/* Qual terra o jogo carrega. `null` = gera pela semente; nome de arquivo em
+   maps/ = a terra desenhada. É STRING: sem aspas isto é um identificador solto
+   e o world.js inteiro morre de ReferenceError na carga, com o jogo abrindo em
+   tela preta e sem erro que aponte para cá. */
+const MAPA_ATUAL = 'varrokgaard';   // null volta ao gerador; ver #46
+/* As dimensões DO GERADOR, separadas das variáveis. O gerador produz um mundo
+   de 224x224 em 6 andares e precisa dizer isso toda vez que roda — senão, depois
+   de carregar um mapa menor, ele geraria com o tamanho do outro e quebraria nas
+   escadas. Foi exatamente o que o teste de mapa pequeno pegou. */
+const GEN = { w: 224, h: 224, andares: 6, sup: 1, fundo: 4,
+  nomes: ['Pico da Montanha (+1)', 'Superfície (0)', 'Caverna (-1)', 'Abismo (-2)', 'Fenda (-3)', 'Coração do Abismo (-4)'] };
+let W = GEN.w, H = GEN.h, FLOORS = GEN.andares, SURF = GEN.sup;   // 0=montanha 1=superfície 2=caverna 3=abismo 4=fenda 5=coração
+let FLOOR_NAMES = GEN.nomes;
+let DEEP = GEN.fundo;   // a partir daqui é endgame: mais lava, mais elite, sem meio-termo
 
-const T = { VOID: 0, GRASS: 1, DIRT: 2, SAND: 3, WATER: 4, ROCK: 5, TREE: 6, CFLOOR: 7, CWALL: 8, LAVA: 9, DOWN: 10, UP: 11, TEMPLE: 12, SNOW: 13, SWAMP: 14 };
+/* Os cinco últimos são COISA CONSTRUÍDA, e existem porque não havia nenhum: a
+   vila de Varrokgaard foi feita de T.ROCK e do chão uma parede de casa ficou
+   indistinguível de um matacão. Um material, um significado — parede, piso,
+   porta, cerca e lavoura não podem sair todos da mesma pedra. */
+const T = { VOID: 0, GRASS: 1, DIRT: 2, SAND: 3, WATER: 4, ROCK: 5, TREE: 6, CFLOOR: 7, CWALL: 8, LAVA: 9, DOWN: 10, UP: 11, TEMPLE: 12, SNOW: 13, SWAMP: 14,
+  /* madeira — Varrokgaard é fazenda, e fazenda se constrói de tábua */
+  WALL: 15, FLOOR: 16, DOOR: 17, FENCE: 18, CROP: 19, PIER: 20, HAY: 21, PROP: 22,
+  /* pedra lavrada — Vigília, as Ruínas e o Labirinto. O que denuncia que um
+     homem construiu é a regularidade, e sem bloco esquadrejado não há como
+     distinguir o Labirinto do rei de uma caverna qualquer. */
+  SWALL: 23, PAVE: 24, RUBBLE: 25,
+  /* subsolo — uma forma por sistema: a Mina cavada com plano, o Ninho comido
+     por bicho, o Selo e o que vaza dele */
+  ORE: 26, GRAVEL: 27, WEB: 28, WEBF: 29, BONE: 30, ASH: 31, MOSS: 32,
+  /* chão marcado: o que aconteceu ali fica no chão. Não confundir com o sangue
+     de combate (drawBlood) nem com campo elemental (criaCampo) — os dois são
+     transitórios e do motor; estes dois são AUTORAIS, o autor põe no mapa. */
+  GORE: 33, RUNE: 34,
+  /* móveis da vila — o que faz uma rua parecer habitada em vez de um corredor
+     entre casas. Todos são OBJETO (`top` entre 0 e 0,5): barram o pé e não a
+     vista, que é o mesmo caminho da cerca e do escoramento. O curral NÃO entra
+     aqui: curral é cerca em volta de terra batida, e já dá para escrever. */
+  WELL: 35, CART: 36, BARREL: 37, MILL: 38 };
 const TILE = {
   [T.VOID]:   { c: 0x000000, top: 0,    walk: false, hide: true },
   [T.GRASS]:  { c: 0x55913a, top: 0,    walk: true,  tex: 'grass' },
@@ -27,10 +64,60 @@ const TILE = {
   [T.UP]:     { c: 0xa89778, top: 0,    walk: true,  tex: 'stone' },
   [T.TEMPLE]: { c: 0xc9b892, top: 0,    walk: true,  tex: 'stone' },
   [T.SNOW]:   { c: 0xdcecf7, top: 0,    walk: true,  tex: 'snow' },
-  [T.SWAMP]:  { c: 0x5f682a, top: -0.06, walk: true, tex: 'swamp' }
+  [T.SWAMP]:  { c: 0x5f682a, top: -0.06, walk: true, tex: 'swamp' },
+  [T.WALL]:   { c: 0x6b3a1e, top: 1.1,  walk: false, tex: 'wall' },
+  [T.FLOOR]:  { c: 0xa07444, top: 0,    walk: true,  tex: 'plank' },
+  /* Porta CLARA de propósito: ela vive dentro de uma parede escura, e uma
+     porta mais escura que a parede vira buraco. O que a lê é o contraste
+     com o que a cerca, não a cor dela sozinha. */
+  [T.DOOR]:   { c: 0x7a5330, top: 0,    walk: true,  tex: 'door' },
+  /* Cerca tem `top` entre 0 e 0,5 de propósito: 0,5 é a régua que corta a
+     vista (tapaVista) e desenha volume de parede. Abaixo dela o tile barra o
+     pé e não os olhos, que é exatamente o que uma cerca faz — a guarda da
+     Cerca Nova vê o que vem do outro lado. O chão sob ela é terra pisada. */
+  [T.FENCE]:  { c: 0x66512e, top: 0.4,  walk: false, tex: 'dirt', obj: 'cerca' },
+  [T.CROP]:   { c: 0x93a83f, top: 0,    walk: true,  tex: 'crop' },
+  /* Trapiche: tábua SOBRE a água. É por isso que existe — sem ele, o Trapiche e
+     o Embarcadouro de Varrokgaard teriam de ser aterrados de areia. */
+  [T.PIER]:   { c: 0x8a6a3c, top: 0,    walk: true,  tex: 'pier' },
+  [T.HAY]:    { c: 0x9c8340, top: 0,    walk: true,  tex: 'hay' },
+  /* Escoramento barra o pé e não a vista: é um pórtico de viga, e olhar
+     galeria abaixo por entre as escoras é metade do que faz a Mina parecer
+     mina. Mesmo caminho da cerca — `c` e `tex` são o CHÃO sob o objeto, e a
+     madeira dele é constante do art.js, porque objeto não é terreno. */
+  [T.PROP]:   { c: 0x6a5c48, top: 0.45, walk: false, tex: 'gravel', obj: 'escora' },
+  [T.SWALL]:  { c: 0x6d7590, top: 1.1,  walk: false, tex: 'block' },
+  [T.PAVE]:   { c: 0x968a70, top: 0,    walk: true,  tex: 'pave' },
+  [T.RUBBLE]: { c: 0x827668, top: 0,    walk: true,  tex: 'rubble' },
+  /* Veio: é rocha, e a cor é perto da rocha DE PROPÓSITO — quem acha o veio é o
+     metal desenhado na textura, não um tile de outra cor. Fosse ele azul, o
+     jogador acharia minério de longe e a procura deixaria de existir. */
+  [T.ORE]:    { c: 0x333f4c, top: 1.1,  walk: false, tex: 'ore' },
+  [T.GRAVEL]: { c: 0x82705c, top: 0,    walk: true,  tex: 'gravel' },
+  /* A teia é parede e tem sprite PRÓPRIO: o wallSprite corta topo claro e
+     face escura, que é física de pedra, e aplicado a teia dava chapa
+     ondulada. Ver `parede` e PAREDE_DRAW no art.js. */
+  [T.WEB]:    { c: 0xb0bad2, top: 1.1,  walk: false, tex: 'web', parede: 'teia' },
+  [T.WEBF]:   { c: 0x7d88a8, top: 0,    walk: true,  tex: 'webf' },
+  [T.BONE]:   { c: 0xd6d2b4, top: 0,    walk: true,  tex: 'bone' },
+  [T.ASH]:    { c: 0x574a44, top: 0,    walk: true,  tex: 'ash' },
+  [T.MOSS]:   { c: 0x4c6b3a, top: 0,    walk: true,  tex: 'moss' },
+  [T.GORE]:   { c: 0x7a2b30, top: 0,    walk: true,  tex: 'gore' },
+  [T.RUNE]:   { c: 0x6f5f9c, top: 0,    walk: true,  tex: 'rune' },
+  /* Os móveis da vila. `c` e `tex` são o CHÃO sob o objeto — a madeira e a
+     pedra de cada um são constantes do art.js, porque objeto não é terreno.
+     É a mesma regra que a cerca e o escoramento já seguem, e é o corolário do
+     #48b: cor de material é constante própria, não a cor do tile multiplicada. */
+  [T.WELL]:   { c: 0x968a70, top: 0.45, walk: false, tex: 'pave',   obj: 'poco',    span: [2, 2] },
+  [T.CART]:   { c: 0x7a5c30, top: 0.42, walk: false, tex: 'dirt',   obj: 'carroca', sombra: 1 },
+  [T.BARREL]: { c: 0x7a5c30, top: 0.40, walk: false, tex: 'dirt',   obj: 'barril',  sombra: 1 },
+  /* O moinho é o único que TAPA a vista: é um prédio, não um móvel, e `top`
+     1.1 o põe na régua de parede. Numa ilha que vive de trigo ele é a silhueta
+     que diz "fazenda" de mais longe que qualquer outra coisa. */
+  [T.MILL]:   { c: 0x8a7a5c, top: 1.1,  walk: false, tex: 'dirt',   parede: 'moinho', span: [2, 3] }
 };
 
-const WORLD = { floors: [], temple: { x: W >> 1, y: H >> 1, z: SURF }, spawns: [], hunts: [], pois: [], seed: 0 };
+const WORLD = { floors: [], temple: { x: W >> 1, y: H >> 1, z: SURF }, spawns: [], hunts: [], pois: [], seed: 0, portas: new Set() };
 
 /* --------------------------------------------------------------- ruído/rng */
 function mulberry32(a) {
@@ -81,12 +168,64 @@ const inBounds = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
 const foraDoMapa = z => z === SURF ? T.WATER : T.VOID;
 const corFora = z => '#' + TILE[foraDoMapa(z)].c.toString(16).padStart(6, '0');
 function tileAt(x, y, z) { return inBounds(x, y) ? WORLD.floors[z].t[idx(x, y)] : foraDoMapa(z); }
-function isWalkable(x, y, z) { return TILE[tileAt(x, y, z)].walk; }
+/* PORTA — o único tile cujo bloqueio muda durante o jogo.
+   O estado vive num Set de chaves e não num id de tile porque o mapa é
+   `Uint8Array`: aberta e fechada seriam dois ids, e aí o AUTOR do mapa teria de
+   escolher qual das duas quer pintar — e isso não é decisão de mapa, é estado
+   de partida. Fechada é o padrão: casa nasce fechada.
+   Quem abre é só o jogador. Criatura não abre, e é isso que faz uma casa ser
+   abrigo em vez de mais um corredor. */
+const chavePorta = (x, y, z) => z + ':' + idx(x, y);
+const portaAberta = (x, y, z) => WORLD.portas.has(chavePorta(x, y, z));
+function usaPorta(x, y, z) {
+  const k = chavePorta(x, y, z);
+  if (WORLD.portas.has(k)) WORLD.portas.delete(k); else WORLD.portas.add(k);
+  return WORLD.portas.has(k);
+}
+/* Porta fechada é parede para TODO MUNDO, jogador incluído — ele abre de
+   propósito, com Ctrl + clique, e só então passa. Houve uma versão em que o A*
+   do jogador atravessava a porta fechada e o passo a abria ao chegar; caiu
+   junto com o "andar abre", porque caminho que atravessa o que está fechado
+   promete uma passagem que não existe. */
+function isWalkable(x, y, z) {
+  const t = tileAt(x, y, z);
+  if (t === T.DOOR) return portaAberta(x, y, z);
+  return TILE[t].walk;
+}
 function distT(a, b, c, d) { return Math.max(Math.abs(a - c), Math.abs(b - d)); }
+
+/* O tile andável mais próximo, em anéis crescentes. Existe por causa do editor
+   de mapas: o save guarda a posição do personagem e o mapa muda por baixo dela,
+   então a primeira coisa que se pinta por cima é exatamente o lugar onde ele
+   parou. Sem isto ele carrega DENTRO da parede — e se o tile ficar cercado, ou
+   se a terra encolher e a coordenada cair fora do mapa, ele fica preso para
+   sempre num save que não dá para consertar de dentro do jogo.
+   Anéis e não varredura do mapa inteiro: quem foi soterrado está a um ou dois
+   tiles de chão, e um 192² varrido por inteiro a cada carga é desperdício. */
+function chaoMaisPerto(x, y, z, raioMax = 24) {
+  if (inBounds(x, y) && isWalkable(x, y, z)) return null;      // não precisa de resgate
+  const cx = Math.max(0, Math.min(W - 1, x | 0)), cy = Math.max(0, Math.min(H - 1, y | 0));
+  for (let r = 1; r <= raioMax; r++)
+    for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) {
+      if (Math.max(Math.abs(i), Math.abs(j)) !== r) continue;   // só a casca do anel
+      const nx = cx + i, ny = cy + j;
+      if (inBounds(nx, ny) && isWalkable(nx, ny, z)) return [nx, ny];
+    }
+  return null;
+}
 
 /* -------------------------------------------------------------- geração */
 function genWorld(seed) {
   WORLD.seed = seed;
+  WORLD.portas = new Set();
+  /* Mundo gerado NÃO vem de arquivo, e precisa dizer isso: sem esta linha um
+     personagem criado depois de um `mapaAplica` se salvaria como se fosse
+     daquela terra, e voltaria com as coordenadas de outro mapa. */
+  WORLD.mapa = null;
+  // o gerador tem tamanho próprio e o reafirma: ver GEN acima
+  W = GEN.w; H = GEN.h; FLOORS = GEN.andares; SURF = GEN.sup;
+  DEEP = GEN.fundo; FLOOR_NAMES = GEN.nomes;
+  WORLD.temple = { x: W >> 1, y: H >> 1, z: SURF };
   const rnd = mulberry32(seed), nEl = makeNoise(seed), nMo = makeNoise(seed + 7777);
   /* Terceiro ruído, bem mais largo que os outros dois: bioma é região, não
      mancha. Com a mesma frequência da umidade sairiam ilhotas de neve de três
@@ -429,6 +568,11 @@ function findPath(sx, sy, gx, gy, z, maxNodes = 9000, bloq = null) {
    ele é null aqui porque quem manda é o relógio, logo abaixo. */
 /* `torch` saiu daqui: o raio da luz é do ITEM que o jogador carrega, não do
    andar. Um raio por andar acendia o herói mesmo com a mochila vazia. */
+/* Indexada por PROFUNDIDADE, não por número de andar. A entrada 0 é o que fica
+   acima da superfície, a 1 é a superfície, e daí para baixo. Com índice
+   absoluto, uma terra que numere os andares de outro jeito recebia o ambiente
+   errado — em Varrokgaard, cuja superfície é o andar 0, a caverna ganhava céu,
+   clima e ciclo de dia. Ver . */
 const FLOOR_AMBIENCE = [
   { bg: '#223047', amb: null },
   { bg: '#162015', amb: null },
@@ -437,6 +581,11 @@ const FLOOR_AMBIENCE = [
   { bg: '#070309', amb: '#1e1030' },   // fenda: o roxo do vazio
   { bg: '#050203', amb: '#2a0c10' }    // coração: só a brasa
 ];
+
+/* A profundidade de um andar, medida a partir da superfície: −1 é o que está
+   acima dela, 0 é ela, 1+ é subsolo. É o que torna o ambiente independente da
+   numeração de cada terra. */
+const ambienteDe = z => FLOOR_AMBIENCE[Math.max(0, Math.min(FLOOR_AMBIENCE.length - 1, (z - SURF) + 1))];
 
 /* Ciclo dia/noite. A hora vem do relógio de parede: continua de onde parou entre
    recargas e não precisa de estado salvo nem de tick. A noite não fecha em preto
@@ -540,7 +689,7 @@ function relampago(chuva, ms) {
 }
 
 function climaAgora(z, ms = Date.now()) {
-  if (FLOOR_AMBIENCE[z].amb) return CLIMA_PARADO;
+  if (ambienteDe(z).amb) return CLIMA_PARADO;
   const nublado = nubladoEm(ms);
   const [r, g, b] = corDoCeu(horaDoDia(ms));
   const sol = Math.min(1, (r * .3 + g * .6 + b * .1) / 200);
@@ -568,7 +717,7 @@ function climaAgora(z, ms = Date.now()) {
    `ms` existe para o teste poder fixar a hora — sem ele a asserção de noite
    dependia do relógio de parede e falhava sozinha uma vez a cada ciclo. */
 function ambienteAgora(z, ms = Date.now()) {
-  const a = FLOOR_AMBIENCE[z];
+  const a = ambienteDe(z);
   if (a.amb) return a;
   const f = 1 - .4 * climaAgora(z, ms).nublado;   // céu fechado escurece o dia inteiro
   const [r, g, b] = corDoCeu(horaDoDia(ms)).map(v => Math.round(v * f));
@@ -599,3 +748,88 @@ function buildMinimaps() {
   }
 }
 
+
+/* ==================================================== o mapa como arquivo ===
+   O mundo deixa de ser função da semente e passa a ser DADO. O gerador continua
+   vivo e é ele que produz o primeiro rascunho de cada terra — mas depois de
+   congelado, corrigir o mapa é editar o arquivo, não sortear de novo e torcer.
+
+   UM CARACTERE POR TILE, UMA LINHA POR LINHA DO MAPA, sem compressão. É de
+   propósito: o arquivo abre num editor de texto e se LÊ o mapa, e o git mostra
+   em qual linha a mudança caiu — que é exatamente o que importa quando o mapa
+   passa a ser desenhado à mão. Comprimir economizaria uns KB e custaria as duas
+   coisas. Aleto, a 128×128, dá 16 KB por andar. */
+const TILE_CHAR = '.gdswRTcCLv^#npMPDFHjyISauOkWebzmxr@%$&';   // índice = id do tile em T
+const CHAR_TILE = {};
+for (let i = 0; i < TILE_CHAR.length; i++) CHAR_TILE[TILE_CHAR[i]] = i;
+
+function mapaSerializa(nome) {
+  return {
+    nome, w: W, h: H, andares: FLOORS, sup: SURF, fundo: DEEP,
+    origem: WORLD.seed,                       // de que semente este rascunho saiu
+    nomes: FLOOR_NAMES,
+    templo: { x: WORLD.temple.x, y: WORLD.temple.y, z: WORLD.temple.z },
+    hunts: WORLD.hunts,
+    pois: WORLD.pois,
+    /* Só o que define o ponto. `dead`, `live` e o relógio de respawn são estado
+       de partida e nascem zerados — congelar isso seria salvar um jogo, não um
+       mapa. */
+    spawns: WORLD.spawns.map(s => {
+      const o = { x: s.x, y: s.y, z: s.z, m: s.m };
+      if (s.hunt) o.hunt = s.hunt;
+      if (s.boss) o.boss = 1;
+      return o;
+    }),
+    deco: WORLD.floors.map(f => f.deco),
+    tiles: WORLD.floors.map(f => {
+      const linhas = [];
+      for (let y = 0; y < H; y++) {
+        let l = '';
+        for (let x = 0; x < W; x++) l += TILE_CHAR[f.t[y * W + x]];
+        linhas.push(l);
+      }
+      return linhas.join('\n');
+    })
+  };
+}
+
+/* Guardado no próprio arquivo do mapa pelo compor: quantos tiles de patch
+   estavam aplicados quando ele foi escrito. É o que permite ao editor comparar
+   com o patch em disco e perceber que o mapa está atrasado — o estado em que
+   "editei, gravei e sumiu tudo", que na verdade é "gravou e ninguém recompôs". */
+function mapaAplica(o) {
+  W = o.w; H = o.h; FLOORS = o.andares; SURF = o.sup;
+  WORLD.portas = new Set();   // terra nova nasce com tudo fechado
+  if (o.fundo !== undefined) DEEP = o.fundo;
+  if (o.nomes) FLOOR_NAMES = o.nomes;
+  WORLD.mapa = o.nome;
+  WORLD.seed = o.origem || 0;
+  WORLD.temple = { x: o.templo.x, y: o.templo.y, z: o.templo.z };
+  WORLD.hunts = o.hunts || [];
+  WORLD.pois = o.pois || [];
+  WORLD.spawns = (o.spawns || []).map(s =>
+    Object.assign({ dead: 0, live: null }, s));
+  WORLD.floors = o.tiles.map((txt, z) => {
+    const t = new Uint8Array(W * H), linhas = txt.split('\n');
+    for (let y = 0; y < H && y < linhas.length; y++) {
+      const l = linhas[y];
+      for (let x = 0; x < W && x < l.length; x++) t[y * W + x] = CHAR_TILE[l[x]] || 0;
+    }
+    return { t, deco: (o.deco && o.deco[z]) || [] };
+  });
+  return WORLD;
+}
+
+/* O gerador CONTINUA VIVO, e não é transição: é o que mantém o jogo jogável
+   enquanto as terras são desenhadas uma por uma. Sem nome de mapa, sorteia como
+   sempre sorteou. */
+function carregaMundo(seed, nome) {
+  if (!nome) { genWorld(seed); WORLD.mapa = null; return Promise.resolve(null); }
+  return fetch('maps/' + nome + '.json')
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(o => { mapaAplica(o); return nome; })
+    .catch(e => {
+      console.warn(`mapa "${nome}" não carregou (${e.message}); gerando pela semente`);
+      genWorld(seed); WORLD.mapa = null; return null;
+    });
+}

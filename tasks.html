@@ -130,8 +130,11 @@
     Estado técnico do RPG 2D dark-fantasy depois da expansão, das duas levas de balanceamento e da
     primeira leva de mundo e apresentação: o que foi construído, com quais identificadores e
     constantes, quais decisões não devem ser desfeitas, e o que segue pendente.
-    Escrito para ser lido por quem não acompanhou a conversa — humano ou agente.
-    <b>577 verificações</b> passando em <code>tests/test.js</code>.
+    Escrito para ser lido por quem não acompanhou a conversa — humano ou agente. Desde
+    2026-08-22 a lore e a planta das terras moram em documentos próprios —
+    <b>mundo_varrokgaard.html</b>, <b>mundo_aleto.html</b> e <b>proposta_24.html</b> —, e este aqui
+    ficou com o estado técnico e a fila.
+    <b>746 verificações</b> passando em <code>tests/test.js</code>.
   </div>
   <div class="lede col" style="margin-top:14px;font-size:15px">
     <b>Se você só tem cinco minutos:</b> leia <em>Regras que não devem ser quebradas</em> e
@@ -177,16 +180,18 @@
       <caption>Arquivos em <code>src/</code>, carregados nesta ordem por <code>index.html</code>.</caption>
       <thead><tr><th scope="col">Arquivo</th><th scope="col">Linhas</th><th scope="col">Responsabilidade</th></tr></thead>
       <tbody>
+        <tr><th>arraste.js</th><td class="n">207</td><td>Arrastar item entre mochila, equipamento, hotbar e corpo. Mouse cru, não o drag-and-drop do HTML5. <b>Estava ausente deste documento até 2026-08-22.</b></td></tr>
+        <tr><th>maps/*.json</th><td class="n">dado</td><td>O mundo como ARQUIVO, um caractere por tile. <code>genWorld</code> virou <code>loadWorld</code>.</td></tr>
         <tr><th scope="row"><code>audio.js</code></th><td class="n">508</td><td>Trilha, ambiência e efeitos sonoros posicionais.</td></tr>
         <tr><th scope="row"><code>icones.js</code></th><td class="n">9</td><td>GERADO. Conjuntos <code>ICONES</code> e <code>ICONES2X</code>: todo id de item que tem PNG próprio. Refeito por <code>assets/build_skins.py --aplicar</code>.</td></tr>
         <tr><th scope="row"><code>criaturas.js</code></th><td class="n">8</td><td>GERADO. <code>CRIA_FOLHA</code>: quantos quadros parados e de passo tem cada linha da folha de animação, por criatura. Refeito por <code>assets/build_criaturas.py --aplicar</code>. Hoje só <code>cyclops</code> e <code>demon</code>.</td></tr>
-        <tr><th scope="row"><code>data.js</code></th><td class="n">2233</td><td>Só tabelas e fórmulas puras, sem dependência. Vocações, itens, afixos, conjuntos, monstros, magias, hunts, POIs, coleta, imbuements, e as réguas de dano/velocidade/loot (<code>magPower</code>, <code>cdDe</code>, <code>VEL_BASE</code>, <code>LOOT_CLASSE</code>).</td></tr>
-        <tr><th scope="row"><code>art.js</code></th><td class="n">1019</td><td>Desenho procedural em canvas: texturas de tile (<code>TEX_DRAW</code>), bonecos de criatura (<code>creatureSprite</code>, 7 formas em <code>SHAPE_DRAW</code>), recorte da folha de animação (<code>criaQuadro</code>) e marcas de POI no chão (<code>POI_DRAW</code>).</td></tr>
-        <tr><th scope="row"><code>world.js</code></th><td class="n">601</td><td>Geração do mundo (<code>genWorld</code>), pathfinding A* (<code>findPath</code>), luz por andar, minimapa.</td></tr>
-        <tr><th scope="row"><code>render2d.js</code></th><td class="n">1002</td><td>Câmera, desenho do mundo, efeitos, sangue de chão, clima (nuvem, chuva, poça, relâmpago) e o relógio de fases do dia.</td></tr>
-        <tr><th scope="row"><code>game.js</code></th><td class="n">3192</td><td>Estado do jogador, combate, IA de criatura, inventário, loja, forja, coleta, save.</td></tr>
+        <tr><th scope="row"><code>data.js</code></th><td class="n">2373</td><td>Só tabelas e fórmulas puras, sem dependência. Vocações, itens, afixos, conjuntos, monstros, magias, hunts, POIs, coleta, imbuements, e as réguas de dano/velocidade/loot (<code>magPower</code>, <code>cdDe</code>, <code>VEL_BASE</code>, <code>LOOT_CLASSE</code>).</td></tr>
+        <tr><th scope="row"><code>art.js</code></th><td class="n">1365</td><td>Desenho procedural em canvas: texturas de tile (<code>TEX_DRAW</code>), bonecos de criatura (<code>creatureSprite</code>, 7 formas em <code>SHAPE_DRAW</code>), recorte da folha de animação (<code>criaQuadro</code>) e marcas de POI no chão (<code>POI_DRAW</code>).</td></tr>
+        <tr><th scope="row"><code>world.js</code></th><td class="n">713</td><td>Geração do mundo (<code>genWorld</code>), pathfinding A* (<code>findPath</code>), luz por andar, minimapa.</td></tr>
+        <tr><th scope="row"><code>render2d.js</code></th><td class="n">1087</td><td>Câmera, desenho do mundo, efeitos, sangue de chão, clima (nuvem, chuva, poça, relâmpago) e o relógio de fases do dia.</td></tr>
+        <tr><th scope="row"><code>game.js</code></th><td class="n">3630</td><td>Estado do jogador, combate, IA de criatura, inventário, loja, forja, coleta, save.</td></tr>
         <tr><th scope="row"><code>ui.js</code></th><td class="n">474</td><td>Bestiário, contratos de caça, forja (imbuements), mapa expandido.</td></tr>
-        <tr><th scope="row"><code>hud.js</code></th><td class="n">381</td><td>Posicionamento e visibilidade dos painéis.</td></tr>
+        <tr><th scope="row"><code>hud.js</code></th><td class="n">368</td><td>Posicionamento e visibilidade dos painéis.</td></tr>
       </tbody>
     </table>
   </div>
@@ -395,8 +400,8 @@
         <tr><th scope="row"><code>DEF_K</code></th><td class="n">400</td><td class="n">data.js</td><td>Meia-vida da curva de defesa: <code>redução = defEf/(defEf+K)</code>. Menor = jogador mais duro. Governa a dificuldade do jogo inteiro de uma vez.</td></tr>
         <tr><th scope="row"><code>DANO_MIN</code></th><td class="n">0.12</td><td class="n">data.js</td><td>Fração do golpe bruto que sempre passa. Rede de segurança: com a curva percentual ele nunca chega a valer hoje.</td></tr>
         <tr><th scope="row"><code>MAG_K</code></th><td class="n">0.39</td><td class="n">data.js</td><td>Ganho de magia e cura por ponto de magic level, via <code>magPower</code>: <code>base + ML×MAG_K×√base</code>. A raiz é o que limita o espalhamento entre a magia mais fraca e a mais forte em 4×. Governa mago, druida, ranger e a cura do cavaleiro de uma vez.</td></tr>
-        <tr><th scope="row"><code>VEL_BASE</code></th><td class="n">185 / 215 / 245</td><td class="n">data.js</td><td>Base de velocidade por classe: peso morto, andarilho, caçador.</td></tr>
-        <tr><th scope="row"><code>VEL_TIER</code></th><td class="n">7</td><td class="n">data.js</td><td>Ganho de velocidade por tier (0 a 12). Chefe leva <code>VEL_CHEFE</code> = 20 a mais.</td></tr>
+        <tr><th scope="row"><code>VEL_BASE</code></th><td class="n">125 / 155 / 185</td><td class="n">data.js</td><td>Base de velocidade por classe: peso morto, andarilho, caçador.</td></tr>
+        <tr><th scope="row"><code>VEL_TIER</code></th><td class="n">12</td><td class="n">data.js</td><td>Ganho de velocidade por tier (0 a 12). Chefe leva <code>VEL_CHEFE</code> = 20 a mais. Era 7; subiu junto com a queda das bases para o topo da escada não descer — ver #27b.</td></tr>
         <tr><th scope="row"><code>VOCATIONS[].spd</code></th><td class="n">0.16 a 0.31</td><td class="n">data.js</td><td>% de velocidade por nível do jogador. Eram 0.65 a 1.25 — linear e sem teto.</td></tr>
         <tr><th scope="row"><code>LOOT_BASE</code></th><td class="n">28</td><td class="n">data.js</td><td>Ouro esperado por morte no tier 0. Ancora a economia inteira.</td></tr>
         <tr><th scope="row"><code>LOOT_TIER</code></th><td class="n">2</td><td class="n">data.js</td><td>Quanto o valor do saque multiplica a cada tier. Chefe leva <code>LOOT_CHEFE</code> = 5.</td></tr>
@@ -1117,6 +1122,564 @@
   </div>
 </section>
 
+
+<section>
+  <h2>A virada de mundo — 2026-08-22</h2>
+  <div class="aviso">
+    <h4>A decisão que reorganiza o projeto inteiro</h4>
+    <p><b>O mundo deixa de ser gerado e passa a ser desenhado.</b> Decisão do dono do projeto: mapa
+    procedural não tem profundidade, monstro aparece onde uma faixa de distância mandou, caverna é
+    vazia e o terreno não tem identidade. A referência é Tibia e RuneScape, que têm mapa autoral.</p>
+    <p>Autoral <b>não</b> quer dizer desenhado à mão pelo dono: quer dizer <b>decidido e congelado</b>.
+    O agente compõe, o dono julga e corrige. E a divisão é: <b>autoral tudo que o jogador consegue
+    apontar e nomear</b> — relevo, costa, traçado de caverna, escada, hunt, POI e onde cada criatura
+    nasce; <b>gerado só o que é textura</b>.</p>
+  </div>
+
+  <h3>O mundo: Thaira, e as terras dentro dele</h3>
+  <div class="band">
+    <table>
+      <thead><tr><th>Terra</th><th>Faixa</th><th>Tamanho</th><th>Estado</th></tr></thead>
+      <tbody>
+        <tr><th>Varrokgaard</th><td class="now">1 a 15 · sai aos 10</td><td>192×192 × 3 andares + 1 gruta</td><td class="now">esboço 3 — jogado e corrigido nos dez pontos</td></tr>
+        <tr><th>Aleto</th><td class="now">15 a 60</td><td>320×320 + 4 sistemas</td><td>composta, não desenhada</td></tr>
+        <tr><th>a terra de baixo</th><td class="now">80 a 320</td><td>—</td><td>só o conceito: desce pela Racha, sob Vigília</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>As composições estão em <code>mundo_varrokgaard.html</code> e <code>mundo_aleto.html</code>, e a
+  proposta de alinhamento do #24 em <code>proposta_24.html</code>. <b>Os três documentos são a fonte
+  da lore</b> — este aqui só registra o estado técnico.</p>
+
+  <h3>As regras de desenho que ficaram decididas</h3>
+  <ul class="col">
+    <li><b>Superfície tem piso de 192×192.</b> Decidido em 2026-08-23, depois de a ilha a 64² ser
+      reprovada por tamanho. Medido com a régua do jogo (<code>stepD = 100000/spd</code>, jogador
+      base 220 → 455&nbsp;ms por tile): 64² atravessa em ~29&nbsp;s, 192² em ~87&nbsp;s e 320² em
+      ~145&nbsp;s. A exceção é o lugar que <b>exige</b> ser pequeno — sistema de subsolo, gruta,
+      sala —, nunca o que ficou pequeno por descuido. Varrokgaard passa a 192² e Aleto a 320²
+      (~2,8× a área da ilha); o subsolo <b>não</b> acompanha, porque aqueles tamanhos saíram do
+      conteúdo de cada sistema e não de proporção.</li>
+    <li><b>Elenco fechado por terra, e não classe inteira.</b> Ciclope mora em Aleto e gigante do
+      gelo não, sendo a mesma classe. Uma catacumba pode ter só vampiros. <b>A ausência caracteriza
+      tanto quanto a presença</b> — cinco classes não existem em Aleto, e é isso que lhe dá
+      identidade.</li>
+    <li><b>O subsolo não é andar: são sistemas fechados.</b> Medido no gerador: a caverna tem 31.745
+      tiles andáveis (mais que a superfície) e <b>as 28 escadas caem todas no mesmo componente</b>.
+      Aleto passa a ter quatro sistemas separados, com uma única passagem escondida entre dois.</li>
+    <li><b>O mapa só mostra nome de lugar, e só depois de descoberto.</b> Sem marcador, sem ícone,
+      sem círculo. O nome da hunt é o nome do lugar onde ela está.</li>
+    <li><b>POI se parte em dois:</b> <i>lugar</i> (pesca, minério, vista, NPC — sem loot e sem
+      guarda) e <i>achado</i> (os cinco atuais). A descoberta por proximidade <b>já existe</b> no
+      código e hoje é estragada pelo mapa, que mostra os 39 desde o minuto zero.</li>
+    <li><b>Barco é travessia lateral entre terras, e volta. Racha é descida.</b> Uma se compra com
+      passagem, a outra se abre passando por cima do que a guarda.</li>
+    <li><b>Em Varrokgaard não se tem vocação.</b> Qualquer equipamento, arco e varinha, magia de
+      qualquer escola. A escolha acontece <b>no embarque</b>, e o peso é o que se perde.</li>
+  </ul>
+
+  <h3>O que foi construído</h3>
+  <div class="grupo">
+    <ul class="itens">
+      <li>
+        <span class="it-n">O mapa virou arquivo <span class="tag done">feito</span></span>
+        <span class="it-d"><code>genWorld</code> continua vivo e produz o rascunho; <code>mapaAplica</code>
+        carrega de <code>maps/*.json</code>. Um caractere por tile, uma linha por linha do mapa, sem
+        compressão — o arquivo abre num editor e se LÊ o mapa, e o git mostra em qual linha a mudança
+        caiu. Medido: carregar leva <b>13 ms</b> contra <b>201 ms</b> para gerar.</span>
+        <span class="it-t"><code>MAPA_ATUAL</code> em world.js escolhe a terra · <code>null</code> volta ao gerador</span>
+      </li>
+      <li>
+        <span class="it-n">A planta dos andares <span class="tag done">feito</span></span>
+        <span class="it-d"><code>tools/amostra/mapa.html</code> — visão de autor: terreno, spawns,
+        hunts, POIs, escadas, nomes, e a camada de <b>componentes conexos</b>, que é o que torna
+        visível o defeito de "tudo cai no mesmo lugar".</span>
+      </li>
+      <li>
+        <span class="it-n">A biblioteca de composição <span class="tag done">feito</span></span>
+        <span class="it-d"><code>tools/compor.js</code> — 16 primitivas (<code>retangulo</code>,
+        <code>disco</code>, <code>poligono</code>, <code>linha</code>, <code>caminho</code>,
+        <code>rasga</code>, <code>espalha</code>, <code>limpaIlhotas</code>, <code>spawn</code>,
+        <code>povoa</code>, <code>escada</code>, <code>componentes</code>…). O <code>T</code> e o
+        <code>TILE_CHAR</code> saem do próprio <code>world.js</code> num vm, para não haver segunda
+        fonte de verdade.</span>
+        <span class="it-d">Cada script de mapa <b>se confere ao ser escrito</b>: espécie inexistente
+        estoura, spawn ou lugar em tile onde ninguém pisa acusa, e os componentes conexos aparecem no
+        console. Foi o que pegou a Pedreira sendo um bolsão fechado de 37 tiles.</span>
+      </li>
+      <li>
+        <span class="it-n">Correções de motor que a virada exigiu <span class="tag done">feito</span></span>
+        <span class="it-d"><code>W</code>, <code>H</code>, <code>FLOORS</code> e <code>SURF</code>
+        deixaram de ser constantes — o arquivo manda no tamanho. O gerador ganhou um <code>GEN</code>
+        com as dimensões dele e as reafirma toda vez, senão gerava com o tamanho do último mapa
+        carregado e <b>quebrava nas escadas</b>. E o ambiente por andar passou a ser indexado por
+        <b>profundidade</b> e não por número de andar, senão uma terra que numere diferente ganha
+        céu na caverna.</span>
+      </li>
+    </ul>
+  </div>
+
+  <h3>#47 · O editor de mapas, primeira fatia — 2026-08-23</h3>
+  <p>O tasks.html estava certo no diagnóstico: <b>o editor é a planta mais um pincel</b>, não um
+  programa novo. Três peças, e a do meio é a que decide se ele serve ou atrapalha.</p>
+
+  <h4>Quem manda no mapa — a decisão que vinha antes do código</h4>
+  <p>Havia uma armadilha esperando: o mapa nasce de <code>tools/mapas/varrokgaard.js</code>, e se o
+  dono corrigisse cinquenta tiles no navegador e eu rodasse o script de novo por qualquer outro
+  motivo, as cinquenta correções sumiriam sem aviso. Decisão do dono do projeto:
+  <b>o script semeia e o editor corrige</b>.</p>
+  <p>O editor <b>não grava o mapa</b> — grava só o DIFF contra o que o script produziu, em
+  <code>maps/&lt;nome&gt;.patch.json</code>. O script aplica o patch no fim, <b>antes das
+  conferências</b>, então componentes, poças e rastro de objeto são medidos sobre o que o jogo vai
+  carregar de fato e não sobre o esboço. Medido: 31 tiles pintados → 31 no patch → 31 aplicados,
+  e três execuções seguidas do script dão o mesmo resultado. Tile que perdeu o endereço (o script
+  encolheu a terra, o id saiu da tabela) é <b>contado e reportado</b>, não aplicado em silêncio.</p>
+  <p>Corolário que vale escrever: <b><code>maps/*.json</code> é saída.</b> Editar na mão funciona
+  até a próxima execução do script.</p>
+
+  <h4>O que a primeira fatia tem</h4>
+  <ul class="col">
+    <li>Pincel (1×1, 3×3, 5×5), balde, retângulo e conta-gotas; paleta dos 39 tiles com a cor e o
+      nome saindo do <code>world.js</code> de verdade — copiar id ou cor para a página criaria a
+      segunda fonte de verdade que a virada de mundo existe para não ter.</li>
+    <li>Seleção de andar pelo nome, zoom de 2 a 8&nbsp;px, desfazer por traço (Ctrl+Z), e o que
+      você mexeu fica <b>marcado em ouro</b> até gravar.</li>
+    <li>Pincel de objeto multi-tile pinta o rastro inteiro: <code>span</code> respeitado, sem meio
+      poço no mapa.</li>
+    <li>Spawn e hunt aparecem mas <b>não se editam ainda</b> — apagar um tile com bicho em cima sem
+      ver o bicho seria pior. Colocar criatura é outro modo e é a segunda fatia.</li>
+    <li>Gravação por <b>POST para o <code>tools/serve.py</code></b>, não por
+      <code>showSaveFilePicker</code>: ferramenta local não deve pedir permissão a cada gravação. O
+      servidor só escreve em <code>maps/&lt;nome&gt;.patch.json</code> e filtra o nome, porque um
+      handler que escreve onde o cliente mandar é um buraco mesmo em servidor de desenvolvimento.</li>
+  </ul>
+
+  <h4>"Editei, gravei e sumiu tudo" — e nada tinha sumido</h4>
+  <p>Relato do dono do projeto depois de uma sessão longa de edição. O medo era o certo e o
+  diagnóstico não: <b>o patch estava intacto no disco com 727 tiles; o mapa é que tinha parado em
+  262</b>. O que não rodou foi a RECOMPOSIÇÃO.</p>
+  <p>A causa é banal e vai repetir: o <code>tools/serve.py</code> só ganhou o <code>recompoe</code>
+  depois que o editor já existia, e <b>um servidor que já estava rodando continua com o código
+  velho</b>. Ele grava o patch e não recompõe — do lado de fora isso é indistinguível de perder
+  tudo, porque a página recarrega e mostra o mapa antigo.</p>
+  <p>Três consertos, e nenhum deles é "lembrar de reiniciar":</p>
+  <ul class="col">
+    <li><b>O editor detecta ao carregar.</b> Ele conta quantos tiles do patch de disco não estão
+      no mapa que acabou de carregar e, se houver algum, abre em vermelho dizendo o número, o
+      motivo e o comando. Pegou um caso real na primeira execução: 182 de 909.</li>
+    <li><b>O editor detecta ao gravar.</b> Servidor antigo devolve JSON sem o campo
+      <code>recompos</code>; antes isso caía em <i>falsy</i> e ficava calado. Agora
+      <code>undefined</code> é tratado à parte e grita.</li>
+    <li><b>Ler o patch de disco deixou de falhar em silêncio.</b> Este era o pior, e ainda não
+      tinha mordido: o patch novo é o antigo MAIS a sessão, e o <code>catch</code> devolvia
+      <code>{}</code> — qualquer falha de rede na leitura gravaria só o que foi feito hoje e
+      apagaria todo o acumulado. Só 404 é condição normal; o resto aborta a gravação.</li>
+  </ul>
+  <p>E uma correção de rota: o editor <b>não</b> recarregava quando a conferência reprovava, com o
+  argumento de que "mapa duvidoso não vira base sem olhar". Estava errado — o mapa em disco JÁ é
+  o que o jogo carrega, e o editor mostrar outra coisa é a única situação de fato perigosa. Agora
+  recarrega sempre; o aviso é o log em vermelho.</p>
+
+  <h4>Um arquivo para clicar: Editor.bat</h4>
+  <p>Relato do dono do projeto, e ele estava certo: <i>"o editor é pra editar, gravar e jogar
+  pra ver as mudanças, não quero ficar abrindo servidor, rodar node, etc"</i>. O editor tinha
+  virado três passos manuais — subir o python, abrir a página, rodar o <code>node</code> — e eu
+  tinha construído as peças deixando a montagem com ele.</p>
+  <p><b>Um <code>.html</code> não pode subir servidor</b>, e isso não tem volta: o navegador não
+  deixa página iniciar processo nem ler arquivo local. Então o arquivo que se clica deixou de ser
+  o <code>.html</code>. O <b>launcher Electron já era um servidor Node</b> — bastou pôr nele o que
+  estava espalhado: gravação do patch, recomposição e a janela do editor.</p>
+  <ul class="col">
+    <li><b><code>Editor.bat</code></b> abre o jogo e o editor lado a lado. O script de composição
+      roda pelo próprio binário do Electron com <code>ELECTRON_RUN_AS_NODE</code>, então não exige
+      <code>node</code> no PATH da máquina.</li>
+    <li><b>F9 dentro do jogo</b> abre o editor. Fica fora do <code>--dev</code> de propósito:
+      editar o mundo é trabalho normal, não depuração.</li>
+    <li>As duas janelas são da mesma origem, então o <code>BroadcastChannel</code> as liga:
+      gravar recompõe e o jogo troca o mundo debaixo dos pés.</li>
+    <li>O <code>tools/serve.py</code> continua servindo quem preferir o navegador — e ganhou o
+      mesmo guarda de encolhimento.</li>
+  </ul>
+
+  <h4>Do editor ao jogo sem tocar em nada</h4>
+  <p>O <code>node</code> da composição já rodava no servidor e o
+  <code>maps/&lt;nome&gt;.json</code> já saía novo — mas quem estivesse com o <b>jogo aberto</b>
+  continuava com a versão antiga em memória. O laço terminava no disco e não na tela.</p>
+  <p>Agora o editor emite por <code>BroadcastChannel</code> depois de recompor, e o jogo troca o
+  mundo debaixo dos pés: <b>sem recarregar a página</b>. Recarregar seria mais simples e bem pior —
+  perderia a sessão, o clima, o relógio e o que estivesse no chão; e é justamente poder editar e
+  olhar ao mesmo tempo que faz o editor valer. O canal é nativo, alcança as abas da mesma origem, e
+  não faz nada se não houver ninguém ouvindo.</p>
+  <p>Duas coisas que a troca a quente obrigou. Os bichos vivos apontam para objetos do array de
+  spawns <b>antigo</b>, que o <code>mapaAplica</code> substitui: sem removê-los antes, cada um fica
+  segurando um <code>sp</code> órfão e o respawn deles nunca mais fecha. E o terreno pode ter
+  mudado embaixo do personagem — vai ter, porque o que se edita é justamente onde se está olhando —,
+  então o mesmo <code>chaoMaisPerto</code> do carregamento de save roda aqui.
+  Medido com jogo e editor lado a lado: <code>grass</code> virou <code>pave</code> na aba do jogo
+  sem nenhum toque nela.</p>
+
+  <h4>A interface, na segunda volta</h4>
+  <p>Relato do dono do projeto: <i>"está muito ruim de mexer no mapa e quando aplica zoom tudo
+  fica espremido no canto"</i>. Os dois sintomas tinham a mesma causa: o canvas era dimensionado em
+  <code>W&nbsp;×&nbsp;px</code> e desenhava o mapa INTEIRO. No zoom 8 isso é 1.536&nbsp;px de
+  canvas, que transborda a página; e mudar o zoom redesenhava a partir de (0,0), então o que você
+  estava olhando saía voando.</p>
+  <p>Agora o canvas é uma <b>janela</b> do tamanho do visor, com câmera — o mesmo modelo do jogo, e
+  pela mesma razão. <b>Roda dá zoom ancorado no cursor</b> (medido: o tile 158,100 fica sob o
+  ponteiro de 3,97× a 9,89× e volta exato ao afastar), e o menu de cinco valores fixos saiu —
+  escolher zoom num menu obriga a tirar a mão do mapa e a perder o lugar. Botão direito ou do meio
+  arrasta.</p>
+  <p>O resto do "ruim de mexer" era ergonomia: <b>paleta agrupada</b> por família do #48 em vez de
+  39 nomes em ordem de id (para achar <code>crop</code> você lia a lista inteira); <b>marca do
+  pincel sob o cursor</b>, sem a qual é impossível acertar onde cai um raio 2 ou um objeto de 2×3;
+  grade a partir de 7&nbsp;px, porque contar tile é metade do trabalho; atalhos de uma tecla para
+  ferramenta e tamanho, com andar em F1..F9 para não brigar com 1..3; e <b>a vista é preservada ao
+  gravar</b> — recompor jogando a câmera para o mapa inteiro perderia o ponto a cada gravação.</p>
+
+  <h4>O laço estava pela metade</h4>
+  <p>Relato do dono do projeto: <i>"ao gravar patch nada aparece no jogo"</i>. Estava certo, e a
+  falha era de desenho meu: o patch <b>não é o mapa</b>. Quem produz o
+  <code>maps/&lt;nome&gt;.json</code> que o jogo carrega é o script, e ele precisava ser rodado à
+  mão num terminal depois de cada gravação — o que na prática significa que o editor não fechava
+  nada sozinho.</p>
+  <p>Agora o servidor <b>recompõe</b> ao receber o patch: roda
+  <code>node tools/mapas/&lt;nome&gt;.js</code>, devolve a saída, e o editor <b>mostra a
+  conferência inteira</b> e recarrega o mapa recomposto. Isso vale mais que a conveniência: a
+  medição de componentes, poças e rastro de objeto aparece <b>no instante em que a edição foi
+  feita</b>, e não numa próxima vez que alguém rodar o script. Se o script não fechar, o editor
+  não recarrega e pinta o log de vermelho — mapa em estado duvidoso não vira base sem olhar.</p>
+  <p>Duas ressalvas que a implementação obrigou: o <code>subprocess</code> precisa de
+  <code>encoding='utf-8'</code> explícito, senão o Python decodifica com o locale do Windows e a
+  conferência chega ao editor como <i>"bolsÃµes"</i>; e o script roda por último, <b>depois</b> da
+  limpeza de ilhota e de poça — então a correção do dono é final e nada a apaga, e a decoração
+  (as árvores que ele pintar) é derivada em cima dela.</p>
+
+  <h4>Dois freios que só apareceram usando</h4>
+  <ul class="col">
+    <li><b>O balde mede antes de pintar.</b> O primeiro teste foi um clique no oceano: 19.646 tiles
+      de uma vez, e um patch de 19 mil linhas no git. Um balde num campo cercado pinta dezenas; um
+      balde numa região aberta pinta metade do mapa, e a diferença não se enxerga antes de clicar.
+      Acima de 400 tiles ele pergunta, dizendo quantos e que fração do andar.</li>
+    <li><b>O merge com o patch de disco era silencioso</b>, e foi assim que aqueles 19.646 tiles
+      voltaram: a gravação seguinte, de 31 tiles, <i>reportou 31 enquanto escrevia 19.686</i>.
+      Agora o total, o que veio de antes e o que é desta sessão aparecem separados, e patch acima
+      de 2.000 tiles pede confirmação.</li>
+  </ul>
+  <p class="it-t">primeira fatia · pincel, balde, retângulo, conta-gotas, desfazer e patch ·
+  spawn/POI/hunt/escada ficam para a segunda</p>
+
+  <h3>Os móveis e a porta, jogados — 2026-08-23</h3>
+  <p>Quatro relatos do dono do projeto sobre os móveis e três sobre a porta, todos vindos de
+  <b>jogar</b>. Cada um tinha uma causa diferente da aparente, e três viraram régua no CLAUDE.md.</p>
+
+  <h4>Os móveis: quatro prints, quatro causas distintas</h4>
+  <ul class="col">
+    <li><b>Barril minúsculo</b> — e era só ele. Medidos os quatro: poço 21&nbsp;px, carroça 24,
+      moinho 26, <b>barril 11 e 9</b> num tile de 32.</li>
+    <li><b>Carroça com "alças" nas pontas</b> — defeito de ordem: a roda era desenhada ANTES da
+      caçamba, que cobria a metade de cima das duas. Numa carroça vista de três quartos a roda é o
+      que está mais perto do olho e passa na frente; e a caçamba tem de ser mais estreita que o
+      tile para a roda sobrar dos lados.</li>
+    <li><b>Poço "pequeno"</b> — não estava pequeno, estava <b>camuflado</b>:
+      <code>POCO_PEDRA</code> era <code>0x8d8779</code> e o <code>PAVE</code> sob ele é
+      <code>0x968a70</code>, distância <b>13</b> numa régua que exige 30. O aro sumia dentro da
+      calçada e sobrava o pórtico com um buraco preto. É o corolário do #48b um passo adiante: cor
+      de material é constante própria <b>e isso vale contra o chão em que a coisa se apoia</b>.</li>
+    <li><b>Dois moinhos colados</b> — dois tiles <code>MILL</code> lado a lado desenhavam um moinho
+      inteiro cada um. Foi o caso que provou a regra nova.</li>
+  </ul>
+
+  <h4>Regra nova: objeto grande ocupa mais de um tile</h4>
+  <p>Decisão do dono do projeto, e ela resolve por construção o que nenhum ajuste de desenho
+  resolvia: num tile de 32&nbsp;px, poço, moinho e fonte serão sempre pequenos. O tile declara
+  <code>span: [w, h]</code>, ocupa o rastro inteiro no mapa, e só a <b>âncora</b> (canto noroeste)
+  desenha — os demais tiles do rastro apenas bloqueiam. Poço virou <b>2×2</b>, moinho <b>2×3</b>.
+  Entrou junto <code>C.objeto()</code> para pintar o rastro e <code>C.conferObjetos()</code> para
+  acusar rastro quebrado: meio poço no mapa não daria erro nenhum, o render só não desenharia.</p>
+  <p><b>A mutação corrigiu a régua.</b> A primeira versão do teste só conferia os tiles que JÁ
+  declaravam <code>span</code> — tirar o span do poço deixava a suíte verde. O silêncio é sempre
+  desse lado: sobra sprite, falta declaração. A régua certa é a inversa —
+  <b>todo desenho maior que um tile tem de declarar span</b> — e essa pega as duas mutações.</p>
+
+  <h4>Regra nova: sombra é do motor</h4>
+  <p>Relato: <i>"um player que passa pelo mapa nem nota que tem um objeto ali, parece um papel no
+  chão"</i>. Os móveis assavam uma elipse <code>rgba(0,0,0,.30)</code> dentro do próprio sprite, e
+  isso falha por construção: a mancha entra no passe de luz junto com o objeto, escurece com ele à
+  noite e para de separar a coisa do chão. A árvore nunca teve esse problema porque usa o
+  <code>dropShadow</code> do motor — <b>mancha de contato mais silhueta projetada</b>, inclinada
+  pelo sol e com a alfa seguindo <code>solF</code>. É a de contato que prende e a projetada que dá
+  direção; nenhuma das duas sozinha basta. Os móveis passaram a declarar <code>cx</code> e
+  <code>feet</code> e a usar a mesma. Cerca e escoramento ficam de fora, e isso está no
+  <code>sombra</code> da ficha do tile e não no nome do objeto: eles correm em linha, e sombra
+  projetada por tile num lance de cerca vira serrilha.</p>
+
+  <h4>A porta, na segunda volta</h4>
+  <ul class="col">
+    <li><b>Andar contra ela abria</b>, e foi reprovado: a porta se abria sozinha ao passar e o
+      jogador nem percebia. Abrir virou gesto de propósito — <b>Ctrl + botão esquerdo</b>, e só.
+      Caiu junto o <code>comPorta</code> do A*, que fazia o caminho do jogador atravessar porta
+      fechada: prometer passagem por onde está fechado é pior que dizer que não dá para chegar.</li>
+    <li><b>Dava para atacar através dela.</b> Ela barrava o pé (<code>isWalkable</code>) e nada
+      mais — flecha, magia e o aggro do bicho passam por <code>lineClear</code>, que passa por
+      <code>tapaVista</code>, e <code>DOOR</code> tem <code>top: 0</code>. Duas linhas no funil
+      certo: porta fechada tapa a vista, aberta não. Porta que não protege de nada não é porta.</li>
+    <li><b>Aberta e fechada tinham o mesmo desenho</b>, então abrir não mudava nada na tela.
+      Entrou <code>door_open</code>: some a folha do meio do vão, sobra o batente dos dois lados e
+      o vão escuro no miolo, com a folha recolhida encostada num deles. O que muda é a
+      <b>silhueta</b>, não a cor. Medido no jogo: <b>94% dos pixels diferentes</b>.</li>
+  </ul>
+  <p class="it-t">746 verificações · 5 invariantes de porta, 4 de objeto multi-tile · mutação pega
+  em tapaVista, no span do poço e no do moinho</p>
+  <p><b>Duas lacunas de teste, e as duas no render.</b> Desligar o <code>span</code> no render
+  (o que traria o moinho duplo de volta) e desligar a escolha de textura da porta passam os dois
+  verdes: a suíte não exercita o laço de desenho. Fechar isso exige montar estado de câmera e
+  espionar chamadas de <code>drawImage</code>, e é mais caro que toda esta leva junta.</p>
+
+  <h3>O esboço 3 de Varrokgaard, e os dez pontos — 2026-08-23</h3>
+  <p>O esboço 2 foi <b>jogado</b> e voltou com dez pontos. Nove eram defeito de verdade e estão
+  medidos abaixo; o décimo — "o mapa está VAZIO, sem graça" — era falta de conteúdo e virou tile
+  novo. O mais grave não estava na lista: as árvores.</p>
+  <table>
+    <thead><tr><th>#</th><th>O que foi achado, medido no arquivo</th><th>Onde foi consertado</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>2.240 tiles de árvore e <code>deco</code> vazio.</b> O gerador DERIVA a
+        decoração do mapa de tiles (<code>world.js:349</code>); a composição escrevia
+        <code>deco: []</code> e nunca preenchia. Como <code>T.TREE</code> é <code>walk:false</code>
+        com <code>tex:'grass'</code>, cada árvore era grama pelada que barrava o passo — <b>parede
+        invisível</b>, não "mapa sem árvores"</td><td><code>compor.js</code>: <code>salva()</code>
+        deriva a deco. Todo mapa futuro ganha de graça</td></tr>
+      <tr><td>2</td><td><b>58 spawns fora de qualquer hunt</b> — 14 lebres, 12 cobras, 10 najas, 8
+        ratos, 7 javalis, 7 cervos soltos pelo mapa. É o gerador por outro caminho</td><td>zero
+        spawn solto; o perigo mora nos três lugares que têm nome</td></tr>
+      <tr><td>3</td><td><b>Porta sem colisão e sem mecânica.</b> <code>T.DOOR</code> era
+        <code>walk:true</code> sem estado: um buraco na parede com desenho de porta</td>
+        <td>sistema novo — ver abaixo</td></tr>
+      <tr><td>4</td><td><b>Templo no lugar errado:</b> <code>WORLD.temple</code> caía num tile de
+        calçada, fora do edifício</td><td>o ponto foi para <b>dentro da nave</b>, que é de onde se
+        sai</td></tr>
+      <tr><td>5</td><td><b>70 corpos d'água interiores, 46 deles de UM tile</b></td><td>um rio de
+        verdade — ver abaixo</td></tr>
+      <tr><td>6</td><td><b>A cerca ocupava ONZE fileiras</b> (y 69 a 79): eu tinha posto um sorteio
+        de ondulação achando que daria naturalidade, e deu desleixo</td><td>reta; o que a torce é o
+        terreno, não o acaso</td></tr>
+      <tr><td>7 e 8</td><td>Cerca de madeira de 242 tiles atravessando a ilha, no papel de
+        muro</td><td>duas construções distintas — ver abaixo</td></tr>
+      <tr><td>9</td><td>A paz da vila era um raio de 26 tiles em volta do templo, não
+        composição</td><td>agora é o muro, e a conferência é sobre a área murada</td></tr>
+      <tr><td>10</td><td>A vila tinha casa, rua e templo e <b>nada entre eles</b></td><td>quatro
+        tiles novos: poço, carroça, barril e moinho</td></tr>
+    </tbody>
+  </table>
+
+  <h4>O que a pesquisa de geografia e de vila mudou</h4>
+  <p>O pedido foi explícito: estudar bioma e construção de cidade antes de desenhar. Três achados
+  entraram no mapa e viraram régua no CLAUDE.md.</p>
+  <ul class="col">
+    <li><b>Rio é bacia, não mancha.</b> Nasce em terreno alto, corre sempre para baixo, RECEBE
+      afluente (nunca se divide, salvo delta), meandra no curso baixo e desemboca. O de Varrokgaard
+      nasce na Pedreira Rasa — que é a parte alta —, ganha o afluente da Mata Funda, meandra pela
+      lavoura e desemboca na enseada do oeste, <b>que por isso deixa de ser recorte de costa e
+      passa a ser a foz</b>. Um tile solto de água no meio da mata é geologicamente impossível, e
+      eu tinha feito 46.</li>
+    <li><b>Rio traz mata junto.</b> A zona ripária — mata-galeria — tem solo úmido e fértil, mata
+      mais densa que o entorno, e forma um <b>corredor</b> por onde o bicho se desloca. Duas coisas
+      caíram de graça: a Mata Funda deixou de estar onde está por acaso (é a mata do curso alto) e
+      o corredor de caça deixou de precisar de trilha inventada.</li>
+    <li><b>Vila medieval não tem grade.</b> As ruas emergem do uso, com uma via principal da igreja
+      para os campos; a igreja fica <b>perto da estrada de entrada</b> e raramente no centro do
+      palco; e o padrão LINEAR — casas enfileiradas ao longo de uma via — é o de aldeia feita por
+      ordem de um senhor, que é exatamente o caso de Varrokgaard. A grade ortogonal de três ruas
+      verticais do esboço 2 era planta de arquiteto, não vila de fazenda.</li>
+  </ul>
+
+  <h4>Porta: colisão e mecânica</h4>
+  <p>O bloqueio entrou no <code>isWalkable</code>, que é o funil por onde os vinte chamadores
+  passam — e não em cada um deles. O estado vive num <code>Set</code> de chaves e não num id de
+  tile porque o mapa é <code>Uint8Array</code>: aberta e fechada seriam dois ids, e aí o AUTOR do
+  mapa teria de escolher qual pintar, o que não é decisão de mapa.</p>
+  <ul class="col">
+    <li><b>Andar contra a porta ABRE</b>, e o passo é gasto nisso. Mesmo gesto de sempre, nenhuma
+      tecla nova; entra no <code>tryStep</code>, que é por onde todo passo de todo mundo passa.</li>
+    <li><b>Clicar na porta encostada alterna.</b> Abrir por andar basta para ENTRAR, mas não dá
+      jeito de FECHAR atrás de si — e fechar é metade da utilidade de uma porta com bicho vindo.</li>
+    <li><b>Criatura não abre.</b> É o que faz uma casa ser abrigo em vez de mais um corredor. Para
+      o A* do JOGADOR a porta é passo a mais e não parede (<code>comPorta</code>), senão clicar
+      dentro de casa responderia "não dá para chegar lá".</li>
+    <li>Porta aberta <b>sobrevive ao save</b>: é estado de partida, mora no save e não no arquivo
+      da terra.</li>
+  </ul>
+  <p><b>5 invariantes, e a mutação achou um buraco:</b> tirar o ramo de "andar abre" deixava a
+  suíte inteira verde na primeira leva. Com o teste que faltava, as duas mutações são pegas.</p>
+
+  <h4>Muro, ponte e um andar novo</h4>
+  <p>A Cerca Nova <b>continua sendo cerca</b> — estacaria de madeira, que é o que uma fazenda
+  ergue em uma estação, e é o que a lore descreve. Quem virou muro de pedra foi a proteção da vila,
+  que é outra construção com outra função. A travessia não é um portão: é uma <b>ponte no andar de
+  cima</b> — sobe a escada de fora, anda por cima do muro, desce do lado de dentro.</p>
+  <p>Varrokgaard passou a ter <b>três andares</b> (Sobre o Muro, a ilha, a Goela) com
+  <code>sup: 1</code>. O motor não precisou de uma linha: ele já empilha andares e já desenha o de
+  cima quando o jogador não está coberto, e <code>ambienteDe</code> já indexa por PROFUNDIDADE e
+  não por número de andar — o andar acima da superfície cai sozinho no ambiente de céu.</p>
+
+  <h4>Cinco defeitos que só a conferência achou</h4>
+  <ul class="col">
+    <li><b>A estrada virou dique.</b> O <code>caminho</code> foi desenhado depois do rio e pintou
+      terra sobre a água: o rio saiu cortado, a ilha partiu em duas com 19% do outro lado, e as
+      poças que sobraram eram os trechos separados. O conserto não é desviar a estrada nem cravar
+      tábua à mão — é dizer que <b>estrada sobre rio É PONTE</b>: guarda-se o leito e uma varredura
+      no fim converte todo tile de leito que virou chão em <code>PIER</code>.</li>
+    <li><b>Tábua sobre água ainda é água</b>, e esta custou o curso baixo inteiro. A ponte não
+      cobre o tile — ela o SUBSTITUI —, então cada travessia partia o rio em dois corpos, e os
+      pedaços abaixo de 40 tiles eram varridos como poça. O rio nascia na pedreira e sumia no meio
+      da lavoura.</li>
+    <li><b>A escada tem de ser desenhada por último.</b> A estrada do portão, com espessura 3,
+      pintou terra por cima da escada de fora e a travessia deixou de existir. É a mesma lição de
+      ordem que a rua e a casa já tinham ensinado, e a escada é o caso mais perigoso dela: sumir
+      uma escada não deixa buraco visível na planta, só um andar que ninguém alcança.</li>
+    <li><b>A limpeza de ilhota CRIA poça</b>, porque ela transforma chão em água: um pedaço de
+      terra solto no meio da lavoura vira um lago de oito tiles. As 39 poças que sobravam eram
+      todas obra dessa linha.</li>
+    <li><b>Dois componentes na superfície é o CERTO agora</b> — a vila é murada e só se entra por
+      cima, então o chão dela não toca o chão da ilha. A conferência exigia UM e teria acusado a
+      vila murada como erro: a régua teve de mudar junto com o mapa.</li>
+  </ul>
+
+  <h4>Os móveis da vila, e um defeito de origem no desenho</h4>
+  <p>Quatro tiles novos — <code>WELL</code>, <code>CART</code>, <code>BARREL</code> e
+  <code>MILL</code> —, os três primeiros como objeto (<code>obj</code>, barram o pé e não a vista)
+  e o moinho como parede própria (<code>parede</code>), porque é prédio e porque a régua de topo
+  claro e face escura do <code>wallSprite</code> é física de pedra lisa e pá de moinho não é isso.
+  <b>O curral não pediu tile:</b> é cerca em volta de terra batida, e a cerca já existia.</p>
+  <p>Os quatro nasceram pretos, e a causa vale para qualquer desenho futuro: <b><code>_tons</code>
+  devolve NÚMERO, não string CSS.</b> <code>fillStyle = 114105</code> é inválido e o canvas mantém
+  silenciosamente a cor anterior — dezenove usos, e o poço e o moinho saíram como silhueta preta.
+  Todo tom tem de passar por <code>_rgb()</code>.</p>
+  <p>E o teste do #48b estava aplicando <b>régua de terreno a objeto</b>: ele reprovou
+  DIRT/CART e PAVE/WELL por terem a mesma cor, quando num tile de objeto <code>c</code> e
+  <code>tex</code> são o CHÃO sob o objeto e não o material dele. Duas coisas em cima da mesma
+  terra batida TÊM de ter a mesma terra batida, e quem as separa é a silhueta — que é exatamente o
+  que o próprio #48b escreveu sobre parede e cerca. O invariante passou a valer só para terreno, e
+  entrou a contrapartida que mede a coisa certa: <b>nenhum objeto empresta o desenho de outro</b>.</p>
+
+  <p class="it-t">esboço 3 · 192×192 × 3 andares · 12.575 tiles andáveis · 150 spawns, nenhum solto
+  e nenhum dentro do muro · 0 poças · 730 verificações</p>
+
+  <h3>O esboço 2 de Varrokgaard — 2026-08-23</h3>
+  <p>A ilha foi refeita a 192², e o rework atacou junto os defeitos 2, 3, 5 e 6 do
+  <b>#46</b>: escalar as coordenadas por três consertaria só o defeito 1, e o vocabulário de tiles
+  do #48 existe exatamente para os outros. <b>12.719 tiles andáveis na superfície e 2.774 na
+  Goela, um componente em cada</b>, 164 pontos de spawn, 82 KB de arquivo. O que a volta ensinou:</p>
+  <ul class="col">
+    <li><b>Forma geométrica nunca pode criar terra</b>, e ela falha de dois jeitos com custos
+      diferentes. Um <b>retângulo</b> de lavoura caiu em cima da enseada e pôs 168 tiles de campo do
+      outro lado da água: a conferência de componentes acusou na hora, porque o pedaço ficou
+      desconectado. Um <b>disco</b> de acampamento encostado na costa é pior — ele emenda no
+      continente, engorda a silhueta e <b>não desconecta nada</b>, então a conferência passa verde e
+      a ilha vira bolacha em silêncio. Quem decide onde há terra é o polígono da ilha; retângulo de
+      lavoura e disco de acampamento obedecem, via <code>emTerra</code>/<code>discoTerra</code>.</li>
+    <li><b>Densidade de hunt se mede em tile ANDÁVEL, não em raio.</b> A Mata Funda e a Goela têm
+      raio parecido e chão bem diferente: a .66 de árvore, o disco de raio 28 da Mata tinha 483
+      tiles andáveis, e 44 lobos ali dentro davam <b>um bicho a cada 7 passos de trilha</b>. Raio
+      mente porque o jogador anda no chão, não na área. A densidade caiu para .58 e a conferência
+      passou a imprimir tiles andáveis por bicho, por hunt.</li>
+    <li><b>Rua antes de casa</b>, e <b>casca antes de miolo</b>. As três ruas verticais foram
+      desenhadas depois das casas e cortaram cinco delas ao meio — calçada atravessando sala. E a
+      ábside do templo, desenhada depois do miolo da nave, pôs uma mancha de parede de sete tiles
+      atravessada no meio do salão. Invertida a ordem, uma rua mal posta some por baixo de uma casa
+      em vez de rasgar a vila.</li>
+    <li><b>O portão precisa dar em algum lugar — em dois.</b> Sem trilha saindo dele, a orla da Mata
+      Funda encostava no maciço da Pedreira e o noroeste inteiro, <b>1.002 tiles com a hunt de nível
+      8 dentro</b>, ficava inalcançável. Foi a conferência de componentes que achou, e o conserto é
+      desenho e não remendo: quem sai do portão sai para a Mata ou para a Pedreira.</li>
+    <li><b>Bolsão de mata não é ilhota de costa.</b> O sorteio de árvore fecha bolsões de grama por
+      dentro da mata, de 18 a 42 tiles, que nenhuma trilha alcança. Uma segunda passada de
+      <code>limpaIlhotas</code> os fecha com <b>árvore</b> e não com água — a mata cresce por cima,
+      que é o que ela faria. O limiar de 200 é onde mora a fronteira: bolsão de sorteio nunca passou
+      de 42 tiles e a menor região desenhada tem mais de mil.</li>
+    <li><b>Duas coisas que SÓ apareceram andando</b>, e nenhuma delas tinha como aparecer na
+      planta — de cima a vila estava certa nas duas. A primeira: o ponto de templo estava no meio do
+      adro, e como o jogo nasce o personagem em <code>templo.y + 2</code>, <b>a primeira tela do
+      jogo inteiro era laje vazia</b>, com o edifício 10 tiles ao norte e fora da viewport de ~9.
+      A segunda: o chão da nave e o do adro eram os dois <code>PAVE</code>, então olhando ao norte
+      via-se laje, porta, laje — <b>o mesmo material dos dois lados da soleira</b>, e atravessar a
+      porta não mudava nada. A nave voltou a ser <code>T.TEMPLE</code>: um material, um significado.
+      É o melhor argumento desta volta para a régua de que a planta de cima não julga lugar de
+      andar.</li>
+    <li><b>A planta não julga a cerca.</b> <code>FENCE</code> e <code>PROP</code> são objeto, e a
+      cor deles na planta é a do CHÃO sob o objeto — então a Cerca Nova aparece como um risco de
+      terra atravessando a ilha, indistinguível de estrada. A planta continua servindo para
+      topologia e conteúdo; para julgar a cerca é preciso andar.</li>
+  </ul>
+  <p><b>A ilha está ativa</b>: <code>MAPA_ATUAL</code> em <code>world.js</code> vale
+  <code>'varrokgaard'</code>, e o gerador volta com <code>null</code>. A linha estava quebrada
+  quando fui mexer — <code>= varrokgaard</code> sem aspas é identificador solto, e isso derruba o
+  <code>world.js</code> inteiro com <code>ReferenceError</code> na carga, com o jogo abrindo em tela
+  preta e sem erro que aponte para lá. Conferido no navegador: 192×192, 2 andares, 164 spawns, as
+  três hunts, zero erro de console, e o bicho mais próximo do ponto de nascer a <b>36 tiles</b> —
+  fora da vista, que é o defeito 2 do #46 medido no jogo e não na planta.</p>
+  <p>Entrou junto <code>tools/planta_png.js</code>: a planta como PNG, sem navegador, com o
+  <code>zlib</code> da stdlib e a cor de tile saindo do <code>TILE</code> do próprio
+  <code>world.js</code>. A página <code>tools/amostra/mapa.html</code> continua sendo a planta de
+  verdade — tem camadas, nomes e componentes; esta serve para quando não há navegador à mão.</p>
+
+  <h3>#27b · O pé da escada de velocidade — 2026-08-23</h3>
+  <p>Relato do dono do projeto: cobra, naja, lobo, rato e lobo atroz rápidos demais para
+  criatura de nível baixo. Medido, não eram cinco fichas: <b>68 das 83 criaturas passavam um
+  jogador de nível 1</b>, e nove delas eram de tier 0 a 2 — rato, lebre e cervo inclusive.
+  O <b>#27</b> consertou o topo da escada (lobo a 345, juggernaut a 235) e deixou as
+  <b>bases de classe</b> onde estavam: Mamífero em 245 e Réptil em 215, contra os 220 do jogador.
+  Escapar a pé não era possível de ninguém, que é o contrário do modelo do Tibia que o próprio
+  comentário do <code>data.js</code> diz seguir.</p>
+  <p>As bases desceram para <b>125 / 155 / 185</b> e o ganho por tier subiu de <b>7 para 12</b>.
+  Os dois números existem para preservar as duas pontas: o tier maior segura o <b>topo</b>
+  (<code>abyssal_god</code> continua em 349, exatamente onde o #27 o deixou) e o espaçamento de
+  30 e 30 entre as classes segura a <b>natureza</b>. A primeira tentativa baixou só as bases e
+  comprimiu peso morto contra caçador de 60 para 30 — teria trocado natureza por força sem
+  ninguém pedir, e foi o teste do lobo contra o besouro que pegou.</p>
+  <table>
+    <thead><tr><th>Criatura</th><th>Tier</th><th>Antes</th><th>Depois</th></tr></thead>
+    <tbody>
+      <tr><td>rato, lebre, cervo, rato de caverna</td><td>0</td><td class="n">245</td><td class="now">185</td></tr>
+      <tr><td>cobra</td><td>0</td><td class="n">215</td><td class="now">155</td></tr>
+      <tr><td>naja</td><td>1</td><td class="n">222</td><td class="now">167</td></tr>
+      <tr><td>lobo, javali, aranha</td><td>1</td><td class="n">252</td><td class="now">197</td></tr>
+      <tr><td>lobo atroz, aranha venenosa</td><td>2</td><td class="n">259</td><td class="now">209</td></tr>
+      <tr><td><code>abyssal_god</code></td><td>12</td><td class="n">349</td><td class="now">349</td></tr>
+    </tbody>
+  </table>
+  <p><b>O teste travava o defeito.</b> Havia uma linha afirmando que <i>"os caçadores partem de
+  245, acima da régua 220 do jogador"</i> — ela não guardava contra a regressão, ela dava
+  cobertura ao erro, e foi a única a falhar quando o conserto entrou. Teste que afirma o número
+  errado é pior que teste nenhum. Foi trocada por três invariantes de FORMA, que é o que não
+  envelhece na próxima recalibragem:</p>
+  <ul class="col">
+    <li><b>Nenhuma criatura de tier 0 a 2 passa o jogador nível 1</b> — escapar a pé existe desde
+      o começo.</li>
+    <li><b>No mesmo tier, caçador &gt; andarilho &gt; peso morto</b> (lobo, orc, besouro de fogo).
+      Afirmado sem cravar número, e é ele que impede alguém de achatar as classes ao recalibrar.</li>
+    <li><b>Só o tier alto alcança um knight nível 300</b>, e as duas metades juntas — que alguém
+      alcança, e que quem alcança é de tier ≥ 10. Sem a primeira, passaria um mundo onde nada
+      corre.</li>
+  </ul>
+  <p><b>Três mutações, três pegas</b>: bases e tier de volta ao antigo derruba a primeira; caçador
+  achatado contra o andarilho derruba a segunda; tier de volta a 6 derruba a terceira.
+  <b>714 verificações.</b></p>
+
+  <div class="aviso">
+    <h4>Três vezes usando a régua errada, e vale mais que o código</h4>
+    <p><b>1.</b> Distância de cor mediu <i>legibilidade</i> e eu li como <i>identidade</i>: os campos
+    de chão passavam folgado na métrica e não dava para dizer se eram fogo ou veneno.</p>
+    <p><b>2.</b> A análise de componentes usava 4 vizinhos e <b>o jogo anda em 8</b>
+    (<code>DIRS</code>). Ela acusou desconexão onde o jogo passa, e eu gastei duas rodadas caçando um
+    problema que não existia.</p>
+    <p><b>3.</b> Julguei um lugar de ANDAR olhando a planta de cima. A planta diz se a topologia
+    fecha e se há conteúdo inalcançável; não diz <b>nada</b> sobre como é estar lá dentro. Foi o que
+    produziu a Varrokgaard rejeitada.</p>
+    <p><b>Regra que sai daqui: medir com régua diferente da do jogo é pior do que não medir</b> — dá
+    alarme falso, e o alarme falso esconde o verdadeiro.</p>
+  </div>
+</section>
+
 <section>
   <h2>Regras que não devem ser quebradas</h2>
   <div class="col">
@@ -1305,12 +1868,155 @@
     <div class="gtitle">Design de mundo</div>
     <ul class="itens">
       <li>
-        <span class="it-n">#5 · Diversificar topologia dos andares</span>
+        <span class="it-n">#46 · Varrokgaard precisa de rework inteiro</span>
+        <span class="it-d">A ilha foi desenhada, jogada e <b>rejeitada pelo dono do projeto</b> em
+        2026-08-22: <i>"não está nem de perto do jeito que imaginei, mesmo no mais simples"</i>. Seis
+        defeitos apontados, todos verdadeiros:</span>
+        <span class="it-d"><b>1 · O mapa é minúsculo.</b> Dez segundos de caminhada atravessam a
+        ilha. 64×64 pareceu certo na planta e é pequeno demais andando — a planta não mede
+        distância percorrida. <b>Resolvido na régua em 2026-08-23</b>: existe agora um piso de
+        <b>192×192</b> para superfície, e Varrokgaard vai para ele.</span>
+        <span class="it-d"><b>2 · Mob dentro da cidade.</b> Não há área pacífica de verdade: o
+        jogador sai do templo e já apanha. O <code>povoa</code> dos Trigais alcança a vila, e a única
+        proteção é a zona segura de raio pequeno em volta do templo. <b>Resolvido no esboço 2</b>:
+        os Trigais foram para 54 tiles ao norte da vila, e o script <b>confere sozinho</b> que
+        nenhum spawn cai dentro de 26 tiles do templo — Chebyshev, a mesma régua do
+        <code>shopNear</code>. Paz aqui não é regra de motor, é composição, e composição sem
+        conferência volta a quebrar na primeira vez que uma região for empurrada dois tiles.</span>
+        <span class="it-d"><b>3 · Não parece o lugar da lore.</b> A composição escrita em
+        <code>mundo_varrokgaard.html</code> descreve interior de fazenda, plantação, vila pacífica e
+        uma cerca erguida às pressas. O desenho não entrega isso. <b>Atacado no esboço 2 com o
+        vocabulário do #48</b>, que é o que faltava: a lavoura virou <code>CROP</code> com leira de
+        terra, a divisa virou <code>FENCE</code>, o Trapiche e o Embarcadouro viraram
+        <code>PIER</code> sobre a água em vez de aterro de areia, o Paiol ganhou <code>HAY</code>,
+        e o minério à vista da Pedreira virou <code>ORE</code> na parede do pátio.
+        A Cerca Nova deixou de ser muralha de pedra de dois tiles — que é obra de anos e
+        contradizia a lore no material — e virou estacaria de madeira com mourão, torta porque foi
+        levantada acompanhando o terreno.</span>
+        <span class="it-d"><b>5 · O templo tem de ser UM TEMPLO.</b> Hoje é um quadrado de 5×5 de
+        tile de pedra com estado de paz dentro — não tem forma, não tem entrada, não tem nada que o
+        faça parecer um edifício. <b>Resolvido no esboço 2</b>: virou uma nave de 13×18 em pedra
+        lavrada, com ábside arredondada ao norte, contrafortes nos flancos, pórtico e porta de três
+        tiles ao sul, e <b>duas fileiras de colunas por dentro</b> — são elas que mais pagam, porque
+        sem elas o interior é um salão vazio e volta a ler como pátio cercado.</span>
+        <span class="it-d"><b>6 · As casas são minúsculas e coladas.</b> Retângulos de 3×3 e 4×3 com
+        rua de dois tiles: de cima lê como vila, de dentro lê como <i>círculo de ritual</i>.
+        <b>Resolvido no esboço 2</b>: casa de 11×8 com parede de tábua, chão de tábua e porta, com o
+        <b>dentro andável</b>; rua de três tiles, que é a largura em que duas pessoas se cruzam.
+        Onze casas e o Paiol, no lugar de doze blocos maciços de rocha.</span>
+        <span class="it-d"><b>4 ·</b> o quarto defeito não foi registrado na hora e está
+        <b>perdido</b> — a numeração pula de 3 para 5. Fica aqui para não parecer erro de
+        digitação: se ele voltar a incomodar, é defeito novo.</span>
+        <span class="it-t">esboço 2 entregue em 2026-08-23 · a 64² dizia que só o #47 destravava, e
+        estava errado: quem destravou foi o #48</span>
+      </li>
+      <li>
+        <span class="it-n">#47 · Editor de mapas</span>
+        <span class="it-d">Pedido do dono do projeto no mesmo dia: <i>"você cria o esboço e eu vou
+        criando o que eu achar sem sentido ou apenas corrijo algumas falhas"</i>. É a peça que faltava
+        no laço — hoje o agente compõe por script e o dono só pode <b>apontar</b>, não corrigir.</span>
+        <span class="it-d">O que ele precisa ter, no mínimo: pintar tile com o mouse, borracha,
+        balde, seleção de andar, colocar e apagar spawn com escolha de espécie, hunt, POI e escada, e
+        <b>gravar no mesmo formato</b> que o <code>compor.js</code> escreve. O carregamento e a
+        gravação já existem (<code>mapaAplica</code> / <code>mapaSerializa</code>) e a planta em
+        <code>tools/amostra/mapa.html</code> já desenha tudo — <b>o editor é a planta mais o
+        pincel</b>, não um programa novo.</span>
+        <span class="it-d">Gravar do navegador para o disco pede <code>showSaveFilePicker</code>
+        (nativo do Chrome, sem dependência) ou um POST para o <code>tools/serve.py</code>. A segunda é
+        menos elegante e não precisa de permissão a cada gravação.</span>
+        <span class="it-d"><b>Primeira fatia entregue em 2026-08-23</b>: pincel, balde, retângulo, conta-gotas, desfazer e gravação por patch. O modelo ficou sendo <b>o script semeia e o editor corrige</b> — ver a seção própria acima. Falta a segunda fatia: colocar e apagar spawn com escolha de espécie, hunt, POI e escada.</span>
+        <span class="it-t">metade feita · a segunda fatia é conteúdo, não terreno</span>
+      </li>
+      <li class="feito">
+        <span class="it-n">#48 · Vocabulário de tiles <span class="tag done">feito</span></span>
+        <span class="it-d">O jogo tinha <b>quinze</b> tipos de tile e <b>nenhum era construção</b>.
+        Por isso a vila de Varrokgaard virou pedregulho: as casas foram feitas de
+        <code>T.ROCK</code> porque rocha era o que existia, e do chão uma parede de rocha é
+        indistinguível de um matacão. Agora são <b>trinta e cinco</b>, e nenhum entrou sem
+        endereço — cada um existe por causa de um lugar já escrito em
+        <code>mundo_varrokgaard.html</code> ou <code>mundo_aleto.html</code>.</span>
+
+        <span class="it-d"><b>Madeira</b> — <code>WALL</code> tábua com prumo, <code>FLOOR</code>
+        tábua corrida, <code>DOOR</code>, <code>FENCE</code>, <code>CROP</code> lavoura,
+        <code>PIER</code> (o Trapiche e o Embarcadouro, tábua sobre a água), <code>HAY</code>
+        (o Paiol da Halda) e <code>PROP</code> escoramento.<br>
+        <b>Pedra lavrada</b> — <code>SWALL</code> bloco esquadrejado, <code>PAVE</code> calçada,
+        <code>RUBBLE</code> entulho. É a regularidade que denuncia que um homem construiu, e sem
+        bloco não havia como distinguir o Labirinto do rei de uma caverna qualquer.<br>
+        <b>Subsolo</b> — <code>ORE</code> veio, <code>GRAVEL</code> brita, <code>WEB</code> e
+        <code>WEBF</code> (o Ninho, cujo limite é teia), <code>BONE</code>, <code>ASH</code>,
+        <code>MOSS</code>.<br>
+        <b>Chão marcado</b> — <code>GORE</code> e <code>RUNE</code>. São <b>autorais</b>: o sangue
+        de combate (<code>drawBlood</code>) e o campo elemental (<code>criaCampo</code>) continuam
+        sendo do motor e transitórios; estes dois o autor põe no mapa e ficam.</span>
+
+        <span class="it-d">Três categorias de tile, e não duas. Havia chão e parede
+        (<code>top &gt; 0,5</code>, que é a mesma régua do <code>tapaVista</code>). Entrou
+        <b>objeto</b>: <code>top</code> entre 0 e 0,5, que barra o pé e <b>não</b> os olhos — a
+        guarda vê o que vem do outro lado da Cerca Nova, e na Mina se enxerga a galeria continuar
+        por entre as escoras. Cerca e escoramento usam <code>obj</code> +
+        <code>OBJ_DRAW</code>; a teia usa <code>parede</code> + <code>PAREDE_DRAW</code>, porque
+        o <code>wallSprite</code> corta topo claro e face escura — física de pedra — e aplicado a
+        teia dava chapa de zinco ondulado.</span>
+
+        <span class="it-d">De quebra, o veio entrou na mineração: <code>ROCK</code> é o
+        afloramento que o gerador espalha, <code>ORE</code> é o que o autor põe no mapa. Mesma
+        tabela — o que muda é onde ele está. Parede de caverna continua fora.</span>
+
+        <span class="it-d">Julgado em <code>tools/amostra/construido.html</code>: sete cenas
+        escritas no mesmo formato do mapa (um caractere por tile), com zoom e com a
+        <b>luz do andar</b> vinda do próprio <code>FLOOR_AMBIENCE</code>. As duas coisas
+        importam: aprovar no 4× deixa passar o que não lê no 1×, e julgar brita de mina em luz de
+        meio-dia a deixaria escura demais para o lugar onde ela mora.</span>
+        <span class="it-t">35 tiles · 712 verificações · destrava o #46 · toca data.js, world.js,
+        art.js, render2d.js</span>
+      </li>
+      <li class="feito">
+        <span class="it-n">#48b · O que a leva ensinou, e vale para todo tile futuro
+        <span class="tag done">feito</span></span>
+        <span class="it-d"><b>Motivo não sobrevive ao recorte.</b> O <code>tileTexture</code>
+        desenha 96×96 e cada tile recorta por <code>x%3, y%3</code> — ótimo para grão, fatal para
+        desenho. Porta e selo são desenhados <b>3×3, um por tile de 32</b>, senão a porta muda de
+        cara conforme a casa caiu em coordenada par ou ímpar. E todo padrão de período fixo
+        (tábua, leira, fiada) tem período que <b>divide 32</b>, senão a junta sai em altura
+        diferente de tile para tile e a borda com a junta de outro — o
+        <code>borderSprite</code> recorta sempre em (0,0).</span>
+        <span class="it-d"><b>Cor de material tem de ser própria, não a do tile multiplicada.</b>
+        Três tiles nasceram errados pela mesma causa: o veio escalava o azul da rocha e saía
+        cristal branco visível do outro lado do andar; o entulho saía da mesma cor do pó e uma
+        ruína de pedra virava canteiro; e o musgo saía da mesma cor verde da pedra, então numa
+        ruína encostada na grama os dois eram o mesmo campo e o chão da ruína sumia. Os três só
+        fecharam com uma constante de cor ao lado do desenho —
+        <code>METAL</code>, <code>CACO</code>, <code>PEDRA</code>.</span>
+        <span class="it-d"><b>Distância de cor é legibilidade, não identidade — de novo.</b> A
+        primeira versão do teste exigia 60 de distância entre todo par de tile construído e
+        travava em <code>FLOOR</code>/<code>FENCE</code>. Estava certa a suíte e errada a régua:
+        parede e cerca são a mesma madeira de propósito, e quem as separa é a silhueta. O
+        invariante virou <b>coisa construída não se confunde com rocha</b>, que é a confusão real
+        do #46, mais <b>nenhum par é o mesmo material com dois nomes</b> (mesma textura e cor a
+        menos de 30). Adjacência de verdade continua com o teste de paleta derivado do mundo.</span>
+        <span class="it-d"><b>Sprite que encosta reto na borda lê como cortado.</b> A parede de
+        teia só parou de parecer bloco quando a borda de baixo passou a ser comida coluna a
+        coluna, com fio pendurado. E sprite de <b>desenho</b> precisa de variante por tile
+        (oito, pelo mesmo embaralhamento da deco): pedra pode repetir porque é grão, teia repetida
+        a cada 32 px vira papel de parede.</span>
+        <span class="it-t">quatro armadilhas, todas achadas olhando — nenhuma daria erro</span>
+      </li>
+      <li>
+        <span class="it-n">#5 · Diversificar topologia dos andares <span class="tag done">superado</span></span>
+        <span class="it-d"><b>Morreu com a virada de mundo.</b> Não existe "diversificar topologia por
+        flood-fill" quando cada andar é desenhado com a forma que deveria ter. O que sobra dele — a
+        ideia de região com identidade e escada pareada — virou a composição de Aleto e os quatro
+        sistemas de subsolo.</span>
         <span class="it-d">Cada andar é uma malha contígua, então todo buraco cai no mesmo lugar. Proposta: flood-fill em componentes conexos, identidade por região, escada pareada a região específica. Isso entrega de graça o buraco que não leva a nada e a hunt secreta. Alta alavancagem, alto risco — mexe em <code>genWorld</code> e em várias verificações de mundo.</span>
         <span class="it-t">esforço alto · retorno muito alto</span>
       </li>
       <li>
-        <span class="it-n">#42 · Ilha tutorial</span>
+        <span class="it-n">#42 · Ilha tutorial <span class="tag done">virou Varrokgaard</span></span>
+        <span class="it-d"><b>Deixou de ser proposta e virou terra composta.</b> Nome, lore, elenco,
+        mecânicas mapeadas lugar a lugar, os dois portões, o Cabo do Sal e a escolha de vocação no
+        embarque estão em <code>mundo_varrokgaard.html</code>. O desenho foi feito e rejeitado — ver
+        <b>#46</b>.</span>
         <span class="it-d">Uma ilha única, <b>fixa e não procedural</b> — a mesma em toda partida, desenhada à mão para iniciante. Bem menor que o continente. Apresenta as mecânicas básicas, inclusive o combate, com criaturas fracas o bastante para chegar ao <b>nível 15 com tranquilidade</b>, farmar equipamento básico e algum ouro. O jogador <b>não sai da ilha antes do nível 15</b>. A ilha é o fôlego para aprender e se equipar antes de encarar o continente MAIN.
         Pontos que a discussão precisa fechar: onde a ilha mora (andar próprio ou região reservada do mapa), como a travessia é barrada (barco/portal com porteiro de nível), se o personagem novo nasce lá sempre ou só na primeira vez, e se o templo/loja/forja da ilha são versões reduzidas ou os mesmos painéis. Atrito técnico previsível: <code>genWorld</code> hoje monta tudo por semente, então uma malha à mão é o primeiro mapa autoral do projeto — e o spawn, as hunts e os POIs assumem mundo gerado.</span>
         <span class="it-t">esforço alto · retorno muito alto · a discutir antes de escrever código</span>
@@ -1420,6 +2126,57 @@
         <span class="it-d"><b>Falta também:</b> os botões <code>task-btn</code> (📜) e <code>forja-btn</code> (🔨), emoji cru ao lado de quatro que já usam PNG — bloqueados em arte, precisam de dois desenhos em <code>assets/green_background/</code> no estilo dos outros quatro. E 5 tipos de POI, 11 imbuements e os ícones de buff (<code>BUFF_ICO</code>). <b>Feito:</b> o log de coleta perdeu o ⛏️/🪓/🎣, com teste guardando.</span>
         <span class="it-t">esforço baixo · 3 PNGs genéricos resolvem 30 itens · os 2 botões dependem de arte</span>
       </li>
+      <li class="feito">
+        <span class="it-n">#49 · Contorno na junta entre terrenos <span class="tag done">feito</span></span>
+        <span class="it-d">Nasceu de o dono do projeto mandar <b>imagens de referência</b> de
+        tileset — e elas responderam uma pergunta que duas rodadas de gerar PNG não tinham
+        respondido. O que separa tileset feito à mão do que o jogo fazia não é detalhe: é
+        <b>forma, contorno e luz por objeto</b>. Numa parede de pedra de referência, cada pedra é
+        um objeto com argamassa escura em volta, claro em cima e sombra embaixo. As texturas do
+        jogo eram <code>_speckle</code> mais risco solto, com tom contínuo sorteado por pixel — o
+        dono descreveu como <em>"tinta jogada no chão"</em>, e é o nome certo.</span>
+        <span class="it-d">A prova estava dentro do #48: os tiles que ficaram bons — bloco,
+        calçada, entulho, ossada — são os que foram desenhados como objeto com sombra. Os fracos
+        eram os de ruído. O princípio já estava sendo obedecido sem ter sido enunciado.</span>
+        <span class="it-d"><b>E o que as referências mostram não é o chão ser detalhado — é o
+        contrário.</b> Na floresta de referência a grama é quase lisa; o que enche o olho é a
+        junta entre terrenos, marcada com uma linha escura e um lábio claro por cima. O jogo só
+        tinha o degradê do <code>edgeMask</code>, que resolve a reta de 90° e não desenha junta
+        NENHUMA: um terreno desvanecia no outro e o chão ficava sem limite.</span>
+        <span class="it-d">A faixa sai da <b>própria máscara</b> — ela menos ela mesma deslocada
+        para fora dá exatamente o trecho onde a máscara está desvanecendo, que é onde a junta
+        cai. Derivar em vez de desenhar uma segunda curva é o que garante que o contorno
+        acompanhe a mordida serrilhada do <code>edgeMask</code>; duas curvas separadas
+        divergiriam e o contorno passaria ao lado da borda. Fica <b>assado dentro do
+        <code>borderSprite</code></b>, que já tinha a chave certa (textura + cor + lado): custa
+        zero de cache e poupa um <code>drawImage</code> por lado por tile.</span>
+        <span class="it-d">Junto saiu <code>_tons()</code> — paleta discreta de n tons — e a grama
+        foi refeita com ela: cinco tons fixos e tufos de 3 a 5 folhas com a sombra deslocada 1 px,
+        no lugar do respingo. Duas voltas erradas no caminho, e as duas por excesso: mancha larga
+        e contrastada virou <b>camuflagem militar</b>, e falha de terra escura virou <b>buraco no
+        capim</b>. O acerto foi para o lado da calma.</span>
+        <span class="it-t">uma mudança, levanta os 35 tiles · toca art.js e render2d.js</span>
+      </li>
+      <li>
+        <span class="it-n">#50 · Passar o princípio pelos tiles de ruído que sobraram</span>
+        <span class="it-d">Terra, chão de caverna, areia, neve, pântano e água ainda são
+        <code>_speckle</code> com tom sorteado. Agora existe <code>_tons()</code> e existe a
+        bancada — é repetir na terra o que a grama já fez: objeto discreto, paleta curta, sombra
+        de um lado. A pedrinha da terra e a faceta da rocha já são quase objeto e precisam só de
+        sombra e de paleta.</span>
+        <span class="it-d">Vale junto o <b>#40</b>, que está parado esperando direção: a caverna
+        é a parte mais apagada do jogo e os andares profundos herdam a mesma paleta. Redesenhar
+        <code>cave</code> e <code>rock</code> com o princípio resolve os dois de uma vez.</span>
+        <span class="it-t">esforço médio · um por vez, com a bancada no meio · absorve o #40</span>
+      </li>
+      <li>
+        <span class="it-n">#51 · Deco com silhueta contornada</span>
+        <span class="it-d">A terceira coisa que as referências têm: copa de árvore grande e
+        arredondada, pedra e moita, todas com contorno escuro. O <code>decoSprite</code> tem três
+        formas, sem contorno, e usa <code>outlined()</code> só em criatura. É o que falta para o
+        mato deixar de ser fundo e virar cenário.</span>
+        <span class="it-t">esforço médio · depende do #50 estar de pé para não brigar com o chão</span>
+      </li>
       <li>
         <span class="it-n">#40 · Segunda passada na paleta</span>
         <span class="it-d">
@@ -1445,7 +2202,9 @@
       <li>
         <span class="it-n">#19 · Texturas de terreno</span>
         <span class="it-d">Parte cara e arriscada. TESTAR A COSTURA ANTES de qualquer pipeline: os tiles parecem quadrados isolados com borda escurecida e podem mostrar grade lado a lado. A célula não é inteira (1254 ÷ 9 = 139,33) e o fundo é chroma magenta (211,4,201). O render já mistura borda entre terrenos e faz espuma na água — trocar sem preservar isso piora o resultado mesmo com arte melhor.</span>
-        <span class="it-t">esforço médio-alto · pode ser invalidada pelo teste de costura</span>
+        <span class="it-d"><b>Testado em 2026-08-22 e a resposta mudou.</b> Duas imagens geradas por IA foram passadas pela bancada nova, <code>tools/amostra/costura.html</code>: a primeira saiu textura de material fotográfica (o prompt pedia isso, e o prompt era meu), a segunda saiu pixel art de ruído uniforme. Nenhuma das duas é o problema real — o problema é que <b>1024 → 32 px não sobrevive</b>: cada pixel final vira a média de mil, e detalhe fotográfico vira cor chapada. E gerador não segura grade de pixel exata nem paleta coerente entre 35 tiles.</span>
+        <span class="it-d">O que a leva entregou de verdade foi <b>referência</b>, e ela valeu mais que qualquer PNG: é dela que saiu o #49. Encaminhamento: PNG de gerador entra como referência para desenhar, não como asset. A bancada de costura fica, e serve para qualquer arte futura.</span>
+        <span class="it-t">esforço médio-alto · o teste de costura rodou e desviou a rota para o #49</span>
       </li>
       <li>
         <span class="it-n">#13 · Bonecos procedurais de criatura</span>
@@ -1749,7 +2508,34 @@
   <h2>Armadilhas conhecidas</h2>
 
   <div class="aviso">
-    <h4>O navegador cacheia o índice de ícones</h4>
+    <h4>Ferramenta aberta por file:// diz "Failed to fetch"</h4>
+  <p>As páginas de <code>tools/</code> — editor, planta, bancadas — leem o mapa e os fontes por
+  <code>fetch</code>, e o navegador bloqueia <code>fetch</code> em <code>file://</code>. O erro que
+  ele devolve é <b>"Failed to fetch"</b>, que não diz nada a quem só deu duplo clique no arquivo, e
+  não é 404: a requisição nem chega a sair. Duplo clique num <code>.html</code> é o caminho
+  natural, então isto vai acontecer de novo.</p>
+  <p>O <code>editor.html</code> passou a detectar o protocolo e a explicar, com o comando. As
+  outras páginas de <code>tools/</code> ainda repetem o erro do navegador — se incomodar, é a mesma
+  linha em cada uma.</p>
+
+  <h4>Editar o mapa pode soterrar um personagem salvo</h4>
+  <p>O save guarda a posição crua do personagem e o <code>finishStart</code> a restaura sem
+  conferir nada. Com o editor no laço isso deixou de ser hipótese: o primeiro lugar em que se
+  pinta é justamente onde o personagem parou, porque é para lá que se olha. Ele carregava
+  <b>dentro da parede</b> — e cercado, ou com a terra encolhida sob a coordenada, num save que não
+  tem conserto de dentro do jogo.</p>
+  <p><code>chaoMaisPerto</code> resgata em anéis crescentes ao carregar, e avisa no log. As duas
+  metades estão travadas por teste: quem foi soterrado vai para o chão mais próximo, e
+  <b>quem está em chão bom não é movido</b> — resgate que mexe em quem está bem teleportaria o
+  personagem a cada carregamento.</p>
+  <p>Fica um efeito menor e não consertado, de propósito: uma edição de terreno DENTRO de uma
+  hunt muda quais tiles são andáveis, o <code>povoa</code> sorteia de outra lista, e os índices de
+  spawn que o save guarda (<code>mobs</code>, <code>mortos</code>, <code>elites</code>) passam a
+  apontar para outros pontos. O <code>restaurarBichos</code> descarta o que não bate, então nada
+  quebra — no máximo um bicho que você tinha matado está vivo. Some sozinho no primeiro ciclo de
+  respawn, e travar isso custaria identidade estável de spawn, que é bem mais caro.</p>
+
+  <h4>O navegador cacheia o índice de ícones</h4>
     <p>
       Depois de rodar <code>build_skins.py --aplicar</code>, o navegador continua servindo o
       <code>src/icones.js</code> antigo, inclusive em aba nova e após reiniciar o servidor.
@@ -1912,8 +2698,8 @@
 
 <footer>
   Thaira · RPG 2D dark-fantasy em JavaScript sem framework, com launcher Electron ·
-  663 verificações passando em <code>tests/test.js</code> ·
-  22 tarefas pendentes · conferido contra o código em 2026-08-18.
+  746 verificações passando em <code>tests/test.js</code> ·
+  25 tarefas pendentes · conferido contra o código em 2026-08-23.
 </footer>
 
 </div>

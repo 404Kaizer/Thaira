@@ -10,6 +10,25 @@ const _rgb = (hex, f = 1, a = 1) => {
 };
 const shade = (hex, f) => ((Math.min(255, (hex >> 16 & 255) * f) | 0) << 16) | ((Math.min(255, (hex >> 8 & 255) * f) | 0) << 8) | (Math.min(255, (hex & 255) * f) | 0);
 
+/* Puxa a cor para o cinza dela, mantendo o valor. Serve a tile cuja cor tem de
+   ser saturada para NÃO se confundir com outro tile na régua de paleta, e cujo
+   desenho pede pedra: a laje sai cinza e só o sulco carrega a cor. */
+const _dessat = (hex, k) => {
+  const r = hex >> 16 & 255, g = hex >> 8 & 255, b = hex & 255, m = (r + g + b) / 3;
+  return (Math.round(r + (m - r) * k) << 16) | (Math.round(g + (m - g) * k) << 8) | Math.round(b + (m - b) * k);
+};
+
+/* Paleta DISCRETA de um material: n tons fixos, do escuro ao claro. É o que
+   separa tileset feito à mão de ruído — arte à mão escolhe cinco cores e usa as
+   cinco; `_rgb(c, .7 + rnd * .8)` sorteia um tom contínuo por pixel, e o olho lê
+   isso como sujeira uniforme, não como forma. Quem quiser textura de grão
+   continua usando _speckle; quem estiver desenhando OBJETO usa isto. */
+const _tons = (hex, n, lo, hi) => {
+  const t = [];
+  for (let i = 0; i < n; i++) t.push(shade(hex, lo + (hi - lo) * i / (n - 1)));
+  return t;
+};
+
 function _canvas(S) { const c = document.createElement('canvas'); c.width = c.height = S; return c; }
 function _canvas2(w, h) {
   const c = document.createElement('canvas');
@@ -54,14 +73,58 @@ function _cracks(ctx, S, hex, n, f) {
 /* --------------------------------------------------------- texturas de chão */
 const TEX_CACHE = {};
 const TEX_DRAW = {
+  /* FORMA, CONTORNO E LUZ POR OBJETO — não ruído. A versão anterior era
+     _speckle mais risco solto, com tom contínuo sorteado por pixel: lia como
+     tinta jogada no chão, que foi como o dono do projeto a descreveu. O que
+     separa tileset feito à mão é sempre a mesma receita: objetos discretos, cada
+     um com sombra do lado escuro e brilho do lado claro, numa paleta de poucos
+     tons fixos. A luz vem de cima-esquerda e é a MESMA para todo objeto — luz
+     por objeto costura; o que estraga tile é luz assada no quadro inteiro. */
   grass(ctx, S, c) {
-    ctx.fillStyle = _rgb(c); ctx.fillRect(0, 0, S, S);
-    _speckle(ctx, S, c, 700, 1, 3, .7, 1.3);
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 70; i++) {                       // tufos de grama
-      const x = _rnd() * S, y = _rnd() * S;
-      ctx.strokeStyle = _rgb(c, .6 + _rnd() * .8);
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (_rnd() - .5) * 3, y - 3 - _rnd() * 4); ctx.stroke();
+    const t = _tons(c, 5, .78, 1.34);                    // 5 tons, e só eles
+    ctx.fillStyle = _rgb(t[1]); ctx.fillRect(0, 0, S, S);
+    /* Mancha PEQUENA e de um tom só de diferença. Larga e contrastada, o campo
+       vira camuflagem militar: o que se lê são as manchas, e o capim some. Nas
+       referências o chão é quase liso e quem carrega a leitura é o tufo. */
+    for (let i = 0; i < 40; i++) {
+      ctx.fillStyle = _rgb(t[_rnd() < .5 ? 0 : 2]);
+      ctx.beginPath();
+      const x = _rnd() * S, y = _rnd() * S, r = 2.5 + _rnd() * 4.5;
+      for (let a = 0; a < 7; a++) {
+        const an = a * .9, rr = r * (.6 + _rnd() * .7);
+        ctx.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr * .8);
+      }
+      ctx.fill();
+    }
+    /* O tufo: 3 a 5 folhas saindo de UMA raiz. Folha solta espalhada vira
+       chuvisco; o que o olho lê como capim é o grupo. */
+    const tufo = (x, y, n, alt, cor, dx) => {
+      ctx.strokeStyle = _rgb(cor); ctx.lineWidth = 1;
+      for (let k = 0; k < n; k++) {
+        const lado = (k - (n - 1) / 2) / Math.max(1, n - 1);
+        ctx.beginPath(); ctx.moveTo(x + dx, y + dx);
+        ctx.lineTo(x + dx + lado * 3.4, y + dx - alt * (.68 + _rnd() * .5));
+        ctx.stroke();
+      }
+    };
+    for (let i = 0; i < 130; i++) {                      // o tufo é quem faz o capim
+      const x = _rnd() * S, y = _rnd() * S, n = 3 + (_rnd() * 3 | 0), alt = 3 + _rnd() * 3.4;
+      tufo(x, y, n, alt, t[0], 1);                       // a sombra do tufo, deslocada 1 px
+      tufo(x, y, n, alt, t[3 + (_rnd() < .3 ? 1 : 0)], 0);
+    }
+    /* Rasteira seca, e RARA. A versão com falha de terra escura punha bolinhas
+       pretas no capim, que de longe lê como buraco. Nas referências o chão é
+       calmo: o que enche o olho é a borda entre terrenos e o que está em cima
+       dele, não o chão ficar ocupado. */
+    for (let i = 0; i < 9; i++) {
+      const x = _rnd() * S, y = _rnd() * S, r = 3 + _rnd() * 4;
+      ctx.fillStyle = _rgb(shade(c, .92), .55);
+      ctx.beginPath();
+      for (let a = 0; a < 7; a++) {
+        const an = a * .9, rr = r * (.6 + _rnd() * .7);
+        ctx.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr * .8);
+      }
+      ctx.fill();
     }
   },
   dirt(ctx, S, c) {
@@ -149,6 +212,490 @@ const TEX_DRAW = {
       ctx.stroke();
     }
   },
+  /* ---- coisa construída. Nenhuma destas empresta a textura de outra: aqui
+     diferenciar É o requisito, e uma fórmula só com a cor trocada foi o que
+     produziu os quatro campos de chão indistinguíveis do #33. ---- */
+  /* Tábua e prumo, e não taipa clara entre madeira escura: com o barro em 1,7×
+     a face saía salmão e o topo, que o wallSprite ainda clareia em 30%, virava
+     telha de barro — parede de dois materiais, que é o oposto do que o tile
+     existe para resolver. Um material só, e a leitura vem do prumo. */
+  wall(ctx, S, c) {                                      // parede de tábua com prumo aparente
+    ctx.fillStyle = _rgb(c, 1.15); ctx.fillRect(0, 0, S, S);
+    _speckle(ctx, S, c, 380, 1, 3, .95, 1.35);
+    const p = S / 6;                                     // 6 prumos em 96 = 2 por tile
+    for (let i = 0; i < 6; i++) {
+      ctx.fillStyle = _rgb(c, .6);  ctx.fillRect(i * p, 0, p * .34, S);              // prumo
+      ctx.fillStyle = _rgb(c, .4);  ctx.fillRect(i * p + p * .28, 0, p * .07, S);    // sombra dele
+      ctx.fillStyle = _rgb(c, 1.4); ctx.fillRect(i * p + p * .36, 0, 1, S);          // quina iluminada
+    }
+    _cracks(ctx, S, c, 12, .6);                          // fenda entre tábuas, escura — clara virava cipó
+  },
+  /* O período destas duas DIVIDE 32 de propósito. O recorte de tileTexture anda
+     de 32 em 32 e o de borderSprite é fixo em (0,0): com período que não divida
+     o tile, a tábua sairia com a junta em altura diferente conforme a casa caiu
+     em linha par ou ímpar, e a borda com a junta de outro tile. */
+  plank(ctx, S, c) {                                     // piso de dentro: tábua corrida
+    ctx.fillStyle = _rgb(c); ctx.fillRect(0, 0, S, S);
+    const n = 12, h = S / n;                             // 12 tábuas em 96 = 4 por tile, 8 px cada
+    for (let i = 0; i < n; i++) {
+      ctx.fillStyle = _rgb(c, .86 + _rnd() * .3); ctx.fillRect(0, i * h, S, h - 1);
+      ctx.fillStyle = _rgb(c, .5);                ctx.fillRect(0, i * h + h - 1, S, 1);
+    }
+    ctx.lineWidth = 1;                                   // veio: é o que separa tábua de laje
+    for (let i = 0; i < 46; i++) {
+      const x = _rnd() * S, y = (_rnd() * n | 0) * h + 1 + _rnd() * (h - 3);
+      ctx.strokeStyle = _rgb(c, .72 + _rnd() * .12);
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 5 + _rnd() * 16, y); ctx.stroke();
+    }
+  },
+  crop(ctx, S, c) {                                      // lavoura: leira lavrada e o que cresce nela
+    /* Leira é MASSA de planta, não listra. Com o camalhão em 0,95 contra terra
+       em 0,42 e pouco pé por cima, saía código de barras: o que se via era o
+       degrau de cor, não a lavoura. Contraste curto e muito pé transbordando a
+       leira — é o pé que tem de fechar a linha, e não o retângulo. */
+    ctx.fillStyle = _rgb(c, .5); ctx.fillRect(0, 0, S, S);         // terra revirada entre as leiras
+    _speckle(ctx, S, c, 420, 1, 3, .42, .66);
+    /* Cada leira tem o próprio viço e falha em trechos. Com todas no mesmo tom e
+       inteiras de ponta a ponta, o trigal saía impresso — pente, não lavoura. */
+    const n = 12, p = S / n;                             // 12 leiras em 96 = 4 por tile, 8 px cada
+    const vico = [];
+    for (let i = 0; i < n; i++) {
+      vico.push(.72 + _rnd() * .3);
+      ctx.fillStyle = _rgb(c, vico[i]);
+      let y = 0;
+      while (y < S) {                                    // a leira falha: pé que não vingou
+        const h = 8 + _rnd() * 30;
+        if (_rnd() > .16) ctx.fillRect(i * p + 1, y, p * .62, Math.min(h, S - y));
+        y += h;
+      }
+    }
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 430; i++) {                      // o pé nasce na leira e passa da borda dela
+      const f = _rnd() * n | 0, x = f * p + 1 + _rnd() * p * .8, y = _rnd() * S;
+      ctx.strokeStyle = _rgb(c, vico[f] + _rnd() * .45);
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (_rnd() - .5) * 2.5, y - 3 - _rnd() * 4); ctx.stroke();
+    }
+  },
+  /* A porta é MOTIVO, não ruído, e por isso se desenha 3×3 — um por tile de 32 e
+     não um em 96. O recorte de tileTexture() varia com x%3 e y%3: textura de
+     grão aguenta isso, desenho não, e uma porta que muda de cara conforme a
+     casa caiu em coordenada par ou ímpar não é porta. */
+  /* A porta ABERTA. Ela e a fechada eram o mesmo desenho, então abrir não mudava
+     nada na tela — o jogador só descobria que tinha aberto tentando passar.
+     O que muda não é a cor: é a SILHUETA. Some a folha do meio do vão, sobra o
+     batente dos dois lados e o vão escuro no miolo, com a folha recolhida
+     encostada num deles. É a mesma leitura de qualquer porta aberta vista de
+     cima: o buraco é o que se vê. */
+  door_open(ctx, S, c) {
+    const p = S / 3;
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+      ctx.save(); ctx.translate(i * p, j * p);
+      ctx.fillStyle = _rgb(c, .16); ctx.fillRect(0, 0, p, p);                  // o vão, mais escuro
+      ctx.fillStyle = _rgb(c, .34);                                            // o fundo do vão
+      ctx.fillRect(4, 3, p - 8, p - 6);
+      ctx.fillStyle = _rgb(c, 1.35); ctx.fillRect(0, 0, 3.5, p);               // o batente esquerdo
+      ctx.fillStyle = _rgb(c, .85);  ctx.fillRect(p - 3.5, 0, 3.5, p);         // o direito, na sombra
+      ctx.fillStyle = _rgb(c, 1.55); ctx.fillRect(2.5, 1, 4, p - 2);           // a folha recolhida
+      ctx.fillStyle = _rgb(c, 1.1);  ctx.fillRect(3, 2, 3, p - 4);
+      ctx.fillStyle = _rgb(c, .55);  ctx.fillRect(6.5, 1, 1.6, p - 2);         // a sombra dela no vão
+      ctx.restore();
+    }
+  },
+  door(ctx, S, c) {
+    const p = S / 3;
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+      ctx.save(); ctx.translate(i * p, j * p);
+      ctx.fillStyle = _rgb(c, .22); ctx.fillRect(0, 0, p, p);                  // o vão, quase preto
+      ctx.fillStyle = _rgb(c, 1.6); ctx.fillRect(2, 1, p - 4, p - 2);          // a folha, clara
+      ctx.fillStyle = _rgb(c, 1.25);
+      for (let k = 0; k < 4; k++) ctx.fillRect(3, 2 + k * (p - 4) / 4, p - 6, (p - 4) / 4 - 1.6);
+      ctx.fillStyle = _rgb(c, .8);                                             // ferragem
+      ctx.fillRect(3, p * .26, p - 6, 2); ctx.fillRect(3, p * .68, p - 6, 2);
+      ctx.fillStyle = _rgb(c, 3.2);                                            // maçaneta
+      ctx.beginPath(); ctx.arc(p - 7, p / 2, 1.7, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+  },
+  /* ---- madeira de fora: trapiche, palha e escoramento -------------------- */
+  pier(ctx, S, c) {                                      // tábua do trapiche, com fresta para a água
+    ctx.fillStyle = 'rgba(8,14,22,.94)'; ctx.fillRect(0, 0, S, S);  // a fresta mostra o escuro de baixo
+    const n = 6, h = S / n;                              // 6 pranchas em 96 = 2 por tile, 16 px
+    for (let i = 0; i < n; i++) {
+      ctx.fillStyle = _rgb(c, .82 + _rnd() * .32);
+      ctx.fillRect(0, i * h + 1, S, h - 2.5);            // a folga entre pranchas é a fresta
+      ctx.fillStyle = _rgb(c, .55); ctx.fillRect(0, i * h + h - 3.5, S, 1.2);
+      for (let k = 0; k < 6; k++) {                      // prego: é o que diz que alguém pregou
+        ctx.fillStyle = _rgb(c, .35);
+        ctx.fillRect((k * 16 + 6) % S, i * h + 3, 1.6, 1.6);
+        ctx.fillRect((k * 16 + 6) % S, i * h + h - 6, 1.6, 1.6);
+      }
+    }
+  },
+  hay(ctx, S, c) {                                       // palha solta: fio cruzado, sem direção
+    /* Contraste CURTO. Com o fio indo de .7 a 1.4 sobre fundo .48 a palha virava
+       um bloco de ouro que roubava a cena inteira de uma vila — palha é seca,
+       fosca, e a única coisa que ela tem de dizer é "isto aqui é monte". */
+    ctx.fillStyle = _rgb(c, .62); ctx.fillRect(0, 0, S, S);
+    ctx.lineWidth = 1.3;
+    for (let i = 0; i < 900; i++) {                      // muita palha e nenhum eixo
+      const x = _rnd() * S, y = _rnd() * S, a = _rnd() * Math.PI, l = 4 + _rnd() * 9;
+      ctx.strokeStyle = _rgb(c, .78 + _rnd() * .42);
+      ctx.beginPath(); ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); ctx.stroke();
+    }
+    _speckle(ctx, S, c, 200, 1, 3, .5, .68);             // sombra por baixo do monte
+  },
+
+  /* ---- pedra lavrada: é a REGULARIDADE que denuncia que um homem fez ------ */
+  block(ctx, S, c) {                                     // bloco esquadrejado, fiada deslocada
+    /* Faces em torno de .8: com .88 a 1.18 e uma aresta em 1.35, o wallSprite
+       ainda clareava o topo em 30% e a muralha saía de gelo. Pedra lavrada
+       VELHA é escura; quem faz a leitura é a junta, não o brilho. */
+    ctx.fillStyle = _rgb(c, .42); ctx.fillRect(0, 0, S, S);        // a junta, ao fundo
+    const bw = S / 6, bh = S / 12;                       // 16×8 px: os dois dividem 32
+    for (let j = 0; j < 12; j++) {
+      const off = (j % 2) * bw / 2;                      // amarração: fiada par anda meio bloco
+      for (let i = -1; i < 7; i++) {
+        const x = i * bw + off;
+        ctx.fillStyle = _rgb(c, .7 + _rnd() * .24);
+        ctx.fillRect(x + 1, j * bh + 1, bw - 2, bh - 2);
+        ctx.fillStyle = _rgb(c, 1.02);                   // aresta de cima do bloco pega luz
+        ctx.fillRect(x + 1, j * bh + 1, bw - 2, 1);
+        ctx.fillStyle = _rgb(c, .5);                     // e a de baixo fica na sombra da fiada
+        ctx.fillRect(x + 1, j * bh + bh - 2, bw - 2, 1);
+      }
+    }
+    _speckle(ctx, S, c, 320, 1, 2, .6, .88);             // o desgaste, que tira a cara de novo
+  },
+  pave(ctx, S, c) {                                      // calçada: pedra miúda irregular
+    /* A pedra ENCOSTA na vizinha e a junta é escura. Com pedra pequena, redonda
+       e junta clara por baixo, a calçada saía plástico-bolha: o que se via era o
+       fundo, com bolinhas em cima. Calçada é o contrário — pedra encostada, e a
+       junta é a linha escura que sobra entre elas. */
+    ctx.fillStyle = _rgb(c, .42); ctx.fillRect(0, 0, S, S);        // a junta, ao fundo
+    const p = S / 12;                                    // 8 px: 4 pedras por tile
+    for (let j = 0; j < 12; j++) {
+      const off = (j % 2) * p / 2;                       // fiada alternada: calçamento não é grade
+      for (let i = -1; i < 13; i++) {
+        const cx = i * p + p / 2 + off + (_rnd() - .5) * 1.2;
+        const cy = j * p + p / 2 + (_rnd() - .5) * 1.2;
+        const lados = 4 + (_rnd() * 3 | 0), a0 = _rnd() * 6.28;
+        const esc = .82 + _rnd() * .34;                  // tamanhos misturados
+        ctx.fillStyle = _rgb(c, .68 + _rnd() * .42);
+        ctx.beginPath();
+        for (let a = 0; a < lados; a++) {
+          const an = a0 + a * 6.283 / lados, r = p * .62 * esc * (.82 + _rnd() * .36);
+          ctx.lineTo(cx + Math.cos(an) * r, cy + Math.sin(an) * r);
+        }
+        ctx.fill();
+      }
+    }
+    _speckle(ctx, S, c, 340, 1, 2, .6, .9);              // o desgaste do pisado
+  },
+  rubble(ctx, S, c) {                                    // entulho: bloco quebrado e pó
+    const CACO = 0x8e8b84;
+    ctx.fillStyle = _rgb(c, .55); ctx.fillRect(0, 0, S, S);        // o pó, entre os cacos
+    _speckle(ctx, S, c, 520, 1, 3, .45, .8);
+    for (let i = 0; i < 85; i++) {                       // caco anguloso, tamanhos misturados
+      const x = _rnd() * S, y = _rnd() * S, r = 2 + _rnd() * 6, a0 = _rnd() * 6;
+      const face = .62 + _rnd() * .5;
+      ctx.fillStyle = _rgb(CACO, face * .55);            // sombra projetada do caco
+      ctx.beginPath(); ctx.ellipse(x, y + r * .55, r * .95, r * .45, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = _rgb(CACO, face);
+      ctx.beginPath();
+      for (let a = 0; a < 4; a++) {
+        const an = a0 + a * 1.57 + _rnd() * .4;
+        ctx.lineTo(x + Math.cos(an) * r, y + Math.sin(an) * r * .8);
+      }
+      ctx.fill();
+      ctx.fillStyle = _rgb(CACO, face * 1.3);            // a quebra fresca é mais clara
+      ctx.fillRect(x - r * .5, y - r * .55, r * .9, 1.2);
+    }
+  },
+
+  /* ---- subsolo: uma forma por sistema ------------------------------------ */
+  /* Metal do veio: cor PRÓPRIA, e não a da rocha multiplicada. Escalando o azul
+     da pedra o veio saía branco-azulado, ocupava meio tile e o minério virava
+     cristal — dava para achar do outro lado do andar, que é o oposto de procurar. */
+  ore(ctx, S, c) {                                       // rocha com veio: só o metal denuncia
+    const METAL = 0xb08a4a;
+    ctx.fillStyle = _rgb(c); ctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 80; i++) {                       // a mesma faceta da rocha, para SER rocha
+      ctx.fillStyle = _rgb(c, .62 + _rnd() * .34);       // escura: o topo do wallSprite já clareia 30%
+      ctx.beginPath();
+      const x = _rnd() * S, y = _rnd() * S, r = 2.5 + _rnd() * 5;
+      for (let a = 0; a < 6; a++) ctx.lineTo(x + Math.cos(a * 1.05) * r * (.6 + _rnd() * .6), y + Math.sin(a * 1.05) * r * (.6 + _rnd() * .6));
+      ctx.fill();
+    }
+    _cracks(ctx, S, c, 20, .55);
+    for (let i = 0; i < 5; i++) {                        // o fio: fino, sinuoso, e some às vezes
+      let x = _rnd() * S, y = _rnd() * S, a = _rnd() * 6.28;
+      for (let j = 0; j < 22; j++) {
+        a += (_rnd() - .5) * .9;
+        x += Math.cos(a) * 4; y += Math.sin(a) * 4;
+        if (_rnd() < .3) continue;                       // veio interrompido: rocha come o fio
+        ctx.strokeStyle = _rgb(METAL, .85 + _rnd() * .4);
+        ctx.lineWidth = .8 + _rnd() * 1.2;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(a) * 4, y + Math.sin(a) * 4); ctx.stroke();
+        if (_rnd() < .34) {                              // o nódulo — é ele que se vê
+          ctx.fillStyle = _rgb(METAL, 1.25);
+          ctx.beginPath(); ctx.arc(x, y, 1.2 + _rnd() * 1.1, 0, 7); ctx.fill();
+        }
+      }
+    }
+  },
+  gravel(ctx, S, c) {                                    // brita da galeria: grão miúdo e anguloso
+    /* Escura e de contraste curto: brita de mina não é areia de praia, e com o
+       grão de .72 a 1.32 a galeria saía mais clara que a superfície. */
+    ctx.fillStyle = _rgb(c, .5); ctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 1100; i++) {                     // muito grão pequeno é o que faz brita
+      const x = _rnd() * S, y = _rnd() * S, r = .9 + _rnd() * 2.2;
+      ctx.fillStyle = _rgb(c, .62 + _rnd() * .46);
+      ctx.beginPath();
+      ctx.lineTo(x - r, y + r * .6); ctx.lineTo(x, y - r); ctx.lineTo(x + r, y + r * .5);
+      ctx.fill();
+    }
+    for (let i = 0; i < 90; i++) {                       // pedra graúda: sem ela, brita lê como terra
+      const x = _rnd() * S, y = _rnd() * S, r = 2.6 + _rnd() * 3.4, a0 = _rnd() * 6;
+      ctx.fillStyle = _rgb(c, .4);                       // sombra, que é o que dá o tamanho
+      ctx.beginPath(); ctx.ellipse(x, y + r * .5, r, r * .5, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = _rgb(c, .8 + _rnd() * .45);
+      ctx.beginPath();
+      for (let k = 0; k < 5; k++) {
+        const an = a0 + k * 1.257 + _rnd() * .3;
+        ctx.lineTo(x + Math.cos(an) * r, y + Math.sin(an) * r * .85);
+      }
+      ctx.fill();
+    }
+    _speckle(ctx, S, c, 240, 1, 2, .38, .55);            // o pó entre os grãos
+  },
+  /* Teia é NÓ com fio saindo dele, não fio atravessando o quadro. A versão
+     anterior traçava linhas quase horizontais de borda a borda e o wallSprite,
+     que clareia a faixa de cima e escurece a de baixo, transformava isso em
+     chapa ondulada. O que faz ler teia é o centro radial e a espiral em volta. */
+  web(ctx, S, c) {                                       // parede de teia: centro, raio e espiral
+    ctx.fillStyle = 'rgba(9,9,13,.97)'; ctx.fillRect(0, 0, S, S);
+    ctx.lineWidth = 1;
+    const fio = (x0, y0, a, len, f) => {                 // fio com barriga: teia não tem reta
+      ctx.strokeStyle = _rgb(c, f, .3 + _rnd() * .45);
+      ctx.beginPath();
+      const bar = (_rnd() - .5) * 4;
+      for (let t = 0; t <= 1.001; t += .12) {
+        const sg = Math.sin(t * Math.PI) * bar;
+        ctx.lineTo(x0 + Math.cos(a) * len * t - Math.sin(a) * sg,
+                   y0 + Math.sin(a) * len * t + Math.cos(a) * sg);
+      }
+      ctx.stroke();
+    };
+    for (let i = 0; i < 7; i++) {                        // o centro de onde a teia sai
+      const cx = _rnd() * S, cy = _rnd() * S, n = 7 + (_rnd() * 5 | 0), a0 = _rnd() * 6.28;
+      const raio = 14 + _rnd() * 22;
+      for (let k = 0; k < n; k++) fio(cx, cy, a0 + k * 6.283 / n, raio * (.7 + _rnd() * .6), .75 + _rnd() * .45);
+      for (let v = 1; v <= 4; v++) {                     // a espiral, em trechos entre dois raios
+        const rr = raio * v / 4.5;
+        for (let k = 0; k < n; k++) {
+          if (_rnd() < .25) continue;                    // teia rasgada: a volta não fecha sempre
+          const a1 = a0 + k * 6.283 / n, a2 = a1 + 6.283 / n;
+          ctx.strokeStyle = _rgb(c, .6 + _rnd() * .4, .3 + _rnd() * .35);
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(a1) * rr, cy + Math.sin(a1) * rr);
+          const am = (a1 + a2) / 2, rm = rr * .84;       // a volta cede para dentro
+          ctx.quadraticCurveTo(cx + Math.cos(am) * rm * 1.05, cy + Math.sin(am) * rm * 1.05,
+                               cx + Math.cos(a2) * rr, cy + Math.sin(a2) * rr);
+          ctx.stroke();
+        }
+      }
+    }
+    for (let i = 0; i < 40; i++)                         // fio solto entre os centros
+      fio(_rnd() * S, _rnd() * S, _rnd() * 6.283, 10 + _rnd() * 26, .45 + _rnd() * .3);
+    for (let i = 0; i < 95; i++) {                       // o bolo denso, onde a teia é velha
+      ctx.fillStyle = _rgb(c, .75 + _rnd() * .45, .13 + _rnd() * .22);
+      ctx.beginPath(); ctx.ellipse(_rnd() * S, _rnd() * S, 3 + _rnd() * 8, 2 + _rnd() * 6, _rnd() * 3, 0, 7); ctx.fill();
+    }
+  },
+  webf(ctx, S, c) {                                      // teia no chão: pisada, achatada, grudenta
+    /* Teia pisada é CLARA e tem fio: o tile antes era escuro com borrão pálido
+       por cima e lia como fumaça. Aqui a manta cobre quase tudo e o escuro é o
+       que aparece nos rasgos — que é o que o pé faz com teia. */
+    ctx.fillStyle = 'rgba(14,14,19,.95)'; ctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 46; i++) {                       // a manta: lençol, não fio
+      ctx.fillStyle = _rgb(c, .78 + _rnd() * .4, .3 + _rnd() * .22);
+      ctx.beginPath();
+      const x = _rnd() * S, y = _rnd() * S, r = 7 + _rnd() * 16;
+      for (let a = 0; a < 9; a++) {
+        const an = a * .7, rr = r * (.55 + _rnd() * .7);
+        ctx.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr * .78);
+      }
+      ctx.fill();
+    }
+    ctx.lineWidth = 1.2;
+    for (let i = 0; i < 90; i++) {                       // fio frouxo por cima, sem tensão
+      const x = _rnd() * S, y = _rnd() * S, a = _rnd() * 6.28;
+      ctx.strokeStyle = _rgb(c, 1.15 + _rnd() * .35, .4 + _rnd() * .35);
+      ctx.beginPath(); ctx.moveTo(x, y);
+      for (let k = 1; k < 5; k++)
+        ctx.lineTo(x + Math.cos(a + k * .4) * k * 4.5, y + Math.sin(a + k * .4) * k * 3.6);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 22; i++) {                       // o rasgo, por onde se vê o chão
+      ctx.fillStyle = 'rgba(10,10,14,.8)';
+      ctx.beginPath();
+      ctx.ellipse(_rnd() * S, _rnd() * S, 2 + _rnd() * 5, 1.5 + _rnd() * 3, _rnd() * 3, 0, 7); ctx.fill();
+    }
+    _speckle(ctx, S, c, 200, 1, 2, .5, .78);             // a sujeira presa na teia
+  },
+  bone(ctx, S, c) {                                      // ossada: o chão da cripta é o que sobrou
+    ctx.fillStyle = _rgb(c, .3); ctx.fillRect(0, 0, S, S);        // a falha entre os ossos
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 260; i++) {                      // osso longo: cápsula, não risco
+      const x = _rnd() * S, y = _rnd() * S, a = _rnd() * 3.14, l = 4 + _rnd() * 10;
+      ctx.strokeStyle = _rgb(c, .72 + _rnd() * .34);
+      ctx.lineWidth = 2.2 + _rnd() * 2.4;
+      ctx.beginPath(); ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); ctx.stroke();
+      ctx.strokeStyle = _rgb(c, .42);                    // a sombra do osso de baixo
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.sin(a) * 1.6, y - Math.cos(a) * 1.6 + 1.4);
+      ctx.lineTo(x + Math.cos(a) * l + Math.sin(a) * 1.6, y + Math.sin(a) * l - Math.cos(a) * 1.6 + 1.4);
+      ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    for (let i = 0; i < 10; i++) {                       // crânio: a silhueta que nomeia o tile
+      const x = _rnd() * S, y = _rnd() * S, r = 3.2 + _rnd() * 1.4;
+      ctx.fillStyle = _rgb(c, .5);                       // sombra debaixo, para ter volume
+      ctx.beginPath(); ctx.ellipse(x, y + 1.6, r * 1.1, r * .9, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = _rgb(c, 1.02);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+      ctx.fillRect(x - r * .62, y + r * .42, r * 1.24, r * .72);
+      ctx.fillStyle = _rgb(c, .26);                      // as duas órbitas, e é só o que cabe em 32px
+      ctx.fillRect(x - r * .58, y - r * .2, r * .46, r * .5);
+      ctx.fillRect(x + r * .12, y - r * .2, r * .46, r * .5);
+    }
+  },
+  ash(ctx, S, c) {                                       // cinza: pó fino que guarda a marca do pé
+    /* O claro da cinza é acinzentado e o escuro é o carvão que sobrou. Saindo
+       tudo da mesma cor quente, o tile lia como lama. */
+    const PO = _dessat(c, .55);
+    ctx.fillStyle = _rgb(PO, .95); ctx.fillRect(0, 0, S, S);
+    _speckle(ctx, S, PO, 900, 1, 2, .85, 1.25);          // grão fino, contraste curto
+    for (let i = 0; i < 22; i++) {                       // monte e cova: cinza não fica plana
+      ctx.fillStyle = _rgb(PO, i % 2 ? 1.3 : .68);
+      ctx.beginPath();
+      ctx.ellipse(_rnd() * S, _rnd() * S, 5 + _rnd() * 11, 3 + _rnd() * 6, _rnd() * 3, 0, 7); ctx.fill();
+    }
+    for (let i = 0; i < 60; i++) {                       // carvão que não virou pó: quente e escuro
+      ctx.fillStyle = _rgb(c, .3 + _rnd() * .25);
+      ctx.fillRect(_rnd() * S, _rnd() * S, 1 + _rnd() * 3, 1 + _rnd() * 2.4);
+    }
+  },
+  /* A pedra tem cor própria. Com pedra e musgo saindo da mesma cor verde, o tile
+     virava um segundo capim: numa ruína encostada na grama, os dois eram o mesmo
+     campo verde e o chão da ruína sumia. O que se vê aqui é PEDRA, e o musgo é
+     o que a está tomando. */
+  moss(ctx, S, c) {                                      // pedra tomada de musgo, em manchas
+    const PEDRA = 0x6e6a62;
+    ctx.fillStyle = _rgb(PEDRA, .8); ctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 60; i++) {                       // a laje quebrada por baixo
+      ctx.fillStyle = _rgb(PEDRA, .68 + _rnd() * .5);
+      ctx.beginPath();
+      const x = _rnd() * S, y = _rnd() * S, r = 3 + _rnd() * 6;
+      for (let a = 0; a < 5; a++) ctx.lineTo(x + Math.cos(a * 1.257) * r * (.7 + _rnd() * .5),
+                                             y + Math.sin(a * 1.257) * r * (.7 + _rnd() * .5));
+      ctx.fill();
+    }
+    _cracks(ctx, S, PEDRA, 16, .55);
+    for (let i = 0; i < 26; i++) {                       // a mancha de musgo, e ela não cobre tudo
+      const x = _rnd() * S, y = _rnd() * S, r = 4 + _rnd() * 9;
+      ctx.fillStyle = _rgb(c, .7 + _rnd() * .3);
+      ctx.beginPath();
+      for (let a = 0; a < 9; a++) {
+        const an = a * .7, rr = r * (.5 + _rnd() * .8);
+        ctx.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr);
+      }
+      ctx.fill();
+      for (let k = 0; k < 40; k++) {                     // tufo curto na borda da mancha
+        const an = _rnd() * 6.28, rr = r * (.6 + _rnd() * .6);
+        ctx.fillStyle = _rgb(c, 1 + _rnd() * .5);
+        ctx.fillRect(x + Math.cos(an) * rr, y + Math.sin(an) * rr, 1 + _rnd() * 1.8, 1 + _rnd() * 2);
+      }
+    }
+  },
+
+  /* ---- chão marcado, e é AUTORAL: o sangue de combate (drawBlood) e o campo
+     elemental (criaCampo) continuam sendo do motor e passam. Estes dois o autor
+     põe no mapa e ficam lá — é o lugar que carrega o que aconteceu nele. ---- */
+  gore(ctx, S, c) {                                      // laje encharcada há muito tempo
+    /* MANCHA, e mancha é o que ficou depois de secar: a laje continua sendo a
+       maior parte do tile e o sangue vive na junta e na baixada. A versão que
+       cobria o tile de poças vermelhas vivas lia como carne, não como lugar
+       onde aconteceu alguma coisa. */
+    const LAJE = _dessat(c, .82);
+    ctx.fillStyle = _rgb(LAJE, .62); ctx.fillRect(0, 0, S, S);
+    const p = S / 3;
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {     // a laje, e ela manda no tile
+      ctx.fillStyle = _rgb(LAJE, .82 + _rnd() * .22);
+      ctx.fillRect(i * p + 1, j * p + 1, p - 2, p - 2);
+    }
+    _speckle(ctx, S, LAJE, 300, 1, 2, .7, 1);
+    /* Doze e não cinco: em 96 px, cinco poças davam tile de 32 px sem nenhuma —
+       metade da mancha saía laje limpa e o lugar não contava mais nada. */
+    for (let i = 0; i < 12; i++) {                       // poça velha: escura, e a laje ainda manda
+      const x = _rnd() * S, y = _rnd() * S, r = 5 + _rnd() * 10;
+      ctx.fillStyle = _rgb(c, .62, .8);
+      ctx.beginPath();
+      for (let a = 0; a < 11; a++) {
+        const an = a * .571, rr = r * (.55 + _rnd() * .7);
+        ctx.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr * .8);
+      }
+      ctx.fill();
+      ctx.fillStyle = _rgb(c, .3, .85);                  // o miolo secou quase preto
+      ctx.beginPath(); ctx.ellipse(x, y, r * .4, r * .3, 0, 0, 7); ctx.fill();
+    }
+    for (let i = 0; i < 170; i++) {                      // respingo, que é o que conta a violência
+      ctx.fillStyle = _rgb(c, .5 + _rnd() * .4, .35 + _rnd() * .4);
+      ctx.fillRect(_rnd() * S, _rnd() * S, .8 + _rnd() * 1.6, .8 + _rnd() * 1.6);
+    }
+    for (let i = 0; i < 20; i++) {                       // e o que escorreu para a junta
+      const j = (_rnd() * 3 | 0) * p, hor = _rnd() < .5;
+      ctx.fillStyle = _rgb(c, .38, .6);
+      if (hor) ctx.fillRect(_rnd() * S, j, 6 + _rnd() * 22, 2);
+      else ctx.fillRect(j, _rnd() * S, 2, 6 + _rnd() * 22);
+    }
+  },
+  /* Selo gravado: MOTIVO, então 3×3 como a porta. E o motivo ENCOSTA nas quatro
+     bordas de propósito — assim tile vizinho emenda com tile vizinho e um chão
+     de selo lê como uma inscrição grande. Com o anel fechado no meio do tile,
+     um piso inteiro virava grade de medalhões idênticos, que é o "repeated
+     identical cards" que o §23 veta. A laje sai CINZA (_dessat) e a cor
+     saturada, que existe para o tile não se confundir na régua de paleta, fica
+     só no sulco — é ele que ainda tem alguma coisa acesa dentro. */
+  rune(ctx, S, c) {
+    const p = S / 3, LAJE = _dessat(c, .8);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+      ctx.save(); ctx.translate(i * p, j * p);
+      ctx.fillStyle = _rgb(LAJE, .72); ctx.fillRect(0, 0, p, p);
+      _speckle(ctx, p, LAJE, 90, 1, 2, .78, 1);
+      ctx.fillStyle = _rgb(LAJE, .5);                                // junta da laje
+      ctx.fillRect(0, p - 1.5, p, 1.5); ctx.fillRect(p - 1.5, 0, 1.5, p);
+      const m = p / 2, r = p * .3;
+      const grava = (f, w) => {                                      // sulco fundo, brilho no fundo dele
+        ctx.strokeStyle = f < 1 ? _rgb(LAJE, f) : _rgb(c, f);
+        ctx.lineWidth = w; ctx.lineJoin = 'round';
+        ctx.beginPath();                                             // losango que toca as 4 bordas
+        ctx.moveTo(m, 0); ctx.lineTo(p, m); ctx.lineTo(m, p); ctx.lineTo(0, m); ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath();                                             // e o anel preso a ele
+        ctx.arc(m, m, r, 0, 7); ctx.stroke();
+      };
+      grava(.34, 3.2);
+      grava(1.15, 1);                                                // brando: é brasa velha, não LED
+      ctx.fillStyle = _rgb(c, 1.4);
+      ctx.beginPath(); ctx.arc(m, m, 1.2, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+  },
   stone(ctx, S, c) {                                     // piso do templo: lajotas
     ctx.fillStyle = _rgb(c, .72); ctx.fillRect(0, 0, S, S);
     const n = 3, p = S / n;
@@ -201,12 +748,31 @@ function flowTexture(kind, hex) {
 /* Quem desenha borda por cima de quem. Pântano fica logo acima da água (é água
    com chão) e neve acima da grama — assim a tundra invade o campo e não o
    contrário, que é como bioma frio parece na natureza. */
-const TERRAIN_PRIO = { water: 0, swamp: 1, lava: 1, grass: 2, snow: 3, cave: 3, dirt: 4, sand: 5, rock: 6, stone: 7 };
+/* Lavoura entra com a MESMA prioridade do capim: prioridade igual não desenha
+   borda nenhuma, e é isso que se quer — o limite de um trigal é a linha reta
+   onde alguém parou de arar, não um degradê. Piso e porta ficam no topo porque
+   coisa construída invade o terreno, e nunca o contrário. */
+/* Lavoura fica ACIMA do capim: assim o trigal transborda para a grama vizinha e
+   o limite do campo deixa de ser a escadinha de tiles que denuncia o mapa. Musgo
+   e cinza entram junto do chão de caverna; coisa construída fica no topo, porque
+   ela invade o terreno e nunca o contrário. */
+const TERRAIN_PRIO = {
+  water: 0, swamp: 1, lava: 1, grass: 2,
+  crop: 3, snow: 3, cave: 3, moss: 3, ash: 3, webf: 3,
+  dirt: 4, gravel: 4, bone: 4, hay: 4,
+  sand: 5, rock: 6, ore: 6,
+  stone: 7, pave: 7, rubble: 7, gore: 7, rune: 7,
+  wall: 8, plank: 8, door: 8, door_open: 8, pier: 8, block: 8, prop: 8, web: 8
+};
 
 /* 8 máscaras de 32×32: 0..3 = N,L,S,O; 4..7 = NL,SL,SO,NO.
    O degradê sozinho dá borda de aerógrafo, que destoa de tudo em volta. A
    mordida em destination-out quebra a reta e devolve o serrilhado — e só morde
    onde a máscara já está no meio do caminho, para não furar o miolo opaco. */
+/* Para onde cada máscara aponta, do centro do tile para fora. É propriedade da
+   MÁSCARA, então mora aqui junto dela — o laço de borda do render2d usa esta
+   mesma lista, para não haver duas ordens de vizinho que possam divergir. */
+const EDGE_DIR = [[0, -1], [1, 0], [0, 1], [-1, 0], [1, -1], [1, 1], [-1, 1], [-1, -1]];
 const MASK_CACHE = [];
 function edgeMask(m) {
   if (MASK_CACHE[m]) return MASK_CACHE[m];
@@ -248,9 +814,51 @@ function borderSprite(kind, hex, m) {
   g.drawImage(tileTexture(kind, hex), 0, 0, 32, 32, 0, 0, 32, 32);
   g.globalCompositeOperation = 'destination-in';
   g.drawImage(edgeMask(m), 0, 0);
+  /* O contorno vem ASSADO aqui e não num segundo sprite: a chave é a mesma
+     (tex + cor + lado), então não custa cache nenhum e poupa um drawImage por
+     lado por tile — que no pior caso eram oito por tile, todo quadro.
+     Ordem: o lábio claro primeiro, a linha escura por cima. Invertida, o claro
+     sobra por fora e vira halo, que é o brilho que o §23 veta. */
+  g.globalCompositeOperation = 'source-atop';
+  g.globalAlpha = .5;
+  g.drawImage(_tinge(rimMask(m, RIM + 3), _rgb(hex, 1.35)), 0, 0);
+  g.globalAlpha = .62;
+  g.drawImage(_tinge(rimMask(m, RIM), _rgb(hex, .32)), 0, 0);
   return BORDER_CACHE[key] = c;
 }
+/* Pinta uma máscara de uma cor só. Sai daqui porque `source-in` sobre o próprio
+   canvas apagaria o que já está nele — a máscara tem de ser tingida à parte. */
+function _tinge(mask, cor) {
+  const c = _canvas(32), g = c.getContext('2d');
+  g.drawImage(mask, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = cor; g.fillRect(0, 0, 32, 32);
+  return c;
+}
 
+/* Contorno da junta entre terrenos. O degradê sozinho resolve a reta de 90° e
+   não desenha junta NENHUMA: um terreno desvanece no outro e o chão fica sem
+   limite, que é a leitura de tinta espalhada. Todo tileset feito à mão marca a
+   transição com uma linha escura e um lábio claro logo acima dela — é isso que
+   faz o caminho parecer cavado no capim em vez de pintado por cima.
+
+   A faixa sai da PRÓPRIA máscara: ela menos ela mesma deslocada para fora dá
+   exatamente o trecho onde a máscara está desvanecendo, que é onde a junta cai.
+   Derivar em vez de desenhar uma segunda curva garante que o contorno acompanhe
+   a mordida serrilhada do edgeMask — duas curvas separadas divergiriam, e o
+   contorno passaria ao lado da borda em vez de em cima dela. */
+const RIM = 3;
+const RIM_CACHE = {};
+function rimMask(m, d) {
+  const key = m + ':' + d;
+  if (RIM_CACHE[key]) return RIM_CACHE[key];
+  const c = _canvas(32), g = c.getContext('2d');
+  const [ax, ay] = EDGE_DIR[m];
+  g.drawImage(edgeMask(m), 0, 0);
+  g.globalCompositeOperation = 'destination-out';
+  g.drawImage(edgeMask(m), ax * d, ay * d);
+  return RIM_CACHE[key] = c;
+}
 /* ------------------------------------------------------------ arrebentação */
 /* A borda de terreno já resolve a reta de 90° entre dois chãos, mas água
    encostando em terra continua uma emenda parada: falta o que praia tem, que é a
@@ -308,6 +916,310 @@ function wallSprite(kind, hex) {
   g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, WALL_H - 2, 32, 2);
   return WALL_CACHE[key] = c;
 }
+
+/* Cerca: mourão e travessa, com vão entre os dois. Não é parede baixa — a
+   diferença entre cercar e murar é enxergar por cima, e ela vive no `top` do
+   tile (0,4, abaixo do 0,5 que corta a vista) e nesta silhueta vazada. Sem o
+   vão, sobra uma mureta, que é o mesmo defeito de fazer casa de pedregulho.
+   Duas variantes só, pelo eixo em que a cerca corre: quem manda é o vizinho, e
+   três lados de madeira num tile de canto ninguém repara. */
+const CERCA_TOP = 14, CERCA_H = 32 + CERCA_TOP, CERCA_MAD = 0x6b4a2a;
+const ESCORA_MAD = 0x6a4c2c;
+const CERCA_CACHE = {};
+function cercaSprite(horiz) {
+  const key = horiz ? 'h' : 'v';
+  if (CERCA_CACHE[key]) return CERCA_CACHE[key];
+  const c = _canvas2(32, CERCA_H), g = c.getContext('2d');
+  const pe = CERCA_TOP + 20;                                   // onde o mourão encosta no chão
+  const mourao = (x, y, w, h) => {
+    g.fillStyle = _rgb(CERCA_MAD, .85); g.fillRect(x, y, w, h);
+    g.fillStyle = _rgb(CERCA_MAD, 1.3); g.fillRect(x, y, w, 2); // topo cortado pega luz
+    g.fillStyle = _rgb(CERCA_MAD, .55); g.fillRect(x + w - 1, y, 1, h);
+  };
+  g.fillStyle = 'rgba(0,0,0,.28)';                             // sombra no pé, que prega no chão
+  g.fillRect(0, pe - 2, 32, 3);
+  if (horiz) {
+    g.fillStyle = _rgb(CERCA_MAD, 1.05);                       // travessas de ponta a ponta
+    g.fillRect(0, CERCA_TOP + 3, 32, 3); g.fillRect(0, CERCA_TOP + 11, 32, 3);
+    mourao(4, 0, 4, pe); mourao(24, 0, 4, pe);
+  } else {
+    g.fillStyle = _rgb(CERCA_MAD, 1.05);                       // a cerca some para o fundo
+    g.fillRect(13, 0, 3, pe); g.fillRect(19, 0, 3, pe);
+    mourao(12, CERCA_TOP - 4, 5, 24); mourao(12, pe - 6, 5, 6);
+  }
+  return CERCA_CACHE[key] = c;
+}
+
+/* Escoramento de mina: pórtico de duas pernas e um chapéu, na MESMA folha e no
+   mesmo encaixe da cerca. É objeto, não parede: entre as pernas se vê a galeria
+   continuar, e é isso que faz a Mina parecer cavada com plano em vez de um
+   corredor de pedra. Bloqueia o pé (o `walk` do tile) e não a vista (`top` 0,45).
+   Duas variantes pelo eixo da galeria, como a cerca. */
+function escoraSprite() {
+  if (CERCA_CACHE.escora) return CERCA_CACHE.escora;
+  const c = _canvas2(32, CERCA_H), g = c.getContext('2d');
+  const pe = CERCA_TOP + 22, topo = CERCA_TOP - 2;
+  const viga = (x, y, w, h) => {
+    g.fillStyle = _rgb(ESCORA_MAD, .8); g.fillRect(x, y, w, h);
+    g.fillStyle = _rgb(ESCORA_MAD, 1.3); g.fillRect(x, y, Math.min(w, 2), h);
+    g.fillStyle = _rgb(ESCORA_MAD, .5); g.fillRect(x + w - 2, y, 2, h);
+  };
+  g.fillStyle = 'rgba(0,0,0,.34)'; g.fillRect(0, pe - 2, 32, 4);   // sombra que prega no chão
+  viga(1, topo + 5, 8, pe - topo - 5);                             // as duas pernas
+  viga(23, topo + 5, 8, pe - topo - 5);
+  viga(0, topo, 32, 6);                                            // e o chapéu por cima delas
+  g.fillStyle = _rgb(ESCORA_MAD, 1.45); g.fillRect(0, topo, 32, 1.5);
+  g.fillStyle = _rgb(ESCORA_MAD, .62);                             // a cunha que trava o chapéu
+  g.fillRect(6, topo + 6, 4, 3); g.fillRect(22, topo + 6, 4, 3);
+  return CERCA_CACHE.escora = c;
+}
+
+/* Parede de teia. O wallSprite corta topo claro e face escura, que é como pedra
+   pega luz — aplicado a teia, produzia chapa ondulada e o Ninho virava galpão de
+   zinco. Aqui o volume vem de um degradê contínuo, e a leitura vem da borda de
+   BAIXO, que não é reta: fio pendurado. Sprite que encosta reto na borda do tile
+   lê como cortado pelo tile, e é isso que fazia a teia parecer bloco. */
+function teiaSprite(kind, hex, v) {
+  /* Oito variantes, sorteadas pelo TILE. A pedra pode repetir o mesmo sprite em
+     todo tile porque a textura dela é grão; teia é desenho, e o mesmo desenho a
+     cada 32 px vira papel de parede — foi o que apareceu na primeira olhada. */
+  const key = 'teia' + kind + hex + (v || 0);
+  if (WALL_CACHE[key]) return WALL_CACHE[key];
+  const c = _canvas2(32, WALL_H), g = c.getContext('2d');
+  _rnd = _mulberry(_hash(key));
+  const ox = ((v || 0) & 1) * 32, oy = (((v || 0) >> 1) % 3) * 16;   // recorte diferente por variante
+  g.drawImage(tileTexture(kind, hex), ox, oy, 32, WALL_H, 0, 0, 32, WALL_H);
+  const gr = g.createLinearGradient(0, 0, 0, WALL_H);
+  gr.addColorStop(0, 'rgba(255,255,255,.20)');           // o alto da massa vê a luz
+  gr.addColorStop(.36, 'rgba(0,0,0,0)');
+  gr.addColorStop(1, 'rgba(0,0,0,.52)');                 // e o pé dela some no escuro
+  g.fillStyle = gr; g.fillRect(0, 0, 32, WALL_H);
+  g.globalCompositeOperation = 'destination-out';        // come a borda de baixo, coluna a coluna
+  for (let x = 0; x < 32; x++) {
+    const corte = 2 + Math.abs(Math.sin(x * .55)) * 6 + _rnd() * 4;
+    g.fillRect(x, WALL_H - corte, 1, corte);
+  }
+  g.globalCompositeOperation = 'source-over';
+  g.lineWidth = 1;
+  for (let i = 0; i < 16; i++) {                         // o fio que ainda pende do que sobrou
+    const x = _rnd() * 32, y0 = WALL_H - 12 - _rnd() * 10;
+    g.strokeStyle = _rgb(hex, .85, .3 + _rnd() * .35);
+    g.beginPath(); g.moveTo(x, y0);
+    g.lineTo(x + (_rnd() - .5) * 3, y0 + 7 + _rnd() * 9); g.stroke();
+  }
+  _rnd = Math.random;
+  return WALL_CACHE[key] = c;
+}
+
+/* Parede com desenho PRÓPRIO. O padrão continua sendo o wallSprite — só entra
+   aqui o material cuja física não é a da pedra. */
+/* ------------------------------------------------- móveis da vila (#10)
+   Relato do dono do projeto: "o mapa está VAZIO, sem graça. Uma vila pode ter
+   uma fonte, um curral, uma carroça no meio da rua, barris de água, um moinho".
+   Estava certo — a vila tinha casa, rua e templo, e nada do que se põe ENTRE
+   eles, que é o que faz uma rua parecer usada em vez de recém-construída.
+   Os quatro seguem a receita do #48: objeto discreto, paleta curta de `_tons`,
+   sombra de um lado e luz do outro, e a MESMA direção de luz do resto do jogo —
+   claro em cima e à esquerda, sombra à direita e embaixo. O curral não está
+   aqui de propósito: curral é cerca em volta de terra batida, e a cerca já
+   existe. Tile novo para o que já dá para escrever seria tile a mais. */
+/* A pedra do poço é ESCURA e fria de propósito, e isso custou uma medição: era
+   0x8d8779, e o PAVE em que ele se apoia é 0x968a70 — distância 13, num projeto
+   cuja régua exige 30. O aro sumia dentro da calçada e o que restava a ler era
+   o pórtico de madeira com um buraco preto no meio.
+   É o corolário do #48b, e o mais caro deles: cor de material é constante
+   PRÓPRIA, não a cor do tile em que a coisa está. Vale duas vezes aqui, porque
+   poço e calçada são o mesmo material — pedra sobre pedra — e o que tem de
+   separar os dois é o poço ser velho e molhado, não claro. */
+const POCO_PEDRA = 0x5f6357, POCO_MAD = 0x6b4a2a, CARROCA_MAD = 0x7a5530;
+const BARRIL_MAD = 0x6e4a26, BARRIL_ARO = 0x4a4238, MOINHO_PEDRA = 0x9a8f78;
+const VILA_CACHE = {};
+
+/* Fonte/poço: aro redondo de pedra, água escura dentro, pórtico de madeira com
+   corda e balde. O que o faz ler de longe é a BOCA ESCURA — sem ela o aro vira
+   um monte de pedra qualquer, que é o defeito do #46 de novo. */
+function pocoSprite() {
+  if (VILA_CACHE.poco) return VILA_CACHE.poco;
+  /* DOIS POR DOIS. Num tile de 32 o aro cabia com 21 px e o poço lia como
+     balde de brinquedo. Com 64 ele tem o tamanho que uma boca de poço tem no
+     mundo — e é a diferença entre mobília e sujeira no chão. */
+  const W2 = 64, H2 = CERCA_TOP + 64;
+  const c = _canvas2(W2, H2), g = c.getContext('2d');
+  const t = _tons(POCO_PEDRA, 4, .7, 1.35), m = _tons(POCO_MAD, 3, .7, 1.25);
+  const cx = 32, pe = H2 - 6;
+  _el(g, cx, pe - 9, 26, 15, _rgb(t[1]));                  // o corpo do aro
+  _el(g, cx, pe - 17, 26, 14, _rgb(t[3]));                 // a borda, pegando luz
+  _el(g, cx, pe - 17, 19.5, 9.5, _rgb(t[0]));              // a espessura da alvenaria
+  _el(g, cx, pe - 16, 17, 7.5, '#12161a');                 // a boca: o buraco
+  _el(g, cx - 5, pe - 18, 5.5, 2.2, 'rgba(150,190,225,.30)');   // a água lá no fundo
+  /* As juntas: é a junta que diz alvenaria. Sem elas o anel sai liso e lê como
+     metal. Com 64 px cabem oito, e é aí que a pedra vira PEDRAS. */
+  g.strokeStyle = _rgb(POCO_PEDRA, .42); g.lineWidth = 1.6;
+  for (let i = 0; i < 8; i++) {
+    const a = -2.9 + i * .82;
+    g.beginPath(); g.moveTo(cx + Math.cos(a) * 20, pe - 17 + Math.sin(a) * 10);
+    g.lineTo(cx + Math.cos(a) * 26, pe - 9 + Math.sin(a) * 15); g.stroke();
+  }
+  /* O musgo, no lado que não pega sol: um poço de fazenda é velho e molhado, e
+     é o musgo que conta isso sem uma linha de texto. */
+  g.fillStyle = 'rgba(78,104,58,.5)';
+  g.fillRect(8, pe - 12, 9, 9); g.fillRect(46, pe - 7, 8, 6); g.fillRect(12, pe - 3, 6, 4);
+  // o pórtico: dois montantes e a travessa, com a corda e o balde
+  g.fillStyle = _rgb(m[0]); g.fillRect(13, CERCA_TOP + 2, 7, 40);      // esquerdo, na sombra
+  g.fillStyle = _rgb(m[2]); g.fillRect(44, CERCA_TOP + 2, 7, 40);      // direito, na luz
+  g.fillStyle = _rgb(m[1]); g.fillRect(9, CERCA_TOP - 4, 46, 7);       // a travessa
+  g.fillStyle = _rgb(POCO_MAD, 1.5); g.fillRect(9, CERCA_TOP - 4, 46, 2.5);
+  g.fillStyle = _rgb(POCO_MAD, .5); g.fillRect(9, CERCA_TOP + 1, 46, 2);
+  g.fillStyle = _rgb(m[0]); g.fillRect(20, CERCA_TOP - 1, 24, 5);      // o sarilho
+  g.fillStyle = _rgb(POCO_MAD, 1.35); g.fillRect(20, CERCA_TOP - 1, 24, 1.5);
+  g.fillStyle = 'rgba(214,199,164,.95)'; g.fillRect(31, CERCA_TOP + 4, 2, 16);  // a corda
+  g.fillStyle = _rgb(m[0]); g.fillRect(26, CERCA_TOP + 19, 13, 11);            // o balde
+  g.fillStyle = _rgb(POCO_MAD, 1.45); g.fillRect(26, CERCA_TOP + 19, 13, 2.5);
+  g.fillStyle = _rgb(0x4a4238, 1.1); g.fillRect(26, CERCA_TOP + 24, 13, 1.8);
+  /* `cx` e `feet` são o que o `dropShadow` do render usa para ancorar a sombra:
+     onde fica o eixo do objeto e onde ele encosta no chão. Sem eles a sombra
+     sai deslocada; com uma elipse assada no sprite, como estava antes, ela nem
+     existe — a mancha entrava no passe de luz junto com o objeto, escurecia com
+     ele à noite e parava de separar a coisa do chão. Era por isso que a carroça
+     lia como papel no chão. */
+  c.cx = 32; c.feet = H2;
+  return VILA_CACHE.poco = c;
+}
+
+/* Carroça de fazenda: caixa de tábua, duas rodas de raio e o varal. Duas
+   variantes pelo eixo, como a cerca — quem manda é o vizinho igual. */
+function carrocaSprite(horiz) {
+  const k = horiz ? 'ch' : 'cv';
+  if (VILA_CACHE[k]) return VILA_CACHE[k];
+  const c = _canvas2(32, CERCA_H), g = c.getContext('2d');
+  const t = _tons(CARROCA_MAD, 4, .68, 1.3);
+  const pe = CERCA_TOP + 26;
+  /* A RODA VEM DEPOIS DA CAÇAMBA. Na primeira versão vinha antes, e o caixote
+     cobria a metade de cima das duas: o que sobrava eram dois blocos escuros
+     nas pontas, que liam como alça e não como roda. Numa carroça vista de três
+     quartos a roda é o que está MAIS PERTO do olho — ela passa na frente da
+     caçamba, e é o aro dela que diz "isto anda". */
+  const roda = (x, y, r) => {
+    _el(g, x, y, r, r, '#241a10');                       // o pneu, quase preto
+    _el(g, x, y, r - 1.5, r - 1.5, _rgb(t[1]));
+    g.strokeStyle = _rgb(t[3]); g.lineWidth = 1.1;
+    for (let i = 0; i < 4; i++) {                        // os raios
+      const a = i * Math.PI / 4;
+      g.beginPath(); g.moveTo(x - Math.cos(a) * (r - 2.2), y - Math.sin(a) * (r - 2.2));
+      g.lineTo(x + Math.cos(a) * (r - 2.2), y + Math.sin(a) * (r - 2.2)); g.stroke();
+    }
+    _el(g, x, y, 2, 2, _rgb(t[3]));                      // o cubo
+  };
+  if (horiz) {
+    /* A caçamba é mais ESTREITA que o tile de propósito: a roda tem de sobrar
+       para fora dela dos dois lados, senão vira um caixote com sombra embaixo. */
+    g.fillStyle = _rgb(t[1]); g.fillRect(6, pe - 22, 20, 13);          // a caçamba
+    g.fillStyle = _rgb(t[3]); g.fillRect(6, pe - 22, 20, 2.5);         // a borda de cima, na luz
+    g.fillStyle = _rgb(CARROCA_MAD, .5); g.fillRect(23, pe - 22, 3, 13);
+    g.fillStyle = _rgb(CARROCA_MAD, .58);
+    for (let x = 9; x < 25; x += 4) g.fillRect(x, pe - 19, 1.2, 9);    // as tábuas
+    g.fillStyle = _rgb(t[2]); g.fillRect(0, pe - 14, 7, 2.5);          // o varal
+    roda(9, pe - 6, 6); roda(23, pe - 6, 6);
+  } else {
+    g.fillStyle = _rgb(t[1]); g.fillRect(9, pe - 26, 14, 20);
+    g.fillStyle = _rgb(t[3]); g.fillRect(9, pe - 26, 14, 2.5);
+    g.fillStyle = _rgb(CARROCA_MAD, .5); g.fillRect(20, pe - 26, 3, 20);
+    g.fillStyle = _rgb(CARROCA_MAD, .58);
+    for (let y = pe - 23; y < pe - 8; y += 4) g.fillRect(10, y, 12, 1.2);
+    g.fillStyle = _rgb(t[2]); g.fillRect(15, pe - 32, 2.5, 7);
+    roda(6, pe - 12, 6); roda(26, pe - 12, 6);
+  }
+  c.cx = 16; c.feet = pe + 2;
+  return VILA_CACHE[k] = c;
+}
+
+/* Barris: dois, de tamanhos diferentes. Um só lê como tonel esquecido; o par lê
+   como depósito, que é o que uma vila de fazenda encosta na parede. */
+function barrilSprite(horiz) {
+  const k = horiz ? 'bh' : 'bv';
+  if (VILA_CACHE[k]) return VILA_CACHE[k];
+  const c = _canvas2(32, CERCA_H), g = c.getContext('2d');
+  const t = _tons(BARRIL_MAD, 4, .7, 1.3);
+  const pe = CERCA_TOP + 26;
+  const barril = (cx, cy, w, h) => {
+    g.fillStyle = _rgb(t[1]);                                     // o bojo, que é o que faz barril
+    g.beginPath(); g.moveTo(cx - w / 2, cy - h / 2 + 2);
+    g.quadraticCurveTo(cx - w / 2 - 1.6, cy, cx - w / 2, cy + h / 2 - 2);
+    g.lineTo(cx + w / 2, cy + h / 2 - 2);
+    g.quadraticCurveTo(cx + w / 2 + 1.6, cy, cx + w / 2, cy - h / 2 + 2);
+    g.closePath(); g.fill();
+    g.fillStyle = _rgb(BARRIL_MAD, .52); g.fillRect(cx + w / 2 - 2, cy - h / 2 + 2, 2, h - 4);
+    g.fillStyle = _rgb(BARRIL_MAD, 1.35);
+    for (let x = cx - w / 2 + 2; x < cx + w / 2 - 1; x += 3) g.fillRect(x, cy - h / 2 + 2, 1, h - 4);
+    g.fillStyle = _rgb(BARRIL_ARO, 1.15);                   // os dois arcos
+    g.fillRect(cx - w / 2 - 1, cy - h / 4, w + 2, 1.6);
+    g.fillRect(cx - w / 2 - 1, cy + h / 5, w + 2, 1.6);
+    _el(g, cx, cy - h / 2 + 2, w / 2, 2.2, _rgb(t[3]));           // a tampa, pegando luz
+    _el(g, cx, cy - h / 2 + 2, w / 2 - 1.6, 1.4, _rgb(t[0]));
+  };
+  /* ESCALA. A primeira versão fez os dois com 11 e 9 px de largura num tile de
+     32 — de longe sumiam, de perto liam como brinquedo largado no chão. Medidos
+     os outros três móveis, o barril era o único fora da régua: poço 21 px,
+     carroça 24, moinho 26. Objeto de rua tem de OCUPAR a rua; do contrário não
+     é mobília, é sujeira. Agora o par enche o tile de ponta a ponta. */
+  if (horiz) { barril(11, pe - 12, 16, 20); barril(23, pe - 8, 13, 16); }
+  else { barril(14, pe - 17, 16, 20); barril(21, pe - 7, 13, 16); }
+  c.cx = 16; c.feet = pe + 2;
+  return VILA_CACHE[k] = c;
+}
+
+/* Moinho: torre de pedra e as PÁS. É o único destes que tapa a vista, porque é
+   prédio e não móvel — e numa ilha que vive de trigo é a silhueta que diz
+   "fazenda" de mais longe que qualquer outra coisa. Vai por PAREDE_DRAW pelo
+   mesmo motivo da teia: a régua de topo claro e face escura do wallSprite é
+   física de pedra lisa, e pá de moinho não é pedra. */
+function moinhoSprite() {
+  if (VILA_CACHE.moinho) return VILA_CACHE.moinho;
+  /* DOIS POR TRÊS, e este é o caso que provou a regra: com um tile por moinho,
+     dois tiles MILL lado a lado desenhavam DOIS MOINHOS COLADOS. Moinho é
+     prédio — ocupa o chão de um prédio. */
+  const W3 = 64, H3 = WALL_TOP + 96;
+  const c = _canvas2(W3, H3), g = c.getContext('2d');
+  const t = _tons(MOINHO_PEDRA, 5, .5, 1.3);
+  const base = H3 - 1, topo = WALL_TOP + 26;               // o corpo da torre
+  /* Tronco-cônica, mais larga embaixo: retângulo lê como chaminé. */
+  _poly(g, [[22, topo], [42, topo], [50, base], [14, base]], _rgb(t[1]));
+  _poly(g, [[36, topo], [42, topo], [50, base], [42, base]], _rgb(MOINHO_PEDRA, .5));
+  g.fillStyle = _rgb(MOINHO_PEDRA, .62);
+  for (let y = topo + 5; y < base - 2; y += 7) {           // as fiadas
+    const w = 20 + (y - topo) * .3; g.fillRect(32 - w / 2, y, w, 1.6);
+  }
+  g.fillStyle = '#241c14';                                 // porta e janelas
+  g.fillRect(27, base - 20, 10, 20);
+  g.fillRect(24, topo + 16, 6, 8); g.fillRect(35, topo + 16, 6, 8);
+  g.fillStyle = _rgb(0x6b4a2a, 1.15); g.fillRect(26, base - 20, 12, 2.5);   // a verga
+  // o capelo
+  _poly(g, [[18, topo + 2], [32, topo - 16], [46, topo + 2]], _rgb(0x6b4a2a, 1.1));
+  _poly(g, [[32, topo - 16], [46, topo + 2], [38, topo + 2]], _rgb(0x6b4a2a, .58));
+  /* As pás em ASPA e não em cruz: a cruz alinhada com o tile lê como grade de
+     janela, e é a inclinação que faz o olho ver moinho. */
+  const cx = 32, cy = topo - 8;
+  g.strokeStyle = _rgb(0x6b4a2a, 1.25); g.lineWidth = 2.4;
+  g.fillStyle = 'rgba(232,222,190,.88)';
+  for (let i = 0; i < 4; i++) {
+    const a = Math.PI / 4 + i * Math.PI / 2;
+    const ex = cx + Math.cos(a) * 26, ey = cy + Math.sin(a) * 26;
+    g.beginPath(); g.moveTo(cx, cy); g.lineTo(ex, ey); g.stroke();
+    g.save(); g.translate(ex, ey); g.rotate(a);            // a vela na ponta
+    g.fillRect(-11, -5, 11, 10); g.restore();
+  }
+  _el(g, cx, cy, 3.4, 3.4, _rgb(0x4a3520, 1));             // o eixo
+  c.cx = 32; c.feet = H3;
+  return VILA_CACHE.moinho = c;
+}
+
+const PAREDE_DRAW = { teia: teiaSprite, moinho: moinhoSprite };
+const paredeSprite = (def, v) => (def.parede ? PAREDE_DRAW[def.parede] : wallSprite)(def.tex, def.c, v);
+
+/* Tile que carrega objeto em cima do chão: o `obj` da ficha do tile diz qual.
+   Dois hoje, e é o suficiente para o render não precisar conhecer nome de tile. */
+const OBJ_DRAW = { cerca: cercaSprite, escora: escoraSprite,
+  poco: pocoSprite, carroca: carrocaSprite, barril: barrilSprite };
 
 /* -------------------------------------------------------- sprites 2D (Tibia) */
 /* 4 direções × 3 quadros de passo, desenhados uma vez e guardados em cache.
