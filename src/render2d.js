@@ -87,14 +87,15 @@ function screenToTile(ev, canvas) {
   return [Math.round(P.px + (sx - VW / 2) / t), Math.round(P.py + (sy - VH / 2) / t)];
 }
 /* ------------------------------------------------------------- caches */
-let decoMaps = null, floorVoid = null, cacheSeed = -1;
+/* O cache de `deco` saiu daqui: quem indexa objeto por tile agora é o
+   `reindexObjs` do world.js, e ter um segundo índice no render era a mesma
+   estrutura mantida em dois lugares — o editor mexe na lista e só um dos dois
+   saberia. Sobra o `floorVoid`, que é sobre o terreno. */
+let floorVoid = null, cacheSeed = -1;
 function worldCaches() {
-  if (cacheSeed === WORLD.seed && decoMaps) return;
-  cacheSeed = WORLD.seed; decoMaps = []; floorVoid = [];
+  if (cacheSeed === WORLD.seed && floorVoid) return;
+  cacheSeed = WORLD.seed; floorVoid = [];
   for (let z = 0; z < FLOORS; z++) {
-    const m = new Map();
-    for (const d of WORLD.floors[z].deco) m.set(d.y * W + d.x, d);
-    decoMaps.push(m);
     const t = WORLD.floors[z].t;
     let vazio = false;
     for (let i = 0; i < t.length; i++) if (t[i] === T.VOID) { vazio = true; break; }
@@ -357,44 +358,60 @@ function dropShadow(spr, px, py) {
 }
 
 function drawFloor(z, x0, x1, y0, y1, t, bucket) {
-  const S = CAM.scale, dz = (P.z - z) * t, deco = decoMaps[z];
+  const S = CAM.scale, dz = (P.z - z) * t;
   const meio = VW / 2 - t / 2, meioY = VH / 2 - t / 2;
   const telaX = x => Math.round((x - camX) * t - dz + meio);
   const telaY = y => Math.round((y - camY) * t - dz + meioY);
-  const alto = (x, y) => TILE[tileAt(x, y, z)].top > 0.5;
+  /* "É alto?" passou a perguntar às DUAS camadas — a parede virou objeto, e a
+     sombra de contato que ela projeta no chão do vizinho é desenhada aqui. Só o
+     terreno, isto responderia "não" para toda parede do jogo e as paredes
+     passariam a flutuar sem sombra nenhuma. */
+  const alto = (x, y) => TILE[tileAt(x, y, z)].top > 0.5 || objsAt(x, y, z).some(objTapaVista);
+  /* A largura de um tile na tela é a DISTÂNCIA ATÉ O VIZINHO, e não `t`.
+     Parece a mesma coisa e não é quando `t` é fracionário: a posição de cada
+     tile é arredondada (senão o pixel treme ao rolar a câmera) e a largura era
+     `t` cheio, então a cada 1/frac(t) tiles a conta deixava UM PIXEL DE FRESTA e
+     o fundo escuro aparecia por baixo. O efeito é uma grade que não existe,
+     riscando mapa e oceano por igual.
+     Nunca apareceu no jogo porque lá o zoom é 2 e o tile mede 64 px inteiros; o
+     editor, que mostra o mapa afastado, caiu nela na primeira olhada — medido a
+     2,2 px por tile: fração 0,2, uma linha escura a cada 5 tiles, exatamente o
+     que a conta prevê. Tirando a diferença dos dois cantos arredondados, tile
+     vizinho encosta em tile vizinho em qualquer zoom. */
+  const largT = x => telaX(x + 1) - telaX(x);
+  const altT = y => telaY(y + 1) - telaY(y);
 
   /* 1º passe: só o chão. Tem de sair inteiro antes de qualquer sombra — o tile
      do vizinho, desenhado depois, apagaria a sombra que cai em cima dele. */
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     const tt = tileAt(x, y, z), def = TILE[tt];
     if (def.hide || def.top > 0.5) continue;
-    const sx = telaX(x), sy = telaY(y);
+    const sx = telaX(x), sy = telaY(y), tw = largT(x), th = altT(y);
     const cropX = ((x % 3) + 3) % 3 * TS, cropY = ((y % 3) + 3) % 3 * TS;
     const corre = def.tex === 'water' || def.tex === 'lava';
     if (corre) {
       // o recorte desce com o relógio: a água escorre em vez de só piscar
       const vel = def.tex === 'lava' ? .004 : .011;
       g2.drawImage(flowTexture(def.tex, def.c),
-        cropX, cropY + (G.now * vel) % TEX_S, TS, TS, sx, sy, t, t);
+        cropX, cropY + (G.now * vel) % TEX_S, TS, TS, sx, sy, tw, th);
       const k = Math.sin(G.now * 0.0018 + x * .7 + y * .5);
       g2.globalAlpha = def.tex === 'lava' ? .18 + k * .12 : .05 + k * .04;
       g2.fillStyle = def.tex === 'lava' ? '#ff8a2a' : '#cfe8ff';
-      g2.fillRect(sx, sy, t, t); g2.globalAlpha = 1;
+      g2.fillRect(sx, sy, tw, th); g2.globalAlpha = 1;
       if (def.tex === 'lava' && z === P.z)
         luzes.push({ x: sx + t / 2, y: sy + t / 2, r: t * 2.2, cor: '#ff8c32', a0: .8, a1: .3 });
     } else {
-      /* A porta é o único tile cuja TEXTURA muda em jogo, e é aqui que ela
-         muda: o resto do render não conhece porta, só pergunta ao tile qual é a
-         textura dele. Fechada e aberta com o mesmo desenho era o defeito — abrir
-         não mudava nada na tela. */
-      const tex = tt === T.DOOR && portaAberta(x, y, z) ? 'door_open' : (def.tex || 'dirt');
-      g2.drawImage(tileTexture(tex, def.c), cropX, cropY, TS, TS, sx, sy, t, t);
+      /* A porta saiu daqui: ela deixou de ser tile e virou objeto, então quem
+         a desenha é o laço de objetos do 2º passe, com a textura escolhida pelo
+         `aberta` da INSTÂNCIA. O 1º passe voltou a fazer uma coisa só —
+         perguntar ao tile qual é a textura do chão. */
+      g2.drawImage(tileTexture(def.tex || 'dirt', def.c), cropX, cropY, TS, TS, sx, sy, tw, th);
     }
-    tileBorders(x, y, z, def, sx, sy, t);
-    if (tt === T.DOWN || tt === T.UP) g2.drawImage(stairSprite(tt === T.DOWN), sx, sy, t, t);
+    tileBorders(x, y, z, def, sx, sy, t, tw, th);
+    if (tt === T.DOWN || tt === T.UP) g2.drawImage(stairSprite(tt === T.DOWN), sx, sy, tw, th);
     // parede ao norte ou a oeste projeta no chão daqui: é a sombra dela e o contato
-    if (alto(x, y - 1)) g2.drawImage(edgeShadow(0), sx, sy, t, t);
-    if (alto(x - 1, y)) g2.drawImage(edgeShadow(1), sx, sy, t, t);
+    if (alto(x, y - 1)) g2.drawImage(edgeShadow(0), sx, sy, tw, th);
+    if (alto(x - 1, y)) g2.drawImage(edgeShadow(1), sx, sy, tw, th);
   }
 
   /* Sangue do chão entra entre os dois passes: depois do piso inteiro, para a
@@ -438,74 +455,92 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
   for (let y = y0; y <= y1; y++) { for (let x = x0; x <= x1; x++) {
     const tt = tileAt(x, y, z), def = TILE[tt];
     if (def.hide && !bucket) continue;                    // buraco ainda pode ter alguém em cima
-    const sx = telaX(x), sy = telaY(y);
+    const sx = telaX(x), sy = telaY(y), tw = largT(x), th = altT(y);
     if (!def.hide) {
-      // a variante sai do TILE, mesmo embaralhamento da deco: parede de desenho
-      // (teia) repetindo o mesmo sprite a cada 32 px vira papel de parede
-      /* OBJETO DE MAIS DE UM TILE. Um tile tem 32 px, e poço, moinho e fonte
-         desenhados dentro de um só serão pequenos por construção — nenhum
-         ajuste de desenho conserta isso. Quem declara `span` ocupa o rastro
-         inteiro no mapa, mas só a ÂNCORA (o canto noroeste) desenha, e desenha
-         a coisa toda; os outros tiles do rastro apenas bloqueiam.
-         O moinho provou a necessidade do jeito mais direto: dois tiles MILL
-         lado a lado desenhavam DOIS MOINHOS colados.
-         ponytail: a âncora é "não tenho vizinho igual a oeste nem ao norte", o
-         que basta para objeto isolado. Dois objetos iguais encostados leriam
-         como um só — se um dia isso acontecer, o caminho é um id de canto. */
-      const sp = def.span;
-      if (sp && (tileAt(x - 1, y, z) === tt || tileAt(x, y - 1, z) === tt)) {
-        // rastro: bloqueia e não desenha
-      } else if (sp) {
-        const alto = def.obj ? CERCA_TOP : WALL_TOP;
-        const spr = def.obj ? OBJ_DRAW[def.obj]() : PAREDE_DRAW[def.parede]();
-        /* A sombra vem do MOTOR, a mesma da árvore e do boneco: mancha de
-           contato mais silhueta projetada, inclinada pelo sol e com a alfa
-           seguindo `solF`. Baixa o objeto no chão em vez de deixá-lo boiando.
-           A projetada sozinha não basta e a de contato sozinha também não — é a
-           de contato que prende, e é a projetada que dá direção. */
-        dropShadow(spr, sx + t * sp[0] / 2, sy + t * (sp[1] - 1) + t * CHAO);
-        g2.drawImage(spr, sx, sy - alto * S, t * sp[0], (alto + 32 * sp[1]) * S);
-      } else if (def.top > 0.5) g2.drawImage(paredeSprite(def, ((x * 92837111) ^ (y * 689287499)) >>> 29),
-        sx, sy - WALL_TOP * S, t, WALL_H * S);
-      // objeto de tile (cerca, escoramento) sai no 2º passe, com os volumes: no
-      // 1º viraria risco pintado no chão e o jogador passaria por cima do que
-      // devia estar na frente dele. O eixo vem do vizinho IGUAL — é o que faz a
-      // cerca correr no sentido da cerca e a escora no sentido da galeria.
-      else if (def.obj) {
-        const spr = OBJ_DRAW[def.obj](tileAt(x - 1, y, z) === tt || tileAt(x + 1, y, z) === tt);
-        /* Cerca e escoramento CORREM em linha, e sombra projetada por tile num
-           lance de cerca vira serrilha; quem tem sombra de motor é o objeto
-           SOLTO — carroça, barril, poço. É o `sombra` da ficha do tile que
-           decide, e não o nome do objeto, senão o render volta a conhecer tile
-           por tile. */
-        if (def.sombra) dropShadow(spr, sx + t / 2, sy + t * CHAO);
-        g2.drawImage(spr, sx, sy - CERCA_TOP * S, t, CERCA_H * S);
-      }
-      const d = deco.get(y * W + x);
-      if (d) {
+      /* Um laço sobre os OBJETOS do tile, no lugar dos três ramos que havia
+         aqui — âncora de `span`, parede e objeto-de-tile — mais o laço separado
+         de `deco`. Os quatro perguntavam ao TILE o que desenhar em cima do
+         chão, o que só funcionava porque objeto era tile; agora perguntam ao
+         objeto, e a ordem de desenho é a ordem da lista, que é a ordem em que o
+         autor colocou. É o que permite N por tile: a tocha sai depois da parede
+         em que está pregada, a caneca depois da mesa. */
+      for (const o of objsAt(x, y, z)) {
+        /* Rastro de objeto grande: só a ÂNCORA desenha. Um tile tem 32 px, e
+           poço, moinho e fonte desenhados dentro de um só serão pequenos por
+           construção — nenhum ajuste de desenho conserta isso.
+           A âncora deixou de ser adivinhada ("não tenho vizinho igual a oeste
+           nem ao norte", que lia dois objetos iguais encostados como um só) e
+           passou a ser o que a entrada DIZ que é. */
+        if (o.x !== x || o.y !== y) continue;
+        const d = OBJ[o.o]; if (!d) continue;
         // 9 variantes por `x*7+y*13` repetiam em diagonal e a olho nu; 16 com as
         // duas coordenadas embaralhadas quebram o padrão sem inchar o cache
-        const s = outlined(decoSprite(d.k, ((x * 92837111) ^ (y * 689287499)) >>> 28));
+        const v = ((x * 92837111) ^ (y * 689287499)) >>> 28;
         const gx = sx + t / 2, gy = sy + t * CHAO;
-        dropShadow(s, gx, gy);
-        /* Vento: cisalhamento com o pivô no PÉ da planta — a mesma transform da
-           sombra projetada. Assim a raiz fica pregada no chão e quem balança é a
-           copa, que é como planta se mexe; inclinar o desenho inteiro faria a
-           árvore deslizar de lado.
-           A fase sai do TILE, não só do relógio: com a fase igual o bosque
-           inteiro se inclina junto, que lê como cortina, não como vento.
-           Pedra (k=1) não balança, arbusto (k=2) balança menos que árvore. */
-        /* No vento cheio a copa fica dobrada para um lado e só treme em cima
-           disso — planta em temporal não oscila em torno da vertical, ela deita.
-           Por isso o vento entra como VIÉS somado, e não só como amplitude. */
-        const vies = (ventoF - .3) * VENTO_INCL * 1.6;
-        const balanco = d.k === 1 ? 0
-          : (vies + Math.sin(G.now * .0016 * (.5 + ventoF) + x * .9 + y * 1.7) * VENTO_INCL * (.4 + ventoF))
-            * (d.k === 0 ? 1 : .5);
-        g2.save();
-        g2.transform(1, 0, balanco, 1, gx, gy);
-        g2.drawImage(s, -s.cx * S, -s.feet * S, s.width * S, s.height * S);
-        g2.restore();
+
+        /* Planta: sprite de deco, com vento e sombra de motor. */
+        if (d.deco !== undefined) {
+          const s = outlined(decoSprite(d.deco, v));
+          dropShadow(s, gx, gy);
+          /* Vento: cisalhamento com o pivô no PÉ da planta — a mesma transform
+             da sombra projetada. Assim a raiz fica pregada no chão e quem
+             balança é a copa, que é como planta se mexe; inclinar o desenho
+             inteiro faria a árvore deslizar de lado.
+             A fase sai do TILE, não só do relógio: com a fase igual o bosque
+             inteiro se inclina junto, que lê como cortina, não como vento.
+             No vento cheio a copa fica dobrada para um lado e só treme em cima
+             disso — planta em temporal não oscila em torno da vertical, ela
+             deita. Por isso o vento entra como VIÉS somado, não só amplitude.
+             Pedra não balança, moita balança metade da árvore. */
+          const vies = (ventoF - .3) * VENTO_INCL * 1.6;
+          const balanco = d.deco === 1 ? 0
+            : (vies + Math.sin(G.now * .0016 * (.5 + ventoF) + x * .9 + y * 1.7) * VENTO_INCL * (.4 + ventoF))
+              * (d.deco === 0 ? 1 : .5);
+          g2.save();
+          g2.transform(1, 0, balanco, 1, gx, gy);
+          g2.drawImage(s, -s.cx * S, -s.feet * S, s.width * S, s.height * S);
+          g2.restore();
+        }
+        /* PORTA: decalque de chão, e o único objeto cuja textura muda em jogo.
+           Ela nunca teve volume — era um tile `walk:true` com textura própria —,
+           e continua não tendo: o que muda ao abrir é a SILHUETA (some a folha
+           do meio do vão), medido em 94% dos pixels. */
+        else if (d.draw === 'porta')
+          g2.drawImage(tileTexture(o.aberta ? 'door_open' : 'door', 0x7a5330), 0, 0, TS, TS, sx, sy, tw, th);
+        /* Objeto de mais de um tile: desenha a coisa inteira a partir da âncora.
+           A sombra vem do MOTOR, a mesma da árvore e do boneco: mancha de
+           contato mais silhueta projetada, inclinada pelo sol e com a alfa
+           seguindo `solF`. Baixa o objeto no chão em vez de deixá-lo boiando —
+           a projetada sozinha não basta e a de contato sozinha também não: é a
+           de contato que prende, e a projetada que dá direção. */
+        else if (d.span) {
+          const sp = d.span, alto = d.top > 0.5 ? WALL_TOP : CERCA_TOP;
+          const spr = (PAREDE_DRAW[d.draw] || OBJ_DRAW[d.draw])();
+          dropShadow(spr, sx + t * sp[0] / 2, sy + t * (sp[1] - 1) + t * CHAO);
+          g2.drawImage(spr, sx, sy - alto * S, t * sp[0], (alto + 32 * sp[1]) * S);
+        }
+        /* Parede. A cor e a textura são do MATERIAL do objeto — não mais do
+           tile, que agora é o chão que ele pisa. */
+        else if (d.top > 0.5)
+          g2.drawImage((d.draw ? PAREDE_DRAW[d.draw] : wallSprite)(d.tex, d.c, v >>> 1),
+            sx, sy - WALL_TOP * S, tw, WALL_H * S);
+        /* Objeto solto ou corrido (cerca, escoramento, barril). Sai no 2º passe,
+           com os volumes: no 1º viraria risco pintado no chão e o jogador
+           passaria por cima do que devia estar na frente dele. O eixo vem do
+           vizinho IGUAL — é o que faz a cerca correr no sentido da cerca e a
+           escora no sentido da galeria. */
+        else if (d.draw) {
+          const spr = OBJ_DRAW[d.draw](d.eixo
+            ? objsAt(x - 1, y, z).some(n => n.o === o.o) || objsAt(x + 1, y, z).some(n => n.o === o.o)
+            : false);
+          /* Cerca e escoramento CORREM em linha, e sombra projetada por tile num
+             lance de cerca vira serrilha; quem tem sombra de motor é o objeto
+             SOLTO — carroça, barril, poço. É o `sombra` da FICHA que decide, e
+             não o nome do objeto, senão o render volta a conhecer coisa por
+             coisa. */
+          if (d.sombra) dropShadow(spr, gx, gy);
+          g2.drawImage(spr, sx, sy - CERCA_TOP * S, tw, CERCA_H * S);
+        }
       }
     }
   }
@@ -535,7 +570,12 @@ const peY = it => it.k === 'bicho' ? it.e.py : it.by;
    cobriu aquela quina — senão sai mancha dobrada, mais escura que o resto.
    Parede e buraco ficam de fora: não são chão, quem cuida deles é o 2º passe. */
 const NB8 = EDGE_DIR;                                   // a ordem é a das máscaras, e mora com elas
-function tileBorders(x, y, z, def, sx, sy, t) {
+/* `tw`/`th` pelo mesmo motivo do 1º passe: a borda entre dois terrenos é
+   estampada por tile, e desenhada com `t` cheio enquanto o chão usa a distância
+   até o vizinho ela sobra ou falta um pixel — a 11,3 px por tile isso deixava 43
+   colunas escuras, a mesma grade falsa por outra porta. */
+function tileBorders(x, y, z, def, sx, sy, t, tw, th) {
+  tw = tw || t; th = th || t;
   const p0 = TERRAIN_PRIO[def.tex] || 0;
   const praia = def.tex === 'water';
   let orto = 0;
@@ -546,7 +586,7 @@ function tileBorders(x, y, z, def, sx, sy, t) {
     if ((TERRAIN_PRIO[nd.tex] || 0) <= p0) continue;
     if (m < 4) orto |= 1 << m;
     // o borderSprite já traz o contorno da junta assado dentro dele
-    g2.drawImage(borderSprite(nd.tex, nd.c, m), sx, sy, t, t);
+    g2.drawImage(borderSprite(nd.tex, nd.c, m), sx, sy, tw, th);
     /* Espuma: só no tile de água e só nas ortogonais — a máscara de canto é
        radial e a faixa sairia curva, e o canto quase sempre já tem um dos dois
        lados ortogonais espumando do lado.
@@ -554,7 +594,7 @@ function tileBorders(x, y, z, def, sx, sy, t) {
        junta, que lê como cintilação de tela, não como arrebentação. */
     if (praia && m < 4) {
       g2.globalAlpha = .30 + Math.sin(G.now * .0026 + x * .8 + y * 1.1 + m) * .16;
-      g2.drawImage(foamSprite(m), sx, sy, t, t);
+      g2.drawImage(foamSprite(m), sx, sy, tw, th);
       g2.globalAlpha = 1;
     }
   }

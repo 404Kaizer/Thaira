@@ -19,8 +19,8 @@ const ctx = {
 vm.createContext(ctx);
 for (const f of ['data.js', 'art.js', 'world.js'])
   vm.runInContext(fs.readFileSync(path.join(raiz, 'src', f), 'utf8'), ctx, { filename: f });
-vm.runInContext('globalThis.__C = { T, TILE, TILE_CHAR, mulberry32, MONSTERS };', ctx);
-const { T, TILE, TILE_CHAR, mulberry32, MONSTERS } = ctx.__C;
+vm.runInContext('globalThis.__C = { T, TILE, TILE_CHAR, mulberry32, MONSTERS, OBJ, parteCamadas };', ctx);
+const { T, TILE, TILE_CHAR, mulberry32, MONSTERS, OBJ, parteCamadas } = ctx.__C;
 
 /* ------------------------------------------------------------------ base */
 function novoMapa(cfg) {
@@ -34,7 +34,6 @@ function novoMapa(cfg) {
     origem: 0,
     templo: { x: w >> 1, y: h >> 1, z: sup },
     hunts: [], pois: [], spawns: [],
-    deco: Array.from({ length: andares }, () => []),
     _t: Array.from({ length: andares }, () => new Uint8Array(w * h))
   };
 }
@@ -136,7 +135,7 @@ function povoa(m, z, cx, cy, r, elenco, quantos, seed, extra) {
     for (let x = Math.floor(cx - r); x <= cx + r; x++) {
       const dx = x - cx, dy = y - cy;
       if (dx*dx + dy*dy > r*r) continue;
-      if (!TILE[le(m, z, x, y)].walk) continue;
+      if (!andavel(m, z, x, y)) continue;
       if (m.spawns.some(s => s.z === z && s.x === x && s.y === y)) continue;
       postos.push([x, y]);
     }
@@ -182,13 +181,71 @@ function escada(m, zCima, zBaixo, x, y) {
   pinta(m, zBaixo, x, y, T.UP);
 }
 
+/* ------------------------------------------------------- a régua do jogo
+   ANDÁVEL é chão que se pisa E sem objeto bloqueando em cima. Antes da
+   separação de camadas isto era só `TILE[...].walk`, e bastava: parede e árvore
+   ERAM tiles. Agora não basta, e a diferença não é acadêmica — o dono põe uma
+   parede fechando um corredor, o terreno não muda, e a análise de componentes
+   não vê nada. Seria o quarto caso de medir com régua diferente da do jogo, que
+   é pior do que não medir: dá alarme falso, e o alarme falso esconde o
+   verdadeiro.
+
+   Funciona antes e depois de `parte()`: sem `m.objs` responde só pelo terreno,
+   que é o certo enquanto árvore e parede ainda são tiles do vocabulário de
+   autor. É o que permite as conferências rodarem dos dois lados da descida. */
+function objsEm(m, z, x, y) {
+  if (!m.objs || !m.objs[z]) return [];
+  if (!m._oi) m._oi = [];
+  if (!m._oi[z]) {
+    const idx = new Map();
+    for (const o of m.objs[z]) {
+      const sp = (OBJ[o.o] || {}).span || [1, 1];
+      for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) {
+        const k = (o.y + j) * m.w + (o.x + i), l = idx.get(k);
+        if (l) l.push(o); else idx.set(k, [o]);
+      }
+    }
+    m._oi[z] = idx;
+  }
+  return m._oi[z].get(y * m.w + x) || [];
+}
+/* PORTA CONTA COMO PASSAGEM aqui, e é uma diferença de propósito em relação ao
+   `isWalkable` do jogo. Lá a porta fechada barra o passo, e tem de barrar. Aqui
+   a pergunta é outra — "o jogador CONSEGUE chegar?" —, e a resposta para uma
+   porta é sim: ele abre. Sem esta linha cada casa da vila virou um componente
+   só dela, e a conferência passou de 3 pedaços para 15, denunciando como
+   conteúdo inalcançável exatamente aquilo que tem porta. Alarme falso esconde
+   alarme verdadeiro.
+   Quem quiser a régua crua do jogo passa `duro`. */
+function andavel(m, z, x, y, duro) {
+  if (!TILE[le(m, z, x, y)].walk) return false;
+  for (const o of objsEm(m, z, x, y)) {
+    const d = OBJ[o.o];
+    if (!d || o.aberta) continue;
+    if (d.abrivel && !duro) continue;
+    if (!d.walk) return false;
+  }
+  return true;
+}
+/* Desce o mapa de UMA camada para duas, no lugar onde o script mandar. Antes
+   isto acontecia escondido dentro do `salva`, e a ordem estava errada: o script
+   salvava e SÓ ENTÃO conferia, então as conferências mediam o mapa já partido
+   com a mata virando campo aberto. Explícito, o autor escolhe o momento — e o
+   momento certo é depois de todo o desenho e antes de toda conferência. */
+function parte(m, semente = 555) {
+  const espalhado = espalhaDeco(m, semente);
+  m.objs = m._t.map((t, z) => parteCamadas(t, espalhado[z], m.w, m.h));
+  m._oi = null;
+  return m.objs.map(l => l.length);
+}
+
 /* ---------------------------------------------------------------- saída */
 function conta(m, z) {
   let and = 0; const porTile = {};
   for (let i = 0; i < m.w * m.h; i++) {
     const t = m._t[z][i];
     porTile[t] = (porTile[t] || 0) + 1;
-    if (TILE[t].walk) and++;
+    if (andavel(m, z, i % m.w, (i / m.w) | 0)) and++;
   }
   return { and, porTile };
 }
@@ -199,7 +256,7 @@ function componentes(m, z) {
   const id = new Int32Array(m.w * m.h).fill(-1), tam = [];
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
     const i = y * m.w + x;
-    if (id[i] >= 0 || !TILE[le(m, z, x, y)].walk) continue;
+    if (id[i] >= 0 || !andavel(m, z, x, y)) continue;
     const k = tam.length; let n = 0; const p = [[x, y]]; id[i] = k;
     while (p.length) {
       const [cx, cy] = p.pop(); n++;
@@ -210,7 +267,7 @@ function componentes(m, z) {
          medir — dá alarme falso e some com o alarme verdadeiro no meio. */
       for (const [dx, dy] of [[0,-1],[1,0],[0,1],[-1,0],[1,-1],[1,1],[-1,1],[-1,-1]]) {
         const nx = cx + dx, ny = cy + dy, j = ny * m.w + nx;
-        if (!dentro(m, nx, ny) || id[j] >= 0 || !TILE[le(m, z, nx, ny)].walk) continue;
+        if (!dentro(m, nx, ny) || id[j] >= 0 || !andavel(m, z, nx, ny)) continue;
         id[j] = k; p.push([nx, ny]);
       }
     }
@@ -236,28 +293,27 @@ function limpaIlhotas(m, z, minimo, vazio) {
   return { apagados, tiles };
 }
 
-/* A decoração é DERIVADA do mapa de tiles, exatamente como o genWorld faz no
-   world.js. Sem isto, `deco` sai vazio no arquivo e o render não desenha
-   sprite nenhum em cima do tile — e como T.TREE é `walk:false` com `tex:'grass'`,
-   cada árvore vira uma PAREDE INVISÍVEL de grama pelada. O primeiro esboço de
-   Varrokgaard saiu com 2.240 delas e o mapa parecia não ter mata nenhuma.
-   Copiar a regra aqui é o que evita duas fontes de verdade: se um tile novo
-   passar a ter deco no gerador, esta função tem de acompanhar — e é por isso
-   que ela lê `T` do próprio world.js e não de uma lista à mão. */
-function decoraDoTerreno(m, semente = 555) {
-  for (let z = 0; z < m.andares; z++) {
-    const t = m._t[z], deco = m.deco[z], r = mulberry32(semente + z);
-    deco.length = 0;
+/* A composição desenha em UMA camada — `C.espalha(m, S, T.TREE, ...)` é a linha
+   que se quer escrever, e ela continua valendo. Quem parte isso em chão +
+   objeto é o `parteCamadas` do world.js, o MESMO que o genWorld e a carga de
+   mapa antigo usam: três chamadores, uma implementação. Escrever a régua de
+   novo aqui era a segunda fonte de verdade que sairia do ar no primeiro objeto
+   novo — e foi assim que o primeiro esboço de Varrokgaard saiu com 2.240
+   árvores que eram parede invisível de grama pelada.
+
+   Sobra aqui só o que a composição SORTEIA e o terreno não diz: pedra e moita
+   no chão batido, com a mesma chance do gerador. O `k` muda com a profundidade
+   porque moita não existe no subsolo. */
+function espalhaDeco(m, semente = 555) {
+  return m._t.map((t, z) => {
+    const r = mulberry32(semente + z), out = [];
     for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
       const tt = t[y * m.w + x];
-      if (tt === T.TREE) deco.push({ x, y, k: 0 });
-      /* pedra e moita no chão batido, com a mesma chance do gerador. O `k`
-         muda com a profundidade porque a moita não existe no subsolo. */
-      else if ((tt === T.CFLOOR || tt === T.DIRT) && r() < 0.02)
-        deco.push({ x, y, k: z === m.sup ? 1 : 2 });
+      if ((tt === T.CFLOOR || tt === T.DIRT) && r() < 0.02)
+        out.push({ x, y, k: z === m.sup ? 1 : 2 });
     }
-  }
-  return m.deco.map(d => d.length);
+    return out;
+  });
 }
 
 /* ------------------------------------------------------------ o patch
@@ -272,12 +328,19 @@ function decoraDoTerreno(m, semente = 555) {
    O formato é `{ tiles: { "<z>": [[x, y, tile], ...] } }` — coordenada e id,
    um por tile mexido. Verboso de propósito: entra no git e tem de dar para ler
    o que mudou sem abrir ferramenta nenhuma. */
-function aplicaPatch(m, nome) {
+/* `camada` existe porque as duas metades do patch entram em MOMENTOS
+   diferentes: o terreno antes da descida (quando `m._t` ainda é vocabulário de
+   autor) e o objeto depois dela (quando `m.objs` existe). Chamar a função
+   inteira duas vezes reaplicava o patch de terreno POR CIMA do chão já partido,
+   devolvendo `T.FENCE` e `T.TREE` ao terreno — a cerca voltava a ser tile E
+   continuava sendo objeto, contada duas vezes, e o andar "Sobre o Muro" caiu de
+   20 tiles andáveis para 12. */
+function aplicaPatch(m, nome, camada) {
   const alvo = path.join(raiz, 'maps', (nome || m.nome) + '.patch.json');
   if (!fs.existsSync(alvo)) return { tiles: 0, fora: 0 };
   const o = JSON.parse(fs.readFileSync(alvo, 'utf8'));
-  let n = 0, fora = 0;
-  for (const z in o.tiles || {}) {
+  let n = 0, fora = 0, nObj = 0, foraObj = 0;
+  for (const z in (camada === 'objs' ? {} : o.tiles || {})) {
     const iz = +z;
     if (iz < 0 || iz >= m.andares) { fora += o.tiles[z].length; continue; }
     for (const [x, y, t] of o.tiles[z]) {
@@ -290,7 +353,25 @@ function aplicaPatch(m, nome) {
       n++;
     }
   }
-  return { tiles: n, fora };
+  /* A camada de OBJETO do patch. Entra depois do `parte()`, porque objeto só
+     existe depois dele — e o `varrokgaard.js` chama nesta ordem: patch de
+     tiles, parte, patch de objetos, confere.
+     A unidade de diff é a LISTA ancorada num tile, e não o objeto solto: é o
+     que cobre pôr, tirar e vários por tile com uma forma só. Substitui o que
+     houver ali — quem gravou o patch viu o tile inteiro e decidiu por ele. */
+  for (const z in (camada === 'tiles' ? {} : o.objs || {})) {
+    const iz = +z;
+    if (iz < 0 || iz >= m.andares || !m.objs) { foraObj += o.objs[z].length; continue; }
+    for (const [x, y, ids] of o.objs[z]) {
+      if (!dentro(m, x, y)) { foraObj++; continue; }
+      const desconhecido = (ids || []).filter(id => !OBJ[id]);
+      if (desconhecido.length) { foraObj += desconhecido.length; }
+      m.objs[iz] = m.objs[iz].filter(ob => !(ob.x === x && ob.y === y));
+      for (const id of ids || []) if (OBJ[id]) { m.objs[iz].push({ x, y, o: id }); nObj++; }
+    }
+  }
+  m._oi = null;
+  return { tiles: n, fora, objs: nObj, foraObj };
 }
 
 /* O MAPA ESTÁ ATRASADO EM RELAÇÃO AO PATCH?
@@ -307,12 +388,24 @@ function patchAtrasado(nome) {
 }
 
 function salva(m) {
-  decoraDoTerreno(m);
+  /* Já vem partido. A descida mora no `parte()`, chamado pelo script antes das
+     conferências — ver o comentário lá. Aqui ficou só a gravação.
+     O script que esquecer de chamar `parte()` grava um mapa SEM objeto nenhum,
+     e isso seria silencioso: o jogo carregaria um mundo de chão liso. Por isso
+     falha alto em vez de gravar. */
+  if (!m.objs) throw new Error('salva(): chame C.parte(m) antes — o mapa ainda está em uma camada');
+  const chao = m._t;
   const saida = {
     nome: m.nome, w: m.w, h: m.h, andares: m.andares, sup: m.sup, fundo: m.fundo,
     origem: m.origem, nomes: m.nomes, templo: m.templo,
-    hunts: m.hunts, pois: m.pois, spawns: m.spawns, deco: m.deco,
-    tiles: m._t.map(t => {
+    hunts: m.hunts, pois: m.pois, spawns: m.spawns,
+    /* Uma linha por objeto, ordenada por y e depois x: o arquivo lê na ordem do
+       mapa e o git aponta a linha exata que mudou, que é a mesma razão pela qual
+       o terreno é um caractere por tile. */
+    objs: m.objs.map(l => l.slice()
+      .sort((a, b) => a.y - b.y || a.x - b.x || (a.o < b.o ? -1 : 1))
+      .map(o => o.x + ',' + o.y + ',' + o.o)),
+    tiles: chao.map(t => {
       const linhas = [];
       for (let y = 0; y < m.h; y++) {
         let l = '';
@@ -329,7 +422,7 @@ function salva(m) {
   return alvo;
 }
 
-module.exports = { T, TILE, MONSTERS, mulberry32,
+module.exports = { T, TILE, OBJ, MONSTERS, mulberry32,
   novoMapa, le, pinta, retangulo, disco, poligono, linha, caminho,
   rasga, espalha, limpaIlhotas, spawn, povoa, objeto, conferObjetos, hunt, poi, escada, conta, componentes,
-  decoraDoTerreno, aplicaPatch, patchAtrasado, salva };
+  espalhaDeco, andavel, objsEm, parte, aplicaPatch, patchAtrasado, salva };

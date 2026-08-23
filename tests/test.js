@@ -133,6 +133,7 @@ for (const f of ['audio.js', 'icones.js', 'data.js', 'art.js', 'world.js', 'rend
 // expõe os bindings léxicos (let/const de script) para o runner
 vm.runInContext(`
   Object.assign(globalThis, { genWorld, findPath, WORLD, T, TILE, isWalkable, tileAt, W, H, FLOORS, SURF, distT,
+    OBJ, objsAt, objAbrivel, objBloqueia, objTapaVista, reindexObjs, parteCamadas, usaPorta, portaAberta, coletaDe,
     ITEMS, MONSTERS, SPELLS, VOCATIONS, SHOP_STOCK, PREFIXES, SUFFIXES, RARITY, XP_MULT,
     COINS, COIN_V, COIN_MONTE, moedaDe,
     expForLevel, triesFor, manaForML, SKILL_RATE, mkItem, itemStats, newPlayer, dealDamage, weaponInfo,
@@ -1427,11 +1428,18 @@ vm.runInContext(`
      fogo passou a falhar porque as paredes continuavam lá: estado de mundo
      compartilhado é a mesma armadilha que a seção "Armadilhas conhecidas"
      documenta para estado inicial de assertiva probabilística. */
-  const zz = WORLD.temple.z, T0 = WORLD.floors[zz].t;
-  const antes = [];
+  /* A casinha é montada nas DUAS camadas, que é como o jogo a carrega desde a
+     separação: chão de tábua em tudo, e parede e porta como OBJETO em cima
+     dele. Pintar T.WALL/T.DOOR no terreno parou de produzir parede e porta —
+     e é justamente esse silêncio que este bloco existe para pegar. */
+  const zz = WORLD.temple.z, F = WORLD.floors[zz], T0 = F.t;
+  const antes = [], objAntes = F.objs.slice();
   const põe = (x, y, t) => { antes.push([x, y, T0[y * W + x]]); T0[y * W + x] = t; };
-  for (let i = -1; i <= 1; i++) { põe(px + 4 + i, py - 1, T.WALL); põe(px + 4 + i, py + 1, T.WALL); }
-  põe(px + 3, py, T.WALL); põe(px + 5, py, T.FLOOR); põe(px + 4, py, T.DOOR);
+  const obj = (x, y, o) => F.objs.push({ x, y, o });
+  for (let i = -2; i <= 2; i++) for (let j = -1; j <= 1; j++) põe(px + 4 + i, py + j, T.FLOOR);
+  for (let i = -1; i <= 1; i++) { obj(px + 4 + i, py - 1, 'ptabua'); obj(px + 4 + i, py + 1, 'ptabua'); }
+  obj(px + 3, py, 'ptabua'); obj(px + 4, py, 'porta');
+  F.oi = null;                       // o índice esparso tem de ver os objetos novos
   globalThis.rFechada = isWalkable(px + 4, py, zz);
   /* PORTA FECHADA TAPA A VISTA. Sem isto ela barrava o pé e não barrava mais
      nada: dava para flechar e queimar através dela, e o bicho do outro lado
@@ -1454,7 +1462,7 @@ vm.runInContext(`
      onde está fechado é pior que dizer que não dá para chegar. */
   globalThis.rCaminhoBarra = findPath(px + 5, py, px + 3, py, zz) === null;
   for (const [x, y, t] of antes) T0[y * W + x] = t;   // devolve o chão
-  WORLD.portas = new Set();
+  F.objs = objAntes; F.oi = null;                    // e os objetos
 `, ctx);
 A(S.rAndouNaoAbriu === true, 'andar contra a porta fechada NÃO abre: abrir é gesto de propósito');
 A(S.rNaoAtravessou === true, 'e o passo não passa');
@@ -1823,8 +1831,16 @@ const morte = (bless, lvl = 40, expBase = `expForLevel(${lvl} + 1) - 1`) => {
     'toda linha de colheita aponta pra item real, com chance e nível');
   A(Object.values(S.COLETA).every(c => c.tab.some(([, , lv]) => lv <= 10)),
     'toda coleta rende alguma coisa já no nível inicial');
-  A(Object.values(S.COLETA).every(c => c.tiles.every(t => S.T[t] !== undefined)),
+  /* Coleta acontece em DUAS camadas desde a separação: a água é terreno, o
+     minério e a árvore são objeto. A régua tem de cobrir as duas e exigir que
+     cada ofício tenha ALGUM alvo — sem a terceira metade, um ofício que perdesse
+     a lista inteira passaria verde e viraria picareta sem pedra. */
+  A(Object.values(S.COLETA).every(c => (c.tiles || []).every(t => S.T[t] !== undefined)),
     'todo tile de coleta existe na tabela de terreno');
+  A(Object.values(S.COLETA).every(c => (c.objs || []).every(o => S.OBJ[o] !== undefined)),
+    'todo objeto de coleta existe na tabela de objetos');
+  A(Object.values(S.COLETA).every(c => (c.tiles || []).length + (c.objs || []).length > 0),
+    'todo ofício tem onde ser exercido');
 
   A(Object.values(S.COLETA).every(c => c.ferramenta && c.ferramenta.length && c.ferramenta.every(id => S.ITEMS[id] && S.ITEMS[id].slot === 'weapon')),
     'toda coleta exige ferramenta, e toda ferramenta é item de slot de arma');
@@ -1843,19 +1859,26 @@ const morte = (bless, lvl = 40, expBase = `expForLevel(${lvl} + 1) - 1`) => {
     'a última linha é o consolo: nível inicial e chance cheia');
   /* Minerar não pode voltar a ser infinito: caverna é feita de CWALL, e com ela
      na lista havia 46.899 tiles mineráveis contra ~3.500 de árvore e de água. */
-  A(!S.COLETA.mining.tiles.includes('CWALL'),
+  A(!(S.COLETA.mining.objs || []).includes('cparede') && !(S.COLETA.mining.tiles || []).includes('CWALL'),
     'parede de caverna não é minerável — era o único recurso sem fim do jogo');
 
   vm.runInContext(`
     newPlayer('Colhedor', 'knight'); P.bag.length = 0; G.drops.length = 0; G.now = 5e6;
     globalThis.pontos = {};
-    for (const [nome, tt] of [['mining', T.ROCK], ['woodcut', T.TREE], ['fishing', T.WATER]]) {
+    /* Procura pelo que o ofício de fato aceita, e não por um id cravado aqui:
+       \`coletaDe\` pergunta às duas camadas, então o teste tem de achar o ponto
+       pela mesma porta. Cravar T.ROCK/T.TREE foi o que quebrou quando os dois
+       viraram objeto — o teste procurava terreno que não existe mais. */
+    for (const nome of ['mining', 'woodcut', 'fishing']) {
       for (let y = 5; y < H - 5 && !pontos[nome]; y++) for (let x = 5; x < W - 5; x++) {
-        if (tileAt(x, y, SURF) !== tt) continue;
+        const c = coletaDe(x, y, SURF);
+        if (!c || c.skill !== nome) continue;
         const v = DIRS.map(([dx, dy]) => [x + dx, y + dy]).find(([a, b]) => isWalkable(a, b, SURF));
         if (v) { pontos[nome] = { x, y, v }; break; }
       }
     }
+    for (const nome of ['mining', 'woodcut', 'fishing'])
+      if (!pontos[nome]) throw new Error('sem ponto de ' + nome + ' no mundo de teste');
     /* Uma tentativa: leva o jogador ao ponto, zera o relógio da ação e devolve o
        que mudou. \`limpa\` apaga a marca de esgotado para a próxima tentativa cair
        num ponto fresco — o que este teste mede é o sorteio, não o descanso. */
@@ -2428,7 +2451,7 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
 
     /* O veio entra na mineração e a parede de caverna continua fora — a trava
        contra o recurso infinito de 46.899 tiles voltar por uma porta nova. */
-    A(S.COLETA.mining.tiles.includes('ORE') && !S.COLETA.mining.tiles.includes('CWALL'),
+    A(S.COLETA.mining.objs.includes('veio') && !S.COLETA.mining.objs.includes('cparede'),
       'o veio é minerável e a parede de caverna não');
   }
 
@@ -3346,6 +3369,7 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
     globalThis.anao = {
       w: W, h: H, f: FLOORS, nomes: FLOOR_NAMES.join('|'),
       meio: tileAt(5, 5, 0), borda: tileAt(0, 0, 0), baixo: tileAt(5, 5, 1),
+      bordaObj: objsAt(0, 0, 0).map(o => o.o).join(), bordaAnda: isWalkable(0, 0, 0),
       foraDireita: isWalkable(12, 5, 0), dentro: isWalkable(5, 5, 0),
       sp: WORLD.spawns.length
     };
@@ -3368,8 +3392,17 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
     A(n.w === 12 && n.h === 10 && n.f === 2,
       `o ARQUIVO manda no tamanho: ${n.w}x${n.h} em ${n.f} andares, e não os 224x224x6 do gerador`);
     A(n.nomes === 'Cima|Baixo', 'e manda também nos nomes dos andares');
-    A(n.meio === S.T.GRASS && n.baixo === S.T.CFLOOR && n.borda === S.T.ROCK,
+    A(n.meio === S.T.GRASS && n.baixo === S.T.CFLOOR,
       'cada caractere volta como o tile certo, no andar certo');
+    /* O caractere de rocha desce para DUAS camadas: o chão que sobra embaixo e
+       o objeto que fica em cima. As três metades juntas — o `R` continua sendo
+       vocabulário de autor, o chão sob ele virou chão de verdade, e quem barra
+       o passo agora é o objeto. Sem a terceira, uma migração que perdesse o
+       objeto no caminho passaria verde e a rocha viraria campo aberto. */
+    A(n.borda !== S.T.ROCK && S.TILE[n.borda].walk,
+      'o caractere de rocha deixa CHÃO embaixo — objeto não é terreno');
+    A(n.bordaObj === 'rochedo', 'e põe o rochedo em cima dele');
+    A(n.bordaAnda === false, 'e quem barra o passo passou a ser o objeto');
     A(n.dentro && !n.foraDireita, 'a borda do mapa passa a ser a do arquivo — 12 de largura, não 224');
     A(n.sp === 1, 'e os spawns do arquivo entram inteiros');
   }

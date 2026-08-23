@@ -777,9 +777,9 @@ function occupied(x, y, z, self) {
    nada não é porta.
    Aberta ela some da conta, que é o ponto: o vão é vão. */
 const tapaVista = (x, y, z) => {
-  const t = tileAt(x, y, z);
-  if (t === T.DOOR) return !portaAberta(x, y, z);
-  return TILE[t].top > 0.5;
+  if (TILE[tileAt(x, y, z)].top > 0.5) return true;
+  for (const o of objsAt(x, y, z)) if (objTapaVista(o)) return true;
+  return false;
 };
 /* Zona segura: o piso do templo é a própria fronteira, então não existe raio
    mágico aqui — quem está no tile TEMPLE não é perseguido nem atingido, e
@@ -2353,16 +2353,23 @@ let tipDono = null;
 function tipCheck() { if (tipDono && !tipDono.offsetParent) hideTip(); }
 
 /* ------------------------------------------------------------- coleta */
-/* Qual colheita este tile aceita. Resolve o nome do tile da tabela (data.js não
+/* Qual colheita este LUGAR aceita — as duas camadas, e o objeto primeiro.
+   Minério e árvore viraram objeto e a água continua terreno, então perguntar
+   só ao tile deixava picareta e machado sem alvo nenhum: clicar na árvore não
+   fazia nada, sem erro e sem aviso. Resolve os nomes da tabela (data.js não
    conhece `T`) uma vez só, no primeiro uso, e guarda. */
-let COLETA_POR_TILE = null;
-function coletaDe(tt) {
+let COLETA_POR_TILE = null, COLETA_POR_OBJ = null;
+function coletaDe(x, y, z) {
   if (!COLETA_POR_TILE) {
-    COLETA_POR_TILE = {};
-    for (const k in COLETA) for (const nome of COLETA[k].tiles)
-      COLETA_POR_TILE[T[nome]] = Object.assign({ skill: k }, COLETA[k]);
+    COLETA_POR_TILE = {}; COLETA_POR_OBJ = {};
+    for (const k in COLETA) {
+      const c = COLETA[k];
+      for (const nome of c.tiles || []) COLETA_POR_TILE[T[nome]] = Object.assign({ skill: k }, c);
+      for (const id of c.objs || []) COLETA_POR_OBJ[id] = Object.assign({ skill: k }, c);
+    }
   }
-  return COLETA_POR_TILE[tt] || null;
+  for (const o of objsAt(x, y, z)) if (COLETA_POR_OBJ[o.o]) return COLETA_POR_OBJ[o.o];
+  return COLETA_POR_TILE[tileAt(x, y, z)] || null;
 }
 /* Tile gasto: chave "z:x:y" -> quando volta (relógio de parede, como o respawn).
    Vive em `P.colhido`, então atravessa o save: antes era um Map de sessão e
@@ -2381,7 +2388,7 @@ function podarColhido() {
    nem item no chão, a pergunta seguinte é "dá pra tirar alguma coisa daqui?" —
    e assim a coleta não gasta tecla nova nem botão de interface. */
 function colher(x, y) {
-  const c = coletaDe(tileAt(x, y, P.z));
+  const c = coletaDe(x, y, P.z);
   if (!c) return false;
   /* Recurso é tile que NÃO dá pé (pedra, árvore, água), então não dá para pedir
      caminho até ele — o pathfinding recusa o destino. Anda até um vizinho e
@@ -2719,7 +2726,7 @@ function bindInput(canvas) {
          que abriu, e a porta deixa de ter serventia contra o que vem atrás.
          Vem antes do corpo/saque porque uma porta e um corpo não disputam o
          mesmo tile: a porta é o próprio tile, o corpo está EM CIMA de um. */
-      if (tileAt(t[0], t[1], P.z) === T.DOOR && distT(t[0], t[1], P.x, P.y) <= 1) {
+      if (objAbrivel(t[0], t[1], P.z) && distT(t[0], t[1], P.x, P.y) <= 1) {
         const aberta = usaPorta(t[0], t[1], P.z);
         sfx('stairs');
         return log(aberta ? 'Você abre a porta.' : 'Você fecha a porta.');
@@ -3164,8 +3171,11 @@ function save() {
        cai pro teto de um bicho comum e a briga recomeça do zero. */
     elites: WORLD.spawns.map((sp, i) => sp.el >= 0 ? [i, sp.el] : null).filter(Boolean),
     /* Porta que você deixou aberta continua aberta ao voltar. É estado de
-       partida e não de mapa, então mora aqui e não no arquivo da terra. */
-    portas: [...WORLD.portas]
+       partida e não de mapa, então mora aqui e não no arquivo da terra.
+       Coordenada e não índice de lista: o editor reordena `objs` a cada
+       recomposição, e índice guardado num save viraria "abriu a porta da casa
+       errada" no dia em que alguém pintasse um objeto antes dela. */
+    portas: WORLD.floors.flatMap((f, z) => f.objs.filter(o => o.aberta).map(o => [z, o.x, o.y]))
   };
   const id = ACTIVE_CHARACTER_ID || charId();
   ACTIVE_CHARACTER_ID = id;
@@ -3361,7 +3371,12 @@ function restaurarBichos(saved) {
   /* As portas ANTES dos bichos: `refreshSpawns` mais abaixo instancia criatura,
      e criatura instanciada com a porta ainda fechada calcularia caminho por um
      mapa que muda no tique seguinte. */
-  WORLD.portas = new Set(saved.portas || []);
+  for (const f of WORLD.floors) for (const o of f.objs) if (o.aberta) o.aberta = false;
+  for (const p of saved.portas || []) {
+    if (!Array.isArray(p)) continue;          // save da v1 guardava "z:idx"; porta volta fechada
+    const o = objAbrivel(p[1], p[2], p[0]);
+    if (o) o.aberta = true;
+  }
   for (const [i, ate] of saved.mortos || [])
     if (WORLD.spawns[i] && ate > agora) WORLD.spawns[i].dead = ate;
   // antes de qualquer spawnMob: é o `sp.el` que decide a definição do bicho

@@ -536,7 +536,20 @@ C.poi(m, { id: 'foz', n: 'A foz', ico: '🌊', x: 58, y: 120, z: S, r: 1,
    A ordem importa nas duas pontas: depois do desenho, senão o script apagaria a
    correção; antes da conferência, para que componentes, poças e rastro de
    objeto sejam medidos no que o jogo vai carregar de fato. */
-const patch = C.aplicaPatch(m);
+const patch = C.aplicaPatch(m, null, 'tiles');
+
+/* A DESCIDA PARA DUAS CAMADAS, e o lugar dela é aqui: depois de todo o desenho,
+   porque o script inteiro acima pinta em UMA camada (`C.espalha(m, S, T.TREE)`
+   é a linha que se quer escrever); e ANTES de toda conferência, porque a partir
+   daqui quem responde "dá para andar?" é o `C.andavel`, que pergunta ao chão e
+   ao objeto. Salvar antes de conferir foi o defeito da primeira versão: a mata
+   virava campo aberto no meio da medição e a ilha ganhava 4.300 tiles andáveis
+   que não existem. */
+const partiu = C.parte(m);
+
+/* E o patch de OBJETO por cima, que só existe depois da descida. Mesma regra da
+   correção de terreno: por cima do que eu compus, antes de conferir. */
+const patchObj = C.aplicaPatch(m, null, 'objs');
 
 /* ============================================================= conferência */
 const alvo = C.salva(m);
@@ -544,17 +557,38 @@ const kb = (require('fs').statSync(alvo).size / 1024).toFixed(0);
 console.log(`maps/${m.nome}.json  ${kb} KB  ·  ${m.w}x${m.h} x ${m.andares} andares`);
 console.log(`ilhotas apagadas: ${limpou.apagados}, ${limpou.tiles} tiles  ·  ` +
   `bolsões de mata fechados: ${matou.apagados}, ${matou.tiles} tiles`);
-console.log(`patch do editor: ${patch.tiles} tiles aplicados` +
-  (patch.fora ? `  ·  ${patch.fora} SEM ENDEREÇO (o mapa mudou embaixo deles)` : '') + '\n');
+console.log(`patch do editor: ${patch.tiles} tiles · ${patchObj.objs} objetos aplicados` +
+  (patch.fora + patchObj.foraObj
+    ? `  ·  ${patch.fora + patchObj.foraObj} SEM ENDEREÇO (o mapa mudou embaixo deles)` : '') +
+  `  ·  objetos no mapa: ${partiu.join(' / ')}` + '\n');
 console.log(`cerca nova: ${cercaTiles} tiles de estacaria  ·  poças limpas: ${pocasLimpas}+${pocasFim}` +
   `  ·  ${tabuas} tiles de ponte sobre o rio\n`);
 
-/* A superfície tem DOIS componentes de propósito, e isto é a diferença entre
-   um defeito e um desenho: a vila é murada e só se entra por cima, então o chão
-   dela não toca o chão da ilha. Antes esta conferência exigia UM e teria
-   acusado a vila murada como erro — a régua tinha de mudar junto com o mapa.
-   O que ela cobra agora é que os componentes sejam exatamente os dois
-   esperados, e que a ponte ligue os dois. */
+/* OS RECINTOS FECHADOS, POR NOME — e não mais uma contagem.
+   A superfície tem pedaços de chão que não se tocam, e isso é DESENHO e não
+   defeito: a vila é murada e só se entra pela ponte; o pátio de palha é uma
+   eira murada, que o dono do projeto decidiu manter fechada.
+   A régua passou por três estados, e a história vale. Primeiro exigia UM
+   componente, e teria acusado a vila murada como erro. Depois passou a exigir
+   DOIS, com a vila como exceção escrita à mão — e o `tasks.html` já anotou na
+   época que isso era dívida: "no dia em que houver um segundo recinto fechado
+   de propósito, ela vai reclamar para sempre". O pátio de palha é esse dia.
+   Contar de novo (agora TRÊS) seria repetir o erro com outro número, e pior:
+   um recinto novo e INDESEJADO passaria batido, bastando que outro sumisse na
+   mesma execução. Então ela deixou de contar e passou a NOMEAR — cada recinto
+   esperado declara um ponto dentro de si, e a conferência cobra as duas metades:
+   que todos existam, e que não exista nenhum fora da lista. Recinto novo entra
+   aqui de propósito, com nome, ou é erro. */
+const RECINTOS = [
+  /* O portão da Cerca Nova, e não o centro da hunt: o centro da Mata Funda cai
+     dentro de árvore (o `espalha` não sabe que ali é âncora de conferência), e
+     âncora que não é chão reprova o mapa inteiro por engano. O portão é a
+     passagem entre as duas metades da ilha — andável por definição, e se um dia
+     deixar de ser, o mapa está mesmo quebrado. */
+  ['a ilha',           PORTAO_X, CERCA_Y],
+  ['a vila murada',    m.templo.x, m.templo.y + 2],         // o ponto onde o personagem nasce
+  ['o pátio de palha', 76, 17]                              // a eira do moinho: fechada de propósito
+];
 const compS = [];
 for (let z = 0; z < m.andares; z++) {
   const { and } = C.conta(m, z);
@@ -569,14 +603,14 @@ for (let z = 0; z < m.andares; z++) {
 for (const h of m.hunts) {
   let chao = 0;
   for (let y = h.y - h.r; y <= h.y + h.r; y++) for (let x = h.x - h.r; x <= h.x + h.r; x++)
-    if ((x - h.x) ** 2 + (y - h.y) ** 2 <= h.r * h.r && C.TILE[C.le(m, h.z, x, y)].walk) chao++;
+    if ((x - h.x) ** 2 + (y - h.y) ** 2 <= h.r * h.r && C.andavel(m, h.z, x, y)) chao++;
   const n = m.spawns.filter(s => s.hunt === h.id).length;
   console.log(`${h.n.padEnd(14)} nv ${String(h.lvl).padStart(2)} · ${String(n).padStart(3)} bichos · ` +
     `${String(chao).padStart(5)} tiles andáveis · ${(chao / n).toFixed(0)} por bicho`);
 }
 
-const foraDaTerra = m.spawns.filter(s => !C.TILE[C.le(m, s.z, s.x, s.y)].walk);
-const poisNaAgua = m.pois.filter(p => !C.TILE[C.le(m, p.z, p.x, p.y)].walk);
+const foraDaTerra = m.spawns.filter(s => !C.andavel(m, s.z, s.x, s.y));
+const poisNaAgua = m.pois.filter(p => !C.andavel(m, p.z, p.x, p.y));
 /* #9 · A VILA NÃO TEM BICHO. Antes a paz era um raio de 26 tiles em volta do
    templo; agora é o MURO, e a conferência é sobre a área murada. Paz aqui não é
    regra de motor, é composição — e composição precisa de conferência, senão
@@ -600,7 +634,7 @@ for (let y = 0; y < L; y++) for (let x = 0; x < L; x++) {
   if (n > maior) maior = n;
   if (n < 40) pocas++;
 }
-const nasce = C.TILE[C.le(m, S, m.templo.x, m.templo.y + 2)].walk;
+const nasce = C.andavel(m, S, m.templo.x, m.templo.y + 2);
 /* Objeto de mais de um tile: rastro completo em toda âncora. Meio poço no mapa
    não dá erro nenhum — o render só não desenha, e some. */
 const objRuins = [];
@@ -608,7 +642,7 @@ for (let z = 0; z < m.andares; z++) objRuins.push(...C.conferObjetos(m, z).map(e
 /* #7 · a ponte tem de FECHAR: escada dos dois lados, chão em cima entre elas. */
 const ponteOk = C.le(m, S, PONTE_X, MY0 - 1) === T.UP && C.le(m, S, PONTE_X, MY0 + 2) === T.UP &&
   C.le(m, MURO, PONTE_X, MY0 - 1) === T.DOWN && C.le(m, MURO, PONTE_X, MY0 + 2) === T.DOWN &&
-  C.TILE[C.le(m, MURO, PONTE_X, MY0)].walk && C.TILE[C.le(m, MURO, PONTE_X, MY0 + 1)].walk;
+  C.andavel(m, MURO, PONTE_X, MY0) && C.andavel(m, MURO, PONTE_X, MY0 + 1);
 
 console.log(`\n${m.spawns.length} spawns · ${m.hunts.length} hunts · ${m.pois.length} lugares`);
 console.log(`spawn em tile não andável: ${foraDaTerra.length}` +
@@ -623,13 +657,28 @@ console.log(`o ponto de nascer é andável: ${nasce ? 'sim' : 'NÃO'}`);
 console.log(`a ponte sobre o muro fecha: ${ponteOk ? 'sim' : 'NÃO'}`);
 console.log(`objeto multi-tile com rastro quebrado: ${objRuins.length}` +
   (objRuins.length ? '  -> ' + objRuins.join(' | ') : ''));
-/* Dois componentes: a ilha e a vila murada. Três seria alguma coisa perdida. */
-const doisComp = compS.length === 2;
-console.log(`chão da superfície em 2 pedaços (ilha + vila murada): ` +
-  `${doisComp ? 'sim' : 'NÃO — ' + compS.length + ' pedaços: ' + compS.join(', ')}`);
+/* As duas metades: todo recinto esperado existe, e não sobrou nenhum. */
+const { id: idS, tam: tamS } = C.componentes(m, S);
+const achados = new Map();                       // id do componente -> nome esperado
+const faltando = [];
+for (const [nome, x, y] of RECINTOS) {
+  const k = idS[y * m.w + x];
+  if (k < 0) { faltando.push(`${nome} (o ponto ${x},${y} não é chão)`); continue; }
+  if (achados.has(k)) { faltando.push(`${nome} (emendou com "${achados.get(k)}")`); continue; }
+  achados.set(k, nome);
+}
+const sobrando = [];
+for (let k = 0; k < tamS.length; k++)
+  if (!achados.has(k)) sobrando.push(`${tamS[k]} tiles`);
+const recintosOk = !faltando.length && !sobrando.length;
+console.log(`recintos fechados da superfície: ${recintosOk
+  ? RECINTOS.map(([n], i) => n + ' (' + tamS[[...achados].find(([, v]) => v === n)[0]] + ')').join(' · ')
+  : 'NÃO FECHA' +
+    (faltando.length ? '  -> falta: ' + faltando.join(' | ') : '') +
+    (sobrando.length ? '  -> pedaço NÃO esperado: ' + sobrando.join(' | ') : '')}`);
 
 if (foraDaTerra.length || poisNaAgua.length || naVila.length || soltos.length || pocas ||
-    !nasce || !ponteOk || !doisComp || objRuins.length) {
+    !nasce || !ponteOk || !recintosOk || objRuins.length) {
   console.log('\nATENÇÃO: o mapa não fecha.');
   /* DOIS é "compus o mapa e a conferência reclamou"; qualquer outro código
      não-zero é o script ter quebrado. A diferença importa para quem chama: com

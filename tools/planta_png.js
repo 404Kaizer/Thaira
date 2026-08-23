@@ -29,9 +29,7 @@ const { CHAR_TILE } = ctx.__P;
 
 const W = o.w * px, H = o.h * px;
 const buf = Buffer.alloc(H * (1 + W * 3));           // 1 byte de filtro por linha
-for (let y = 0; y < o.h; y++) for (let x = 0; x < o.w; x++) {
-  const t = CHAR_TILE[linhas[y][x]] || 0;
-  const c = C.TILE[t].c;
+const bloco = (x, y, c) => {
   for (let j = 0; j < px; j++) {
     const base = (y * px + j) * (1 + W * 3) + 1 + x * px * 3;
     for (let i = 0; i < px; i++) {
@@ -39,6 +37,22 @@ for (let y = 0; y < o.h; y++) for (let x = 0; x < o.w; x++) {
       buf[base + i * 3 + 1] = (c >> 8) & 255;
       buf[base + i * 3 + 2] = c & 255;
     }
+  }
+};
+// 1º o chão
+for (let y = 0; y < o.h; y++) for (let x = 0; x < o.w; x++)
+  bloco(x, y, C.TILE[CHAR_TILE[linhas[y][x]] || 0].c);
+/* 2º o OBJETO, com a cor do material dele. Sem isto a planta mostra só o
+   terreno — e desde que parede, mata e cerca deixaram de ser tile, a vila lê
+   como calçada lisa e a mata como campo. Rastro inteiro, e o último colocado
+   vence: a mesma ordem do render e do minimapa. */
+for (const linha of (o.objs && o.objs[z]) || []) {
+  const [sx, sy, id] = linha.split(',');
+  const d = C.OBJ[id]; if (!d || d.c === undefined) continue;
+  const sp = d.span || [1, 1];
+  for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) {
+    const nx = +sx + i, ny = +sy + j;
+    if (nx >= 0 && ny >= 0 && nx < o.w && ny < o.h) bloco(nx, ny, d.c);
   }
 }
 /* Marcas por cima: spawn, chefe, hunt, lugar, escada e o templo. É o que

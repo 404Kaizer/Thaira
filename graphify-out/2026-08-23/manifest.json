@@ -50,13 +50,13 @@
     "semantic_hash": ""
   },
   "src/data.js": {
-    "mtime": 1787462497.9202294,
-    "ast_hash": "ebaa19c5b4a56dc504b0c5bff161b6be",
+    "mtime": 1787503384.608686,
+    "ast_hash": "88e9e2c24d05c628f24144edb3c143d4",
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1787495565.5601192,
-    "ast_hash": "40dc3260aa315cf65b667cd2cdf09e2a",
+    "mtime": 1787508988.881657,
+    "ast_hash": "0ab31e60ac426518853fccf5569c748f",
     "semantic_hash": ""
   },
   "src/hud.js": {
@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1787468880.4473908,
-    "ast_hash": "3f0e0fc9e30300e35fa9573e47728c9e",
+    "mtime": 1787503151.0963616,
+    "ast_hash": "8c471f4c6ac9f87a6b778a54309c195d",
     "semantic_hash": ""
   },
   "src/ui.js": {
@@ -75,18 +75,18 @@
     "semantic_hash": ""
   },
   "src/world.js": {
-    "mtime": 1787496471.8588011,
-    "ast_hash": "9b2134d9f3dca44dce9353aee8cd92a9",
+    "mtime": 1787509621.9662156,
+    "ast_hash": "9590889f4f8ce27540fb60bcd6a42201",
     "semantic_hash": ""
   },
   "tests/test.js": {
-    "mtime": 1787493663.9782672,
-    "ast_hash": "418fdd285374a5c61d0971404e8ede3f",
+    "mtime": 1787508743.7695625,
+    "ast_hash": "52a4c09cffca09cb5ba1019118b4d33e",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1787492042.5277724,
-    "ast_hash": "db38f482159c3ff896d431b38621dc49",
+    "mtime": 1787511807.6396475,
+    "ast_hash": "6b31df899dff23024268b2f5778e1f8f",
     "semantic_hash": ""
   },
   "assets/CREDITOS.md": {
@@ -3080,13 +3080,13 @@
     "semantic_hash": ""
   },
   "tools/serve.py": {
-    "mtime": 1787497500.8492267,
-    "ast_hash": "049a32b35fda1378877a2d92fb1bb6b3",
+    "mtime": 1787499541.2597983,
+    "ast_hash": "9e7194c0ac79d2bcc3cc5df85117d98f",
     "semantic_hash": ""
   },
   "main.js": {
-    "mtime": 1787498311.3839006,
-    "ast_hash": "4bc01f56fb0fd702a3934a9d082f365a",
+    "mtime": 1787499541.2587984,
+    "ast_hash": "b736abe3dc963447b18e318c1dec30c1",
     "semantic_hash": ""
   },
   "package.json": {
@@ -3170,8 +3170,8 @@
     "semantic_hash": ""
   },
   "tasks.html": {
-    "mtime": 1787498374.5500035,
-    "ast_hash": "0ed096eacd6482cc853c6fc67658a6dd",
+    "mtime": 1787511797.02098,
+    "ast_hash": "cc8b2f514ce61c90b70cdcea49968126",
     "semantic_hash": ""
   },
   "assets/skins/creatures/cyclops/cyclops_brute/cyclops_anim.png": {
@@ -5620,18 +5620,18 @@
     "semantic_hash": ""
   },
   "maps/varrokgaard.json": {
-    "mtime": 1787497533.0230603,
-    "ast_hash": "4101f1161f8efaf4a634dce8cb335568",
+    "mtime": 1787511763.0918882,
+    "ast_hash": "1874f3fc37614c31e6d951bc0d883734",
     "semantic_hash": ""
   },
   "tools/compor.js": {
-    "mtime": 1787496471.8577106,
-    "ast_hash": "215e0bdda9a99bcb4ae606cf4a369575",
+    "mtime": 1787510305.0122638,
+    "ast_hash": "6ce207a3c7065c807b908f22672b9cec",
     "semantic_hash": ""
   },
   "tools/mapas/varrokgaard.js": {
-    "mtime": 1787491202.9534824,
-    "ast_hash": "c538b09825293183512226ab110902f2",
+    "mtime": 1787511635.854627,
+    "ast_hash": "4e6591034cd97ee2fd420f81e3549249",
     "semantic_hash": ""
   },
   "tools/amostra/construido.html": {
@@ -5645,38 +5645,43 @@
     "semantic_hash": ""
   },
   "tools/planta_png.js": {
-    "mtime": 1787460501.5164413,
-    "ast_hash": "26fb6764ac2561153b01b0fbaf7ee37a",
+    "mtime": 1787509643.3567152,
+    "ast_hash": "526f720a90be545f3cc6604afb292124",
     "semantic_hash": ""
   },
   "tools/amostra/planta_varrokgaard_0.png": {
-    "mtime": 1787466289.3368518,
-    "ast_hash": "ab9b1119589e113607f2fe92eac0d588",
+    "mtime": 1787509407.1693518,
+    "ast_hash": "b5acb2a8e4a19977e363cd6107c45081",
     "semantic_hash": ""
   },
   "tools/amostra/planta_varrokgaard_1.png": {
-    "mtime": 1787468236.66791,
-    "ast_hash": "5f7325fdabd2a9ba3fa3a5e4be24f0f4",
+    "mtime": 1787511763.2971551,
+    "ast_hash": "39a167de1539fb1f9dca2989b0b58cf2",
     "semantic_hash": ""
   },
   "tools/editor.html": {
-    "mtime": 1787498311.385906,
-    "ast_hash": "416902e7a273bcdd9c6ca175bf8056bf",
+    "mtime": 1787511695.6467102,
+    "ast_hash": "a532cd12a3aab4016c2eade1b2cc9d3c",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.json": {
-    "mtime": 1787498168.8777509,
-    "ast_hash": "37a287098aaf1caa01ec47b359730113",
-    "semantic_hash": ""
-  },
-  "maps/_semPatch.json": {
-    "mtime": 1787497532.760257,
-    "ast_hash": "2a0d13280b13d9d2510018b227a321a3",
+    "mtime": 1787499217.873353,
+    "ast_hash": "841543e464ad864f0d05154dbbaacc3c",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.bak.json": {
     "mtime": 1787497514.2100313,
     "ast_hash": "37a287098aaf1caa01ec47b359730113",
+    "semantic_hash": ""
+  },
+  "maps/_bak/varrokgaard.20260823-1330.json": {
+    "mtime": 1787502602.270889,
+    "ast_hash": "69741df0d7cee0a6d463eec08f12d2af",
+    "semantic_hash": ""
+  },
+  "maps/_bak/varrokgaard.patch.20260823-1330.json": {
+    "mtime": 1787502602.2921944,
+    "ast_hash": "841543e464ad864f0d05154dbbaacc3c",
     "semantic_hash": ""
   }
 }

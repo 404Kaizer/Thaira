@@ -1,16 +1,16 @@
 # Graph Report - Jogo  (2026-08-23)
 
 ## Corpus Check
-- 73 files · ~5,956,352 words
+- 74 files · ~5,973,448 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1338 nodes · 2327 edges · 100 communities (95 shown, 5 thin omitted)
-- Extraction: 90% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 212 edges (avg confidence: 0.8)
+- 1360 nodes · 2362 edges · 101 communities (96 shown, 5 thin omitted)
+- Extraction: 90% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 217 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `41baa532`
+- Built from commit: `203759f2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -28,7 +28,7 @@
 - superficie-dia
 - Orc Animation Sprite Sheet
 - _corpo_medio
-- renderHotbar
+- planta_png.js
 - Ancestral Hunter Set Sheet (4x4 icon atlas on magenta key)
 - Combat Stance System (attack / balanced / defense selector)
 - Weapon Equipment Slot
@@ -70,7 +70,7 @@
 - error
 - fire
 - hurt
-- recalc
+- renderInv
 - freesound.py
 - loot
 - ui_click
@@ -109,11 +109,12 @@
 - _canvas
 - _canvas2
 - _rgb
-- renderStatus
+- frame
 - Texturas de UI — o que gerar
 - arraste.js
 - dealDamage
 - congela_mapa.js
+- emTerra
 - bindInput
 
 ## God Nodes (most connected - your core abstractions)
@@ -175,7 +176,7 @@
 - **Death State Group (single-frame prone poses with blood pool)** — assets_skins_voc_knight_voc_knight_veteran_dead_front_01_dead_front_pose, assets_skins_voc_knight_voc_knight_veteran_dead_back_01_dead_back_pose, assets_skins_voc_knight_voc_knight_veteran_dead_front_01_death_pose_blood_pool, assets_skins_voc_knight_voc_knight_veteran_idle_back_04_back_view_sword_harness [INFERRED 0.75]
 - **Veteran Knight walk animation sprite set (front + back directions, 4-frame cycle, shared character design)** — assets_skins_voc_knight_voc_knight_veteran_walk_front_01_walk_front_animation, assets_skins_voc_knight_voc_knight_veteran_walk_back_03_walk_back_animation, assets_skins_voc_knight_voc_knight_veteran_walk_front_04_four_frame_walk_cycle, assets_skins_voc_knight_voc_knight_veteran_walk_front_03_directional_sprite_set, assets_skins_voc_knight_voc_knight_veteran_walk_front_01_veteran_knight_sprite [INFERRED 0.95]
 
-## Communities (100 total, 5 thin omitted)
+## Communities (101 total, 5 thin omitted)
 
 ### Community 0 - "Tela de ajuda / comandos (#help)"
 Cohesion: 0.06
@@ -198,24 +199,24 @@ Cohesion: 0.08
 Nodes (35): ambience(), ambNodes, arp(), audioInit(), audioToggle(), audioVol(), audioVolReset(), _avisarSemSom() (+27 more)
 
 ### Community 5 - "game.js"
-Cohesion: 0.06
-Nodes (49): arrastaJanela(), bindMiniMap(), BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, chuvaOuvida() (+41 more)
+Cohesion: 0.05
+Nodes (51): abrirPicker(), BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, campoEm(), CLIMA_AVISO (+43 more)
 
 ### Community 6 - "data.js"
 Cohesion: 0.03
 Nodes (49): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, BIOMA_POOLS, BO, CAMPO_ACIMA (+41 more)
 
 ### Community 7 - "render2d.js"
-Cohesion: 0.10
-Nodes (43): bloomPass(), CAM, camadaNuvem(), chamaTremor(), CHAO_ESCALA, CHAO_ITEM, CHAO_MOEDA, cloudPass() (+35 more)
+Cohesion: 0.09
+Nodes (44): bloomPass(), CAM, camadaNuvem(), chamaTremor(), CHAO_ESCALA, CHAO_ITEM, CHAO_MOEDA, cloudPass() (+36 more)
 
 ### Community 8 - "_corpo_morte"
 Cohesion: 0.40
 Nodes (5): _corpo_morte, de, lp, tom, v
 
 ### Community 9 - "world.js"
-Cohesion: 0.09
-Nodes (43): POIS, ambienteAgora(), ambienteDe(), carregaMundo(), CEU, chaoMaisPerto(), CHAR_TILE, chavePorta() (+35 more)
+Cohesion: 0.07
+Nodes (51): POIS, ambienteAgora(), ambienteDe(), carregaMundo(), CEU, chaoMaisPerto(), CHAR_TILE, chuvaDe() (+43 more)
 
 ### Community 10 - "superficie-dia"
 Cohesion: 0.10
@@ -229,9 +230,9 @@ Nodes (21): Orc ATTACK Animation Row, Four-Direction Frame Grouping (side-left, 
 Cohesion: 0.10
 Nodes (21): atk_axe, mix, n, v, atk_club, mix, n, v (+13 more)
 
-### Community 13 - "renderHotbar"
-Cohesion: 0.28
-Nodes (9): abrirPicker(), HOT_KEYS_DEFAULT, hotAjusta(), hotDefault(), hotEntry(), hotKeyLabel(), knownSpells(), renderHotbar() (+1 more)
+### Community 13 - "planta_png.js"
+Cohesion: 0.11
+Nodes (16): buf, C, crc32(), ctx, fs, ihdr, linhas, o (+8 more)
 
 ### Community 14 - "Ancestral Hunter Set Sheet (4x4 icon atlas on magenta key)"
 Cohesion: 0.33
@@ -250,12 +251,12 @@ Cohesion: 0.38
 Nodes (15): Golden Guardian Halberd (two-handed polearm skin: dark shaft, gold-filigreed steel axe head with heraldic crest), Golden Guardian Amulet (neck slot skin: braided gold chain, lion-face shield pendant with red gems), Red Gem Accent (ruby inlay used across the set), Golden Guardian Armor (chest slot skin: dark steel cuirass, gold lion breastplate, red tabard), Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems), Lion Head Crest Motif (shared golden guardian emblem), Golden Guardian Backpack (back slot skin: brown leather rucksack with gold lion faceplate and bedroll), Golden Guardian Greaves (feet slot skin: dark plated boots with gold lion knee guards) (+7 more)
 
 ### Community 18 - "updateMobs"
-Cohesion: 0.29
-Nodes (13): acordar(), evitaCampo(), lineClear(), noTemplo(), occupied(), passoAte(), passoDeFuga(), passoVagar() (+5 more)
+Cohesion: 0.20
+Nodes (18): acordar(), evitaCampo(), lineClear(), noTemplo(), occupied(), passoAte(), passoDeFuga(), passoVagar() (+10 more)
 
 ### Community 19 - "compor.js"
-Cohesion: 0.06
-Nodes (41): aplicaPatch(), caminho(), componentes(), conferObjetos(), ctx, decoraDoTerreno(), dentro(), disco() (+33 more)
+Cohesion: 0.10
+Nodes (28): andavel(), aplicaPatch(), caminho(), componentes(), conferObjetos(), conta(), ctx, dentro() (+20 more)
 
 ### Community 20 - "Energy Sorcerer Front Walk and Idle Reference Sheet"
 Cohesion: 0.35
@@ -274,8 +275,8 @@ Cohesion: 0.17
 Nodes (29): IMBUEMENTS, LOOT_RARITY, bestDiff(), bestiaryKill(), bestKills(), bestStage(), bindBigMap(), contaMat() (+21 more)
 
 ### Community 24 - "log"
-Cohesion: 0.17
-Nodes (23): addMagic(), aplicaEstado(), campoDano(), campoEm(), clickTile(), comer(), criaCampo(), curar() (+15 more)
+Cohesion: 0.15
+Nodes (30): addMagic(), addSkillTry(), aplicaEstado(), canEquip(), clickTile(), comer(), curar(), drinkBest() (+22 more)
 
 ### Community 25 - "Axe Icon (Double-Bladed Wood Axe)"
 Cohesion: 0.24
@@ -374,8 +375,8 @@ Cohesion: 0.67
 Nodes (3): _corpo_forte, n, v
 
 ### Community 49 - "varrokgaard.js"
-Cohesion: 0.05
-Nodes (31): alvo, BOSQUE, C, CABO, CAMPO, CAVE, CHAO, compS (+23 more)
+Cohesion: 0.04
+Nodes (36): achados, alvo, BOSQUE, C, CABO, CAMPO, CAVE, CHAO (+28 more)
 
 ### Community 50 - "energy"
 Cohesion: 0.67
@@ -397,9 +398,9 @@ Nodes (3): fire, n, v
 Cohesion: 0.67
 Nodes (3): hurt, n, v
 
-### Community 55 - "recalc"
-Cohesion: 0.13
-Nodes (27): blessPrice(), canEquip(), cellsVazias(), CELULA, dropItem(), equipItem(), fmtBon(), itemCell() (+19 more)
+### Community 55 - "renderInv"
+Cohesion: 0.16
+Nodes (18): cellsVazias(), CELULA, descLoot(), dropItem(), fmtBon(), itemCell(), itemStats(), lootMudou() (+10 more)
 
 ### Community 56 - "freesound.py"
 Cohesion: 0.80
@@ -511,15 +512,15 @@ Nodes (12): electron, description, devDependencies, electron, main, name, privat
 
 ### Community 87 - "main.js"
 Cohesion: 0.11
-Nodes (19): abrirEditor(), abrirJanela(), { app, BrowserWindow, Menu }, DEV, { execFile }, fs, gravaPatch(), http (+11 more)
+Nodes (20): abrirEditor(), abrirJanela(), { app, BrowserWindow, Menu, dialog }, avisaPortaOcupada(), DEV, { execFile }, fs, gravaPatch() (+12 more)
 
 ### Community 88 - "lootEV"
 Cohesion: 0.67
 Nodes (3): lootEV(), lootQtd(), lootVal()
 
 ### Community 89 - "castSpell"
-Cohesion: 0.16
-Nodes (22): cdDe(), DANO_TIPOS, abrirMagia(), addSkillTry(), castSpell(), damageFormula(), estadoDaMagia(), fichaLinhas() (+14 more)
+Cohesion: 0.19
+Nodes (19): cdDe(), DANO_TIPOS, abrirMagia(), castSpell(), damageFormula(), estadoDaMagia(), fichaLinhas(), magiaHTML() (+11 more)
 
 ### Community 91 - "_canvas"
 Cohesion: 0.19
@@ -533,9 +534,9 @@ Nodes (12): _canvas2(), _chapado(), creatureSheet(), creatureSprite(), OUT_CACHE
 Cohesion: 0.21
 Nodes (16): barrilSprite(), carrocaSprite(), cercaSprite(), _cracks(), decoSprite(), _el(), escoraSprite(), moinhoSprite() (+8 more)
 
-### Community 94 - "renderStatus"
-Cohesion: 0.38
-Nodes (7): _corTexto(), renderResChips(), renderStatus(), statusAtivos(), statusSig(), tickStatus(), tipEm()
+### Community 94 - "frame"
+Cohesion: 0.16
+Nodes (14): arrastaJanela(), bindMiniMap(), campoDano(), chuvaOuvida(), clamp(), empurrar(), fecharLoot(), frame() (+6 more)
 
 ### Community 95 - "Texturas de UI — o que gerar"
 Cohesion: 0.25
@@ -546,16 +547,20 @@ Cohesion: 0.25
 Nodes (3): arrItemDaCelula(), arrZona(), ZONAS
 
 ### Community 97 - "dealDamage"
-Cohesion: 0.14
-Nodes (25): abalo(), abrirTesouro(), addExp(), bloodSpray(), changeFloor(), congelar(), cssCol(), dealDamage() (+17 more)
+Cohesion: 0.23
+Nodes (16): abalo(), addExp(), bloodSpray(), congelar(), cssCol(), dealDamage(), estadoIco(), estiloEstado() (+8 more)
 
 ### Community 98 - "congela_mapa.js"
 Cohesion: 0.18
 Nodes (10): alvo, ctx, dir, fs, kb, mapa, path, raiz (+2 more)
 
+### Community 99 - "emTerra"
+Cohesion: 0.67
+Nodes (3): discoTerra(), emTerra(), MAR
+
 ### Community 100 - "bindInput"
-Cohesion: 0.16
-Nodes (20): SPELLS, afterStep(), alvosPerto(), bagAdd(), bancadaTeste(), bindInput(), chaveTile(), coletaDe() (+12 more)
+Cohesion: 0.12
+Nodes (29): SPELLS, abrirTesouro(), afterStep(), alvosPerto(), bagAdd(), bancadaTeste(), bindInput(), blessPrice() (+21 more)
 
 ## Ambiguous Edges - Review These
 - `graphify` → `Thaira — RPG isométrico (shell da aplicação)`  [AMBIGUOUS]
@@ -582,7 +587,7 @@ Nodes (20): SPELLS, afterStep(), alvosPerto(), bagAdd(), bancadaTeste(), bindInp
   tools/amostra/energy_sorcerer_front_walk_and_idle.png · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **422 isolated node(s):** `dia-vila.mp3`, `dia-celta.mp3`, `dia-campina.mp3`, `dia-taverna.mp3`, `dia-menestrel.mp3` (+417 more)
+- **434 isolated node(s):** `dia-vila.mp3`, `dia-celta.mp3`, `dia-campina.mp3`, `dia-taverna.mp3`, `dia-menestrel.mp3` (+429 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 

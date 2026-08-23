@@ -37,8 +37,10 @@
         border: 1px solid transparent; cursor: pointer; user-select: none; }
   .tl:hover { border-color: var(--linha); }
   .tl.on { border-color: var(--ouro); background: #2a241c; }
-  .sw { width: 14px; height: 14px; border: 1px solid #0007; flex: none; }
+  .sw { width: 32px; height: 32px; border: 1px solid #0007; flex: none;
+        image-rendering: pixelated; background: #14110d; }
   .sw.barra { box-shadow: inset 0 0 0 2px #0009; }
+  .tl span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
   .visor { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #0a0908; }
   canvas { display: block; image-rendering: pixelated; cursor: crosshair; }
@@ -79,6 +81,7 @@
   <button class="tam" data-r="2">5×5<b>3</b></button>
   <span class="sep"></span>
   <button id="verTudo">ver tudo<b>0</b></button>
+  <button id="btGrade">grade<b>X</b></button>
   <button id="desfazer">desfazer<b>^Z</b></button>
   <span class="sep"></span>
   <button id="gravar">gravar e recompor<b>^S</b></button>
@@ -104,6 +107,28 @@
 <script src="../src/art.js"></script>
 <script src="../src/world.js"></script>
 <script>
+/* O CONTRATO DE ESTADO DO RENDER, e ele é pequeno de propósito.
+   O editor desenha o mundo chamando o `drawWorld` DO JOGO — não uma cópia. Um
+   laço de desenho próprio aqui divergiria do render2d.js no primeiro objeto
+   novo, e aí o editor mostraria uma coisa e o jogo outra: pior que a planta
+   chapada, porque a planta ao menos não promete ser o jogo.
+   O preço é declarar o `P` e o `G` que o render lê. São 7 campos e 13, todos
+   listados abaixo; se o render passar a precisar de mais, isto quebra alto
+   (undefined) em vez de desenhar errado calado. O que fica vazio é o que é
+   estado de PARTIDA e não de mapa: criatura, projétil, sangue, corpo, campo. */
+var P = { x: 0, y: 0, z: 0, px: 0, py: 0, lastDir: 's', voc: 'knight', eq: {}, seen: {} };
+var G = { now: 0, real: 0, abalo: null, blood: [], campos: [], corpses: [], drops: [],
+          fx: [], hover: null, mobs: [], nascendo: [], proj: [], target: null };
+/* E o punhado de funções do game.js que o render chama no caminho SEMPRE
+   executado. Não vale carregar o game.js inteiro por elas: viria save, loja,
+   HUD e o laço de jogo junto, e o editor passaria a depender de tudo o que o
+   jogo depende. Cada stub aqui é uma linha e diz o que o editor não tem.
+   `luzCarregada` é a tocha na mochila do personagem — no editor não há mochila,
+   então a resposta é "nenhuma luz", e quem ilumina é só o ambiente do andar. */
+function luzCarregada() { return { r: 0, cor: '#000', a0: 0, a1: 0, magica: false }; }
+</script>
+<script src="../src/render2d.js"></script>
+<script>
 /* O editor carrega o world.js DE VERDADE, como a planta faz. A paleta, as cores
    e o mapa saem da fonte única — copiar id ou cor para cá criaria a segunda
    fonte de verdade que a virada de mundo existe para não ter, e a página
@@ -117,10 +142,84 @@ const cv = $('#cv'), ctx = cv.getContext('2d');
    então o que você estava olhando saía voando. Agora o canvas é uma JANELA do
    tamanho do visor, `cam` é o tile do canto superior esquerdo, e o zoom é
    ancorado no cursor. É o mesmo modelo do jogo, e pela mesma razão. */
-let z = 0, px = 4, camX = 0, camY = 0;
+/* `ecamX/ecamY` e não `camX`: o render2d.js declara `camX` no escopo de script,
+   e os dois arquivos dividem esse escopo — declarar o mesmo nome duas vezes
+   derruba a página inteira com SyntaxError antes de qualquer linha rodar. */
+let z = 0, px = 4, ecamX = 0, ecamY = 0;
+/* VISTA. `jogo` desenha pelo render do jogo — é o que o dono do projeto pediu:
+   ver como vai ficar sem ter que jogar. `planta` é a cor chapada por tile, e
+   continua existindo porque no zoom de navegação (2–6 px por tile) o render do
+   jogo não se lê e custa caro: para achar uma região do outro lado do mapa a
+   planta é a ferramenta certa. Tecla V. */
+let vista = 'jogo';
+/* ABAIXO DESTE TAMANHO a vista de jogo cai para a planta, sozinha. Ela desenha
+   tile a tile, então o custo cresce com o QUADRADO do afastamento: medido nesta
+   máquina, 7 ms por quadro a 48 px por tile, 10 a 24, 56 a 11, 139 a 6, 243 a
+   3,7 e 486 a 2,2 — e a 486 ms o editor não responde ao mouse.
+   O limiar é 12 px porque é onde a conta ainda cabe num quadro razoável, e
+   porque abaixo disso a arte não se lê de qualquer jeito: um tile de 32 px
+   desenhado em 8 não mostra nem a junta nem a silhueta, que são as duas coisas
+   pelas quais a vista de jogo existe. A planta, que é uma cor por tile, atravessa
+   o mapa inteiro sem suar — cada vista serve ao zoom em que ela é a ferramenta
+   certa. A barra de estado diz qual está valendo e por quê. */
+const VISTA_MIN = 12;
+const vistaAgora = () => (vista === 'jogo' && px >= VISTA_MIN) ? 'jogo' : 'planta';
+/* LUZ. `andar` é a do FLOOR_AMBIENCE — fiel, e é onde a arte se julga: aprovar
+   tile de caverna em luz de meio-dia o deixa escuro demais para onde ele mora.
+   `neutra` é chapada, e existe porque num andar escuro não se ENXERGA o que se
+   está pintando. As duas numa tecla porque a resposta muda conforme se esteja
+   desenhando ou julgando. Tecla L. */
+let luz = 'andar';
+/* GRADE. Era automática — aparecia a partir de 7 px por tile e sumia abaixo —,
+   e automática está errado desde que existe a vista de jogo: sobre a arte a
+   grade RABISCA (é linha preta em cima de cada tile desenhado), e sobre a
+   planta ela é metade do trabalho, porque contar tile é como se acerta uma
+   coordenada. Quem decide é o dono, na tecla X.
+   O padrão continua sendo o comportamento antigo, agora explícito: ligada, e
+   ainda assim escondida abaixo de 7 px, onde ela viraria ruído sólido. */
+let grade = true;
+const dpr = () => Math.max(1, Math.round(devicePixelRatio || 1));
+
+/* A troca de luz por cima do `ambienteAgora`, que é declaração de função e
+   portanto vive no objeto global — dá para envolver sem tocar no motor. */
+const ambienteReal = ambienteAgora;
+/* MEIO-DIA FIXO no modo fiel, e não a hora de verdade. O `ambienteAgora` lê
+   `Date.now()`, então abrir o editor às oito da noite dava a ilha inteira no
+   escuro — medido: brilho médio 37 contra 88. Julgar cor de noite é o erro que
+   o CLAUDE.md já proíbe em texto ("de noite a iluminação mascara a paleta e
+   qualquer avaliação de cor sai errada"), e num editor ele é pior ainda: não é
+   só o julgamento que se perde, é a edição, porque não se enxerga o que se
+   pinta. O andar de subsolo continua com a luz DELE — lá o escuro é da tabela e
+   não do relógio, e é onde o tile de caverna tem de ser julgado. */
+const meioDia = () => Math.floor(Date.now() / DIA_MS) * DIA_MS + DIA_MS * 0.5;
+window.ambienteAgora = function (zz, ms) {
+  if (luz === 'andar') return ambienteReal(zz, ms === undefined ? meioDia() : ms);
+  /* `amb: null` é "não escurece nada" — o máximo de brilho HONESTO, porque
+     acima disso o editor estaria clareando a arte e mentindo sobre ela. */
+  return { bg: '#1a1712', amb: null, escuro: 0 };
+};
+
+/* CLIMA PARADO, SEMPRE. O editor não anima: o mapa é estático e o que se está
+   fazendo é desenhar, não jogar. Medido antes: dois desenhos seguidos sem tocar
+   em nada diferiam em 13.365 pixels — `G.now` está congelado, mas nuvem, chuva,
+   raio e vento saem do relógio REAL (`Date.now`), e continuavam correndo por
+   baixo. Sombra de nuvem passando por cima do tile que se está pintando é ruído
+   puro, e relâmpago no meio de uma edição é pior.
+   Reusa o `CLIMA_PARADO` que o motor já aplica em andar coberto — inventar um
+   estado de clima só para o editor seria uma segunda régua de tempo. */
+const climaReal = climaAgora;
+window.climaAgora = function () { return CLIMA_PARADO; };
 let pincel = T.GRASS, ferramenta = 'pincel', raio = 0;
 let base = null;                 // o mapa como o script o deixou, para o diff
 let mexidos = new Map();         // "z:i" -> tile, só o que difere da base
+/* A SEGUNDA CAMADA tem o próprio diff, e a unidade dele é a LISTA de objetos
+   ancorados num tile — não o objeto solto. É o que cobre pôr, tirar e vários
+   por tile com uma forma só: quem grava viu o tile inteiro e decidiu por ele.
+   `pincelObj` null = pintando terreno; string = pintando objeto; '' = borracha,
+   que é "pintar NENHUM objeto" e por isso não precisa de ferramenta nova. */
+let baseObj = null;
+let mexidosObj = new Map();      // "z:i" -> [ids], só o que difere de baseObj
+let pincelObj = null;
 let pilha = [];                  // desfazer: cada traço é um lote
 let arrastando = null, panning = null, hover = null;
 
@@ -128,6 +227,71 @@ const chave = (zz, i) => zz + ':' + i;
 const nomeTile = t => Object.keys(T).find(k => T[k] === t) || String(t);
 const cssCor = t => '#' + TILE[t].c.toString(16).padStart(6, '0');
 const trava = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* ------------------------------------------------------ amostra da paleta
+   O que se escolhe na paleta tem de ser o que vai aparecer no mapa. Quadradinho
+   de cor chapada dizia o mínimo — dois tons de marrom não contam qual é a
+   tábua e qual é a terra batida, e objeto nenhum tem silhueta numa amostra de
+   14 px de cor sólida.
+   Aqui sai o MESMO sprite que o render desenha: `tileTexture` para terreno,
+   `wallSprite`/`PAREDE_DRAW` para parede, `OBJ_DRAW` para móvel e
+   `decoSprite` para planta. Nada de arte própria do editor — uma segunda arte
+   aqui envelheceria no primeiro tile redesenhado, e a paleta passaria a mentir
+   sobre o que ela põe no mapa. */
+const AM = 32;
+function amostraCanvas(desenhar) {
+  const c = document.createElement('canvas');
+  c.width = c.height = AM; c.className = 'sw';
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  try { desenhar(g, c); } catch (e) { /* tile sem rotina de desenho: fica o fundo */ }
+  return c;
+}
+/* O ENQUADRAMENTO decide se a amostra serve. A primeira versão encaixava o
+   sprite inteiro dentro do quadrado preservando proporção — e como parede e
+   móvel são mais ALTOS que largos (têm o topo que transborda para o tile de
+   trás), o desenho encolhia para uns 65% da largura e sobrava fundo dos dois
+   lados. Medidas, as dezesseis amostras davam médias de cor praticamente
+   iguais: o fundo dominava e nenhuma silhueta se lia.
+   Agora: quem cabe num tile é desenhado com a LARGURA cheia e alinhado pelo
+   PÉ, como no jogo — o topo que sobra é cortado em cima, que é exatamente o que
+   acontece na tela quando há outro tile acima. Quem ocupa mais de um tile
+   (moinho, poço) entra inteiro, senão sobraria só o rodapé e a coisa perderia
+   justamente a silhueta que a distingue. */
+function encaixa(g, spr) {
+  if (spr.width > 32) {                         // multi-tile: inteiro, ou vira rodapé
+    const k = Math.min(AM / spr.width, AM / spr.height);
+    const w = Math.round(spr.width * k), h = Math.round(spr.height * k);
+    g.drawImage(spr, Math.round((AM - w) / 2), AM - h, w, h);
+    return;
+  }
+  const k = AM / 32;                            // largura cheia do tile
+  const w = Math.round(spr.width * k), h = Math.round(spr.height * k);
+  g.drawImage(spr, Math.round((AM - w) / 2), AM - h, w, h);
+}
+function amostraTile(t) {
+  const def = TILE[t];
+  return amostraCanvas(g => {
+    if (def.hide) { g.fillStyle = '#000'; g.fillRect(0, 0, AM, AM); return; }
+    if (def.tex) g.drawImage(tileTexture(def.tex, def.c), 0, 0, 32, 32, 0, 0, AM, AM);
+    else { g.fillStyle = cssCor(t); g.fillRect(0, 0, AM, AM); }
+    if (t === T.UP || t === T.DOWN) g.drawImage(stairSprite(t === T.DOWN), 0, 0, AM, AM);
+  });
+}
+function amostraObj(id) {
+  const d = OBJ[id];
+  return amostraCanvas(g => {
+    /* Chão neutro por baixo: o objeto é transparente em volta, e sem fundo a
+       silhueta some contra o painel. Terra batida porque é o chão mais comum
+       debaixo de móvel e cerca. */
+    g.drawImage(tileTexture('dirt', TILE[T.DIRT].c), 0, 0, 32, 32, 0, 0, AM, AM);
+    if (d.deco !== undefined) return encaixa(g, outlined(decoSprite(d.deco, 0)));
+    if (d.draw === 'porta') return g.drawImage(tileTexture('door', d.c), 0, 0, 32, 32, 0, 0, AM, AM);
+    if (d.draw && PAREDE_DRAW[d.draw]) return encaixa(g, PAREDE_DRAW[d.draw]());
+    if (d.draw && OBJ_DRAW[d.draw]) return encaixa(g, OBJ_DRAW[d.draw](false));
+    if (d.top > 0.5) return encaixa(g, wallSprite(d.tex, d.c, 0));
+  });
+}
 
 /* --------------------------------------------------------------- a paleta
    Agrupada, e não uma lista de 39 nomes em ordem de id. Trinta e nove itens em
@@ -143,6 +307,15 @@ const GRUPOS = [
   ['marcas',  ['GORE', 'RUNE']],
   ['escadas', ['UP', 'DOWN']]
 ];
+/* Os objetos, agrupados pela mesma lógica do vocabulário. A borracha entra como
+   entrada da paleta e não como ferramenta: apagar É pintar nenhum objeto, e uma
+   ferramenta a mais seria um modo a mais para o dono lembrar. */
+const GRUPOS_OBJ = [
+  ['objeto · apagar', ['']],
+  ['objeto · parede', ['ptabua', 'pbloco', 'rochedo', 'cparede', 'veio', 'teia', 'moinho']],
+  ['objeto · vila',   ['porta', 'cerca', 'poco', 'carroca', 'barril', 'escora']],
+  ['objeto · mato',   ['arvore', 'moita', 'pedra']]
+];
 function paleta() {
   const p = $('#paleta');
   p.innerHTML = '';
@@ -154,17 +327,50 @@ function paleta() {
       if (T[nome] === undefined) continue;
       postos.add(nome);
       const t = T[nome], d = document.createElement('div');
-      d.className = 'tl' + (t === pincel ? ' on' : '');
-      d.innerHTML = '<span class="sw' + (TILE[t].walk ? '' : ' barra') + '" style="background:' +
-        cssCor(t) + '"></span><span>' + nome.toLowerCase() + '</span>';
+      d.className = 'tl' + (t === pincel && pincelObj === null ? ' on' : '');
+      const am = amostraTile(t);
+      if (!TILE[t].walk) am.classList.add('barra');
+      d.appendChild(am);
+      const rot = document.createElement('span'); rot.textContent = nome.toLowerCase();
+      d.appendChild(rot);
       d.title = nome + ' · ' + (TILE[t].walk ? 'andável' : 'barra o passo') +
         (TILE[t].span ? ' · ocupa ' + TILE[t].span[0] + '×' + TILE[t].span[1] + ' tiles' : '');
-      d.onclick = () => { pincel = t; paleta(); desenha(); };
+      d.onclick = () => { pincel = t; pincelObj = null; paleta(); desenha(); };
+      g.appendChild(d);
+    }
+    p.appendChild(h); p.appendChild(g);
+  };
+  const blocoObj = (titulo, ids) => {
+    const h = document.createElement('div'); h.className = 'grupo'; h.textContent = titulo;
+    const g = document.createElement('div'); g.className = 'linhas';
+    for (const id of ids) {
+      const d = document.createElement('div');
+      d.className = 'tl' + (pincelObj === id ? ' on' : '');
+      const o = OBJ[id];
+      if (id === '') {
+        const vazio = document.createElement('span');
+        vazio.className = 'sw';
+        vazio.style.cssText = 'border:1px dashed #8a7a5c;background:transparent';
+        d.appendChild(vazio);
+      } else {
+        const am = amostraObj(id);
+        if (!o.walk) am.classList.add('barra');
+        d.appendChild(am);
+      }
+      const rot = document.createElement('span');
+      rot.textContent = id === '' ? 'apagar' : o.nome.toLowerCase();
+      d.appendChild(rot);
+      d.title = id === '' ? 'tira todo objeto do tile — o chão fica'
+        : o.nome + ' · ' + (o.walk ? 'não barra' : 'barra o passo') +
+          (o.top > 0.5 ? ' e a vista' : '') +
+          (o.span ? ' · ocupa ' + o.span[0] + '×' + o.span[1] + ' tiles' : '');
+      d.onclick = () => { pincelObj = id; paleta(); desenha(); };
       g.appendChild(d);
     }
     p.appendChild(h); p.appendChild(g);
   };
   for (const [titulo, nomes] of GRUPOS) bloco(titulo, nomes);
+  for (const [titulo, ids] of GRUPOS_OBJ) blocoObj(titulo, ids);
   /* Tile que entrar na tabela e não estiver em GRUPOS aparece aqui em vez de
      sumir da paleta: a lista de grupos é escrita à mão e vai envelhecer. */
   const sobra = Object.keys(T).filter(k => !postos.has(k));
@@ -173,28 +379,76 @@ function paleta() {
 
 /* -------------------------------------------------------------- o desenho */
 function ajusta() {
+  /* O tamanho de CSS do canvas é do VISOR; o do BUFFER é de cada modo — a vista
+     de jogo cria em pixel de dispositivo (é o `resizeCam` que faz isso, e é o
+     que mantém o pixel limpo em tela HiDPI), a planta cria igual. Sem esta
+     linha o canvas fica nos 300×150 de fábrica: era o `ajusta` antigo que o
+     dimensionava, por atributo, e ele deixou de fazer isso. */
   const v = $('#visor');
-  cv.width = v.clientWidth; cv.height = v.clientHeight;
+  cv.style.width = v.clientWidth + 'px';
+  cv.style.height = v.clientHeight + 'px';
   ctx.imageSmoothingEnabled = false;
   desenha();
 }
-const colunas = () => Math.ceil(cv.width / px) + 1;
-const linhas = () => Math.ceil(cv.height / px) + 1;
+const colunas = () => Math.ceil(cv.clientWidth / px) + 1;
+const linhas = () => Math.ceil(cv.clientHeight / px) + 1;
 
 function limitaCam() {
   /* Meia tela de folga dos dois lados: travar a câmera na borda exata impede de
      trabalhar no tile 0 com conforto, e mapa menor que o visor ficaria colado
      no canto — que é o defeito que esta reforma veio consertar. */
-  camX = trava(camX, -cv.width / px / 2, W - cv.width / px / 2);
-  camY = trava(camY, -cv.height / px / 2, H - cv.height / px / 2);
+  ecamX = trava(ecamX, -cv.clientWidth / px / 2, W - cv.clientWidth / px / 2);
+  ecamY = trava(ecamY, -cv.clientHeight / px / 2, H - cv.clientHeight / px / 2);
 }
 
-function desenha() {
-  if (!base) return;
-  limitaCam();
-  const x0 = Math.floor(camX), y0 = Math.floor(camY);
-  const ox = (camX - x0) * px, oy = (camY - y0) * px;
-  ctx.fillStyle = '#0a0908'; ctx.fillRect(0, 0, cv.width, cv.height);
+/* O MUNDO PELO RENDER DO JOGO.
+   A câmera do jogo é centrada em `P.px/P.py` e o `drawFloor` põe o canto do
+   tile em `(x - ecamX) * t + VW/2 - t/2`. Resolvendo para que isso dê exatamente
+   `(x - ecamX) * t`, o centro tem de ficar meio tile antes do meio da
+   tela — é daí que sai o `- 0.5`. Com isso a matemática do overlay (grade,
+   marca de mexido, spawn, pincel) continua sendo a mesma dos dois modos, e o
+   mouse continua sendo `(clientX - rect.left) / px`.
+   O canvas é criado em pixel de DISPOSITIVO pelo `resizeCam`, então o overlay
+   desenha sob uma transform de dpr e segue falando em pixel de CSS. */
+function desenhaJogo() {
+  CAM.zoom = px / TS;
+  resizeCam(cv);
+  const t = TS * CAM.scale;
+  P.z = z;
+  P.px = P.x = ecamX + cv.width / (2 * t) - 0.5;
+  P.py = P.y = ecamY + cv.height / (2 * t) - 0.5;
+  G.now = G.real = 5e6;          // relógio parado: vento e água quietos enquanto se edita
+  drawWorld();
+  ctx.setTransform(dpr(), 0, 0, dpr(), 0, 0);
+}
+
+/* NO EXTREMO AFASTADO, um `drawImage` no lugar de cem mil `fillRect`.
+   A 2,2 px por tile a tela cobre mais de 120 mil tiles e a planta gastava 94 ms
+   por quadro só pintando quadradinho — e nesse zoom cada tile é um borrão de
+   dois pixels, então a fidelidade por tile não compra nada.
+   O motor já monta exatamente esta imagem: o `buildMinimaps` desenha o andar
+   inteiro em 1 px por tile, chão e objeto, com as mesmas cores. Reusar é uma
+   chamada; reescrever seria uma terceira régua de cor de mapa depois do render
+   e da planta. Só precisa ser remontado quando o mapa muda, e quem edita marca. */
+let miniSujo = true;
+const MINI_ATE = 4;
+function desenhaMini() {
+  const d = dpr();
+  if (miniSujo) { buildMinimaps(); miniSujo = false; }
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#0a0908'; ctx.fillRect(0, 0, cv.clientWidth, cv.clientHeight);
+  ctx.drawImage(miniCanvas[z], -ecamX * px, -ecamY * px, W * px, H * px);
+}
+
+function desenhaPlanta() {
+  const d = dpr();
+  if (cv.width !== Math.round(cv.clientWidth * d)) { cv.width = Math.round(cv.clientWidth * d); cv.height = Math.round(cv.clientHeight * d); }
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  const x0 = Math.floor(ecamX), y0 = Math.floor(ecamY);
+  const ox = (ecamX - x0) * px, oy = (ecamY - y0) * px;
+  ctx.fillStyle = '#0a0908'; ctx.fillRect(0, 0, cv.clientWidth, cv.clientHeight);
   const t = WORLD.floors[z].t;
   for (let j = 0; j < linhas(); j++) for (let i = 0; i < colunas(); i++) {
     const x = x0 + i, y = y0 + j;
@@ -202,15 +456,44 @@ function desenha() {
     ctx.fillStyle = cssCor(t[y * W + x]);
     ctx.fillRect(Math.round(i * px - ox), Math.round(j * px - oy), Math.ceil(px), Math.ceil(px));
   }
-  const telaX = x => Math.round((x - camX) * px), telaY = y => Math.round((y - camY) * px);
+  /* O OBJETO por cima, com a cor do material — sem isto a planta repete o
+     defeito que o minimapa teve e some tudo que dá forma ao lugar.
+     Varrendo a LISTA e não os tiles: afastado, a tela cobre mais de cem mil
+     tiles e o andar tem quatro mil objetos, então perguntar "há objeto aqui?"
+     por tile é fazer 25 vezes mais trabalho para achar a mesma coisa. É o mesmo
+     raciocínio do `poiAt`, que varre os 39 pontos em vez de perguntar por
+     tile. */
+  const x1 = x0 + colunas(), y1 = y0 + linhas();
+  for (const o of WORLD.floors[z].objs) {
+    const dd = OBJ[o.o];
+    if (!dd || dd.c === undefined) continue;
+    const sp = dd.span || [1, 1];
+    if (o.x + sp[0] < x0 || o.y + sp[1] < y0 || o.x > x1 || o.y > y1) continue;
+    ctx.fillStyle = '#' + dd.c.toString(16).padStart(6, '0');
+    for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++)
+      ctx.fillRect(Math.round((o.x + i - ecamX) * px), Math.round((o.y + j - ecamY) * px),
+        Math.ceil(px), Math.ceil(px));
+  }
+}
+
+function desenha() {
+  if (!base) return;
+  limitaCam();
+  const x0 = Math.floor(ecamX), y0 = Math.floor(ecamY);
+  const ox = (ecamX - x0) * px, oy = (ecamY - y0) * px;
+  if (vistaAgora() === 'jogo') desenhaJogo();
+  else if (px < MINI_ATE) desenhaMini();
+  else desenhaPlanta();
+  const telaX = x => Math.round((x - ecamX) * px), telaY = y => Math.round((y - ecamY) * px);
 
   /* Grade só quando o tile é grande o bastante para ela não virar ruído. Sem
      grade não se conta tile, e contar tile é metade do trabalho de editar. */
-  if (px >= 7) {
-    ctx.strokeStyle = 'rgba(0,0,0,.24)'; ctx.lineWidth = 1;
+  if (grade && px >= 7) {
+    ctx.strokeStyle = vistaAgora() === 'jogo' ? 'rgba(255,255,255,.13)' : 'rgba(0,0,0,.24)';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let i = 0; i <= colunas(); i++) { const sx = Math.round(i * px - ox) + .5; ctx.moveTo(sx, 0); ctx.lineTo(sx, cv.height); }
-    for (let j = 0; j <= linhas(); j++) { const sy = Math.round(j * px - oy) + .5; ctx.moveTo(0, sy); ctx.lineTo(cv.width, sy); }
+    for (let i = 0; i <= colunas(); i++) { const sx = Math.round(i * px - ox) + .5; ctx.moveTo(sx, 0); ctx.lineTo(sx, cv.clientHeight); }
+    for (let j = 0; j <= linhas(); j++) { const sy = Math.round(j * px - oy) + .5; ctx.moveTo(0, sy); ctx.lineTo(cv.clientWidth, sy); }
     ctx.stroke();
   }
 
@@ -218,7 +501,7 @@ function desenha() {
      saber o que é seu e o que é meu, e a primeira coisa que se perde num editor
      é a noção do que já foi tocado. */
   ctx.strokeStyle = 'rgba(216,194,122,.9)'; ctx.lineWidth = px >= 4 ? 1 : 2;
-  for (const k of mexidos.keys()) {
+  for (const k of [...mexidos.keys(), ...mexidosObj.keys()]) {
     const [kz, ki] = k.split(':').map(Number);
     if (kz !== z) continue;
     const x = ki % W, y = (ki / W) | 0;
@@ -232,7 +515,7 @@ function desenha() {
   const r = Math.max(2, px * .34);
   for (const s of WORLD.spawns) if (s.z === z) {
     const sx = telaX(s.x), sy = telaY(s.y);
-    if (sx < -px || sy < -px || sx > cv.width || sy > cv.height) continue;
+    if (sx < -px || sy < -px || sx > cv.clientWidth || sy > cv.clientHeight) continue;
     ctx.fillRect(sx + px / 2 - r / 2, sy + px / 2 - r / 2, r, r);
   }
   ctx.strokeStyle = 'rgba(255,90,60,.85)'; ctx.lineWidth = 1.5;
@@ -243,7 +526,7 @@ function desenha() {
   /* O pincel embaixo do cursor. Com raio 2, ou com objeto de 2×3, é impossível
      acertar onde a coisa cai sem ver a marca ANTES de clicar. */
   if (hover && ferramenta !== 'conta-gotas') {
-    const sp = TILE[pincel].span;
+    const sp = pincelObj !== null ? (pincelObj && OBJ[pincelObj].span) : TILE[pincel].span;
     const [hx, hy] = hover;
     let ax, ay, aw, ah;
     if (ferramenta === 'retangulo' && arrastando && arrastando.ret) {
@@ -260,14 +543,29 @@ function desenha() {
 }
 
 function estado() {
-  const n = mexidos.size;
+  const n = mexidos.size + mexidosObj.size;
   $('#estado').innerHTML = n
     ? '<span class="aviso">● ' + n + ' tile' + (n > 1 ? 's' : '') + ' por gravar</span>'
     : '<span class="ok">● nada pendente</span>';
-  $('#lupa').textContent = px.toFixed(1).replace('.0', '') + '× ';
+  $('#lupa').textContent = px.toFixed(1).replace('.0', '') + '× · ' +
+    (vista === 'jogo'
+       ? (px >= VISTA_MIN ? 'jogo' : 'planta (jogo volta ao aproximar)')
+       : 'planta') + ' (V) · luz ' + (luz === 'andar' ? 'do andar' : 'neutra') + ' (L)' +
+    ' · grade ' + (grade ? (px >= 7 ? 'sim' : 'sim, oculta no zoom') : 'não') + ' (X)';
 }
 
 /* ------------------------------------------------------------ a edição */
+function desfazObj(k, antes) {
+  const [kz, ki] = k.split(':').map(Number);
+  const x = ki % W, y = (ki / W) | 0, f = WORLD.floors[kz];
+  f.objs = f.objs.filter(o => !(o.x === x && o.y === y));
+  for (const d of antes) f.objs.push({ x, y, o: d });
+  f.oi = null;
+  const mesmo = baseObj[kz][ki] || [];
+  if (mesmo.length === antes.length && mesmo.every((v, n) => v === antes[n])) mexidosObj.delete(k);
+  else mexidosObj.set(k, antes);
+}
+
 function poe(x, y, t, lote) {
   if (x < 0 || y < 0 || x >= W || y >= H) return;
   const i = y * W + x, k = chave(z, i), atual = WORLD.floors[z].t[i];
@@ -278,9 +576,41 @@ function poe(x, y, t, lote) {
      já era grama tem de sumir do patch, senão ele cresce para sempre com
      correções que não corrigem nada. */
   if (base[z][i] === t) mexidos.delete(k); else mexidos.set(k, t);
+  miniSujo = true;
+}
+
+/* A lista de objetos ANCORADOS neste tile, ordenada — a ordem canônica é o que
+   permite comparar com a base sem falso positivo por ordem diferente. */
+const idsEm = (x, y, zz) => WORLD.floors[zz].objs
+  .filter(o => o.x === x && o.y === y).map(o => o.o).sort();
+
+function poeObj(x, y, id, lote) {
+  if (x < 0 || y < 0 || x >= W || y >= H) return;
+  const f = WORLD.floors[z], i = y * W + x, k = chave(z, i);
+  const antes = idsEm(x, y, z);
+  let depois;
+  if (id === '') depois = [];
+  else if (antes.includes(id)) return;         // idempotente: arrastar não empilha 50 barris
+  else depois = [...antes, id].sort();
+  lote.push([k, antes, 'obj']);
+  f.objs = f.objs.filter(o => !(o.x === x && o.y === y));
+  for (const d of depois) f.objs.push({ x, y, o: d });
+  f.oi = null;
+  const mesmo = baseObj[z][i] || [];
+  if (mesmo.length === depois.length && mesmo.every((v, n) => v === depois[n])) mexidosObj.delete(k);
+  else mexidosObj.set(k, depois);
+  miniSujo = true;
 }
 
 function pintar(x, y, lote) {
+  if (pincelObj !== null) {
+    /* Objeto de mais de um tile pinta só a ÂNCORA: o rastro é do índice, não do
+       mapa. É a diferença que a separação de camadas comprou — antes o pincel
+       tinha de pintar os 6 tiles do moinho e um deles faltando dava âncora sem
+       rastro, que não desenha nada e não dá erro. */
+    for (let j = -raio; j <= raio; j++) for (let i = -raio; i <= raio; i++) poeObj(x + i, y + j, pincelObj, lote);
+    return;
+  }
   const sp = TILE[pincel].span;
   if (sp) {                                    // objeto grande: pinta o rastro inteiro
     for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) poe(x + i, y + j, pincel, lote);
@@ -316,7 +646,7 @@ function balde(x, y, lote) {
 
 const tileSob = e => {
   const r = cv.getBoundingClientRect();
-  return [Math.floor((e.clientX - r.left) / px + camX), Math.floor((e.clientY - r.top) / px + camY)];
+  return [Math.floor((e.clientX - r.left) / px + ecamX), Math.floor((e.clientY - r.top) / px + ecamY)];
 };
 const dentro = ([x, y]) => x >= 0 && y >= 0 && x < W && y < H;
 
@@ -326,7 +656,7 @@ cv.addEventListener('mousedown', e => {
   /* Arrastar com o botão DIREITO ou do MEIO move o mapa. Sem isso, no zoom alto
      só dava para chegar nos tiles que calhassem de estar na tela ao carregar. */
   if (e.button === 1 || e.button === 2) {
-    panning = { x: e.clientX, y: e.clientY, cx: camX, cy: camY };
+    panning = { x: e.clientX, y: e.clientY, cx: ecamX, cy: ecamY };
     cv.classList.add('pan');
     return;
   }
@@ -344,8 +674,8 @@ cv.addEventListener('mousedown', e => {
 
 cv.addEventListener('mousemove', e => {
   if (panning) {
-    camX = panning.cx - (e.clientX - panning.x) / px;
-    camY = panning.cy - (e.clientY - panning.y) / px;
+    ecamX = panning.cx - (e.clientX - panning.x) / px;
+    ecamY = panning.cy - (e.clientY - panning.y) / px;
     desenha();
     return;
   }
@@ -390,18 +720,24 @@ cv.addEventListener('wheel', e => {
   e.preventDefault();
   const r = cv.getBoundingClientRect();
   const mx = e.clientX - r.left, my = e.clientY - r.top;
-  const alvoX = camX + mx / px, alvoY = camY + my / px;
-  const novo = trava(px * (e.deltaY > 0 ? 1 / 1.2 : 1.2), 1, 28);
+  const alvoX = ecamX + mx / px, alvoY = ecamY + my / px;
+  /* SEM TETO para aproximar. O limite de 28 era arbitrário e atrapalhava o que
+     o editor passou a servir: com a vista de jogo, chegar perto é como se olha
+     um tile de 32 px de verdade — a 64 ou 128 px por tile dá para conferir a
+     junta entre dois terrenos e a silhueta de um objeto, que é onde a arte se
+     decide. O piso de 1 fica: abaixo disso o tile some e não há o que editar,
+     e para navegar longe existe o "ver tudo". */
+  const novo = Math.max(1, px * (e.deltaY > 0 ? 1 / 1.2 : 1.2));
   if (novo === px) return;
   px = novo;
-  camX = alvoX - mx / px; camY = alvoY - my / px;
+  ecamX = alvoX - mx / px; ecamY = alvoY - my / px;
   desenha();
 }, { passive: false });
 
 function verTudo() {
   px = Math.max(1, Math.min(cv.width / W, cv.height / H));
-  camX = W / 2 - cv.width / px / 2;
-  camY = H / 2 - cv.height / px / 2;
+  ecamX = W / 2 - cv.width / px / 2;
+  ecamY = H / 2 - cv.height / px / 2;
   desenha();
 }
 
@@ -409,7 +745,8 @@ function desfazer() {
   const lote = pilha.pop();
   if (!lote) return;
   for (let i = lote.length - 1; i >= 0; i--) {
-    const [k, antes] = lote[i];
+    const [k, antes, tipo] = lote[i];
+    if (tipo === 'obj') { desfazObj(k, antes); continue; }
     const [kz, ki] = k.split(':').map(Number);
     WORLD.floors[kz].t[ki] = antes;
     if (base[kz][ki] === antes) mexidos.delete(k); else mexidos.set(k, antes);
@@ -452,17 +789,29 @@ function carregar(nome, manterVista) {
   return fetch(url)
     .then(r => { if (!r.ok) throw new Error('o servidor respondeu ' + r.status); return r.json(); })
     .then(o => {
-      const vista = { z, px, camX, camY };
+      const vista = { z, px, ecamX, ecamY };
       mapaAplica(o);
       /* A BASE é o mapa recém-carregado, e o arquivo já vem COM o patch
          aplicado (o script grava depois de aplicá-lo). Então o diff daqui é
          contra o estado atual, e gravar duas vezes sem mexer em nada dá patch
          vazio — que é o certo: o patch acumula no arquivo, não na sessão. */
+      miniSujo = true;
       base = WORLD.floors.map(f => f.t.slice());
-      mexidos = new Map(); pilha = [];
+      /* A base da segunda camada, no mesmo formato do diff: idx -> [ids]
+         ordenado. Ordenado porque a comparação é elemento a elemento, e duas
+         listas com os mesmos objetos em ordem diferente marcariam o tile como
+         mexido para sempre — patch que cresce sozinho é o defeito que o freio
+         de 2.000 tiles existe para pegar depois de já ter acontecido. */
+      baseObj = WORLD.floors.map(f => {
+        const m = {};
+        for (const o of f.objs) { const i = o.y * W + o.x; (m[i] = m[i] || []).push(o.o); }
+        for (const k in m) m[k].sort();
+        return m;
+      });
+      mexidos = new Map(); mexidosObj = new Map(); pilha = [];
       ajusta();
       if (manterVista && vista.z < FLOORS) {
-        z = vista.z; px = vista.px; camX = vista.camX; camY = vista.camY;
+        z = vista.z; px = vista.px; ecamX = vista.ecamX; ecamY = vista.ecamY;
         andares(); desenha();
       } else {
         /* Abre na SUPERFÍCIE e não no andar 0: em Varrokgaard o andar 0 é a
@@ -489,7 +838,17 @@ function carregar(nome, manterVista) {
             if (iz >= FLOORS) { fora += pt.tiles[kz].length; total += pt.tiles[kz].length; continue; }
             for (const [x, y, t] of pt.tiles[kz]) {
               total++;
-              if (x < W && y < H && WORLD.floors[iz].t[y * W + x] !== t) fora++;
+              if (x >= W || y >= H) continue;
+              /* O patch fala o VOCABULÁRIO DE AUTOR (`T.TREE`, `T.BARREL`), e o
+                 mapa carregado já está partido em chão + objeto: comparar o tile
+                 do patch com o terreno acusaria atraso em toda árvore e todo
+                 móvel corrigido à mão. Foi o que aconteceu — 918 de 918, alarme
+                 falso completo, no primeiro carregamento depois da separação.
+                 Para esses, a pergunta certa é se o OBJETO correspondente está
+                 lá. Um alarme que grita sempre é o mesmo que alarme nenhum. */
+              const mg = MIGRA[t];
+              if (mg) { if (!objsAt(x, y, iz).some(o => o.o === mg.o)) fora++; }
+              else if (WORLD.floors[iz].t[y * W + x] !== t) fora++;
             }
           }
           if (!fora) return;
@@ -564,15 +923,25 @@ function gravar() {
   fetch('../maps/' + nome + '.patch.json')
     .then(r => {
       if (r.ok) return r.json();
-      if (r.status === 404) return { tiles: {} };
+      if (r.status === 404) return { tiles: {}, objs: {} };
       throw new Error('o patch existente respondeu ' + r.status);
     })
     .then(velho => {
       antes = Object.values(velho.tiles || {}).reduce((a, v) => a + v.length, 0);
-      const saida = { nome, tiles: velho.tiles || {} };
+      const saida = { nome, tiles: velho.tiles || {}, objs: velho.objs || {} };
       for (const [k, t] of mexidos) {
         const [kz, ki] = k.split(':').map(Number);
         (saida.tiles[kz] = saida.tiles[kz] || []).push([ki % W, (ki / W) | 0, t]);
+      }
+      for (const [k, ids] of mexidosObj) {
+        const [kz, ki] = k.split(':').map(Number);
+        (saida.objs[kz] = saida.objs[kz] || []).push([ki % W, (ki / W) | 0, ids]);
+      }
+      // mesma regra da camada de terreno: um tile mexido duas vezes vale a última
+      for (const kz in saida.objs) {
+        const ultimo = new Map();
+        for (const [x, y, ids] of saida.objs[kz]) ultimo.set(y * W + x, ids);
+        saida.objs[kz] = [...ultimo].map(([i, ids]) => [i % W, (i / W) | 0, ids]);
       }
       // um tile mexido duas vezes vale a última: o patch é estado, não histórico
       for (const kz in saida.tiles) {
@@ -580,7 +949,8 @@ function gravar() {
         for (const [x, y, t] of saida.tiles[kz]) ultimo.set(y * W + x, t);
         saida.tiles[kz] = [...ultimo].map(([i, t]) => [i % W, (i / W) | 0, t]);
       }
-      const total = Object.values(saida.tiles).reduce((a, v) => a + v.length, 0);
+      const total = Object.values(saida.tiles).reduce((a, v) => a + v.length, 0) +
+        Object.values(saida.objs).reduce((a, v) => a + v.length, 0);
       if (total > 2000 && !confirm(
           'O patch vai ficar com ' + total + ' tiles (' + antes +
           ' já estavam no arquivo, ' + mexidos.size + ' são desta sessão).' +
@@ -592,8 +962,8 @@ function gravar() {
     .then(r => r && r.json())
     .then(r => {
       if (!r) { $('#log').textContent = ''; return; }
-      const novos = mexidos.size;
-      mexidos = new Map(); pilha = [];
+      const novos = mexidos.size + mexidosObj.size;
+      mexidos = new Map(); mexidosObj = new Map(); pilha = [];
       const log = $('#log');
       /* SERVIDOR SEM RECOMPOSIÇÃO. O `serve.py` só ganhou o `recompoe` depois
          que o editor existia, e um servidor que já estava rodando continua com
@@ -645,6 +1015,9 @@ function gravar() {
 $('#carregar').onclick = () => carregar($('#nome').value.trim());
 $('#desfazer').onclick = desfazer;
 $('#gravar').onclick = gravar;
+function marcaGrade() { $('#btGrade').classList.toggle('on', grade); }
+$('#btGrade').onclick = () => { grade = !grade; marcaGrade(); desenha(); };
+marcaGrade();
 $('#verTudo').onclick = verTudo;
 $('#limpar').onclick = () => {
   if (!mexidos.size || !confirm('Descartar ' + mexidos.size + ' tile(s) mexido(s) nesta sessão?')) return;
@@ -684,10 +1057,13 @@ addEventListener('keydown', e => {
     return desenha();
   }
   if (k === '0') return verTudo();
+  if (k === 'v') { vista = vista === 'jogo' ? 'planta' : 'jogo'; return desenha(); }
+  if (k === 'l') { luz = luz === 'andar' ? 'neutra' : 'andar'; return desenha(); }
+  if (k === 'x') { grade = !grade; marcaGrade(); return desenha(); }
 });
 addEventListener('resize', ajusta);
 /* Sair com coisa não gravada é a perda mais boba que um editor permite. */
-addEventListener('beforeunload', e => { if (mexidos.size) { e.preventDefault(); e.returnValue = ''; } });
+addEventListener('beforeunload', e => { if (mexidos.size + mexidosObj.size) { e.preventDefault(); e.returnValue = ''; } });
 
 paleta();
 carregar('varrokgaard');

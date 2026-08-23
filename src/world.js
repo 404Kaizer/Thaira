@@ -117,7 +117,75 @@ const TILE = {
   [T.MILL]:   { c: 0x8a7a5c, top: 1.1,  walk: false, tex: 'dirt',   parede: 'moinho', span: [2, 3] }
 };
 
-const WORLD = { floors: [], temple: { x: W >> 1, y: H >> 1, z: SURF }, spawns: [], hunts: [], pois: [], seed: 0, portas: new Set() };
+/* ------------------------------------------------------------------ OBJETOS
+   Objeto NÃO é terreno, e é esta a separação que faltava. Antes o barril era um
+   id de tile com `tex:'dirt'` cravado na ficha, então barril em cima de palha
+   pintava TERRA sob si — e ter as duas combinações exigia um id por par, o que
+   estoura em N objetos × M chãos. Três comentários deste arquivo já diziam em
+   prosa que "`c` e `tex` são o CHÃO sob o objeto, porque objeto não é terreno":
+   a regra estava certa e a estrutura não a sustentava.
+
+   Agora o andar tem DUAS camadas: `t` (o chão, denso, um byte por tile) e
+   `objs` (o que está EM CIMA dele, esparso). Medido em Varrokgaard, tudo que
+   migra dá ~5.100 entradas em 110.592 tiles — 4,6%, na mesma ordem do `deco`
+   que a lista já carregava. Esparso continua esparso.
+
+   Três categorias, e a régua de `top` é a mesma de sempre (> 0,5 corta a vista):
+     parede  bloqueia o pé E a vista — rochedo, bloco, tábua, teia, moinho
+     objeto  bloqueia o pé e NÃO a vista — cerca, barril, poço, escora, árvore
+     deco    não bloqueia nada — moita, pedra solta
+   A cor e a textura aqui são do MATERIAL do objeto, não do chão em que ele se
+   apoia: é o corolário do #48b, agora impossível de violar por construção. */
+const OBJ_CAT = { parede: { walk: false, top: 1.1 }, objeto: { walk: false, top: 0.45 }, deco: { walk: true, top: 0 } };
+/* `c` é a cor do MATERIAL do objeto, e ela tem dois empregos: o desenho da
+   parede e — o que o primeiro corte esqueceu — a PLANTA e o MINIMAPA. Sem ela o
+   mapa desenhava só o chão, e parede, mata e cerca sumiam dentro do terreno em
+   que se apoiam: a vila virava calçada lisa e a mata virava campo.
+   Isto conserta de quebra uma queixa antiga que a v1 não tinha como atender —
+   "a Cerca Nova aparece como um risco de terra, indistinguível de estrada" —,
+   porque lá a cor do objeto ERA a cor do chão por construção. As cores foram
+   escolhidas contra o chão em que cada coisa de fato se apoia, medido no mapa,
+   e não no vácuo: é o corolário do #48b, agora com onde ser aplicado. */
+const OBJ = {
+  /* natural */
+  rochedo:  { nome: 'Rochedo',            cat: 'parede', tex: 'rock',  c: 0x5a6674 },
+  cparede:  { nome: 'Parede de caverna',  cat: 'parede', tex: 'rock',  c: 0x2c2822 },
+  veio:     { nome: 'Veio de minério',    cat: 'parede', tex: 'ore',   c: 0x333f4c },
+  /* Árvore barra o pé e não a vista — é o que ela sempre fez, com `top` 0 no
+     tile antigo. Continua desenhada pelo `decoSprite`, que já tem vento e
+     sombra de motor; o que muda é ela deixar de ser tile E entrada derivada de
+     `deco` ao mesmo tempo. Eram 1.887 tiles gerando 1.942 entradas: a mesma
+     árvore contada duas vezes, em duas estruturas. */
+  arvore:   { nome: 'Árvore',             cat: 'objeto', top: 0, deco: 0, c: 0x27512f },
+  pedra:    { nome: 'Pedra solta',        cat: 'deco',   deco: 1, c: 0x6b6f76 },
+  moita:    { nome: 'Moita',              cat: 'deco',   deco: 2, c: 0x3f6b30 },
+  /* construído */
+  ptabua:   { nome: 'Parede de tábua',    cat: 'parede', tex: 'wall',  c: 0x6b3a1e },
+  pbloco:   { nome: 'Parede de bloco',    cat: 'parede', tex: 'block', c: 0x6d7590 },
+  teia:     { nome: 'Teia',               cat: 'parede', tex: 'web',   c: 0xb0bad2, draw: 'teia' },
+  moinho:   { nome: 'Moinho',             cat: 'parede', span: [2, 3], draw: 'moinho', c: 0x8a7a5c },
+  /* A porta guarda o próprio estado NA INSTÂNCIA. Antes ele morava num `Set`
+     de chaves no WORLD, e o comentário do `chavePorta` explicava por quê: o
+     mapa era `Uint8Array` e aberta/fechada seriam dois ids, obrigando o AUTOR
+     a escolher qual pintar. Com objeto tendo campo próprio o problema não
+     existe — o autor põe a porta, o jogo mexe no `aberta`. */
+  porta:    { nome: 'Porta',              cat: 'objeto', top: 1.1, draw: 'porta', abrivel: 1, c: 0x7a5330 },
+  cerca:    { nome: 'Cerca',              cat: 'objeto', draw: 'cerca',  eixo: 1, c: 0xb0894a },
+  escora:   { nome: 'Escoramento',        cat: 'objeto', draw: 'escora', eixo: 1, c: 0x9c7c48 },
+  poco:     { nome: 'Poço',               cat: 'objeto', span: [2, 2], draw: 'poco', sombra: 1, c: 0x5f5a50 },
+  carroca:  { nome: 'Carroça',            cat: 'objeto', draw: 'carroca', sombra: 1, c: 0x8f5a24 },
+  barril:   { nome: 'Barril',             cat: 'objeto', draw: 'barril',  sombra: 1, c: 0xa66f2c }
+};
+/* `walk` e `top` saem da categoria, com override na ficha. Cinco objetos
+   declaravam 0.40, 0.42 e 0.45 como se a diferença significasse alguma coisa —
+   todos abaixo de 0,5, todos idênticos para o motor. */
+for (const o of Object.values(OBJ)) {
+  const c = OBJ_CAT[o.cat];
+  if (o.walk === undefined) o.walk = c.walk;
+  if (o.top === undefined) o.top = c.top;
+}
+
+const WORLD = { floors: [], temple: { x: W >> 1, y: H >> 1, z: SURF }, spawns: [], hunts: [], pois: [], seed: 0 };
 
 /* --------------------------------------------------------------- ruído/rng */
 function mulberry32(a) {
@@ -168,29 +236,67 @@ const inBounds = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
 const foraDoMapa = z => z === SURF ? T.WATER : T.VOID;
 const corFora = z => '#' + TILE[foraDoMapa(z)].c.toString(16).padStart(6, '0');
 function tileAt(x, y, z) { return inBounds(x, y) ? WORLD.floors[z].t[idx(x, y)] : foraDoMapa(z); }
-/* PORTA — o único tile cujo bloqueio muda durante o jogo.
-   O estado vive num Set de chaves e não num id de tile porque o mapa é
-   `Uint8Array`: aberta e fechada seriam dois ids, e aí o AUTOR do mapa teria de
-   escolher qual das duas quer pintar — e isso não é decisão de mapa, é estado
-   de partida. Fechada é o padrão: casa nasce fechada.
-   Quem abre é só o jogador. Criatura não abre, e é isso que faz uma casa ser
-   abrigo em vez de mais um corredor. */
-const chavePorta = (x, y, z) => z + ':' + idx(x, y);
-const portaAberta = (x, y, z) => WORLD.portas.has(chavePorta(x, y, z));
-function usaPorta(x, y, z) {
-  const k = chavePorta(x, y, z);
-  if (WORLD.portas.has(k)) WORLD.portas.delete(k); else WORLD.portas.add(k);
-  return WORLD.portas.has(k);
+/* Índice esparso do andar: idx do tile -> lista de objetos que o cobrem.
+   MAIS DE UM POR TILE de propósito (decisão do dono do projeto): tocha na
+   parede, caneca na mesa. A ordem da lista é a ordem de desenho, que é a ordem
+   em que o autor colocou — quem põe depois fica na frente.
+
+   Objeto de mais de um tile entra no índice em TODO o rastro, mas é a MESMA
+   entrada: uma coisa, N endereços. Isto apaga por construção o defeito que o
+   `span` sobre tiles tinha — rastro quebrado (meio poço no mapa) não dava erro
+   nenhum, só um objeto que o render não desenhava. Não há mais rastro para
+   quebrar, e o `conferObjetos` que existia para caçá-lo perde o assunto. */
+const SEM_OBJ = [];
+function reindexObjs(z) {
+  const f = WORLD.floors[z], m = new Map();
+  for (const o of f.objs) {
+    const sp = (OBJ[o.o] || {}).span || [1, 1];
+    for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) {
+      const nx = o.x + i, ny = o.y + j;
+      if (!inBounds(nx, ny)) continue;
+      const k = idx(nx, ny), l = m.get(k);
+      if (l) l.push(o); else m.set(k, [o]);
+    }
+  }
+  f.oi = m; return m;
 }
+function objsAt(x, y, z) {
+  const f = WORLD.floors[z];
+  if (!inBounds(x, y) || !f) return SEM_OBJ;
+  return (f.oi || reindexObjs(z)).get(idx(x, y)) || SEM_OBJ;
+}
+/* PORTA — o único objeto cujo bloqueio muda durante o jogo, e agora o estado
+   mora NA INSTÂNCIA. Antes vivia num `Set` de chaves no WORLD, e o motivo
+   estava escrito aqui: o mapa era `Uint8Array`, aberta e fechada seriam dois
+   ids, e o AUTOR teria de escolher qual pintar — o que não é decisão de mapa.
+   Com camada de objeto o problema evapora: o autor põe a porta, o jogo mexe no
+   campo `aberta`, e o `Set` paralelo morre.
+   Fechada é o padrão: casa nasce fechada. Quem abre é só o jogador — criatura
+   não abre, e é isso que faz uma casa ser abrigo em vez de mais um corredor. */
+const objAbrivel = (x, y, z) => objsAt(x, y, z).find(o => OBJ[o.o] && OBJ[o.o].abrivel) || null;
+const portaAberta = (x, y, z) => { const o = objAbrivel(x, y, z); return !o || !!o.aberta; };
+function usaPorta(x, y, z) {
+  const o = objAbrivel(x, y, z);
+  if (!o) return false;
+  o.aberta = !o.aberta;
+  return o.aberta;
+}
+/* Objeto aberto some das DUAS contas — a do pé e a dos olhos. `o.aberta` é
+   undefined em tudo que não é porta, então a conta cai na ficha sem perguntar o
+   id de ninguém: no dia em que houver portão ou alçapão, os dois já funcionam. */
+const objBloqueia = o => o.aberta ? false : !(OBJ[o.o] || { walk: true }).walk;
+const objTapaVista = o => o.aberta ? false : (OBJ[o.o] || { top: 0 }).top > 0.5;
 /* Porta fechada é parede para TODO MUNDO, jogador incluído — ele abre de
    propósito, com Ctrl + clique, e só então passa. Houve uma versão em que o A*
    do jogador atravessava a porta fechada e o passo a abria ao chegar; caiu
    junto com o "andar abre", porque caminho que atravessa o que está fechado
-   promete uma passagem que não existe. */
+   promete uma passagem que não existe.
+   Chão e objeto são consultados nesta ordem e os dois têm veto: chão que não se
+   pisa continua não se pisando com um barril em cima. */
 function isWalkable(x, y, z) {
-  const t = tileAt(x, y, z);
-  if (t === T.DOOR) return portaAberta(x, y, z);
-  return TILE[t].walk;
+  if (!TILE[tileAt(x, y, z)].walk) return false;
+  for (const o of objsAt(x, y, z)) if (objBloqueia(o)) return false;
+  return true;
 }
 function distT(a, b, c, d) { return Math.max(Math.abs(a - c), Math.abs(b - d)); }
 
@@ -217,7 +323,6 @@ function chaoMaisPerto(x, y, z, raioMax = 24) {
 /* -------------------------------------------------------------- geração */
 function genWorld(seed) {
   WORLD.seed = seed;
-  WORLD.portas = new Set();
   /* Mundo gerado NÃO vem de arquivo, e precisa dizer isso: sem esta linha um
      personagem criado depois de um `mapaAplica` se salvaria como se fosse
      daquela terra, e voltaria com as coordenadas de outro mapa. */
@@ -233,7 +338,7 @@ function genWorld(seed) {
      mundo pelo qual se atravessa, e o pântano é um lugar aonde se vai. */
   const nBio = makeNoise(seed + 24601);
   WORLD.floors = [];
-  for (let z = 0; z < FLOORS; z++) WORLD.floors.push({ t: new Uint8Array(W * H), deco: [] });
+  for (let z = 0; z < FLOORS; z++) WORLD.floors.push({ t: new Uint8Array(W * H), objs: [] });
 
   // limiares por percentil — garante praia/montanha independente do seed
   const samp = [];
@@ -402,12 +507,17 @@ function genWorld(seed) {
   // decoração + pontos de spawn
   WORLD.spawns = [];
   for (let z = 0; z < FLOORS; z++) {
-    const t = WORLD.floors[z].t, deco = WORLD.floors[z].deco, r3 = mulberry32(seed + 555 + z);
+    const t = WORLD.floors[z].t, r3 = mulberry32(seed + 555 + z);
+    const espalhado = WORLD.floors[z].espalhado = [];
     const pools = SPAWN_POOLS[z];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const tt = t[idx(x, y)];
-      if (tt === T.TREE) deco.push({ x, y, k: 0 });
-      else if ((tt === T.CFLOOR || tt === T.DIRT) && r3() < 0.02) deco.push({ x, y, k: z === 0 || z >= 2 ? 1 : 2 });
+      /* Pedra solta e moita: o único espalhamento que sobrou aqui. A árvore
+         saiu — ela era pintada como tile E derivada como entrada de `deco`, a
+         mesma árvore em duas estruturas, e agora nasce uma vez só no
+         `parteCamadas` logo abaixo. */
+      if ((tt === T.CFLOOR || tt === T.DIRT) && r3() < 0.02)
+        espalhado.push({ x, y, k: z === 0 || z >= 2 ? 1 : 2 });
       if (!TILE[tt].walk || tt === T.DOWN || tt === T.UP) continue;
       const d = distT(x, y, tx, ty);
       if (z === SURF && d < 14) continue;                   // zona segura do templo
@@ -521,6 +631,18 @@ function genWorld(seed) {
     const v = DIRS.map(([dx, dy]) => [p.x + dx, p.y + dy]).find(([x, y]) => isWalkable(x, y, p.z));
     const m = p.mobs[p.z ? POIS.find(d => d.id === p.id).z.indexOf(p.z) : 0] || p.mobs[0];
     if (v) WORLD.spawns.push({ x: v[0], y: v[1], z: p.z, m, dead: 0, live: null, poi: p.uid });
+  }
+
+  /* A descida para duas camadas fica por ÚLTIMO, e a ordem não é arbitrária:
+     tudo acima — spawn de mundo aberto, povoamento de hunt, vaga do guardião —
+     pergunta `TILE[tt].walk` ou `isWalkable` para saber onde cabe um bicho, e
+     enquanto a árvore é tile a resposta é "não cabe". Partido antes, o tile
+     vira GRASS, o chão passa a ser andável e o gerador nasce com bicho DENTRO
+     de árvore e de rochedo. */
+  for (let z = 0; z < FLOORS; z++) {
+    const f = WORLD.floors[z];
+    f.objs = parteCamadas(f.t, f.espalhado || [], W, H);
+    f.espalhado = undefined; f.oi = null;
   }
 }
 
@@ -743,6 +865,25 @@ function buildMinimaps() {
       img.data[i * 4 + 2] = hide ? 10 : c & 255;
       img.data[i * 4 + 3] = 255;
     }
+    /* O OBJETO por cima do chão, com a cor do MATERIAL dele. Sem este laço o
+       minimapa mostra só o terreno — e desde que parede, mata e cerca deixaram
+       de ser tile, isso significa a vila lida como calçada lisa e a mata como
+       campo aberto. O mapa deixaria de identificar justamente o que dá forma ao
+       lugar.
+       Rastro inteiro e não só a âncora: metade de um moinho na planta seria pior
+       que nenhum. Em ordem de lista, então o último colocado vence — a mesma
+       regra do render, para o que se vê andando e o que se vê no mapa não
+       contarem histórias diferentes. */
+    for (const o of WORLD.floors[z].objs) {
+      const d = OBJ[o.o]; if (!d || d.c === undefined) continue;
+      const sp = d.span || [1, 1];
+      for (let j = 0; j < sp[1]; j++) for (let i2 = 0; i2 < sp[0]; i2++) {
+        const nx = o.x + i2, ny = o.y + j;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        const k = (ny * W + nx) * 4;
+        img.data[k] = (d.c >> 16) & 255; img.data[k + 1] = (d.c >> 8) & 255; img.data[k + 2] = d.c & 255;
+      }
+    }
     ctx.putImageData(img, 0, 0);
     miniCanvas.push(cv);
   }
@@ -780,7 +921,15 @@ function mapaSerializa(nome) {
       if (s.boss) o.boss = 1;
       return o;
     }),
-    deco: WORLD.floors.map(f => f.deco),
+    /* Uma LINHA por objeto, e não um bloco por andar. O mapa de tiles ganhou o
+       formato de um caractere por tile justamente para abrir num editor e se
+       LER, e para o git mostrar em que linha a mudança caiu; a camada de objeto
+       merece a mesma coisa. `x,y,id` ordenado por y e depois x, então o arquivo
+       lê na ordem do mapa e dois autores mexendo em cantos diferentes não
+       colidem. Estado de partida (porta aberta) NÃO entra: isso é save. */
+    objs: WORLD.floors.map(f => f.objs.slice()
+      .sort((a, b) => a.y - b.y || a.x - b.x || (a.o < b.o ? -1 : 1))
+      .map(o => o.x + ',' + o.y + ',' + o.o)),
     tiles: WORLD.floors.map(f => {
       const linhas = [];
       for (let y = 0; y < H; y++) {
@@ -797,9 +946,92 @@ function mapaSerializa(nome) {
    estavam aplicados quando ele foi escrito. É o que permite ao editor comparar
    com o patch em disco e perceber que o mapa está atrasado — o estado em que
    "editei, gravei e sumiu tudo", que na verdade é "gravou e ninguém recompôs". */
+/* -------------------------------------- partir a camada única em chão+objeto
+   Uma função, três chamadores, e é isso que a mantém honesta: o `genWorld`
+   (que pinta por limiar de ruído), o `compor.js` (que pinta por primitiva) e a
+   carga de um mapa da v1 — todos os três produzem um buffer de UMA camada com
+   `T.TREE`, `T.WALL`, `T.BARREL` dentro dele, e todos precisam da mesma
+   descida para duas camadas. Três implementações disto divergiriam no primeiro
+   objeto novo.
+
+   Vale dizer o que ela NÃO é: não é compatibilidade permanente com o formato
+   antigo. `T.TREE` e `T.BARREL` continuam existindo como VOCABULÁRIO DE AUTOR
+   — `C.espalha(m, S, T.TREE, ...)` é a linha que se quer escrever, e o script
+   de mapa não muda uma vírgula. O que eles deixam de ser é o que o motor
+   carrega em memória.
+
+   `chao` é a RESERVA. O que manda é o terreno andável mais comum na
+   vizinhança — é ele que faz o barril do palheiro nascer sobre palha em vez de
+   sobre terra, que era exatamente o defeito. Sob parede a escolha é invisível
+   (nada se vê através de `top` 1,1) e a reserva basta; sob objeto ela aparece,
+   e é por isso que a vizinhança vem primeiro. O que sair errado, o pincel
+   corrige — é o modelo "o script semeia, o editor corrige". */
+const MIGRA = {
+  [T.TREE]:   { o: 'arvore',  chao: T.GRASS },
+  [T.ROCK]:   { o: 'rochedo', chao: T.GRASS },
+  [T.CWALL]:  { o: 'cparede', chao: T.CFLOOR },
+  [T.ORE]:    { o: 'veio',    chao: T.CFLOOR },
+  [T.WALL]:   { o: 'ptabua',  chao: T.FLOOR },
+  [T.SWALL]:  { o: 'pbloco',  chao: T.PAVE },
+  [T.WEB]:    { o: 'teia',    chao: T.WEBF },
+  [T.MILL]:   { o: 'moinho',  chao: T.DIRT },
+  [T.DOOR]:   { o: 'porta',   chao: T.FLOOR },
+  [T.FENCE]:  { o: 'cerca',   chao: T.DIRT },
+  [T.PROP]:   { o: 'escora',  chao: T.GRAVEL },
+  [T.WELL]:   { o: 'poco',    chao: T.PAVE },
+  [T.CART]:   { o: 'carroca', chao: T.DIRT },
+  [T.BARREL]: { o: 'barril',  chao: T.DIRT }
+};
+function parteCamadas(t, deco, w, h) {
+  const objs = [], vistos = new Set();
+  /* Vizinhança lida do ORIGINAL, não do array que está sendo reescrito: sem a
+     cópia, um tile já convertido conta como terreno para o vizinho da direita e
+     não conta para o da esquerda, e o resultado passa a depender da ordem da
+     varredura. Barato, e tira uma esquisitice de uma migração que roda uma vez. */
+  const orig = t.slice();
+  const em = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? -1 : orig[y * w + x];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const tt = t[y * w + x], mg = MIGRA[tt];
+    if (!mg) continue;
+    /* O rastro do objeto de mais de um tile some: a v1 pintava N tiles iguais e
+       o render adivinhava a âncora por "não tenho vizinho igual a oeste nem ao
+       norte". Aqui a âncora vira UMA entrada e o resto do rastro é descartado —
+       o índice esparso recompõe a área a partir do `span`. */
+    const sp = (OBJ[mg.o] || {}).span;
+    if (sp && (em(x - 1, y) === tt || em(x, y - 1) === tt)) { vistos.add(y * w + x); continue; }
+    /* Vizinhança: o terreno andável mais comum em volta ganha da reserva.
+       ESCADA FICA DE FORA do voto, e isto custou a suíte inteira de topologia:
+       `T.DOWN` e `T.UP` são `walk:true`, então um rochedo encostado numa escada
+       herdava o chão dela e VIRAVA UMA SEGUNDA ESCADA — cinco a mais num andar,
+       cada uma sem par do outro lado. É a armadilha de sempre: escada que sobra
+       não deixa buraco visível na planta, e quem acusou foi o teste de par.
+       A régua certa é "chão comum", não "chão que se pisa". */
+    const conta = {};
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+      const v = em(x + i, y + j);
+      if (v < 0 || MIGRA[v] || !TILE[v] || !TILE[v].walk) continue;
+      if (v === T.DOWN || v === T.UP) continue;
+      conta[v] = (conta[v] || 0) + 1;
+    }
+    let melhor = mg.chao, n = 0;
+    for (const k in conta) if (conta[k] > n) { n = conta[k]; melhor = +k; }
+    t[y * w + x] = melhor;
+    objs.push({ x, y, o: mg.o });
+    vistos.add(y * w + x);
+  }
+  // o rastro descartado herda o chão da âncora mais próxima; sem isto sobra o id do objeto
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++)
+    if (MIGRA[t[y * w + x]] && vistos.has(y * w + x)) t[y * w + x] = MIGRA[t[y * w + x]].chao;
+  /* `deco` k=0 era a árvore DERIVADA do tile T.TREE — a mesma árvore contada
+     duas vezes, em duas estruturas. O tile acabou de virar objeto, então a
+     entrada derivada é descartada aqui, senão cada árvore nasce em dobro.
+     k=1 (pedra) e k=2 (moita) eram espalhados pelo gerador e viram objeto. */
+  for (const d of (deco || [])) if (d.k === 1 || d.k === 2) objs.push({ x: d.x, y: d.y, o: d.k === 1 ? 'pedra' : 'moita' });
+  return objs;
+}
+
 function mapaAplica(o) {
   W = o.w; H = o.h; FLOORS = o.andares; SURF = o.sup;
-  WORLD.portas = new Set();   // terra nova nasce com tudo fechado
   if (o.fundo !== undefined) DEEP = o.fundo;
   if (o.nomes) FLOOR_NAMES = o.nomes;
   WORLD.mapa = o.nome;
@@ -815,7 +1047,12 @@ function mapaAplica(o) {
       const l = linhas[y];
       for (let x = 0; x < W && x < l.length; x++) t[y * W + x] = CHAR_TILE[l[x]] || 0;
     }
-    return { t, deco: (o.deco && o.deco[z]) || [] };
+    /* Duas camadas. Arquivo novo traz `objs` pronto; arquivo da v1 não traz
+       nenhum, e aí a migração parte o terreno em chão + objeto na carga. */
+    const objs = o.objs && o.objs[z]
+      ? o.objs[z].map(s => { const p = s.split(','); return { x: +p[0], y: +p[1], o: p[2] }; })
+      : parteCamadas(t, (o.deco && o.deco[z]) || [], W, H);
+    return { t, objs };
   });
   return WORLD;
 }

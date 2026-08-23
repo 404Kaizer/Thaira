@@ -134,7 +134,7 @@
     2026-08-22 a lore e a planta das terras moram em documentos próprios —
     <b>mundo_varrokgaard.html</b>, <b>mundo_aleto.html</b> e <b>proposta_24.html</b> —, e este aqui
     ficou com o estado técnico e a fila.
-    <b>751 verificações</b> passando em <code>tests/test.js</code>.
+    <b>756 verificações</b> passando em <code>tests/test.js</code>.
   </div>
   <div class="lede col" style="margin-top:14px;font-size:15px">
     <b>Se você só tem cinco minutos:</b> leia <em>Regras que não devem ser quebradas</em> e
@@ -1419,6 +1419,337 @@
   </ul>
   <p class="it-t">primeira fatia · pincel, balde, retângulo, conta-gotas, desfazer e patch ·
   spawn/POI/hunt/escada ficam para a segunda</p>
+
+
+  <h3>Objeto deixou de ser tile — 2026-08-23</h3>
+  <p>Decisão do dono do projeto: <b>"objetos não podem ter chão predefinido, senão tampa o chão
+  embaixo de onde for posicionado. Objeto != Chão."</b> Estava certo, e o próprio código já
+  sabia — três comentários diferentes do <code>world.js</code> diziam em prosa
+  <i>"<code>c</code> e <code>tex</code> são o CHÃO sob o objeto, porque objeto não é
+  terreno"</i>. A regra estava escrita; a estrutura é que não a sustentava.</p>
+
+  <h4>O defeito, na ficha</h4>
+  <p>O barril era <code>[T.BARREL]: { c: 0x7a5c30, tex: 'dirt', obj: 'barril' }</code> — o chão
+  cravado dentro do objeto. Barril em cima de palha pintava <b>terra</b>, e ter as duas
+  combinações exigiria <code>T.BARREL_HAY</code>: N objetos × M chãos, o que trava no segundo
+  móvel. Com 39 ids já apertados, todo objeto novo custava um id de terreno.</p>
+
+  <h4>A camada esparsa já existia, e estava contando árvore duas vezes</h4>
+  <p>O andar era <code>{ t: Uint8Array, deco: [] }</code>. O <code>deco</code> já era lista
+  esparsa com índice no render — só que <b>derivada</b> do terreno e anônima
+  (<code>k</code> 0/1/2). A separação não é estrutura nova: é o <code>deco</code> promovido a
+  autoral, com id próprio e estado próprio. E o custo medido desmente o medo: tudo que migra dá
+  <b>~5.100 entradas em 110.592 tiles — 4,6%</b>, na mesma ordem das 1.995 que a lista já
+  carregava.</p>
+  <p>De brinde, a medição achou uma duplicata: <code>T.TREE</code> era tile <b>e</b> gerava
+  entrada em <code>deco</code> — 1.887 tiles produzindo 1.942 entradas, a mesma árvore em duas
+  estruturas. Agora nasce uma vez só.</p>
+
+  <h4>Parede entrou como objeto, e a medição é que autorizou</h4>
+  <p>Decisão do dono do projeto contra a minha recomendação — eu havia proposto manter parede
+  como terreno. Medido antes de aceitar, em Varrokgaard: parede construída 768
+  (<code>WALL</code> 338, <code>SWALL</code> 424, <code>MILL</code> 6), parede natural 1.934
+  (<code>ROCK</code> 1.362, <code>CWALL</code> 572), árvore 1.887, teia 197, cerca 269, porta 12,
+  móveis 21. A camada aguenta, e ele estava certo.</p>
+  <p>O que a decisão comprou: o chão sob a parede <b>existe</b>, então derrubar ou abrir não
+  deixa buraco; a cor e a textura passam a ser do MATERIAL do objeto, o que torna o corolário do
+  #48b impossível de violar por construção; e objeto novo custa uma linha numa tabela em vez de
+  um id em <code>T</code> mais <code>TEX_DRAW</code> mais paleta mais teste.</p>
+
+  <h4>Três coisas morreram de graça</h4>
+  <ul class="col">
+    <li><b>O <code>Set</code> de portas.</b> O estado morava em <code>WORLD.portas</code> e o
+      comentário explicava por quê: o mapa era <code>Uint8Array</code>, aberta e fechada seriam
+      dois ids, e o AUTOR teria de escolher qual pintar. Com objeto tendo campo próprio o
+      problema evapora — <code>o.aberta</code>, e o <code>Set</code> paralelo sai. O save passou
+      a guardar COORDENADA e não índice: o editor reordena <code>objs</code> a cada
+      recomposição, e índice guardado viraria "abriu a porta da casa errada".</li>
+    <li><b>O rastro de <code>span</code>, e o <code>conferObjetos</code> que o vigiava.</b> A
+      âncora era adivinhada por "não tenho vizinho igual a oeste nem ao norte", que lia dois
+      objetos iguais encostados como um só. Agora é UMA entrada com N endereços no índice.
+      Conferido em jogo: os 6 tiles de moinho viraram <b>1</b> objeto e os 4 de poço viraram
+      <b>1</b>, e o moinho desenha uma vez.</li>
+    <li><b>O índice de <code>deco</code> do render.</b> Era a mesma estrutura mantida em dois
+      lugares — o editor mexe na lista e só um dos dois saberia.</li>
+  </ul>
+
+  <h4>Uma função, três chamadores</h4>
+  <p><code>parteCamadas</code> desce o buffer de uma camada para duas, e é chamada pelo
+  <code>genWorld</code>, pelo <code>compor.js</code> e pela carga de mapa da v1. Três
+  implementações divergiriam no primeiro objeto novo. <b><code>T.TREE</code> e
+  <code>T.BARREL</code> continuam existindo como VOCABULÁRIO DE AUTOR</b> —
+  <code>C.espalha(m, S, T.TREE, ...)</code> é a linha que se quer escrever, e o
+  <code>varrokgaard.js</code> não mudou uma vírgula. O que eles deixaram de ser é o que o motor
+  carrega em memória.</p>
+
+  <h4>Quatro defeitos no caminho, e três eram meus</h4>
+  <ul class="col">
+    <li><b>O voto de vizinhança inventou escada.</b> O chão sob a parede sai do terreno andável
+      mais comum em volta — e <code>T.DOWN</code>/<code>T.UP</code> são <code>walk:true</code>,
+      então um rochedo encostado numa escada herdava o chão dela e <b>virava uma segunda
+      escada</b>. Cinco a mais num andar, cada uma sem par do outro lado. Escada que sobra não
+      deixa buraco visível na planta; quem acusou foi o teste de par. A régua certa é "chão
+      comum", não "chão que se pisa".</li>
+    <li><b>A conferência mediu com a régua errada, de novo.</b> <code>parteCamadas</code>
+      reescreve o array que recebe, e o script chama <code>salva</code> ANTES de imprimir as
+      conferências. Mutando <code>m._t</code>, a mata virava campo aberto no meio da medição:
+      Varrokgaard passou de 12.417 tiles andáveis para <b>16.725</b>, e a análise de componentes
+      — que existe para achar conteúdo inalcançável — deixou de enxergar as árvores que cercam
+      uma região. Conserto: split sobre uma CÓPIA.</li>
+    <li><b>Coleta ficou sem alvo.</b> <code>COLETA</code> aponta para tiles, e minério e árvore
+      viraram objeto. Clicar na árvore com o machado não fazia nada — sem erro e sem aviso.
+      <code>coletaDe</code> passou a receber coordenada e a perguntar às DUAS camadas; a pesca é
+      o único ofício que continua colhendo terreno, porque água é chão.</li>
+    <li><b>Comentário de barra dupla comeu o resto da linha</b> da pesca, apagando
+      <code>ferramenta</code> em silêncio. Pego pelo teste que exige ferramenta em toda
+      coleta.</li>
+  </ul>
+
+  <h4>Medido, e a topologia não se moveu</h4>
+  <p>O mapa recomposto dá <b>12.417 tiles andáveis em 3 componentes — 10.005, 2.390 e 22</b>.
+  Conferido contra a cópia datada do mapa anterior com a régua antiga: <b>os mesmos três
+  números</b>. O componente de 22 tiles em x&nbsp;72–77, y&nbsp;15–19 é o pátio de palha que já
+  estava registrado aqui e continua <b>esperando decisão</b> — não é regressão.
+  O arquivo foi de 166&nbsp;KB para 198&nbsp;KB (+22%), uma linha por objeto, ordenada por y e
+  depois x, para o git apontar a linha exata.</p>
+  <p>Contagem em jogo, e bate exata com o arquivo antigo: árvore 1.887, rochedo 1.362, pbloco
+  424, ptábua 338, cerca 261, barril 13, porta 12, veio 9, carroça 4, moinho 1, poço 1.</p>
+
+  <h4>O render, que a suíte não cobre</h4>
+  <p>O 2º passe perdeu três ramos por tile — âncora de <code>span</code>, parede e
+  objeto-de-tile — mais o laço de <code>deco</code>, e ganhou <b>um laço sobre os objetos do
+  tile</b>. É o que permite N por tile: a ordem da lista é a ordem em que o autor colocou.</p>
+  <p>Conferido no navegador com o relógio fixado ao meio-dia, porque cor não se julga de noite.
+  Controle de dois quadros idênticos no mesmo timestamp: <b>diferença zero</b>. Abrir a porta
+  muda <b>3.313 px</b>. Linha de visão passa com a porta aberta e não passa com ela fechada.</p>
+
+  <h4>O mapa parou de identificar objeto — relato do dono, no mesmo dia</h4>
+  <p><b>"sem o fundo dos objetos agora o mapa nao os identifica."</b> Estava certo e era
+  regressão minha: o minimapa e a planta pintavam <code>TILE[t].c</code> e mais nada, então
+  assim que parede, mata e cerca deixaram de ser tile, a vila passou a ler como calçada lisa e
+  a mata como campo aberto. O mapa deixou de mostrar justamente o que dá forma ao lugar.</p>
+  <p>Conserto: todo objeto declara <code>c</code>, a cor do MATERIAL dele, e as três plantas —
+  minimapa (<code>buildMinimaps</code>), <code>planta_png.js</code> e a página de amostra —
+  desenham a segunda camada por cima do chão. Rastro inteiro e não só a âncora (meio moinho na
+  planta seria pior que nenhum), em ordem de lista, então o último colocado vence: a mesma regra
+  do render, para o que se vê andando e o que se vê no mapa não contarem histórias diferentes.</p>
+  <p>E isto <b>conserta de quebra</b> uma queixa que a v1 não tinha como atender, registrada na
+  volta do esboço 2: <i>"a planta não julga a cerca — <code>FENCE</code> e <code>PROP</code> são
+  objeto, e a cor deles na planta é a do CHÃO sob o objeto, então a Cerca Nova aparece como um
+  risco de terra atravessando a ilha, indistinguível de estrada."</i> Enquanto objeto era tile,
+  a cor do objeto ERA a cor do chão por construção, e não havia conserto possível sem um id por
+  par. Agora a cerca tem a cor dela.</p>
+
+  <p class="it-t">a CAMADA está feita e conferida · 756 verificações · 4 mutações, 4 pegas ·
+  o pincel e a vista de jogo saíram na leva seguinte, logo abaixo</p>
+
+  <h4>O que o pincel de objeto precisou — feito na leva seguinte</h4>
+  <p>A camada está de pé, mas o editor só sabe pintar terreno. O pincel de objeto pede uma
+  mudança de ORDEM na composição, e ela mexe no <code>varrokgaard.js</code> — por isso está
+  anotada aqui em vez de feita.</p>
+  <p>Hoje a ordem é: pinta tudo em uma camada, aplica o patch de tiles, <b>confere</b>, e o
+  <code>salva</code> parte em duas no fim. As conferências acertam porque nessa altura árvore e
+  parede ainda SÃO tiles. Assim que o editor emitir edição de OBJETO, isso deixa de valer:
+  o dono põe uma parede fechando um corredor, o terreno não muda, e a análise de componentes
+  não vê nada. É o mesmo defeito de régua que já custou três voltas.</p>
+  <p>A ordem certa passa a ser: pinta → patch de tiles → <b>parte em duas</b> → patch de objetos
+  → confere com <code>andavel()</code> (terreno E objeto) → salva. São dez chamadas de
+  <code>TILE[...].walk</code> a trocar, quatro no <code>compor.js</code> e seis no
+  <code>varrokgaard.js</code>.</p>
+  <p>Formato de patch proposto: <code>objs: { z: [[x, y, ['barril','cerca']], ...] }</code> — a
+  LISTA de objetos ancorados naquele tile, substituindo o que houver. Diff limpo, cobre pôr,
+  tirar e vários por tile com uma forma só.</p>
+
+  <h4>O editor deve desenhar COMO O JOGO — pedido do dono, 2026-08-23</h4>
+  <p><b>"para o editor de mapas o ideal seria mostrar o mapa DO JOGO ao inves do minimapa, para
+  que eu veja logo como ficara o jogo sem ter que jogar."</b> É o pedido certo, e a separação de
+  camadas é o que o torna possível: enquanto objeto era tile com o chão cravado dentro, uma
+  visão fiel exigiria o editor conhecer a ficha de cada tile-objeto.</p>
+  <p>O risco a evitar tem nome e já mordeu este projeto três vezes: <b>segunda fonte de
+  verdade</b>. Se o editor ganhar um laço de desenho próprio, ele vai divergir do
+  <code>render2d.js</code> no primeiro objeto novo — e aí o editor mostra uma coisa e o jogo
+  mostra outra, que é pior do que a planta chapada, porque a planta ao menos não MENTE sobre ser
+  o jogo.</p>
+  <p>Caminho recomendado: extrair de <code>drawFloor</code> o laço de chão + objeto para uma
+  função que receba contexto explícito (canvas, câmera, andar) em vez de ler
+  <code>CAM</code>, <code>P</code> e <code>G</code> globais, e fazer o jogo e o editor
+  chamarem a MESMA. O que fica de fora no editor é o que é de partida e não de mapa —
+  criatura, clima, passe de luz, sangue —, e a luz do andar entra fixa pelo
+  <code>FLOOR_AMBIENCE</code>, do mesmo jeito que a bancada
+  <code>tools/amostra/construido.html</code> já faz. Julgar tile de caverna em luz de meio-dia o
+  deixa escuro demais para onde ele mora.</p>
+  <p>Decisão pendente: o editor mostra a luz do andar (fiel, e é onde a arte se julga) ou luz
+  neutra (melhor para EDITAR, porque num andar escuro não se enxerga o que se pinta)? A
+  recomendação é ter as duas com uma tecla, já que a resposta muda conforme ele esteja
+  desenhando ou julgando.</p>
+
+
+  <h3>O editor desenha o jogo, e edita as duas camadas — 2026-08-23</h3>
+  <p>Três pedidos do dono do projeto, na mesma sessão, e os três dependiam da
+  separação de camadas ter acontecido antes.</p>
+
+  <h4>A ordem da composição mudou, e ela mexeu no script da terra</h4>
+  <p>Autorizado pelo dono. A ordem era: pinta em uma camada &rarr; patch &rarr; confere &rarr;
+  <code>salva</code> parte em duas no fim. Funcionava porque na hora de conferir parede e
+  árvore ainda ERAM tiles — mas assim que o editor passasse a emitir edição de objeto,
+  fechar um corredor com uma parede não mudaria o terreno e a análise de componentes não veria
+  nada. Agora: <b>pinta &rarr; patch de tiles &rarr; <code>C.parte(m)</code> &rarr; patch de
+  objetos &rarr; confere com <code>C.andavel()</code> &rarr; salva</b>. O
+  <code>salva</code> deixou de partir e passa a EXIGIR que já esteja partido — script que
+  esquecer grava um mundo de chão liso, e isso seria silencioso, então ele falha alto.</p>
+  <p><code>andavel()</code> pergunta às duas camadas, e <b>porta conta como passagem</b> — é
+  uma diferença de propósito em relação ao <code>isWalkable</code> do jogo. Lá a porta fechada
+  barra o passo e tem de barrar; aqui a pergunta é "o jogador CONSEGUE chegar?", e para uma
+  porta a resposta é sim, ele abre. Sem essa linha cada casa da vila virou um componente só
+  dela e a conferência foi de 3 pedaços para <b>15</b>, denunciando como inalcançável
+  exatamente o que tem porta.</p>
+  <p>E um defeito que a reordenação criou: chamar o <code>aplicaPatch</code> inteiro duas vezes
+  reaplicava o patch de TERRENO por cima do chão já partido, devolvendo <code>T.FENCE</code> ao
+  terreno — a cerca voltava a ser tile E continuava sendo objeto, contada duas vezes, e o andar
+  "Sobre o Muro" caiu de 20 tiles andáveis para 12. A função ganhou o parâmetro
+  <code>camada</code>. Depois dos dois consertos o mapa volta aos mesmos
+  <b>12.417 andáveis em 3 componentes</b> de antes de tudo.</p>
+
+  <h4>O pincel de objeto</h4>
+  <p>A unidade de diff é a <b>LISTA de objetos ancorados num tile</b>, e não o objeto solto:
+  <code>objs: { z: [[x, y, ['barril','cerca']], ...] }</code>. Uma forma só cobre pôr, tirar e
+  vários por tile — quem gravou viu o tile inteiro e decidiu por ele. A borracha é uma entrada
+  da paleta ("apagar" = pintar nenhum objeto) e não uma ferramenta nova: um modo a menos para
+  lembrar.</p>
+  <p>Pintar o mesmo objeto duas vezes não empilha, senão arrastar o mouse deixaria cinquenta
+  barris num tile. Objeto de mais de um tile pinta só a <b>âncora</b> — o rastro é do índice.
+  É o que a separação comprou: antes o pincel tinha de acertar os 6 tiles do moinho, e um
+  faltando dava âncora sem rastro, que não desenha nada e não dá erro.</p>
+  <p>Conferido de ponta a ponta contra um mapa DESCARTÁVEL, nunca contra o arquivo do dono:
+  aplicar, apagar, dois no mesmo tile, <code>span</code> cobrindo 2×3, id morto contado e não
+  aplicado, e a andabilidade acompanhando. O patch de teste foi removido no fim; o patch de 918
+  tiles do dono foi conferido intacto depois.</p>
+
+  <h4>A vista de jogo, e por que ela chama o render do JOGO</h4>
+  <p>Pedido: <i>"mostrar o mapa DO JOGO ao inves do minimapa, para que eu veja logo como
+  ficara o jogo sem ter que jogar."</i> O editor agora chama o <code>drawWorld</code> do
+  <code>render2d.js</code> — não uma cópia. Um laço de desenho próprio divergiria no primeiro
+  objeto novo, e aí o editor mostraria uma coisa e o jogo outra: pior que a planta chapada,
+  porque a planta ao menos não promete ser o jogo.</p>
+  <p>O preço é declarar o estado que o render lê, e ele é pequeno e enumerável: <b>7 campos em
+  <code>P</code>, 13 em <code>G</code></b> e uma função (<code>luzCarregada</code>, que no
+  editor devolve "nenhuma tocha"). Carregar o <code>game.js</code> inteiro traria save, loja,
+  HUD e o laço de jogo junto. Se o render passar a precisar de mais, isto quebra alto em vez de
+  desenhar errado calado.</p>
+  <p>A planta chapada FICA, e a tecla <b>V</b> alterna: no zoom de navegação (2–6 px por tile) o
+  render do jogo não se lê e custa caro, e para achar uma região do outro lado do mapa a planta
+  é a ferramenta certa. A planta também passou a desenhar a camada de objeto, pelo mesmo motivo
+  que o minimapa passou.</p>
+  <p>Detalhe que fez a matemática fechar: a câmera do jogo é centrada em <code>P.px/P.py</code> e
+  o <code>drawFloor</code> põe o canto do tile em <code>(x - camX)·t + VW/2 - t/2</code>.
+  Resolvendo para que isso dê <code>(x - ecamX)·t</code>, o centro tem de ficar <b>meio tile
+  antes do meio da tela</b> — daí o <code>- 0.5</code>. Com ele, a matemática do overlay (grade,
+  marca de mexido, spawn, pincel) e a do mouse continuam idênticas nos dois modos. E o
+  <code>camX</code> do editor teve de virar <code>ecamX</code>: o <code>render2d.js</code>
+  declara <code>camX</code> no mesmo escopo de script, e nome repetido derruba a página inteira
+  com SyntaxError antes de qualquer linha rodar.</p>
+
+  <h4>Duas luzes numa tecla, e o meio-dia fixo</h4>
+  <p>Decisão do dono: as duas, na tecla <b>L</b>. <code>andar</code> é a do
+  <code>FLOOR_AMBIENCE</code> — fiel, e é onde a arte se julga. <code>neutra</code> não escurece
+  nada, que é o máximo de brilho HONESTO (acima disso o editor estaria clareando a arte e
+  mentindo sobre ela). Medido na Goela: <b>9 contra 52</b> de brilho médio. A 9 não se enxerga
+  o que se está pintando, e é por isso que a segunda existe.</p>
+  <p>E o modo fiel foi pregado ao <b>meio-dia</b>, não à hora real: o
+  <code>ambienteAgora</code> lê <code>Date.now()</code>, então abrir o editor às oito da noite
+  dava a ilha inteira no escuro — brilho médio <b>37 contra 93</b>. Julgar cor de noite já era
+  proibido em texto no CLAUDE.md; num editor é pior, porque não é só o julgamento que se perde,
+  é a edição. O subsolo continua com a luz DELE: lá o escuro é da tabela e não do relógio.</p>
+
+  <h4>A paleta mostra o sprite de verdade</h4>
+  <p>Pedido: <i>"os tiles e objetos para seleção devem refletir o que realmente aparece no jogo,
+  pra que eu veja o que eu estou prestes a colocar."</i> O quadradinho de cor chapada de 14 px
+  dizia o mínimo — dois tons de marrom não contam qual é a tábua e qual é a terra batida, e
+  objeto nenhum tem silhueta numa amostra de cor sólida. Agora cada entrada desenha o MESMO
+  sprite que o render usa: <code>tileTexture</code>, <code>wallSprite</code>,
+  <code>PAREDE_DRAW</code>, <code>OBJ_DRAW</code>, <code>decoSprite</code>.</p>
+  <p>O enquadramento decidiu se servia. A primeira versão encaixava o sprite inteiro preservando
+  proporção — e como parede e móvel são mais ALTOS que largos (têm o topo que transborda), o
+  desenho encolhia para uns 65% da largura e sobrava fundo dos dois lados: medidas, as dezesseis
+  amostras de objeto davam médias de cor <b>praticamente iguais</b>. Corrigido para largura
+  cheia e alinhado pelo PÉ, como no jogo, as paredes se separaram (tábua 49,28,16 · bloco
+  36,39,47 · caverna 22,20,17 · rochedo 42,47,53). Os objetos pequenos continuam com média
+  parecida, e está certo que continuem: o que os distingue é silhueta, e
+  <b>distância de cor mede legibilidade, não identidade</b> — é a mesma régua do #33 e do #44.</p>
+
+  <h4>O editor não anima</h4>
+  <p>Relato do dono: <i>"as animações estão tocando no editor de mapa."</i> Estava certo, e o
+  congelamento que eu tinha feito era pela metade: <code>G.now</code> estava parado, mas nuvem,
+  chuva, relâmpago e vento saem do relógio REAL (<code>Date.now</code>) e continuavam correndo
+  por baixo. Medido: <b>13.365 pixels mudavam entre dois desenhos sem tocar em nada</b>. Sombra
+  de nuvem passando por cima do tile que se está pintando é ruído puro, e relâmpago no meio de
+  uma edição é pior.</p>
+  <p>Conserto: o editor devolve o <code>CLIMA_PARADO</code> que o motor já aplica em andar
+  coberto — inventar um estado de clima só para o editor seria uma segunda régua de tempo.
+  Depois: <b>0 pixels de diferença em 1,5 s</b>.</p>
+
+  <h4>E o aviso de "mapa atrasado" virou alarme falso</h4>
+  <p>Ele comparava tile do patch com o terreno carregado. Como o patch fala o vocabulário de
+  autor (<code>T.TREE</code>, <code>T.BARREL</code>) e o mapa já vem partido, isso acusava
+  atraso em toda árvore e todo móvel corrigido à mão: <b>918 de 918</b>, alarme falso completo,
+  no primeiro carregamento depois da separação. Para esses, a pergunta certa é se o OBJETO
+  correspondente está lá. Alarme que grita sempre é o mesmo que alarme nenhum.</p>
+
+  <p class="it-t">editor: vista de jogo (V) · duas luzes (L) · grade (X) · zoom sem teto ·
+  pincel de objeto com N por tile · paleta com sprite real · estático ·
+  conferência de recintos por NOME · 756 verificações · o patch de 918 tiles do dono, intacto</p>
+
+
+  <h4>O pátio de palha fica fechado, e a conferência deixou de contar</h4>
+  <p>Decisão do dono do projeto: a eira murada do moinho — 22 tiles de
+  <code>HAY</code> em x&nbsp;72–77, y&nbsp;15–19, sem nenhum tile andável
+  encostando — é para ficar fechada. Com isso a régua de componentes tinha de
+  mudar, e a dívida que este documento anotou na primeira fatia do editor
+  venceu: <i>"no dia em que houver um segundo recinto fechado de propósito, ela
+  vai reclamar para sempre — o certo é ela passar a listar quais são esperados
+  em vez de contar."</i></p>
+  <p>A régua passou por três estados. Exigia UM componente, e teria acusado a
+  vila murada como erro. Passou a exigir DOIS, com a vila como exceção escrita à
+  mão. Agora <b>não conta mais</b>: cada recinto esperado declara um nome e um
+  ponto dentro de si, e a conferência cobra as duas metades — que todos existam,
+  e que <b>não exista nenhum fora da lista</b>.</p>
+  <p>Ir para TRÊS seria repetir o erro com outro número, e pior: um recinto novo
+  e indesejado passaria batido, bastando que outro sumisse na mesma execução. A
+  saída agora é nominal: <code>a ilha (10005) · a vila murada (2390) · o pátio de
+  palha (22)</code>. Recinto novo entra na lista de propósito, com nome, ou é
+  erro.</p>
+  <p>Duas mutações, duas pegas: tirar o pátio da lista acusa
+  <i>"pedaço NÃO esperado: 22 tiles"</i>; declarar um recinto que não existe
+  acusa <i>"falta: recinto inventado"</i>.</p>
+  <p>Detalhe de âncora que custou uma execução: o primeiro ponto da ilha foi o
+  centro da hunt da Mata Funda, e ele <b>cai dentro de uma árvore</b> — o
+  <code>espalha</code> não sabe que ali é âncora de conferência. Âncora que não é
+  chão reprova o mapa inteiro por engano. Ficou o portão da Cerca Nova, que é a
+  passagem entre as duas metades da ilha e portanto andável por definição; se um
+  dia deixar de ser, o mapa está mesmo quebrado.</p>
+
+  <h4>Grade por decisão, e zoom sem teto</h4>
+  <p>Dois pedidos do dono. A grade era automática — aparecia a partir de 7&nbsp;px
+  por tile —, e automática ficou errado desde que existe a vista de jogo: sobre a
+  arte ela <b>rabisca</b>, porque é linha preta em cima de cada tile desenhado;
+  sobre a planta ela é metade do trabalho, porque contar tile é como se acerta uma
+  coordenada. Agora quem decide é o dono, na tecla <b>X</b>, e sobre a arte ela
+  entra clara e discreta em vez de preta. Continua escondida abaixo de 7&nbsp;px,
+  onde viraria ruído sólido.</p>
+  <p>E o zoom perdeu o teto de 28&nbsp;px por tile, que era arbitrário e
+  atrapalhava justamente o que o editor passou a servir: a 64, 160 ou 320&nbsp;px
+  por tile dá para conferir a junta entre dois terrenos e a silhueta de um
+  objeto, que é onde a arte se decide. O piso de 1 fica — abaixo disso não há o
+  que editar, e para navegar longe existe o "ver tudo".</p>
+
+  <h4>Dívida que esta leva deixa</h4>
+  <p>O <code>tools/</code> não tem suíte. O <code>tests/test.js</code> carrega os fontes de
+  <code>src/</code> e é lá que moram as 756 verificações; <code>compor.js</code>,
+  <code>aplicaPatch</code> e o editor foram conferidos à mão, uma vez, com medição registrada
+  acima — o que não é o mesmo que ter rede. O caminho barato, quando incomodar, é um
+  <code>tests/test_tools.js</code> que monte um mapa de 12×10 em memória e exercite
+  <code>parte</code>, <code>andavel</code> e as duas camadas do <code>aplicaPatch</code>: foi
+  exatamente o que a conferência à mão fez, e ela cabe num arquivo.</p>
 
   <h3>Os móveis e a porta, jogados — 2026-08-23</h3>
   <p>Quatro relatos do dono do projeto sobre os móveis e três sobre a porta, todos vindos de
@@ -2751,7 +3082,7 @@
 
 <footer>
   Thaira · RPG 2D dark-fantasy em JavaScript sem framework, com launcher Electron ·
-  751 verificações passando em <code>tests/test.js</code> ·
+  756 verificações passando em <code>tests/test.js</code> ·
   24 tarefas pendentes · conferido contra o código em 2026-08-23.
 </footer>
 

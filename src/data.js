@@ -2062,20 +2062,25 @@ const HUNTS = [
    última linha é o consolo, o que sai quando nada melhor cai. */
 const COLETA = {
   mining: {
-    /* ROCK é o afloramento que o gerador espalha; ORE é o veio que o AUTOR põe
-       no mapa — mesma tabela, porque o que muda é onde ele está, não o que sai.
-       Parede de caverna continua fora: era o único recurso sem fim do jogo. */
-    tiles: ['ROCK', 'ORE'], n: 'minerar', v: 'minera', seg: 90, alcance: 1, ferramenta: ['pickaxe'],
+    /* `rochedo` é o afloramento que o gerador espalha; `veio` é o que o AUTOR
+       põe no mapa — mesma tabela, porque o que muda é onde ele está, não o que
+       sai. `cparede` (parede de caverna) continua fora: era o único recurso sem
+       fim do jogo, 46.899 tiles contra ~3.500 dos outros dois ofícios.
+       Minério e árvore são OBJETO e não terreno desde a separação de camadas —
+       o que se pica é a coisa em cima do chão, e o chão continua ali depois. */
+    objs: ['rochedo', 'veio'], n: 'minerar', v: 'minera', seg: 90, alcance: 1, ferramenta: ['pickaxe'],
     tab: [['gold_ingot', .0025, 65], ['small_diamond', .005, 55], ['small_sapphire', .012, 35],
     ['small_ruby', .012, 35], ['mithril_ore', .07, 48], ['iron_ore', .10, 18],
     ['silver_ore', .20, 28], ['copper_ore', .55, 10], ['coal', 1, 10]]
   },
   woodcut: {
-    tiles: ['TREE'], n: 'cortar lenha', v: 'corta lenha', seg: 60, alcance: 1, ferramenta: ['axe', 'hand_axe'],
+    objs: ['arvore'], n: 'cortar lenha', v: 'corta lenha', seg: 60, alcance: 1, ferramenta: ['axe', 'hand_axe'],
     tab: [['honeycomb', .12, 25], ['mushroom', .15, 15], ['brown_mushroom', .18, 10], ['hard_wood', .20, 35],
     ['resin', .22, 20], ['herb', .30, 10], ['wood', .70, 10], ['green_wood', 1, 10]]
   },
   fishing: {
+    /* A pesca é o único ofício que colhe TERRENO: água é chão, não coisa em
+       cima dele. Os outros dois migraram para `objs` na separação de camadas. */
     tiles: ['WATER'], n: 'pescar', v: 'pesca', seg: 30, alcance: ALCANCE_TIRO, ferramenta: ['fishing_rod'],
     tab: [['shimmering_pearl', .004, 65], ['black_pearl', .015, 50], ['white_pearl', .03, 35],
     ['big_fish', .25, 28], ['shrimp', .30, 18], ['shell', .30, 10], ['fish', .70, 10], ['worm', 1, 10]]
