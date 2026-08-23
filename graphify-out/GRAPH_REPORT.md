@@ -1,16 +1,16 @@
 # Graph Report - Jogo  (2026-08-23)
 
 ## Corpus Check
-- 73 files · ~5,956,352 words
+- 73 files · ~5,957,304 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1338 nodes · 2327 edges · 100 communities (95 shown, 5 thin omitted)
-- Extraction: 90% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 212 edges (avg confidence: 0.8)
+- 1339 nodes · 2329 edges · 98 communities (93 shown, 5 thin omitted)
+- Extraction: 90% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 213 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `41baa532`
+- Built from commit: `83cc8664`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -28,7 +28,6 @@
 - superficie-dia
 - Orc Animation Sprite Sheet
 - _corpo_medio
-- renderHotbar
 - Ancestral Hunter Set Sheet (4x4 icon atlas on magenta key)
 - Combat Stance System (attack / balanced / defense selector)
 - Weapon Equipment Slot
@@ -70,7 +69,7 @@
 - error
 - fire
 - hurt
-- recalc
+- itemStats
 - freesound.py
 - loot
 - ui_click
@@ -109,7 +108,6 @@
 - _canvas
 - _canvas2
 - _rgb
-- renderStatus
 - Texturas de UI — o que gerar
 - arraste.js
 - dealDamage
@@ -175,7 +173,7 @@
 - **Death State Group (single-frame prone poses with blood pool)** — assets_skins_voc_knight_voc_knight_veteran_dead_front_01_dead_front_pose, assets_skins_voc_knight_voc_knight_veteran_dead_back_01_dead_back_pose, assets_skins_voc_knight_voc_knight_veteran_dead_front_01_death_pose_blood_pool, assets_skins_voc_knight_voc_knight_veteran_idle_back_04_back_view_sword_harness [INFERRED 0.75]
 - **Veteran Knight walk animation sprite set (front + back directions, 4-frame cycle, shared character design)** — assets_skins_voc_knight_voc_knight_veteran_walk_front_01_walk_front_animation, assets_skins_voc_knight_voc_knight_veteran_walk_back_03_walk_back_animation, assets_skins_voc_knight_voc_knight_veteran_walk_front_04_four_frame_walk_cycle, assets_skins_voc_knight_voc_knight_veteran_walk_front_03_directional_sprite_set, assets_skins_voc_knight_voc_knight_veteran_walk_front_01_veteran_knight_sprite [INFERRED 0.95]
 
-## Communities (100 total, 5 thin omitted)
+## Communities (98 total, 5 thin omitted)
 
 ### Community 0 - "Tela de ajuda / comandos (#help)"
 Cohesion: 0.06
@@ -198,12 +196,12 @@ Cohesion: 0.08
 Nodes (35): ambience(), ambNodes, arp(), audioInit(), audioToggle(), audioVol(), audioVolReset(), _avisarSemSom() (+27 more)
 
 ### Community 5 - "game.js"
-Cohesion: 0.06
-Nodes (49): arrastaJanela(), bindMiniMap(), BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, chuvaOuvida() (+41 more)
+Cohesion: 0.05
+Nodes (54): arrastaJanela(), bindMiniMap(), BONUS_LABEL, BUFF_DESC, BUFF_ICO, BUFF_LABEL, BUFF_RUIM, campoDano() (+46 more)
 
 ### Community 6 - "data.js"
 Cohesion: 0.03
-Nodes (49): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, BIOMA_POOLS, BO, CAMPO_ACIMA (+41 more)
+Nodes (50): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, BIOMA_POOLS, BO, CAMPO_ACIMA (+42 more)
 
 ### Community 7 - "render2d.js"
 Cohesion: 0.10
@@ -229,10 +227,6 @@ Nodes (21): Orc ATTACK Animation Row, Four-Direction Frame Grouping (side-left, 
 Cohesion: 0.10
 Nodes (21): atk_axe, mix, n, v, atk_club, mix, n, v (+13 more)
 
-### Community 13 - "renderHotbar"
-Cohesion: 0.28
-Nodes (9): abrirPicker(), HOT_KEYS_DEFAULT, hotAjusta(), hotDefault(), hotEntry(), hotKeyLabel(), knownSpells(), renderHotbar() (+1 more)
-
 ### Community 14 - "Ancestral Hunter Set Sheet (4x4 icon atlas on magenta key)"
 Cohesion: 0.33
 Nodes (16): Ancestral Hunter Amulet (neck slot icon), Ancestral Hunter Armor (chest slot icon), Ancestral Hunter Backpack (back slot icon), Ancestral Hunter Boots (feet slot icon), Ancestral Hunter Bow (main-hand weapon icon), Ancestral Hunter Hood (head slot icon), Ancestral Hunter Legs (legs slot icon; art depicts a leaf mantle, not greaves), Ancestral Hunter Quiver (ammo/off-hand slot icon) (+8 more)
@@ -250,8 +244,8 @@ Cohesion: 0.38
 Nodes (15): Golden Guardian Halberd (two-handed polearm skin: dark shaft, gold-filigreed steel axe head with heraldic crest), Golden Guardian Amulet (neck slot skin: braided gold chain, lion-face shield pendant with red gems), Red Gem Accent (ruby inlay used across the set), Golden Guardian Armor (chest slot skin: dark steel cuirass, gold lion breastplate, red tabard), Golden Guardian Set (Thaira equipment set: blackened plate, gold lion heraldry, red gems), Lion Head Crest Motif (shared golden guardian emblem), Golden Guardian Backpack (back slot skin: brown leather rucksack with gold lion faceplate and bedroll), Golden Guardian Greaves (feet slot skin: dark plated boots with gold lion knee guards) (+7 more)
 
 ### Community 18 - "updateMobs"
-Cohesion: 0.29
-Nodes (13): acordar(), evitaCampo(), lineClear(), noTemplo(), occupied(), passoAte(), passoDeFuga(), passoVagar() (+5 more)
+Cohesion: 0.20
+Nodes (18): acordar(), evitaCampo(), lineClear(), noTemplo(), occupied(), passoAte(), passoDeFuga(), passoVagar() (+10 more)
 
 ### Community 19 - "compor.js"
 Cohesion: 0.06
@@ -274,8 +268,8 @@ Cohesion: 0.17
 Nodes (29): IMBUEMENTS, LOOT_RARITY, bestDiff(), bestiaryKill(), bestKills(), bestStage(), bindBigMap(), contaMat() (+21 more)
 
 ### Community 24 - "log"
-Cohesion: 0.17
-Nodes (23): addMagic(), aplicaEstado(), campoDano(), campoEm(), clickTile(), comer(), criaCampo(), curar() (+15 more)
+Cohesion: 0.11
+Nodes (42): abrirTesouro(), addExp(), addMagic(), addSkillTry(), afterStep(), aplicaEstado(), blessPrice(), canEquip() (+34 more)
 
 ### Community 25 - "Axe Icon (Double-Bladed Wood Axe)"
 Cohesion: 0.24
@@ -397,9 +391,9 @@ Nodes (3): fire, n, v
 Cohesion: 0.67
 Nodes (3): hurt, n, v
 
-### Community 55 - "recalc"
-Cohesion: 0.13
-Nodes (27): blessPrice(), canEquip(), cellsVazias(), CELULA, dropItem(), equipItem(), fmtBon(), itemCell() (+19 more)
+### Community 55 - "itemStats"
+Cohesion: 0.21
+Nodes (13): CELULA, descLoot(), fmtBon(), itemCell(), itemStats(), lootTempo(), playerDeath(), renderLoot() (+5 more)
 
 ### Community 56 - "freesound.py"
 Cohesion: 0.80
@@ -511,15 +505,15 @@ Nodes (12): electron, description, devDependencies, electron, main, name, privat
 
 ### Community 87 - "main.js"
 Cohesion: 0.11
-Nodes (19): abrirEditor(), abrirJanela(), { app, BrowserWindow, Menu }, DEV, { execFile }, fs, gravaPatch(), http (+11 more)
+Nodes (20): abrirEditor(), abrirJanela(), { app, BrowserWindow, Menu, dialog }, avisaPortaOcupada(), DEV, { execFile }, fs, gravaPatch() (+12 more)
 
 ### Community 88 - "lootEV"
 Cohesion: 0.67
 Nodes (3): lootEV(), lootQtd(), lootVal()
 
 ### Community 89 - "castSpell"
-Cohesion: 0.16
-Nodes (22): cdDe(), DANO_TIPOS, abrirMagia(), addSkillTry(), castSpell(), damageFormula(), estadoDaMagia(), fichaLinhas() (+14 more)
+Cohesion: 0.12
+Nodes (30): DANO_TIPOS, abrirMagia(), campoEm(), castSpell(), clickTile(), _corTexto(), criaCampo(), curar() (+22 more)
 
 ### Community 91 - "_canvas"
 Cohesion: 0.19
@@ -533,10 +527,6 @@ Nodes (12): _canvas2(), _chapado(), creatureSheet(), creatureSprite(), OUT_CACHE
 Cohesion: 0.21
 Nodes (16): barrilSprite(), carrocaSprite(), cercaSprite(), _cracks(), decoSprite(), _el(), escoraSprite(), moinhoSprite() (+8 more)
 
-### Community 94 - "renderStatus"
-Cohesion: 0.38
-Nodes (7): _corTexto(), renderResChips(), renderStatus(), statusAtivos(), statusSig(), tickStatus(), tipEm()
-
 ### Community 95 - "Texturas de UI — o que gerar"
 Cohesion: 0.25
 Nodes (7): 1. `leather_dark.png` — superfície de painel, 2. `stone_dark.png` — moldura externa, 3. `grain.png` — grão geral, A armadilha que a arte precisa respeitar, O que NÃO gerar por enquanto, Regras que valem para os três arquivos, Texturas de UI — o que gerar
@@ -546,16 +536,16 @@ Cohesion: 0.25
 Nodes (3): arrItemDaCelula(), arrZona(), ZONAS
 
 ### Community 97 - "dealDamage"
-Cohesion: 0.14
-Nodes (25): abalo(), abrirTesouro(), addExp(), bloodSpray(), changeFloor(), congelar(), cssCol(), dealDamage() (+17 more)
+Cohesion: 0.29
+Nodes (13): abalo(), bloodSpray(), congelar(), cssCol(), dealDamage(), estadoIco(), estiloEstado(), impacto() (+5 more)
 
 ### Community 98 - "congela_mapa.js"
 Cohesion: 0.18
 Nodes (10): alvo, ctx, dir, fs, kb, mapa, path, raiz (+2 more)
 
 ### Community 100 - "bindInput"
-Cohesion: 0.16
-Nodes (20): SPELLS, afterStep(), alvosPerto(), bagAdd(), bancadaTeste(), bindInput(), chaveTile(), coletaDe() (+12 more)
+Cohesion: 0.13
+Nodes (24): SPELLS, abrirPicker(), alvosPerto(), bagAdd(), bancadaTeste(), bindInput(), corpseAt(), distAcao() (+16 more)
 
 ## Ambiguous Edges - Review These
 - `graphify` → `Thaira — RPG isométrico (shell da aplicação)`  [AMBIGUOUS]

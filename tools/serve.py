@@ -123,7 +123,9 @@ def recompoe(nome):
                                           'rode "node tools/mapas/%s.js" para aplicar.' % nome}
     except subprocess.TimeoutExpired:
         return {'recompos': False, 'log': 'o script passou de 120s e foi interrompido.'}
-    return {'recompos': r.returncode == 0,
+    # 2 = mapa escrito e conferencia reclamando; o resto e o script ter quebrado
+    aviso = r.returncode == 2
+    return {'recompos': r.returncode == 0 or aviso, 'aviso': aviso,
             'log': (r.stdout or '') + (r.stderr or '')}
 
 

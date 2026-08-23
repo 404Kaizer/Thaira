@@ -2,7 +2,7 @@
    antes do keydown chegar no jogo -- preventDefault nao recupera. Aqui, sem menu
    de aplicacao, o Electron nao registra acelerador nenhum e o teclado inteiro e
    do jogo (inclusive hotkey rebindada pra F1..F12). */
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, dialog } = require('electron');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -51,7 +51,11 @@ function recompoe(nome, pronto) {
     cwd: RAIZ, timeout: 120000, encoding: 'utf8',
     env: Object.assign({}, process.env, { ELECTRON_RUN_AS_NODE: '1' })
   }, (erro, saida, erroSaida) => {
-    pronto({ recompos: !erro, log: (saida || '') + (erroSaida || '') });
+    /* Codigo 2 = o mapa FOI escrito e a conferencia reclamou. O mapa em disco e
+       o que o jogo carrega, entao a ferramenta tem de mostra-lo e avisar -- nao
+       fingir que nada aconteceu nem esconder o resultado. */
+    const aviso = !!erro && erro.code === 2;
+    pronto({ recompos: !erro || aviso, aviso, log: (saida || '') + (erroSaida || '') });
   });
 }
 
@@ -114,6 +118,26 @@ function gravaPatch(req, res, nome, forcar) {
 
 const servidor = http.createServer((req, res) => {
   const rel = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+  /* Marcador de identidade. Serve para o proprio launcher descobrir QUEM esta
+     na porta quando ela ja esta ocupada: se responder isto, e um launcher; se
+     nao, e outro servidor -- e outro servidor nao sabe recompor o mapa. */
+  if (rel === '/__thaira') {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store');
+    res.end(JSON.stringify({ launcher: true, recompoe: true }));
+    return;
+  }
+  /* Recompor sem gravar patch: e o botao "recompor agora" do editor, para o
+     caso de o mapa ter ficado atrasado por qualquer motivo. */
+  if (req.method === 'POST' && rel.startsWith('/recompor/')) {
+    const nome = rel.slice('/recompor/'.length);
+    if (!NOME_MAPA.test(nome)) { res.writeHead(400).end(); return; }
+    return recompoe(nome, r => {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'no-store');
+      res.end(JSON.stringify(r));
+    });
+  }
   if (req.method === 'POST') {
     if (!rel.startsWith('/patch/')) { res.writeHead(404).end(); return; }
     const q = new URL(req.url, 'http://x').searchParams;
@@ -169,6 +193,28 @@ function abrirEditor() {
   });
 }
 
+/* Um servidor ESTRANHO na porta 8765. Quase sempre um `python tools/serve.py`
+   deixado rodando de uma versao anterior. Continuar seria pior que parar: as
+   janelas abririam, tudo pareceria funcionar, e cada gravacao do editor sumiria
+   silenciosamente do mapa. */
+function avisaPortaOcupada() {
+  const r = dialog.showMessageBoxSync({
+    type: 'warning',
+    title: 'A porta ' + PORTA + ' já está ocupada',
+    message: 'Há outro servidor na porta ' + PORTA + '.',
+    detail:
+      'Quase sempre é um "python tools/serve.py" deixado aberto de antes.\n\n' +
+      'Se eu usar esse servidor, o jogo abre e parece funcionar — mas ele NÃO sabe\n' +
+      'recompor o mapa, então tudo que você gravar no editor fica só no patch e\n' +
+      'nunca aparece no jogo. É o defeito de "editei, gravei e não mudou nada".\n\n' +
+      'Feche a outra janela de terminal e abra o Editor.bat de novo.',
+    buttons: ['Fechar', 'Abrir assim mesmo (o editor não vai recompor)'],
+    defaultId: 0, cancelId: 0
+  });
+  if (r === 1) return abrir();
+  app.quit();
+}
+
 function iniciar() {
   // duas janelas compartilham a MESMA localStorage: as duas salvariam o
   // personagem por cima uma da outra e a ultima a fechar ganharia. O return e
@@ -192,8 +238,28 @@ function iniciar() {
        origem, entao o canal as liga. */
     const abrir = () => { abrirJanela(); if (MODO_EDITOR) abrirEditor(); };
     servidor.once('listening', abrir);
-    // porta ocupada = serve.py ja esta de pe, entao so aproveita
-    servidor.once('error', e => { if (e.code === 'EADDRINUSE') abrir(); else throw e; });
+    /* PORTA OCUPADA NAO E MAIS "aproveita e pronto", e essa linha custou caro.
+       Quando o servidor daqui so servia arquivo, dar de ombros para um serve.py
+       ja de pe era inofensivo. Agora ele tambem GRAVA O PATCH E RECOMPOE o mapa,
+       e um serve.py antigo na mesma porta grava sem recompor: o dono edita,
+       salva, e o mapa fica parado -- para sempre, e sem pista nenhuma. Foi
+       exatamente o que aconteceu, com o editor acusando "o mapa esta atrasado"
+       a cada abertura.
+       Entao: pergunta QUEM esta na porta. Se for outro launcher, aproveita. Se
+       for qualquer outra coisa, avisa em vez de fingir que esta tudo bem. */
+    servidor.once('error', e => {
+      if (e.code !== 'EADDRINUSE') throw e;
+      http.get({ host: '127.0.0.1', port: PORTA, path: '/__thaira', timeout: 1500 }, r => {
+        let b = '';
+        r.on('data', d => b += d);
+        r.on('end', () => {
+          let ok = false;
+          try { ok = JSON.parse(b).recompoe === true; } catch (_) { }
+          if (ok) return abrir();
+          avisaPortaOcupada();
+        });
+      }).on('error', avisaPortaOcupada).on('timeout', avisaPortaOcupada);
+    });
     servidor.listen(PORTA, '127.0.0.1');
   });
   app.on('window-all-closed', () => app.quit());

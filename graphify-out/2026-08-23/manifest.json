@@ -3080,13 +3080,13 @@
     "semantic_hash": ""
   },
   "tools/serve.py": {
-    "mtime": 1787493150.1757972,
-    "ast_hash": "844bd329543c8fedb93980e116c5fbb3",
+    "mtime": 1787497500.8492267,
+    "ast_hash": "049a32b35fda1378877a2d92fb1bb6b3",
     "semantic_hash": ""
   },
   "main.js": {
-    "mtime": 1787178858.6043482,
-    "ast_hash": "c6a497740ef7b47646cbb4c461f08d4a",
+    "mtime": 1787498311.3839006,
+    "ast_hash": "4bc01f56fb0fd702a3934a9d082f365a",
     "semantic_hash": ""
   },
   "package.json": {
@@ -3170,8 +3170,8 @@
     "semantic_hash": ""
   },
   "tasks.html": {
-    "mtime": 1787496683.2112992,
-    "ast_hash": "187cc153e1fbb424495f5f02feca8241",
+    "mtime": 1787498374.5500035,
+    "ast_hash": "0ed096eacd6482cc853c6fc67658a6dd",
     "semantic_hash": ""
   },
   "assets/skins/creatures/cyclops/cyclops_brute/cyclops_anim.png": {
@@ -5620,7 +5620,7 @@
     "semantic_hash": ""
   },
   "maps/varrokgaard.json": {
-    "mtime": 1787496618.220006,
+    "mtime": 1787497533.0230603,
     "ast_hash": "4101f1161f8efaf4a634dce8cb335568",
     "semantic_hash": ""
   },
@@ -5660,13 +5660,23 @@
     "semantic_hash": ""
   },
   "tools/editor.html": {
-    "mtime": 1787496581.034613,
-    "ast_hash": "94fc3e9866273f3c589426040c5236d8",
+    "mtime": 1787498311.385906,
+    "ast_hash": "416902e7a273bcdd9c6ca175bf8056bf",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.json": {
-    "mtime": 1787496685.3991134,
-    "ast_hash": "db57bacf7c8c3c2e8e9b3c7fc4f3d819",
+    "mtime": 1787498168.8777509,
+    "ast_hash": "37a287098aaf1caa01ec47b359730113",
+    "semantic_hash": ""
+  },
+  "maps/_semPatch.json": {
+    "mtime": 1787497532.760257,
+    "ast_hash": "2a0d13280b13d9d2510018b227a321a3",
+    "semantic_hash": ""
+  },
+  "maps/varrokgaard.patch.bak.json": {
+    "mtime": 1787497514.2100313,
+    "ast_hash": "37a287098aaf1caa01ec47b359730113",
     "semantic_hash": ""
   }
 }

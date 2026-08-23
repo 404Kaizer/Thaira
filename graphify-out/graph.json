@@ -3346,15 +3346,15 @@
       "norm_label": "main.js"
     },
     {
-      "label": "{ app, BrowserWindow, Menu }",
+      "label": "{ app, BrowserWindow, Menu, dialog }",
       "file_type": "code",
       "source_file": "main.js",
       "source_location": "L5",
       "_origin": "ast",
-      "id": "main_app_browserwindow_menu",
+      "id": "main_app_browserwindow_menu_dialog",
       "community": 87,
       "community_name": "main.js",
-      "norm_label": "{ app, browserwindow, menu }"
+      "norm_label": "{ app, browserwindow, menu, dialog }"
     },
     {
       "label": "http",
@@ -3460,7 +3460,7 @@
       "label": "gravaPatch()",
       "file_type": "code",
       "source_file": "main.js",
-      "source_location": "L58",
+      "source_location": "L62",
       "_callable": true,
       "_origin": "ast",
       "id": "main_gravapatch",
@@ -3472,7 +3472,7 @@
       "label": "servidor",
       "file_type": "code",
       "source_file": "main.js",
-      "source_location": "L115",
+      "source_location": "L119",
       "_origin": "ast",
       "id": "main_servidor",
       "community": 87,
@@ -3483,7 +3483,7 @@
       "label": "abrirJanela()",
       "file_type": "code",
       "source_file": "main.js",
-      "source_location": "L131",
+      "source_location": "L155",
       "_callable": true,
       "_origin": "ast",
       "id": "main_abrirjanela",
@@ -3495,7 +3495,7 @@
       "label": "abrirEditor()",
       "file_type": "code",
       "source_file": "main.js",
-      "source_location": "L158",
+      "source_location": "L182",
       "_callable": true,
       "_origin": "ast",
       "id": "main_abrireditor",
@@ -3504,10 +3504,22 @@
       "norm_label": "abrireditor()"
     },
     {
+      "label": "avisaPortaOcupada()",
+      "file_type": "code",
+      "source_file": "main.js",
+      "source_location": "L200",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "main_avisaportaocupada",
+      "community": 87,
+      "community_name": "main.js",
+      "norm_label": "avisaportaocupada()"
+    },
+    {
       "label": "iniciar()",
       "file_type": "code",
       "source_file": "main.js",
-      "source_location": "L172",
+      "source_location": "L218",
       "_callable": true,
       "_origin": "ast",
       "id": "main_iniciar",
@@ -5394,8 +5406,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_data_cdde",
-      "community": 89,
-      "community_name": "castSpell",
+      "community": 6,
+      "community_name": "data.js",
       "norm_label": "cdde()"
     },
     {
@@ -6392,8 +6404,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_mkitem",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "mkitem()"
     },
     {
@@ -6405,7 +6417,7 @@
       "_origin": "ast",
       "id": "src_game_itemstats",
       "community": 55,
-      "community_name": "recalc",
+      "community_name": "itemStats",
       "norm_label": "itemstats()"
     },
     {
@@ -6578,8 +6590,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_tickestados",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 5,
+      "community_name": "game.js",
       "norm_label": "tickestados()"
     },
     {
@@ -6614,7 +6626,7 @@
       "_origin": "ast",
       "id": "src_game_fmtbon",
       "community": 55,
-      "community_name": "recalc",
+      "community_name": "itemStats",
       "norm_label": "fmtbon()"
     },
     {
@@ -6626,7 +6638,7 @@
       "_origin": "ast",
       "id": "src_game_setcount",
       "community": 55,
-      "community_name": "recalc",
+      "community_name": "itemStats",
       "norm_label": "setcount()"
     },
     {
@@ -6637,8 +6649,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_newplayer",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "newplayer()"
     },
     {
@@ -6649,8 +6661,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_recalc",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "recalc()"
     },
     {
@@ -6685,8 +6697,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_addexp",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "addexp()"
     },
     {
@@ -6697,8 +6709,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_addskilltry",
-      "community": 89,
-      "community_name": "castSpell",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "addskilltry()"
     },
     {
@@ -6745,8 +6757,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_canequip",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "canequip()"
     },
     {
@@ -6757,8 +6769,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_equipitem",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "equipitem()"
     },
     {
@@ -6769,8 +6781,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_unequip",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "unequip()"
     },
     {
@@ -6781,8 +6793,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_userune",
-      "community": 24,
-      "community_name": "log",
+      "community": 89,
+      "community_name": "castSpell",
       "norm_label": "userune()"
     },
     {
@@ -6817,8 +6829,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_curar",
-      "community": 24,
-      "community_name": "log",
+      "community": 89,
+      "community_name": "castSpell",
       "norm_label": "curar()"
     },
     {
@@ -6829,8 +6841,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_dropitem",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "dropitem()"
     },
     {
@@ -6901,8 +6913,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_fxburst",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "fxburst()"
     },
     {
@@ -6960,8 +6972,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_campoem",
-      "community": 24,
-      "community_name": "log",
+      "community": 89,
+      "community_name": "castSpell",
       "norm_label": "campoem()"
     },
     {
@@ -6972,8 +6984,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_campodano",
-      "community": 24,
-      "community_name": "log",
+      "community": 5,
+      "community_name": "game.js",
       "norm_label": "campodano()"
     },
     {
@@ -6984,8 +6996,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_criacampo",
-      "community": 24,
-      "community_name": "log",
+      "community": 89,
+      "community_name": "castSpell",
       "norm_label": "criacampo()"
     },
     {
@@ -6996,8 +7008,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_tickcampos",
-      "community": 24,
-      "community_name": "log",
+      "community": 5,
+      "community_name": "game.js",
       "norm_label": "tickcampos()"
     },
     {
@@ -7032,8 +7044,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_spawnmob",
-      "community": 5,
-      "community_name": "game.js",
+      "community": 18,
+      "community_name": "updateMobs",
       "norm_label": "spawnmob()"
     },
     {
@@ -7044,8 +7056,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_removemob",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 18,
+      "community_name": "updateMobs",
       "norm_label": "removemob()"
     },
     {
@@ -7092,8 +7104,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_emzonasegura",
-      "community": 24,
-      "community_name": "log",
+      "community": 89,
+      "community_name": "castSpell",
       "norm_label": "emzonasegura()"
     },
     {
@@ -7319,8 +7331,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_descloot",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 55,
+      "community_name": "itemStats",
       "norm_label": "descloot()"
     },
     {
@@ -7355,8 +7367,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_blessprice",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "blessprice()"
     },
     {
@@ -7368,7 +7380,7 @@
       "_origin": "ast",
       "id": "src_game_playerdeath",
       "community": 55,
-      "community_name": "recalc",
+      "community_name": "itemStats",
       "norm_label": "playerdeath()"
     },
     {
@@ -7379,8 +7391,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_respawn",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "respawn()"
     },
     {
@@ -7391,8 +7403,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_knownspells",
-      "community": 13,
-      "community_name": "renderHotbar",
+      "community": 100,
+      "community_name": "bindInput",
       "norm_label": "knownspells()"
     },
     {
@@ -7427,8 +7439,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_spawncorpse",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 55,
+      "community_name": "itemStats",
       "norm_label": "spawncorpse()"
     },
     {
@@ -7439,8 +7451,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_spawndrop",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "spawndrop()"
     },
     {
@@ -7451,8 +7463,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_abrirtesouro",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "abrirtesouro()"
     },
     {
@@ -7488,7 +7500,7 @@
       "_origin": "ast",
       "id": "src_game_loottempo",
       "community": 55,
-      "community_name": "recalc",
+      "community_name": "itemStats",
       "norm_label": "loottempo()"
     },
     {
@@ -7500,7 +7512,7 @@
       "_origin": "ast",
       "id": "src_game_renderloot",
       "community": 55,
-      "community_name": "recalc",
+      "community_name": "itemStats",
       "norm_label": "renderloot()"
     },
     {
@@ -7535,8 +7547,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_lootmudou",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 5,
+      "community_name": "game.js",
       "norm_label": "lootmudou()"
     },
     {
@@ -7547,8 +7559,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_refreshspawns",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 18,
+      "community_name": "updateMobs",
       "norm_label": "refreshspawns()"
     },
     {
@@ -7595,8 +7607,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_notify",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "notify()"
     },
     {
@@ -7619,8 +7631,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_cortexto",
-      "community": 94,
-      "community_name": "renderStatus",
+      "community": 89,
+      "community_name": "castSpell",
       "norm_label": "_cortexto()"
     },
     {
@@ -7631,8 +7643,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderreschips",
-      "community": 94,
-      "community_name": "renderStatus",
+      "community": 89,
+      "community_name": "castSpell",
       "norm_label": "renderreschips()"
     },
     {
@@ -7655,8 +7667,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_statusativos",
-      "community": 94,
-      "community_name": "renderStatus",
+      "community": 5,
+      "community_name": "game.js",
       "norm_label": "statusativos()"
     },
     {
@@ -7667,8 +7679,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_statussig",
-      "community": 94,
-      "community_name": "renderStatus",
+      "community": 5,
+      "community_name": "game.js",
       "norm_label": "statussig()"
     },
     {
@@ -7679,8 +7691,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderstatus",
-      "community": 94,
-      "community_name": "renderStatus",
+      "community": 5,
+      "community_name": "game.js",
       "norm_label": "renderstatus()"
     },
     {
@@ -7691,8 +7703,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_tickstatus",
-      "community": 94,
-      "community_name": "renderStatus",
+      "community": 5,
+      "community_name": "game.js",
       "norm_label": "tickstatus()"
     },
     {
@@ -7703,7 +7715,7 @@
       "_origin": "ast",
       "id": "src_game_celula",
       "community": 55,
-      "community_name": "recalc",
+      "community_name": "itemStats",
       "norm_label": "celula"
     },
     {
@@ -7715,7 +7727,7 @@
       "_origin": "ast",
       "id": "src_game_itemcell",
       "community": 55,
-      "community_name": "recalc",
+      "community_name": "itemStats",
       "norm_label": "itemcell()"
     },
     {
@@ -7727,7 +7739,7 @@
       "_origin": "ast",
       "id": "src_game_synccells",
       "community": 55,
-      "community_name": "recalc",
+      "community_name": "itemStats",
       "norm_label": "synccells()"
     },
     {
@@ -7737,8 +7749,8 @@
       "source_location": "L1952",
       "_origin": "ast",
       "id": "src_game_vazias",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 5,
+      "community_name": "game.js",
       "norm_label": "vazias"
     },
     {
@@ -7749,8 +7761,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_cellsvazias",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 5,
+      "community_name": "game.js",
       "norm_label": "cellsvazias()"
     },
     {
@@ -7816,8 +7828,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderinv",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "renderinv()"
     },
     {
@@ -7828,8 +7840,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderskills",
-      "community": 89,
-      "community_name": "castSpell",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "renderskills()"
     },
     {
@@ -7957,8 +7969,8 @@
       "source_location": "L2161",
       "_origin": "ast",
       "id": "src_game_hot_keys_default",
-      "community": 13,
-      "community_name": "renderHotbar",
+      "community": 100,
+      "community_name": "bindInput",
       "norm_label": "hot_keys_default"
     },
     {
@@ -7969,8 +7981,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_hotkeylabel",
-      "community": 13,
-      "community_name": "renderHotbar",
+      "community": 100,
+      "community_name": "bindInput",
       "norm_label": "hotkeylabel()"
     },
     {
@@ -7981,8 +7993,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_hotajusta",
-      "community": 13,
-      "community_name": "renderHotbar",
+      "community": 100,
+      "community_name": "bindInput",
       "norm_label": "hotajusta()"
     },
     {
@@ -7993,8 +8005,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_hotdefault",
-      "community": 13,
-      "community_name": "renderHotbar",
+      "community": 100,
+      "community_name": "bindInput",
       "norm_label": "hotdefault()"
     },
     {
@@ -8005,8 +8017,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_hotentry",
-      "community": 13,
-      "community_name": "renderHotbar",
+      "community": 100,
+      "community_name": "bindInput",
       "norm_label": "hotentry()"
     },
     {
@@ -8017,8 +8029,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_hotuse",
-      "community": 24,
-      "community_name": "log",
+      "community": 100,
+      "community_name": "bindInput",
       "norm_label": "hotuse()"
     },
     {
@@ -8041,8 +8053,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderhotbar",
-      "community": 13,
-      "community_name": "renderHotbar",
+      "community": 100,
+      "community_name": "bindInput",
       "norm_label": "renderhotbar()"
     },
     {
@@ -8053,8 +8065,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_tickhotbar",
-      "community": 13,
-      "community_name": "renderHotbar",
+      "community": 100,
+      "community_name": "bindInput",
       "norm_label": "tickhotbar()"
     },
     {
@@ -8065,8 +8077,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_abrirpicker",
-      "community": 13,
-      "community_name": "renderHotbar",
+      "community": 100,
+      "community_name": "bindInput",
       "norm_label": "abrirpicker()"
     },
     {
@@ -8077,8 +8089,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderbattle",
-      "community": 24,
-      "community_name": "log",
+      "community": 89,
+      "community_name": "castSpell",
       "norm_label": "renderbattle()"
     },
     {
@@ -8089,8 +8101,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_renderall",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "renderall()"
     },
     {
@@ -8102,7 +8114,7 @@
       "_origin": "ast",
       "id": "src_game_showtip",
       "community": 55,
-      "community_name": "recalc",
+      "community_name": "itemStats",
       "norm_label": "showtip()"
     },
     {
@@ -8113,8 +8125,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_tipem",
-      "community": 94,
-      "community_name": "renderStatus",
+      "community": 89,
+      "community_name": "castSpell",
       "norm_label": "tipem()"
     },
     {
@@ -8149,8 +8161,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_coletade",
-      "community": 100,
-      "community_name": "bindInput",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "coletade()"
     },
     {
@@ -8161,8 +8173,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_chavetile",
-      "community": 100,
-      "community_name": "bindInput",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "chavetile()"
     },
     {
@@ -8173,8 +8185,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_colhidoem",
-      "community": 100,
-      "community_name": "bindInput",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "colhidoem()"
     },
     {
@@ -8197,8 +8209,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_colher",
-      "community": 100,
-      "community_name": "bindInput",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "colher()"
     },
     {
@@ -8210,7 +8222,7 @@
       "_origin": "ast",
       "id": "src_game_sellprice",
       "community": 55,
-      "community_name": "recalc",
+      "community_name": "itemStats",
       "norm_label": "sellprice()"
     },
     {
@@ -8221,8 +8233,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_shopnear",
-      "community": 100,
-      "community_name": "bindInput",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "shopnear()"
     },
     {
@@ -8233,8 +8245,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_syncrows",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "syncrows()"
     },
     {
@@ -8245,8 +8257,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_rendershop",
-      "community": 55,
-      "community_name": "recalc",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "rendershop()"
     },
     {
@@ -8269,8 +8281,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_clicktile",
-      "community": 24,
-      "community_name": "log",
+      "community": 89,
+      "community_name": "castSpell",
       "norm_label": "clicktile()"
     },
     {
@@ -8317,8 +8329,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_stepplayer",
-      "community": 5,
-      "community_name": "game.js",
+      "community": 89,
+      "community_name": "castSpell",
       "norm_label": "stepplayer()"
     },
     {
@@ -8353,8 +8365,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_afterstep",
-      "community": 100,
-      "community_name": "bindInput",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "afterstep()"
     },
     {
@@ -8365,8 +8377,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_changefloor",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "changefloor()"
     },
     {
@@ -8639,8 +8651,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_recarregamapa",
-      "community": 97,
-      "community_name": "dealDamage",
+      "community": 18,
+      "community_name": "updateMobs",
       "norm_label": "recarregamapa()"
     },
     {
@@ -8675,8 +8687,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_restaurarbichos",
-      "community": 5,
-      "community_name": "game.js",
+      "community": 18,
+      "community_name": "updateMobs",
       "norm_label": "restaurarbichos()"
     },
     {
@@ -8687,8 +8699,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_limparitenssumidos",
-      "community": 5,
-      "community_name": "game.js",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "limparitenssumidos()"
     },
     {
@@ -8699,8 +8711,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "src_game_finishstart",
-      "community": 5,
-      "community_name": "game.js",
+      "community": 24,
+      "community_name": "log",
       "norm_label": "finishstart()"
     },
     {
@@ -20170,7 +20182,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "main.js",
-      "source_location": "L158",
+      "source_location": "L182",
       "weight": 1.0,
       "_origin": "ast",
       "source": "main",
@@ -20181,7 +20193,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "main.js",
-      "source_location": "L131",
+      "source_location": "L155",
       "weight": 1.0,
       "_origin": "ast",
       "source": "main",
@@ -20196,7 +20208,18 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "main",
-      "target": "main_app_browserwindow_menu",
+      "target": "main_app_browserwindow_menu_dialog",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.js",
+      "source_location": "L200",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "main",
+      "target": "main_avisaportaocupada",
       "confidence_score": 1.0
     },
     {
@@ -20236,7 +20259,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "main.js",
-      "source_location": "L58",
+      "source_location": "L62",
       "weight": 1.0,
       "_origin": "ast",
       "source": "main",
@@ -20269,7 +20292,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "main.js",
-      "source_location": "L172",
+      "source_location": "L218",
       "weight": 1.0,
       "_origin": "ast",
       "source": "main",
@@ -20313,7 +20336,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "main.js",
-      "source_location": "L115",
+      "source_location": "L119",
       "weight": 1.0,
       "_origin": "ast",
       "source": "main",
@@ -20348,7 +20371,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "main.js",
-      "source_location": "L107",
+      "source_location": "L111",
       "weight": 1.0,
       "_origin": "ast",
       "source": "main_gravapatch",
@@ -20360,7 +20383,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "main.js",
-      "source_location": "L146",
+      "source_location": "L170",
       "weight": 1.0,
       "_origin": "ast",
       "source": "main_abrirjanela",
@@ -20372,7 +20395,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "main.js",
-      "source_location": "L193",
+      "source_location": "L239",
       "weight": 1.0,
       "_origin": "ast",
       "source": "main_iniciar",
@@ -20384,12 +20407,24 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "main.js",
-      "source_location": "L193",
+      "source_location": "L239",
       "weight": 1.0,
       "_origin": "ast",
       "source": "main_iniciar",
       "target": "main_abrireditor",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "main.js",
+      "source_location": "L261",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "main_iniciar",
+      "target": "main_avisaportaocupada",
+      "confidence_score": 0.5
     },
     {
       "relation": "contains",
@@ -43819,5 +43854,5 @@
       "source_file": "assets/skins/voc_knight/voc_knight_veteran/walk_front_01.png"
     }
   ],
-  "built_at_commit": "41baa53252ebc6aadc0009566c30bf33b05dfa1d"
+  "built_at_commit": "83cc86640404ff42ec3603a7ef16eb36ca39450b"
 }

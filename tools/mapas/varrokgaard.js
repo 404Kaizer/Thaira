@@ -631,5 +631,12 @@ console.log(`chão da superfície em 2 pedaços (ilha + vila murada): ` +
 if (foraDaTerra.length || poisNaAgua.length || naVila.length || soltos.length || pocas ||
     !nasce || !ponteOk || !doisComp || objRuins.length) {
   console.log('\nATENÇÃO: o mapa não fecha.');
-  process.exitCode = 1;
+  /* DOIS é "compus o mapa e a conferência reclamou"; qualquer outro código
+     não-zero é o script ter quebrado. A diferença importa para quem chama: com
+     2 o arquivo do mapa EXISTE e é o que o jogo vai carregar, então a ferramenta
+     tem de mostrá-lo e avisar; com uma exceção não há mapa novo nenhum.
+     Vinha tudo como 1, e o editor tratava conferência reclamando como falha de
+     execução: recusava recarregar e dizia que não tinha recomposto, enquanto o
+     mapa em disco já estava atualizado. */
+  process.exitCode = 2;
 }

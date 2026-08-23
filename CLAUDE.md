@@ -34,10 +34,20 @@ Estes arquivos são a memória do projeto. **Leia antes de propor ou implementar
 
 Regras:
 
+- **Dois arquivos para clicar.** `Server.bat` abre o jogo; `Editor.bat` abre o jogo **e o editor de mapas** lado a lado (dentro do jogo, F9 faz o mesmo). O launcher Electron é quem serve, grava o patch e recompõe — **não peça ao dono do projeto para subir servidor, rodar `node` ou abrir terminal**; se um passo do laço exige isso, o laço está incompleto e o conserto é no launcher.
 - **Mapa: o script semeia, o editor corrige.** `tools/mapas/<terra>.js` compõe e se confere; `tools/editor.html` grava só o DIFF em `maps/<terra>.patch.json`, que o script aplica no fim, antes das conferências. Rodar o script nunca apaga correção feita à mão — e por isso **não edite `maps/*.json` na mão**: ele é saída, e a próxima execução o reescreve.
 - O mundo é **autoral, não gerado**. `genWorld` continua vivo só para rascunho; o mapa de verdade vem de `maps/*.json`. Antes de mexer em geração de mundo, leia a seção "A virada de mundo" do tasks.html.
 - **SEMPRE atualize o tasks.html** ao terminar qualquer implementação, junto com o `graphify update .`. Não é opcional: sem isso o documento envelhece em silêncio — já aconteceu de ele passar três commits desatualizado e afirmar 32 invariantes travadas por teste das quais 18 não existiam.
 - Se a lore mudar, o documento da terra é a fonte — atualize-o, não o código sozinho.
+
+## Não destrua trabalho do dono do projeto
+
+Custou duas perdas no mesmo dia, uma delas de ~700 tiles que não voltaram.
+
+- **Teste de escrita vai contra cópia, nunca contra o arquivo dele.** Um POST de teste com dois tiles apagou um patch de 1.632 — o handler grava o que recebe, e eu mandei dois. Se o teste escreve, o alvo é arquivo descartável.
+- **`git checkout` em arquivo com trabalho não commitado é destrutivo.** Reverteu o `src/world.js` inteiro no meio de uma leva. Para desfazer mutação de teste, guarde cópia antes e restaure dela.
+- **Cópia datada antes de qualquer escrita em `maps/`**, e diga onde ficou.
+- Quando algo sumir, **meça antes de concluir**: nas duas vezes em que parecia perda total, o carimbo dos arquivos mostrou onde o dado ainda estava. Anunciar perda que não houve custa tanto quanto a perda.
 
 ## Manter esta memória
 

@@ -85,8 +85,8 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1787492042.5277724,
-    "ast_hash": "db38f482159c3ff896d431b38621dc49",
+    "mtime": 1787499938.0329502,
+    "ast_hash": "dbb6fc1a9e83d753c88f62baa9b089dc",
     "semantic_hash": ""
   },
   "assets/CREDITOS.md": {
@@ -3080,13 +3080,13 @@
     "semantic_hash": ""
   },
   "tools/serve.py": {
-    "mtime": 1787497500.8492267,
-    "ast_hash": "049a32b35fda1378877a2d92fb1bb6b3",
+    "mtime": 1787499541.2597983,
+    "ast_hash": "9e7194c0ac79d2bcc3cc5df85117d98f",
     "semantic_hash": ""
   },
   "main.js": {
-    "mtime": 1787498311.3839006,
-    "ast_hash": "4bc01f56fb0fd702a3934a9d082f365a",
+    "mtime": 1787499541.2587984,
+    "ast_hash": "b736abe3dc963447b18e318c1dec30c1",
     "semantic_hash": ""
   },
   "package.json": {
@@ -3170,8 +3170,8 @@
     "semantic_hash": ""
   },
   "tasks.html": {
-    "mtime": 1787498374.5500035,
-    "ast_hash": "0ed096eacd6482cc853c6fc67658a6dd",
+    "mtime": 1787501368.3228674,
+    "ast_hash": "9a3e53b5ed922d9e256ff4bc0a8de9f5",
     "semantic_hash": ""
   },
   "assets/skins/creatures/cyclops/cyclops_brute/cyclops_anim.png": {
@@ -5620,8 +5620,8 @@
     "semantic_hash": ""
   },
   "maps/varrokgaard.json": {
-    "mtime": 1787497533.0230603,
-    "ast_hash": "4101f1161f8efaf4a634dce8cb335568",
+    "mtime": 1787499962.023211,
+    "ast_hash": "69741df0d7cee0a6d463eec08f12d2af",
     "semantic_hash": ""
   },
   "tools/compor.js": {
@@ -5630,8 +5630,8 @@
     "semantic_hash": ""
   },
   "tools/mapas/varrokgaard.js": {
-    "mtime": 1787491202.9534824,
-    "ast_hash": "c538b09825293183512226ab110902f2",
+    "mtime": 1787499541.2587984,
+    "ast_hash": "0e96bdfd842f8407b631a066bf4aabf1",
     "semantic_hash": ""
   },
   "tools/amostra/construido.html": {
@@ -5660,18 +5660,13 @@
     "semantic_hash": ""
   },
   "tools/editor.html": {
-    "mtime": 1787498311.385906,
-    "ast_hash": "416902e7a273bcdd9c6ca175bf8056bf",
+    "mtime": 1787499541.2802844,
+    "ast_hash": "3eca894174ee87e13ad0fefe36ab7df9",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.json": {
-    "mtime": 1787498168.8777509,
-    "ast_hash": "37a287098aaf1caa01ec47b359730113",
-    "semantic_hash": ""
-  },
-  "maps/_semPatch.json": {
-    "mtime": 1787497532.760257,
-    "ast_hash": "2a0d13280b13d9d2510018b227a321a3",
+    "mtime": 1787499217.873353,
+    "ast_hash": "841543e464ad864f0d05154dbbaacc3c",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.bak.json": {

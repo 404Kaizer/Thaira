@@ -134,7 +134,7 @@
     2026-08-22 a lore e a planta das terras moram em documentos próprios —
     <b>mundo_varrokgaard.html</b>, <b>mundo_aleto.html</b> e <b>proposta_24.html</b> —, e este aqui
     ficou com o estado técnico e a fila.
-    <b>746 verificações</b> passando em <code>tests/test.js</code>.
+    <b>751 verificações</b> passando em <code>tests/test.js</code>.
   </div>
   <div class="lede col" style="margin-top:14px;font-size:15px">
     <b>Se você só tem cinco minutos:</b> leia <em>Regras que não devem ser quebradas</em> e
@@ -174,6 +174,17 @@
       <em>Isto substitui o <code>JOGAR.bat</code> com <code>python -m http.server</code>, que não
       existe mais.</em>
     </p>
+      <p><b>Dois arquivos para clicar, e é tudo.</b> <code>Server.bat</code> abre só o jogo;
+      <code>Editor.bat</code> abre o jogo <b>e o editor de mapas</b> lado a lado (dentro do jogo,
+      <kbd>F9</kbd> faz o mesmo). O launcher é quem serve, quem grava o patch do editor e quem
+      recompõe o mapa — não há python, terminal nem <code>node</code> na mão em lugar nenhum do
+      laço. O script de composição roda pelo próprio binário do Electron
+      (<code>ELECTRON_RUN_AS_NODE</code>), então nem <code>node</code> instalado é exigido.</p>
+      <p class="why"><b>Se a porta 8765 estiver ocupada, o launcher PERGUNTA quem está lá</b>
+      (<code>/__thaira</code>) e avisa em vez de aproveitar. Deferir para um
+      <code>tools/serve.py</code> antigo era o pior defeito possível: tudo abre, tudo parece
+      funcionar, e cada gravação do editor some do mapa em silêncio. O <code>serve.py</code>
+      continua existindo para quem preferir o navegador.</p>
   </div>
   <div class="band">
     <table>
@@ -185,13 +196,17 @@
         <tr><th scope="row"><code>audio.js</code></th><td class="n">508</td><td>Trilha, ambiência e efeitos sonoros posicionais.</td></tr>
         <tr><th scope="row"><code>icones.js</code></th><td class="n">9</td><td>GERADO. Conjuntos <code>ICONES</code> e <code>ICONES2X</code>: todo id de item que tem PNG próprio. Refeito por <code>assets/build_skins.py --aplicar</code>.</td></tr>
         <tr><th scope="row"><code>criaturas.js</code></th><td class="n">8</td><td>GERADO. <code>CRIA_FOLHA</code>: quantos quadros parados e de passo tem cada linha da folha de animação, por criatura. Refeito por <code>assets/build_criaturas.py --aplicar</code>. Hoje só <code>cyclops</code> e <code>demon</code>.</td></tr>
-        <tr><th scope="row"><code>data.js</code></th><td class="n">2373</td><td>Só tabelas e fórmulas puras, sem dependência. Vocações, itens, afixos, conjuntos, monstros, magias, hunts, POIs, coleta, imbuements, e as réguas de dano/velocidade/loot (<code>magPower</code>, <code>cdDe</code>, <code>VEL_BASE</code>, <code>LOOT_CLASSE</code>).</td></tr>
-        <tr><th scope="row"><code>art.js</code></th><td class="n">1365</td><td>Desenho procedural em canvas: texturas de tile (<code>TEX_DRAW</code>), bonecos de criatura (<code>creatureSprite</code>, 7 formas em <code>SHAPE_DRAW</code>), recorte da folha de animação (<code>criaQuadro</code>) e marcas de POI no chão (<code>POI_DRAW</code>).</td></tr>
-        <tr><th scope="row"><code>world.js</code></th><td class="n">713</td><td>Geração do mundo (<code>genWorld</code>), pathfinding A* (<code>findPath</code>), luz por andar, minimapa.</td></tr>
-        <tr><th scope="row"><code>render2d.js</code></th><td class="n">1087</td><td>Câmera, desenho do mundo, efeitos, sangue de chão, clima (nuvem, chuva, poça, relâmpago) e o relógio de fases do dia.</td></tr>
-        <tr><th scope="row"><code>game.js</code></th><td class="n">3630</td><td>Estado do jogador, combate, IA de criatura, inventário, loja, forja, coleta, save.</td></tr>
+        <tr><th scope="row"><code>data.js</code></th><td class="n">2388</td><td>Só tabelas e fórmulas puras, sem dependência. Vocações, itens, afixos, conjuntos, monstros, magias, hunts, POIs, coleta, imbuements, e as réguas de dano/velocidade/loot (<code>magPower</code>, <code>cdDe</code>, <code>VEL_BASE</code>, <code>LOOT_CLASSE</code>).</td></tr>
+        <tr><th scope="row"><code>art.js</code></th><td class="n">2277</td><td>Desenho procedural em canvas: texturas de tile (<code>TEX_DRAW</code>), bonecos de criatura (<code>creatureSprite</code>, 7 formas em <code>SHAPE_DRAW</code>), recorte da folha de animação (<code>criaQuadro</code>) e marcas de POI no chão (<code>POI_DRAW</code>).</td></tr>
+        <tr><th scope="row"><code>world.js</code></th><td class="n">835</td><td>Geração do mundo (<code>genWorld</code>), pathfinding A* (<code>findPath</code>), luz por andar, minimapa.</td></tr>
+        <tr><th scope="row"><code>render2d.js</code></th><td class="n">1133</td><td>Câmera, desenho do mundo, efeitos, sangue de chão, clima (nuvem, chuva, poça, relâmpago) e o relógio de fases do dia.</td></tr>
+        <tr><th scope="row"><code>game.js</code></th><td class="n">3709</td><td>Estado do jogador, combate, IA de criatura, inventário, loja, forja, coleta, save.</td></tr>
         <tr><th scope="row"><code>ui.js</code></th><td class="n">474</td><td>Bestiário, contratos de caça, forja (imbuements), mapa expandido.</td></tr>
         <tr><th scope="row"><code>hud.js</code></th><td class="n">368</td><td>Posicionamento e visibilidade dos painéis.</td></tr>
+        <tr><th scope="row"><code>main.js</code></th><td class="n">276</td><td>O launcher Electron, e o servidor de tudo: serve o jogo, GRAVA o patch do editor e RECOMPÕE o mapa rodando <code>tools/mapas/&lt;terra&gt;.js</code> pelo próprio binário (<code>ELECTRON_RUN_AS_NODE</code>), sem exigir <code>node</code> no PATH. <code>--editor</code> abre a janela do editor junto; F9 no jogo também.</td></tr>
+        <tr><th scope="row"><code>tools/editor.html</code></th><td class="n">694</td><td>O editor de mapas. Pincel, balde, retângulo, conta-gotas, paleta agrupada, câmera com zoom na roda. Não grava o mapa: grava o DIFF em <code>maps/&lt;terra&gt;.patch.json</code>.</td></tr>
+        <tr><th scope="row"><code>tools/compor.js</code></th><td class="n">335</td><td>A biblioteca de composição: primitivas de desenho, derivação da decoração, aplicação do patch e as conferências (componentes, rastro de objeto).</td></tr>
+        <tr><th scope="row"><code>tools/planta_png.js</code></th><td class="n">91</td><td>A planta de um andar como PNG, sem navegador — <code>zlib</code> da stdlib e a cor de tile saindo do <code>TILE</code> do próprio <code>world.js</code>.</td></tr>
       </tbody>
     </table>
   </div>
@@ -1254,6 +1269,22 @@
       handler que escreve onde o cliente mandar é um buraco mesmo em servidor de desenvolvimento.</li>
   </ul>
 
+  <h4 id="patio-palha">Em aberto: o pátio de palha isolado</h4>
+  <p>A conferência do mapa acusa <b>3 pedaços de chão</b> em vez de 2, e um deles precisa de
+  decisão do dono do projeto antes que alguém "conserte":</p>
+  <ul class="col">
+    <li><b>x 72–77, y 15–19 — 22 tiles de <code>HAY</code></b>, cercados por cerca (42),
+      moinho (25), parede (12) e barris (5). É uma <b>eira murada</b>, e tem cara de
+      deliberada — só que nenhum tile andável encosta nela, então o jogador vê e nunca entra.
+      Se é para ficar fechada, a régua de conferência é que tem de mudar; se é para se
+      entrar, falta uma porta ou um vão de um tile na cerca. <b>Não mexer sem perguntar.</b></li>
+    <li>A <b>vila murada</b> é o outro pedaço, e esse é esperado: só se entra pela ponte.</li>
+  </ul>
+  <p class="why">E fica uma dívida de régua: a conferência conta "2 pedaços" com a vila como
+  exceção escrita à mão. No dia em que houver um segundo recinto fechado de propósito, ela vai
+  reclamar para sempre — o certo é ela passar a <b>listar quais são esperados</b> em vez de
+  contar. Ainda não vale o trabalho; com o terceiro recinto, vale.</p>
+
   <h4>"Editei, gravei e sumiu tudo" — e nada tinha sumido</h4>
   <p>Relato do dono do projeto depois de uma sessão longa de edição. O medo era o certo e o
   diagnóstico não: <b>o patch estava intacto no disco com 727 tiles; o mapa é que tinha parado em
@@ -1279,6 +1310,27 @@
   argumento de que "mapa duvidoso não vira base sem olhar". Estava errado — o mapa em disco JÁ é
   o que o jogo carrega, e o editor mostrar outra coisa é a única situação de fato perigosa. Agora
   recarrega sempre; o aviso é o log em vermelho.</p>
+
+  <h4>"Toda vez" — a porta ocupada, e por que o aviso não parava</h4>
+  <p>O editor acusava <i>"o mapa está atrasado"</i> a cada abertura, e estava certo: o patch era
+  gravado às 12:33 e o mapa datava de 12:05. A causa era uma linha do launcher que envelheceu mal:</p>
+  <p><code>servidor.once('error', e =&gt; { if (e.code === 'EADDRINUSE') abrir(); ... })</code> —
+  com o comentário <i>"porta ocupada = serve.py já está de pé, então só aproveita"</i>. Era
+  inofensivo quando o servidor daqui só servia arquivo. Depois que ele passou a <b>gravar o patch e
+  recompor</b>, deferir para um <code>serve.py</code> antigo virou o pior defeito possível: tudo
+  abre, tudo parece funcionar, e cada gravação some do mapa em silêncio.</p>
+  <ul class="col">
+    <li>O launcher agora <b>pergunta quem está na porta</b> (<code>/__thaira</code>). Outro
+      launcher, aproveita; qualquer outra coisa, abre diálogo explicando — continuar seria pior
+      que parar.</li>
+    <li>O aviso de mapa atrasado ganhou <b>botão "recompor agora"</b>. Aviso que existe para dizer
+      que algo precisa ser feito tem de saber fazer; só manda rodar <code>node</code> quando o
+      servidor não sabe recompor, que é quando o botão não teria como funcionar.</li>
+    <li><b>Código de saída 2</b> para "compus o mapa e a conferência reclamou", separado do
+      script ter quebrado. Vinha tudo como 1, e o editor tratava conferência reclamando como falha
+      de execução: recusava recarregar e dizia não ter recomposto, com o mapa em disco já
+      atualizado. Com 2 ele mostra o resultado e pinta o log de vermelho.</li>
+  </ul>
 
   <h4>Um arquivo para clicar: Editor.bat</h4>
   <p>Relato do dono do projeto, e ele estava certo: <i>"o editor é pra editar, gravar e jogar
@@ -1868,7 +1920,7 @@
     <div class="gtitle">Design de mundo</div>
     <ul class="itens">
       <li>
-        <span class="it-n">#46 · Varrokgaard precisa de rework inteiro</span>
+        <span class="it-n">#46 · Varrokgaard, rework <span class="tag done">feito</span></span>
         <span class="it-d">A ilha foi desenhada, jogada e <b>rejeitada pelo dono do projeto</b> em
         2026-08-22: <i>"não está nem de perto do jeito que imaginei, mesmo no mais simples"</i>. Seis
         defeitos apontados, todos verdadeiros:</span>
@@ -1907,8 +1959,7 @@
         <span class="it-d"><b>4 ·</b> o quarto defeito não foi registrado na hora e está
         <b>perdido</b> — a numeração pula de 3 para 5. Fica aqui para não parecer erro de
         digitação: se ele voltar a incomodar, é defeito novo.</span>
-        <span class="it-t">esboço 2 entregue em 2026-08-23 · a 64² dizia que só o #47 destravava, e
-        estava errado: quem destravou foi o #48</span>
+        <span class="it-t">esboço 3 entregue e JOGADO em 2026-08-23 · os dez pontos do relato estão atendidos · a ilha agora se corrige no editor, não em nova volta de script</span>
       </li>
       <li>
         <span class="it-n">#47 · Editor de mapas</span>
@@ -2176,7 +2227,9 @@
         formas, sem contorno, e usa <code>outlined()</code> só em criatura. É o que falta para o
         mato deixar de ser fundo e virar cenário.</span>
         <span class="it-t">esforço médio · depende do #50 estar de pé para não brigar com o chão</span>
-      </li>
+      
+        <span class="it-d"><b>Analisado em 2026-08-23, e uma afirmação daqui estava errada:</b> o texto dizia que a deco não tem contorno, mas o <code>render2d.js:453</code> já passa tudo por <code>outlined()</code>. As fraquezas reais do <code>decoSprite</code> são outras três. <b>Uma árvore só para a ilha inteira</b>: ela sorteia 42% conífera e 58% copa em bolhas, a mesma loteria em toda parte — e o mapa hoje tem TRÊS matas de contexto diferente (Mata Funda, a mata-galeria da margem do rio, e o Corte Velho explorado), que pela biologia não deviam se parecer: margem de rio é salgueiro e amieiro, copa estreita e alta; interior temperado é carvalho e faia, copa larga; terreno alto e pedregoso é pinheiro. <b>A copa é quatro elipses com tom sorteado por forma</b> (<code>shade(cor, r(.78,1.3))</code>), que é exatamente a receita que o #49 reprovou no terreno — o <code>_tons()</code> nasceu naquela leva e a árvore ficou de fora. <b>E a copa não está presa ao tronco</b>: silhueta de árvore quebra nas bordas em tufos, não fecha lisa.</span>
+        <span class="it-d"><b>O dono do projeto ofereceu mandar referências</b> e o pedido está formulado: uma <b>massa de floresta</b> (como copas vizinhas se sobrepõem é o que não dá para inventar), uma por tipo de mata, e de tileset perto de 32&nbsp;px — foto de 1024 reduzida perde contorno e paleta, que foi a conclusão medida do #19.</span></li>
       <li>
         <span class="it-n">#40 · Segunda passada na paleta</span>
         <span class="it-d">
@@ -2698,8 +2751,8 @@
 
 <footer>
   Thaira · RPG 2D dark-fantasy em JavaScript sem framework, com launcher Electron ·
-  746 verificações passando em <code>tests/test.js</code> ·
-  25 tarefas pendentes · conferido contra o código em 2026-08-23.
+  751 verificações passando em <code>tests/test.js</code> ·
+  24 tarefas pendentes · conferido contra o código em 2026-08-23.
 </footer>
 
 </div>

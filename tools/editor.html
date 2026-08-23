@@ -472,12 +472,14 @@ function carregar(nome, manterVista) {
         andares(); verTudo();
       }
       document.title = 'Editor — ' + nome;
-      /* O MAPA ESTÁ ATRASADO EM RELAÇÃO AO PATCH? Aconteceu de verdade: um
-         servidor antigo gravou o patch e não recompôs, o mapa ficou com 262
-         tiles enquanto o patch tinha 727, e de fora isso parece "editei,
-         gravei e sumiu tudo". Nada se perde nesse estado, mas ninguém sabe
-         olhando — então o editor conta quantos tiles do patch de disco NÃO
-         estão no mapa que ele acabou de carregar, e avisa. */
+      /* O MAPA ESTÁ ATRASADO EM RELAÇÃO AO PATCH? Acontece quando o patch é
+         gravado e ninguém recompõe — o caso clássico é um servidor estranho na
+         porta, que grava e não sabe recompor. O editor conta quantos tiles do
+         patch não estão no mapa que acabou de carregar.
+         E oferece o BOTÃO em vez de mandar rodar `node` num terminal: se o
+         aviso existe para dizer que uma coisa precisa ser feita, ele tem de
+         saber fazê-la. Só manda o comando quando o servidor não sabe recompor,
+         que é a única situação em que o botão não teria como funcionar. */
       fetch('../maps/' + nome + '.patch.json').then(r => r.ok ? r.json() : null)
         .then(pt => {
           if (!pt) return;
@@ -496,14 +498,38 @@ function carregar(nome, manterVista) {
           log.textContent = [
             'O MAPA ESTÁ ATRASADO EM RELAÇÃO AO SEU PATCH.',
             '',
-            fora + ' dos ' + total + ' tiles do patch não estão no mapa carregado.',
-            'O patch foi gravado e o mapa não foi recomposto — quase sempre um',
-            'servidor rodando uma versão antiga do tools/serve.py.',
-            '',
-            'NADA SE PERDEU: o patch está no disco. Para aplicar agora:',
-            '    node tools/mapas/' + nome + '.js',
-            'e reinicie o servidor para a recomposição voltar a ser automática.'
+            fora + ' de ' + total + ' tiles do patch não estão no mapa carregado.',
+            'Nada se perdeu — o patch está no disco. Falta aplicá-lo.'
           ].join('\n');
+          const b = document.createElement('button');
+          b.textContent = 'recompor agora (' + fora + ' tiles)';
+          b.style.cssText = 'display:block;margin-top:9px';
+          b.onclick = () => {
+            b.disabled = true; b.textContent = 'recompondo…';
+            fetch('/recompor/' + nome, { method: 'POST' })
+              .then(r => r.ok ? r.json() : Promise.reject(new Error(r.status)))
+              .then(r => {
+                log.textContent = r.log || '';
+                log.className = (r.recompos && !r.aviso) ? '' : 'ruim';
+                if (r.recompos) {
+                  if (typeof BroadcastChannel === 'function')
+                    new BroadcastChannel('thaira-mapa').postMessage({ mapa: nome });
+                  carregar(nome, true);
+                }
+              })
+              .catch(() => {
+                log.textContent = [
+                  'ESTE SERVIDOR NÃO SABE RECOMPOR.',
+                  '',
+                  'Você está numa porta servida por outra coisa — quase sempre um',
+                  '"python tools/serve.py" antigo deixado aberto. Feche-o e abra o',
+                  'Editor.bat, que sobe o servidor certo.',
+                  '',
+                  'Para aplicar agora sem isso: node tools/mapas/' + nome + '.js'
+                ].join('\n');
+              });
+          };
+          log.appendChild(b);
         }).catch(() => {});
     })
     .catch(e => alert('mapa "' + nome + '" não carregou.\n\n' + e.message +
@@ -590,7 +616,7 @@ function gravar() {
         return;
       }
       log.textContent = r.log || '';
-      log.className = r.recompos ? '' : 'ruim';
+      log.className = (r.recompos && !r.aviso) ? '' : 'ruim';
       $('#estado').innerHTML = '<span class="ok">● gravado: ' + r.tiles + ' no patch (' +
         novos + ' desta sessão, ' + antes + ' de antes)</span>';
       /* RECARREGA SEMPRE, mantendo a vista — inclusive quando a conferência
