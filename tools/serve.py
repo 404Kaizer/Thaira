@@ -32,6 +32,41 @@ MAPAS = os.path.join(RAIZ, 'maps')
 NOME_OK = re.compile(r'^[a-z0-9_-]{1,40}$')
 
 
+def serializa_patch(nome, dados):
+    """O FORMATO DO PATCH. Gemeo do tools/patch_fmt.js, e o teste compara as duas
+    saidas byte a byte -- dois escritores que discordam significa que gravar
+    pelo navegador e gravar pelo launcher produzem arquivos diferentes.
+    Sai do handler para poder ser exercido por teste: embutido, ele nao tinha
+    como ser, e foi assim que a camada de OBJETO ficou de fora sem ninguem
+    perceber. Uma entrada por linha, porque o patch entra no git."""
+    def camada(chave, d):
+        zs = [z for z in sorted(d, key=int) if d[z]]
+        if not zs:
+            return ['  "%s": {}' % chave]
+        out = ['  "%s": {' % chave]
+        for i, z in enumerate(zs):
+            out.append('    "%s": [' % z)
+            itens = d[z]
+            for j, t in enumerate(itens):
+                out.append('      %s%s' % (json.dumps(t, separators=(',', ':')),
+                                           ',' if j + 1 < len(itens) else ''))
+            out.append('    ]%s' % (',' if i + 1 < len(zs) else ''))
+        out.append('  }')
+        return out
+    linhas = ['{', '  "nome": %s,' % json.dumps(nome)]
+    bloco = camada('tiles', dados.get('tiles', {}))
+    bloco[-1] += ','
+    linhas += bloco + camada('objs', dados.get('objs', {})) + ['}']
+    return chr(10).join(linhas) + chr(10)
+
+
+def soma_patch(o):
+    """As DUAS camadas: contando so `tiles`, uma sessao inteira de objeto
+    passava pelo freio de encolhimento como "nao encolheu"."""
+    return (sum(len(v) for v in o.get('tiles', {}).values())
+            + sum(len(v) for v in o.get('objs', {}).values()))
+
+
 class NoCache(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header('Cache-Control', 'no-store')
@@ -54,16 +89,17 @@ class NoCache(http.server.SimpleHTTPRequestHandler):
         # que ENCOLHE o arquivo nao veio dele -- veio de script, teste ou curl.
         # Foi assim que 1.632 tiles de trabalho viraram 2. Copia antes, recusa
         # depois; ?forcar=1 para o caso legitimo.
+        soma = soma_patch
         antes = 0
         if os.path.exists(alvo):
             try:
                 with open(alvo, encoding='utf-8') as f:
-                    antes = sum(len(v) for v in json.load(f).get('tiles', {}).values())
+                    antes = soma(json.load(f))
                 with open(alvo, 'rb') as f, open(alvo[:-5] + '.bak.json', 'wb') as g:
                     g.write(f.read())
             except (ValueError, OSError):
                 pass
-        novos = sum(len(v) for v in dados.get('tiles', {}).values())
+        novos = soma(dados)
         forcar = self.path.endswith('?forcar=1')
         if novos < antes and not forcar:
             self.send_response(409)
@@ -78,19 +114,17 @@ class NoCache(http.server.SimpleHTTPRequestHandler):
         # com json.dump(indent=1) cada coordenada vira uma linha e um patch de
         # 25 tiles ocupa 200 -- o diff deixa de se ler, que era o motivo de
         # indentar. E tudo numa linha so tem o mesmo defeito pelo outro lado.
-        linhas = ['{', '  "nome": %s,' % json.dumps(nome), '  "tiles": {']
-        zs = sorted(dados.get('tiles', {}), key=int)
-        for i, z in enumerate(zs):
-            linhas.append('    "%s": [' % z)
-            tls = dados['tiles'][z]
-            for j, t in enumerate(tls):
-                linhas.append('      [%d, %d, %d]%s' % (t[0], t[1], t[2],
-                                                        ',' if j + 1 < len(tls) else ''))
-            linhas.append('    ]%s' % (',' if i + 1 < len(zs) else ''))
-        linhas += ['  }', '}']
-        with open(alvo, 'w', encoding='utf-8') as f:
-            f.write(chr(10).join(linhas) + chr(10))
-        n = sum(len(v) for v in dados.get('tiles', {}).values())
+        # AS DUAS CAMADAS. Este handler escrevia so `tiles`, e o `objs` que o
+        # editor manda ia para o lixo -- o aplicaPatch le `o.objs`, que nunca
+        # existia no arquivo. Toda edicao de OBJETO morria ao gravar, calada.
+        # newline='' para o Python NAO traduzir a quebra de linha: o main.js
+        # grava LF e este gravava CRLF, entao salvar por um servidor ou pelo
+        # outro trocava o ARQUIVO INTEIRO no diff do git -- e o patch tem esta
+        # formatacao justamente para o diff se ler. Achado comparando as duas
+        # saidas byte a byte no teste.
+        with open(alvo, 'w', encoding='utf-8', newline='') as f:
+            f.write(serializa_patch(nome, dados))
+        n = soma(dados)
         saida = {'ok': True, 'arquivo': alvo, 'tiles': n}
         saida.update(recompoe(nome))
         self.send_response(200)
@@ -129,5 +163,10 @@ def recompoe(nome):
             'log': (r.stdout or '') + (r.stderr or '')}
 
 
-http.server.test(HandlerClass=NoCache,
-                 port=int(sys.argv[1]) if len(sys.argv) > 1 else 8765)
+# GUARDA DE __main__, e ela não é formalidade: sem isto, IMPORTAR este arquivo
+# SOBE UM SERVIDOR e trava quem importou. Foi o que aconteceu ao escrever o
+# teste do serializador — o processo ficou pendurado até o timeout. Qualquer
+# ferramenta que queira reusar `serializa_patch` esbarraria no mesmo.
+if __name__ == '__main__':
+    http.server.test(HandlerClass=NoCache,
+                     port=int(sys.argv[1]) if len(sys.argv) > 1 else 8765)

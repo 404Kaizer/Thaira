@@ -1,1 +1,4 @@
 node_modules/
+# qualquer pasta: a suite de tools importa o serve.py e o Python deixa cache
+__pycache__/
+assets/__pycache__/

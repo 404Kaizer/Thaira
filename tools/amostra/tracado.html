@@ -1,0 +1,270 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Traçado — Thaira</title>
+<style>
+  :root { --bg:#181510; --painel:#211d17; --linha:#332d24; --texto:#ddd5c2;
+          --fraco:#8f8874; --ouro:#d9a441; --ruim:#b4553a; --bom:#6f9a52; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--texto); padding:20px 24px 60px;
+         font:14px/1.6 ui-sans-serif,system-ui,sans-serif; }
+  h1 { font:600 21px/1.2 ui-serif,Georgia,serif; color:var(--ouro); margin:0 0 6px; }
+  h2 { font:600 11px "Segoe UI",sans-serif; letter-spacing:.14em; text-transform:uppercase;
+       color:var(--ouro); margin:22px 0 8px; border-bottom:1px solid var(--linha); padding-bottom:4px; }
+  .lede { color:var(--fraco); max-width:80ch; margin:0 0 12px; }
+  canvas { display:block; image-rendering:pixelated; background:#0d0b09; }
+  .par { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  figure { margin:0; }
+  figcaption { font:11px ui-monospace,Consolas,monospace; color:var(--fraco); margin-top:5px; }
+  .barra { display:flex; gap:15px; align-items:center; flex-wrap:wrap; margin:12px 0;
+           background:var(--painel); border:1px solid var(--linha); padding:9px 12px; }
+  label { font-size:12.5px; color:var(--fraco); display:flex; gap:6px; align-items:center; }
+  select,button { background:#26241f; color:var(--texto); border:1px solid var(--linha);
+                  padding:4px 9px; font:13px inherit; }
+  input[type=range] { width:120px; accent-color:var(--ouro); }
+  table { border-collapse:collapse; font-size:13px; margin-top:8px; }
+  th,td { border:1px solid var(--linha); padding:4px 10px; text-align:left; }
+  th { color:var(--ouro); font-weight:600; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+  code,.n { font-family:ui-monospace,Consolas,monospace; }
+  code { color:var(--ouro); font-size:12.5px; }
+  .ruim { color:var(--ruim); font-weight:600; } .bom { color:var(--bom); }
+  #receita { background:var(--painel); border:1px solid var(--linha); padding:10px 12px;
+             white-space:pre; font:12px ui-monospace,Consolas,monospace; margin-top:10px; overflow-x:auto; }
+</style>
+
+<h1>Traçado: a rua que não é reta</h1>
+<p class="lede">A segunda metade do pedido do dono — <i>"uma rua de barro não é exatamente reta, tem
+curva, tem irregularidade"</i>. A franja já consertou a <b>junta</b> entre dois chãos; isto é o
+<b>traçado</b>, e mora no <code>caminho()</code> do <code>compor.js</code>, não no render.</p>
+<p class="lede">Os traçados abaixo são os <b>reais</b> do <code>varrokgaard.js</code>, com as
+constantes resolvidas — não pontos inventados. Desenhados sobre terreno de verdade e com a borda
+do jogo, que é onde a arte se julga.</p>
+<p class="lede"><b>As duas travas que este item tem, e por isso a amostra existe:</b> a estrada tem
+de chegar <b>exatamente</b> no portão, na ponte e na porta — o ruído é zero nas pontas e cresce no
+meio, senão a estrada erra a soleira e a conferência de componentes reprova o mapa. E a
+<b>cerca não torce</b>: já foi tentado uma vez e o tasks.html registra o veredito — <i>"eu tinha
+posto um sorteio de ondulação achando que daria naturalidade, e deu desleixo"</i>. Ela está aqui
+como controle, e tem de sair idêntica nos dois lados.</p>
+
+<div class="barra">
+  <label>caso <select id="caso"></select></label>
+  <label>zoom <select id="z"><option>3</option><option selected>4</option><option>6</option><option>8</option></select> px/tile</label>
+  <label><input type="checkbox" id="pontos" checked> mostrar os pontos do autor</label>
+</div>
+<div class="barra">
+  <label>desvio <input id="p-amp" type="range" min="0" max="6" step="0.25"><span id="v-amp" class="n"></span> tiles</label>
+  <label>passo <input id="p-passo" type="range" min="6" max="60" step="2"><span id="v-passo" class="n"></span> tiles</label>
+  <label>largura <input id="p-larg" type="range" min="0" max="2" step="0.1"><span id="v-larg" class="n"></span> tiles</label>
+  <label>semente <input id="p-seed" type="range" min="1" max="40" step="1"><span id="v-seed" class="n"></span></label>
+</div>
+
+<h2>Hoje · proposta</h2>
+<div class="par">
+  <figure><canvas id="c-antes"></canvas><figcaption>hoje · <code>caminho()</code> — retas de largura fixa</figcaption></figure>
+  <figure><canvas id="c-dep"></canvas><figcaption>proposta · <code>caminhoTorto()</code></figcaption></figure>
+</div>
+
+<h2>Medido</h2>
+<div id="tabela"></div>
+<div id="receita"></div>
+
+<script src="../../src/world.js"></script>
+<script src="../../src/art.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+
+/* ===================== o `caminho` de HOJE, copiado ======================
+   O `compor.js` é CommonJS e não carrega no navegador, então estas oito linhas
+   são a única coisa copiada nesta página. Elas são a versão de hoje; a proposta
+   está logo abaixo e é o que se quer julgar. Se o `compor.js` mudar, isto aqui
+   envelhece — e é por isso que a página imprime a receita, para o que for
+   aprovado ser assado a partir do número e não do print. */
+function linhaHoje(pinta, x0, y0, x1, y1, esp) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) * 2 + 1;
+  const meia = (esp - 1) / 2;
+  for (let i = 0; i <= n; i++) {
+    const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n;
+    for (let dy = -meia; dy <= meia; dy++) for (let dx = -meia; dx <= meia; dx++)
+      pinta(Math.round(x + dx), Math.round(y + dy));
+  }
+}
+function caminhoHoje(pinta, pts, esp) {
+  for (let i = 0; i + 1 < pts.length; i++)
+    linhaHoje(pinta, pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], esp);
+}
+
+/* ========================= A PROPOSTA, e só ela ==========================
+   Uma estrada não é a reta entre dois pontos: é a reta MAIS o que o terreno e o
+   uso fizeram com ela. Aqui isso vira duas coisas, e as duas andam com o
+   comprimento percorrido:
+     · a linha de centro sai de lado, perpendicular ao rumo;
+     · a largura respira.
+
+   O ENVELOPE é o que torna isto seguro. `sin(pi·s)` vale zero nas duas pontas e
+   um no meio, então a ponta cai no pixel exato que o autor escreveu — a estrada
+   continua chegando no portão, na ponte e na soleira. Sem ele, o desvio na
+   ponta é o defeito que a conferência de componentes reprova, e o pior caso não
+   é reprovar: é passar e o jogador não alcançar um lugar. */
+const P = { amp: 2.5, passo: 26, larg: 0.9, seed: 7 };
+
+function ruido1d(seed) {
+  let s = seed | 0;
+  const rnd = () => { s = s + 0x6D2B79F5 | 0;
+    let t = Math.imul(s ^ s >>> 15, 1 | s);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const p = Array.from({ length: 64 }, rnd);
+  return u => {                                   // u em unidades de "passo"
+    const a = Math.floor(u), t = u - a, e = t * t * (3 - 2 * t);
+    return (p[((a % 64) + 64) % 64] + (p[((a + 1) % 64 + 64) % 64] - p[((a % 64) + 64) % 64]) * e) * 2 - 1;
+  };
+}
+
+/* Comprimento acumulado, para o ruído andar com a DISTÂNCIA e não com o índice
+   do ponto — senão um trecho curto entre dois pontos próximos ondularia tanto
+   quanto um trecho longo. */
+function medida(pts) {
+  const acc = [0];
+  for (let i = 1; i < pts.length; i++)
+    acc.push(acc[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  return acc;
+}
+function emS(pts, acc, s) {                        // ponto e rumo a `s` de comprimento
+  const total = acc[acc.length - 1];
+  const d = Math.max(0, Math.min(total, s));
+  let i = 1; while (i < acc.length - 1 && acc[i] < d) i++;
+  const t = (d - acc[i - 1]) / Math.max(1e-6, acc[i] - acc[i - 1]);
+  const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+  const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1;
+  return [x0 + dx * t, y0 + dy * t, dx / L, dy / L];
+}
+
+function caminhoTorto(pinta, pts, esp, opt) {
+  const o = Object.assign({}, P, opt || {});
+  if (o.amp === 0 && o.larg === 0) return caminhoHoje(pinta, pts, esp);
+  const acc = medida(pts), total = acc[acc.length - 1];
+  const nLado = ruido1d(o.seed * 7919 + 11);
+  const nLarg = ruido1d(o.seed * 104729 + 3);
+  const passos = Math.ceil(total * 3);
+  for (let k = 0; k <= passos; k++) {
+    const s = total * k / passos;
+    const [x, y, ux, uy] = emS(pts, acc, s);
+    const env = Math.sin(Math.PI * (s / total));   // 0 nas pontas, 1 no meio
+    const lado = o.amp * env * nLado(s / o.passo);
+    const largura = Math.max(1, esp + o.larg * env * nLarg(s / (o.passo * 1.7)));
+    const cx = x - uy * lado, cy = y + ux * lado;  // perpendicular ao rumo
+    const meia = (largura - 1) / 2;
+    for (let dy = -meia; dy <= meia; dy += .5) for (let dx = -meia; dx <= meia; dx += .5)
+      pinta(Math.round(cx + dx), Math.round(cy + dy));
+  }
+}
+
+/* =============================== os casos ===============================
+   Traçados REAIS do varrokgaard.js, com as constantes resolvidas
+   (PORTAO_X 92, CERCA_Y 70, MY0 122, RUA_X/PONTE_X 92). */
+const CASOS = [
+  { n: 'o rio — curso baixo', pts: [[52,46],[60,56],[70,66],[80,73],[89,82]], esp: 2, chao: 'grass', t: 'water' },
+  { n: 'estrada do portão à ponte', pts: [[92,75],[92,92],[92,116],[92,120]], esp: 3, chao: 'grass', t: 'dirt' },
+  { n: 'estrada da pedreira (reta pura)', pts: [[124,64],[124,56],[124,48]], esp: 3, chao: 'grass', t: 'dirt' },
+  { n: 'estrada do leste', pts: [[124,118],[136,106],[150,96]], esp: 2, chao: 'grass', t: 'dirt' },
+  { n: 'trilha da Mata Funda', pts: [[38,60],[45,48],[57,35],[72,30]], esp: 1, chao: 'grass', t: 'dirt' },
+  { n: 'galeria da Goela', pts: [[124,56],[114,62],[101,72]], esp: 3, chao: 'cave', t: 'gravel' },
+  { n: 'A CERCA — controle, não torce', pts: [[53,90],[72,89]], esp: 1, chao: 'grass', t: 'dirt', trava: 1 },
+];
+
+const corDe = tex => (Object.values(TILE).find(t => t.tex === tex) || {}).c || 0x808080;
+
+function desenha(cv, caso, novo, px) {
+  const pts = caso.pts;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y);
+                              x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  const M = 8;
+  x0 -= M; y0 -= M; x1 += M; y1 += M;
+  const W = x1 - x0 + 1, H = y1 - y0 + 1;
+  const grade = new Uint8Array(W * H);
+  const pinta = (x, y) => { const i = x - x0, j = y - y0;
+    if (i >= 0 && j >= 0 && i < W && j < H) grade[j * W + i] = 1; };
+  if (novo && !caso.trava) caminhoTorto(pinta, pts, caso.esp);
+  else caminhoHoje(pinta, pts, caso.esp);
+
+  cv.width = W * px; cv.height = H * px;
+  const g = cv.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  const A = caso.chao, B = caso.t;
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const tex = grade[j * W + i] ? B : A;
+    g.drawImage(tileTexture(tex, corDe(tex)), (i % 3) * 32, (j % 3) * 32, 32, 32,
+                i * px, j * px, px, px);
+  }
+  /* A borda do JOGO por cima — é ela que faz a amostra valer, senão isto seria
+     uma planta chapada julgando lugar de andar. */
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    if (grade[j * W + i]) continue;
+    let orto = 0;
+    for (let m = 0; m < 8; m++) {
+      if (m > 3 && (orto >> (m - 4) & 1 || orto >> ((m - 3) & 3) & 1)) continue;
+      const ni = i + EDGE_DIR[m][0], nj = j + EDGE_DIR[m][1];
+      if (ni < 0 || nj < 0 || ni >= W || nj >= H || !grade[nj * W + ni]) continue;
+      if (m < 4) orto |= 1 << m;
+      const v = ((m === 0 || m === 2 ? i : m === 1 || m === 3 ? j : i + j) % BORDA_P + BORDA_P) % BORDA_P;
+      g.drawImage(borderSprite(B, corDe(B), m, v), i * px, j * px, px, px);
+    }
+  }
+  if ($('#pontos').checked) {
+    g.fillStyle = '#ff4d3d';
+    for (const [x, y] of pts) g.fillRect((x - x0) * px, (y - y0) * px, Math.max(2, px / 2), Math.max(2, px / 2));
+  }
+  return { grade, W, H, x0, y0 };
+}
+
+/* ============================== a medição ================================ */
+function mede(caso) {
+  const acc = medida(caso.pts), total = acc[acc.length - 1];
+  const nLado = ruido1d(P.seed * 7919 + 11);
+  let maxDesvio = 0;
+  const passos = Math.ceil(total * 3);
+  for (let k = 0; k <= passos; k++) {
+    const s = total * k / passos;
+    const env = Math.sin(Math.PI * (s / total));
+    maxDesvio = Math.max(maxDesvio, Math.abs(P.amp * env * nLado(s / P.passo)));
+  }
+  /* O que MAIS importa: a ponta. Zero, ou a estrada erra a soleira. */
+  const pA = emS(caso.pts, acc, 0), pB = emS(caso.pts, acc, total);
+  const envA = Math.sin(0), envB = Math.sin(Math.PI);
+  const erro = Math.max(Math.abs(P.amp * envA * nLado(0)),
+                        Math.abs(P.amp * envB * nLado(total / P.passo)));
+  return { maxDesvio, erro, total };
+}
+
+function tudo() {
+  const px = +$('#z').value, i = +$('#caso').value, caso = CASOS[i];
+  desenha($('#c-antes'), caso, false, px);
+  desenha($('#c-dep'), caso, true, px);
+  const linhas = CASOS.map(c => {
+    const m = mede(c);
+    const trava = !!c.trava;
+    return `<tr><td>${c.n}</td><td class="n">${m.total.toFixed(0)}</td>` +
+      `<td class="n">${trava ? '—' : m.maxDesvio.toFixed(2)}</td>` +
+      `<td class="n ${m.erro < .001 || trava ? 'bom' : 'ruim'}">${trava ? 'não torce' : m.erro.toFixed(4)}</td></tr>`;
+  }).join('');
+  $('#tabela').innerHTML = '<table><tr><th>traçado</th><th>comprimento</th>' +
+    '<th>desvio máx</th><th>erro na ponta</th></tr>' + linhas + '</table>' +
+    '<p class="lede">Erro na ponta tem de ser <b>0</b>: é ele que garante que a estrada chega no ' +
+    'portão e na ponte. Quem o zera é o envelope <code>sin(π·s)</code>, não a sorte.</p>';
+  $('#receita').textContent =
+    'desvio  ' + P.amp.toFixed(2) + ' tiles  (amplitude da linha de centro, no meio do traçado)\n' +
+    'passo   ' + P.passo + ' tiles  (a cada quanto a curva muda de lado)\n' +
+    'largura ' + P.larg.toFixed(2) + ' tiles  (quanto a largura respira)\n' +
+    'semente ' + P.seed + '\nenvelope  sin(pi*s)   -> zero nas duas pontas, por construção\n' +
+    '\nA CERCA e tudo que for reto por AUTORIA passa `amp: 0` — a trava é por chamada,\n' +
+    'nao global: cerca torta ja foi reprovada uma vez.';
+}
+
+$('#caso').innerHTML = CASOS.map((c, i) => `<option value="${i}">${c.n}</option>`).join('');
+for (const [id, k] of [['amp','amp'],['passo','passo'],['larg','larg'],['seed','seed']]) {
+  const el = $('#p-' + id); el.value = P[k]; $('#v-' + id).textContent = P[k];
+  el.oninput = e => { P[k] = +e.target.value; $('#v-' + id).textContent = P[k]; tudo(); };
+}
+$('#caso').onchange = $('#z').onchange = $('#pontos').onchange = tudo;
+tudo();
+</script>

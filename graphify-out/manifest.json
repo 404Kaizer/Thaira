@@ -40,8 +40,8 @@
     "semantic_hash": ""
   },
   "src/art.js": {
-    "mtime": 1787468764.5117452,
-    "ast_hash": "1f92f92a51cf6db23f2f6efc8a1ea36e",
+    "mtime": 1787526509.855507,
+    "ast_hash": "ea345d2d05484e9b4e2b2ca891b41c62",
     "semantic_hash": ""
   },
   "src/audio.js": {
@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1787512181.6419158,
-    "ast_hash": "325dca8e9b12d8de6eecfec50106e497",
+    "mtime": 1787526130.5302405,
+    "ast_hash": "59f0f0bad1965e889b3032aab19a3c10",
     "semantic_hash": ""
   },
   "src/ui.js": {
@@ -75,18 +75,18 @@
     "semantic_hash": ""
   },
   "src/world.js": {
-    "mtime": 1787509621.9662156,
-    "ast_hash": "9590889f4f8ce27540fb60bcd6a42201",
+    "mtime": 1787523646.0936692,
+    "ast_hash": "af25209fd625e1f36cf04fe51c004de3",
     "semantic_hash": ""
   },
   "tests/test.js": {
-    "mtime": 1787508743.7695625,
-    "ast_hash": "52a4c09cffca09cb5ba1019118b4d33e",
+    "mtime": 1787526217.9273453,
+    "ast_hash": "bb49be869233097b35e02fc511a3594e",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1787511807.6396475,
-    "ast_hash": "6b31df899dff23024268b2f5778e1f8f",
+    "mtime": 1787540332.6839154,
+    "ast_hash": "70b65ea338b8154e70775f9ad87eb014",
     "semantic_hash": ""
   },
   "assets/CREDITOS.md": {
@@ -3080,13 +3080,13 @@
     "semantic_hash": ""
   },
   "tools/serve.py": {
-    "mtime": 1787499541.2597983,
-    "ast_hash": "9e7194c0ac79d2bcc3cc5df85117d98f",
+    "mtime": 1787540069.4589677,
+    "ast_hash": "9533e3d09c8856f63cf6577e8f863e4c",
     "semantic_hash": ""
   },
   "main.js": {
-    "mtime": 1787499541.2587984,
-    "ast_hash": "b736abe3dc963447b18e318c1dec30c1",
+    "mtime": 1787539690.6515007,
+    "ast_hash": "9f6567446742b09381311c7654b8c8b5",
     "semantic_hash": ""
   },
   "package.json": {
@@ -3170,8 +3170,8 @@
     "semantic_hash": ""
   },
   "tasks.html": {
-    "mtime": 1787511797.02098,
-    "ast_hash": "cc8b2f514ce61c90b70cdcea49968126",
+    "mtime": 1787540318.6020575,
+    "ast_hash": "db4f026a617212eeca5f09e35b6a9940",
     "semantic_hash": ""
   },
   "assets/skins/creatures/cyclops/cyclops_brute/cyclops_anim.png": {
@@ -5620,8 +5620,8 @@
     "semantic_hash": ""
   },
   "maps/varrokgaard.json": {
-    "mtime": 1787512502.7876024,
-    "ast_hash": "1874f3fc37614c31e6d951bc0d883734",
+    "mtime": 1787523804.2079203,
+    "ast_hash": "541ea92ea83f7c27a351ea432dda977e",
     "semantic_hash": ""
   },
   "tools/compor.js": {
@@ -5630,8 +5630,8 @@
     "semantic_hash": ""
   },
   "tools/mapas/varrokgaard.js": {
-    "mtime": 1787511635.854627,
-    "ast_hash": "4e6591034cd97ee2fd420f81e3549249",
+    "mtime": 1787515060.0616045,
+    "ast_hash": "f3c366ec2b025b6e4bc3b564cebb9bc7",
     "semantic_hash": ""
   },
   "tools/amostra/construido.html": {
@@ -5655,23 +5655,23 @@
     "semantic_hash": ""
   },
   "tools/amostra/planta_varrokgaard_1.png": {
-    "mtime": 1787511763.2971551,
+    "mtime": 1787514555.1640027,
     "ast_hash": "39a167de1539fb1f9dca2989b0b58cf2",
     "semantic_hash": ""
   },
   "tools/editor.html": {
-    "mtime": 1787512235.3449168,
-    "ast_hash": "3482c0d1fa9411ff32e6d347d784e127",
+    "mtime": 1787540069.657047,
+    "ast_hash": "3f96774f4975b6de3c4f6205e797787d",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.json": {
-    "mtime": 1787499217.873353,
-    "ast_hash": "841543e464ad864f0d05154dbbaacc3c",
+    "mtime": 1787523803.8573136,
+    "ast_hash": "8965c1f726f793c56114a5647dcc359d",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.bak.json": {
-    "mtime": 1787497514.2100313,
-    "ast_hash": "37a287098aaf1caa01ec47b359730113",
+    "mtime": 1787523803.8573136,
+    "ast_hash": "ab3ebd83bf4a4ea61ea21f4c2dbcbfbe",
     "semantic_hash": ""
   },
   "maps/_bak/varrokgaard.20260823-1330.json": {
@@ -5682,6 +5682,436 @@
   "maps/_bak/varrokgaard.patch.20260823-1330.json": {
     "mtime": 1787502602.2921944,
     "ast_hash": "841543e464ad864f0d05154dbbaacc3c",
+    "semantic_hash": ""
+  },
+  "tools/amostra/sombras.html": {
+    "mtime": 1787512913.1981916,
+    "ast_hash": "7f16f4d3ca2275f8f69ff525db57238f",
+    "semantic_hash": ""
+  },
+  "assets/build_terreno.py": {
+    "mtime": 1787523980.1993308,
+    "ast_hash": "63ec61478825f96a2b27eee4915ba90f",
+    "semantic_hash": ""
+  },
+  "assets/terreno/calcada.png": {
+    "mtime": 1787522183.6644232,
+    "ast_hash": "105dc302de3df18b79b55fad8f16adfe",
+    "semantic_hash": ""
+  },
+  "assets/terreno/cascalho.png": {
+    "mtime": 1787522183.2312677,
+    "ast_hash": "85faf0f805742ce3e4217715d4b80678",
+    "semantic_hash": ""
+  },
+  "assets/terreno/grama.png": {
+    "mtime": 1787522180.6246064,
+    "ast_hash": "4c05191ae7d5f4122ee406645f516109",
+    "semantic_hash": ""
+  },
+  "assets/terreno/grama_clara.png": {
+    "mtime": 1787522180.2090082,
+    "ast_hash": "ce9c2dcc7b5e79145fe664045ae490a5",
+    "semantic_hash": ""
+  },
+  "assets/terreno/grama_mata.png": {
+    "mtime": 1787522181.0441117,
+    "ast_hash": "e3204db6221f6773c236ab649844d230",
+    "semantic_hash": ""
+  },
+  "assets/terreno/grama_rala.png": {
+    "mtime": 1787522181.9075286,
+    "ast_hash": "cdf7a4185bcb0ce3d478c99d216a4c33",
+    "semantic_hash": ""
+  },
+  "assets/terreno/grama_seca.png": {
+    "mtime": 1787522181.4853039,
+    "ast_hash": "5bc09d20d8fd41bd9f1b49ae81664d0f",
+    "semantic_hash": ""
+  },
+  "assets/terreno/pedra.png": {
+    "mtime": 1787522184.106398,
+    "ast_hash": "d698cb180bc16fd1d6d26d09628261d0",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/FOLHA_3x3.png": {
+    "mtime": 1787514310.3779342,
+    "ast_hash": "47787d7f9e8278ac6fb7a0cf4802ce08",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/calcada_3x3.png": {
+    "mtime": 1787522183.6673038,
+    "ast_hash": "aab57079ecea42a1b5dab0f519fa271c",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/cascalho_3x3.png": {
+    "mtime": 1787522183.234313,
+    "ast_hash": "44bb8e690f13221214c1fc3c537670ea",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/grama_3x3.png": {
+    "mtime": 1787522180.6274488,
+    "ast_hash": "e81c4ff23f62751ca449a4bae82e17c7",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/grama_clara_3x3.png": {
+    "mtime": 1787522180.2138643,
+    "ast_hash": "a06bcfc7bd5806c0d83621bed37d5b37",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/grama_mata_3x3.png": {
+    "mtime": 1787522181.0471325,
+    "ast_hash": "0122d337a4a936442dacc376f09e32f8",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/grama_rala_3x3.png": {
+    "mtime": 1787522181.9105668,
+    "ast_hash": "0b3e1f8f319f8eddd3c95b58f64da490",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/grama_seca_3x3.png": {
+    "mtime": 1787522181.491432,
+    "ast_hash": "fde483d0c1f970e9de6bb6a22b1ec539",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/pedra_3x3.png": {
+    "mtime": 1787522184.1101239,
+    "ast_hash": "02ff8e627d309b59398980ba1f003ea7",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/terra_3x3.png": {
+    "mtime": 1787522182.7984536,
+    "ast_hash": "4c2a99ee2f527fb6e9d05c5b6f21d0f1",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/terra_escura_3x3.png": {
+    "mtime": 1787522182.365278,
+    "ast_hash": "a930355fc3b32dbcd83f4cf99ec46914",
+    "semantic_hash": ""
+  },
+  "assets/terreno/terra.png": {
+    "mtime": 1787522182.7959504,
+    "ast_hash": "2bc6f9eb04df5c29ca0f1a4485472ad3",
+    "semantic_hash": ""
+  },
+  "assets/terreno/terra_escura.png": {
+    "mtime": 1787522182.3619637,
+    "ast_hash": "6057e09409048f2f6f5f94cd1118d540",
+    "semantic_hash": ""
+  },
+  "assets/scenario/tiles_02.png": {
+    "mtime": 1787513180.05637,
+    "ast_hash": "9539cfdf3c402cb7f184137864083a06",
+    "semantic_hash": ""
+  },
+  "assets/scenario/tiles_03.png": {
+    "mtime": 1787524013.690188,
+    "ast_hash": "4a83c35061d931145209508be429bf40",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/RESOLUCAO.png": {
+    "mtime": 1787515773.4652205,
+    "ast_hash": "2d8d7198143cab39276b63d394bdbc4b",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/ESCALA.png": {
+    "mtime": 1787516062.718829,
+    "ast_hash": "003cb0d32993c1a736aea42918fd8750",
+    "semantic_hash": ""
+  },
+  "assets/terreno/prova/ESCALA48.png": {
+    "mtime": 1787518537.5832386,
+    "ast_hash": "97f9304b7fcc8b0ddc1f6c05d8f8f356",
+    "semantic_hash": ""
+  },
+  "tests/test_tools.js": {
+    "mtime": 1787540120.5907612,
+    "ast_hash": "5764bf1d237ef8a11d68e2d1c5f4317d",
+    "semantic_hash": ""
+  },
+  "assets/terreno/agua_clara.png": {
+    "mtime": 1787523371.4571176,
+    "ast_hash": "742679514df8dfb3aa022b4bfd70f27d",
+    "semantic_hash": ""
+  },
+  "assets/terreno/agua_funda.png": {
+    "mtime": 1787523371.46128,
+    "ast_hash": "e1479f8a0abec1d61b2b45d2d3144833",
+    "semantic_hash": ""
+  },
+  "assets/terreno/arbusto_frutos.png": {
+    "mtime": 1787523371.4765975,
+    "ast_hash": "e1c86318b3f77d9a3092634f6f0644b7",
+    "semantic_hash": ""
+  },
+  "assets/terreno/areia_fina.png": {
+    "mtime": 1787523371.4561143,
+    "ast_hash": "12c803de62824156af7dab30a41a2a43",
+    "semantic_hash": ""
+  },
+  "assets/terreno/areia_grossa.png": {
+    "mtime": 1787523371.4602787,
+    "ast_hash": "4d2c0d73c1802ff09d3c3693510ff075",
+    "semantic_hash": ""
+  },
+  "assets/terreno/areia_mato.png": {
+    "mtime": 1787523371.4776013,
+    "ast_hash": "8e6ff58b3b1d06c9e5ac1cb433dc6b0d",
+    "semantic_hash": ""
+  },
+  "assets/terreno/areia_pedra.png": {
+    "mtime": 1787523371.4776013,
+    "ast_hash": "9d30ee176af4a6b5cc6bd6b8b541ad90",
+    "semantic_hash": ""
+  },
+  "assets/terreno/calcada_bloco.png": {
+    "mtime": 1787523371.4561143,
+    "ast_hash": "aaf8e8a61995639d76ee1f280444e295",
+    "semantic_hash": ""
+  },
+  "assets/terreno/calcada_clara.png": {
+    "mtime": 1787523371.4602787,
+    "ast_hash": "2c5e1d1a3eda9f4f3001c83a608b688a",
+    "semantic_hash": ""
+  },
+  "assets/terreno/calcada_laje.png": {
+    "mtime": 1787523371.46128,
+    "ast_hash": "5be2c5b4f699310096e1ab142559f91c",
+    "semantic_hash": ""
+  },
+  "assets/terreno/calcada_mosaico.png": {
+    "mtime": 1787523371.4645205,
+    "ast_hash": "96599b3cd30290967d29215eb2a99c85",
+    "semantic_hash": ""
+  },
+  "assets/terreno/calcada_musgo.png": {
+    "mtime": 1787523371.46128,
+    "ast_hash": "16e5c4b6647bb6b6da0043825b92610a",
+    "semantic_hash": ""
+  },
+  "assets/terreno/calcada_paralelo.png": {
+    "mtime": 1787523371.46128,
+    "ast_hash": "ff09d8ecd75492b31240e83597ed5396",
+    "semantic_hash": ""
+  },
+  "assets/terreno/calcada_seixo.png": {
+    "mtime": 1787523371.4571176,
+    "ast_hash": "a47b125feff174a0e3a97c4a0d9c5a3a",
+    "semantic_hash": ""
+  },
+  "assets/terreno/cascalho_claro.png": {
+    "mtime": 1787523371.46128,
+    "ast_hash": "081aac1b7be3ebee583b22f6a4eeeecc",
+    "semantic_hash": ""
+  },
+  "assets/terreno/duna.png": {
+    "mtime": 1787523371.4796064,
+    "ast_hash": "66ad1ac7bb0ca2a93291bc4285f3aa75",
+    "semantic_hash": ""
+  },
+  "assets/terreno/gelo_agua.png": {
+    "mtime": 1787523371.471002,
+    "ast_hash": "09789624b883d6a754b92d5357ab781f",
+    "semantic_hash": ""
+  },
+  "assets/terreno/gelo_liso.png": {
+    "mtime": 1787523371.4738886,
+    "ast_hash": "272825c22daf2ef8b651d6391294b504",
+    "semantic_hash": ""
+  },
+  "assets/terreno/gelo_trincado.png": {
+    "mtime": 1787523371.471002,
+    "ast_hash": "bbd94f488204fe9ce7feda7937d729fd",
+    "semantic_hash": ""
+  },
+  "assets/terreno/grama_alta.png": {
+    "mtime": 1787523371.4581203,
+    "ast_hash": "3acdc8f66f7b5d4f1ca7b0a21d804efc",
+    "semantic_hash": ""
+  },
+  "assets/terreno/grama_densa.png": {
+    "mtime": 1787523371.453092,
+    "ast_hash": "dda1e487cb8c9e9f6f262a9c62b03ce8",
+    "semantic_hash": ""
+  },
+  "assets/terreno/grama_florida.png": {
+    "mtime": 1787523371.453092,
+    "ast_hash": "6db2fe90bbbd314b5788253e6fd8b88e",
+    "semantic_hash": ""
+  },
+  "assets/terreno/grama_mostarda.png": {
+    "mtime": 1787523371.4581203,
+    "ast_hash": "648cf1e98ac532d034ba4533914233ce",
+    "semantic_hash": ""
+  },
+  "assets/terreno/grama_papoula.png": {
+    "mtime": 1787523371.4581203,
+    "ast_hash": "5592cf701336736dd1bb23c07b16abc2",
+    "semantic_hash": ""
+  },
+  "assets/terreno/grama_pedra.png": {
+    "mtime": 1787523371.4540942,
+    "ast_hash": "6073571998f961ba8dd971ed2ea3570b",
+    "semantic_hash": ""
+  },
+  "assets/terreno/junco_seco.png": {
+    "mtime": 1787523371.4738886,
+    "ast_hash": "89d9c5a09d8aa0269f87983d68c40651",
+    "semantic_hash": ""
+  },
+  "assets/terreno/junco_verde.png": {
+    "mtime": 1787523371.4738886,
+    "ast_hash": "d8c9238c77f0a7423e61a949062a38b5",
+    "semantic_hash": ""
+  },
+  "assets/terreno/lava_viva.png": {
+    "mtime": 1787523371.471002,
+    "ast_hash": "4a0874e2a77b96151c642480327648a7",
+    "semantic_hash": ""
+  },
+  "assets/terreno/mato_seco.png": {
+    "mtime": 1787523371.475549,
+    "ast_hash": "ee8e2cffc38a6aeeb496de5145a8bcc5",
+    "semantic_hash": ""
+  },
+  "assets/terreno/neve_funda.png": {
+    "mtime": 1787523371.471002,
+    "ast_hash": "accf7d9c545d21770ccd94afe46323aa",
+    "semantic_hash": ""
+  },
+  "assets/terreno/neve_mato.png": {
+    "mtime": 1787523371.471002,
+    "ast_hash": "0afa1996f116011d23dadf1039095e41",
+    "semantic_hash": ""
+  },
+  "assets/terreno/neve_pedra.png": {
+    "mtime": 1787523371.471002,
+    "ast_hash": "3d0022446662d0c6921eaa5b87d4372d",
+    "semantic_hash": ""
+  },
+  "assets/terreno/ossada.png": {
+    "mtime": 1787523371.4679985,
+    "ast_hash": "105476c8437b41ad3893e6a33a7f7973",
+    "semantic_hash": ""
+  },
+  "assets/terreno/ossada_areia.png": {
+    "mtime": 1787523371.4796064,
+    "ast_hash": "af77049db282cb11059d05c786a3e84d",
+    "semantic_hash": ""
+  },
+  "assets/terreno/pantano_folha.png": {
+    "mtime": 1787523371.475549,
+    "ast_hash": "4019bf89acc708dccb353b5ff9915ceb",
+    "semantic_hash": ""
+  },
+  "assets/terreno/pantano_vitoria.png": {
+    "mtime": 1787523371.4738886,
+    "ast_hash": "dfaf6a41eb7b33f9c5b279b30653c1b2",
+    "semantic_hash": ""
+  },
+  "assets/terreno/pedra_irregular.png": {
+    "mtime": 1787523371.46128,
+    "ast_hash": "4843922b17de5ca2dabe174c59bc20a5",
+    "semantic_hash": ""
+  },
+  "assets/terreno/pedra_musgo.png": {
+    "mtime": 1787523371.4765975,
+    "ast_hash": "761bd6581bdeeb1e5fe7771bad8a8b98",
+    "semantic_hash": ""
+  },
+  "assets/terreno/pedregulho.png": {
+    "mtime": 1787523371.4679985,
+    "ast_hash": "2e3dcd83e5924d0c7afb07e711a20ad7",
+    "semantic_hash": ""
+  },
+  "assets/terreno/rocha_basalto.png": {
+    "mtime": 1787523371.4679985,
+    "ast_hash": "30aa1a84b709016a7ef43d3ec38fb787",
+    "semantic_hash": ""
+  },
+  "assets/terreno/tabua_clara.png": {
+    "mtime": 1787523371.4645205,
+    "ast_hash": "2d723e8c5b1f7af600832119a59abbd1",
+    "semantic_hash": ""
+  },
+  "assets/terreno/tabua_deitada.png": {
+    "mtime": 1787523371.4645205,
+    "ast_hash": "5932987d6c8518efaf785c369ceb7224",
+    "semantic_hash": ""
+  },
+  "assets/terreno/tabua_escura.png": {
+    "mtime": 1787523371.4645205,
+    "ast_hash": "0cb82f4e015ca88ce77ad10a7e4905dc",
+    "semantic_hash": ""
+  },
+  "assets/terreno/tabua_larga.png": {
+    "mtime": 1787523371.4679985,
+    "ast_hash": "7313ce5331fb3c499aa8081fe5b2a123",
+    "semantic_hash": ""
+  },
+  "assets/terreno/tabua_travessa.png": {
+    "mtime": 1787523371.4645205,
+    "ast_hash": "ed745c1bbeb875c2cce4e61a9b82afff",
+    "semantic_hash": ""
+  },
+  "assets/terreno/tapete.png": {
+    "mtime": 1787523371.4679985,
+    "ast_hash": "f871ec9e5edade42703cbac17893027b",
+    "semantic_hash": ""
+  },
+  "assets/terreno/terra_gretada.png": {
+    "mtime": 1787523371.4776013,
+    "ast_hash": "18b5cdbf4ef0bed4a93e357fe61e00f9",
+    "semantic_hash": ""
+  },
+  "assets/terreno/terra_lisa.png": {
+    "mtime": 1787523371.4550886,
+    "ast_hash": "4d69f005e6e9d9841ecc6c9143baf68b",
+    "semantic_hash": ""
+  },
+  "assets/terreno/terra_pedregosa.png": {
+    "mtime": 1787523371.4679985,
+    "ast_hash": "23ee173f9e2882f247f9e69f5390cb93",
+    "semantic_hash": ""
+  },
+  "assets/terreno/terra_pedrisco.png": {
+    "mtime": 1787523371.4592755,
+    "ast_hash": "1a340098f571e30097a72da0065ecd36",
+    "semantic_hash": ""
+  },
+  "assets/terreno/terra_rachada.png": {
+    "mtime": 1787523371.4592755,
+    "ast_hash": "a44c4e203f51999cbdd74e179637cb65",
+    "semantic_hash": ""
+  },
+  "assets/terreno/terra_umida.png": {
+    "mtime": 1787523371.4550886,
+    "ast_hash": "0e1010760e204f036beb03eff4d3e97a",
+    "semantic_hash": ""
+  },
+  "assets/terreno/tijolo.png": {
+    "mtime": 1787523371.4645205,
+    "ast_hash": "8fde9991d7ec9952913415a78c599c99",
+    "semantic_hash": ""
+  },
+  "assets/terreno/tijolo_musgo.png": {
+    "mtime": 1787523371.4645205,
+    "ast_hash": "8a7892ed776674fed5dd87e8404f081d",
+    "semantic_hash": ""
+  },
+  "tools/amostra/bordas.html": {
+    "mtime": 1787525942.2483673,
+    "ast_hash": "74ce5a14280ea2deb4a11ce433886886",
+    "semantic_hash": ""
+  },
+  "tools/amostra/tracado.html": {
+    "mtime": 1787530068.8472369,
+    "ast_hash": "b47e621b87c6a04c92cab6a6cf4353ea",
+    "semantic_hash": ""
+  },
+  "tools/patch_fmt.js": {
+    "mtime": 1787540069.1110263,
+    "ast_hash": "2ada81791aac6c34d02ef0cac0c382e0",
     "semantic_hash": ""
   }
 }

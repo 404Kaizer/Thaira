@@ -175,8 +175,17 @@ C.espalha(m, S, T.TREE, 1, 405, (x, y, t) => {
 /* ================================================== a metade selvagem ===
    MATA FUNDA — a mata do curso alto, densa em volta do afluente. */
 const MATA_X = 58, MATA_Y = 40, MATA_R = 28;
-discoTerra(MATA_X, MATA_Y, MATA_R, T.GRASS);
-const naMata = r2 => (x, y, t) => t === T.GRASS &&
+/* O CHÃO DA MATA É DE MATA. Decisão do dono do projeto: `grama_mata` aqui e
+   `grama_rala` no Corte Velho. Não é enfeite — é o que faz a mata começar antes
+   da primeira árvore, e é a diferença entre "campo com árvores em cima" e
+   floresta. A grama de mata é mais escura (valor 29% contra 39% da de campo),
+   que é o que o chão sob copa fechada faz. */
+discoTerra(MATA_X, MATA_Y, MATA_R, T.GRASS_MATA);
+/* A orla vem ANTES do disco na leitura, mas é pintada depois e só onde ainda é
+   campo: assim o miolo fica de mata e a borda esmaece para fora sem degrau. */
+C.espalha(m, S, T.GRASS_MATA, .55, 409,
+  (x, y, t) => t === T.GRASS && (x - MATA_X) ** 2 + (y - MATA_Y) ** 2 < (MATA_R + 9) ** 2);
+const naMata = r2 => (x, y, t) => (t === T.GRASS || t === T.GRASS_MATA) &&
   (x - MATA_X) ** 2 + (y - MATA_Y) ** 2 < r2;
 C.espalha(m, S, T.TREE, .54, 407, naMata(MATA_R * MATA_R));
 C.espalha(m, S, T.TREE, .24, 408, naMata((MATA_R + 12) ** 2));   // a orla, rala
@@ -256,13 +265,18 @@ C.pinta(m, S, 73, 100, T.CART);                                  // #10, na carr
 /* CORTE VELHO — mata que alguém corta há gerações. O que diz CORTE não é a
    densidade, é a marca do machado: clareiras RETANGULARES dentro do mato. */
 const COR_X = 140, COR_Y = 104, COR_R = 19;
-discoTerra(COR_X, COR_Y, COR_R, T.GRASS);
+/* Chão de corte: `grama_rala`. Mato que apanha de machado há gerações não tem
+   a grama fechada do campo nem a do interior da mata — tem falha. As clareiras
+   RETANGULARES continuam sendo a marca do machado, e agora elas se leem também
+   pelo chão, e não só pela ausência de árvore. */
+discoTerra(COR_X, COR_Y, COR_R, T.GRASS_RALA);
 const noCorte = (x, y) => (x - COR_X) ** 2 + (y - COR_Y) ** 2 < COR_R * COR_R;
-C.espalha(m, S, T.TREE, .56, 701, (x, y, t) => t === T.GRASS && noCorte(x, y));
+const chaoCorte = t => t === T.GRASS || t === T.GRASS_RALA;
+C.espalha(m, S, T.TREE, .56, 701, (x, y, t) => chaoCorte(t) && noCorte(x, y));
 for (const [x, y, w, h] of [[128, 94, 9, 6], [141, 92, 7, 8], [132, 108, 11, 6],
                             [146, 104, 7, 7], [136, 117, 8, 5]])
-  C.retangulo(m, S, x, y, w, h, T.GRASS);
-C.espalha(m, S, T.DIRT, .20, 702, (x, y, t) => t === T.GRASS && noCorte(x, y));
+  C.retangulo(m, S, x, y, w, h, T.GRASS_RALA);
+C.espalha(m, S, T.DIRT, .20, 702, (x, y, t) => chaoCorte(t) && noCorte(x, y));
 C.caminho(m, S, [[124, 118], [136, 106], [150, 96]], T.DIRT, 2);
 C.retangulo(m, S, 144, 112, 5, 4, T.WALL);                       // o rancho do lenhador
 C.retangulo(m, S, 145, 113, 3, 2, T.FLOOR);
@@ -677,9 +691,34 @@ console.log(`recintos fechados da superfície: ${recintosOk
     (faltando.length ? '  -> falta: ' + faltando.join(' | ') : '') +
     (sobrando.length ? '  -> pedaço NÃO esperado: ' + sobrando.join(' | ') : '')}`);
 
-if (foraDaTerra.length || poisNaAgua.length || naVila.length || soltos.length || pocas ||
-    !nasce || !ponteOk || !recintosOk || objRuins.length) {
-  console.log('\nATENÇÃO: o mapa não fecha.');
+/* A MENSAGEM TEM DE DIZER O QUÊ. Ela era só "ATENÇÃO: o mapa não fecha", e o
+   motivo ficava nas vinte linhas acima — o dono lia a última linha, que é a
+   vermelha, e ela não dizia nada de acionável: "toda vez que gravo aparece
+   isso". Alarme que não nomeia a causa é alarme que se aprende a ignorar, que é
+   a mesma regra do aviso de mapa atrasado. Agora ele lista o que reclamou, com
+   a COORDENADA quando existe uma, porque o passo seguinte do dono é ir até lá. */
+const queixas = [];
+if (foraDaTerra.length) queixas.push(`${foraDaTerra.length} spawn(s) em tile que barra o passo — ` +
+  foraDaTerra.map(s => `${s.x},${s.y}`).join(' ') + ' (confira se há cerca ou parede por cima)');
+if (poisNaAgua.length) queixas.push(`${poisNaAgua.length} lugar(es) em tile que barra o passo — ` +
+  poisNaAgua.map(p => `${p.x},${p.y}`).join(' '));
+if (naVila.length) queixas.push(`${naVila.length} spawn(s) dentro do muro da vila`);
+if (soltos.length) queixas.push(`${soltos.length} spawn(s) fora de todo lugar`);
+if (pocas) queixas.push(`${pocas} poça(s) de água solta`);
+if (!nasce) queixas.push('o ponto de nascer não é andável — o jogador entra preso');
+if (!ponteOk) queixas.push(`a ponte sobre o muro não fecha em ${PONTE_X},${MY0 - 1} e ${PONTE_X},${MY0 + 2} — ` +
+  'ela precisa de escada nos DOIS andares e chão em cima entre elas');
+if (objRuins.length) queixas.push(`${objRuins.length} objeto(s) grande(s) com rastro quebrado`);
+if (!recintosOk) queixas.push('recinto de chão fechado que não está declarado, ou declarado e sumido' +
+  (sobrando.length ? ` — sobrou: ${sobrando.join(', ')}` : '') +
+  (faltando.length ? ` — falta: ${faltando.join(', ')}` : '') +
+  '\n     Recinto fechado DE PROPÓSITO entra na lista RECINTOS deste script, com nome' +
+  '\n     e um ponto andável dentro dele. Sem isso a régua o trata como erro.');
+if (queixas.length) {
+  console.log('\nATENÇÃO: o mapa não fecha — ' + queixas.length +
+    (queixas.length > 1 ? ' coisas' : ' coisa') + ':');
+  queixas.forEach((q, i) => console.log(`  ${i + 1}. ${q}`));
+  console.log('\nO mapa FOI gravado e é o que o jogo carrega. Isto é aviso, não falha.');
   /* DOIS é "compus o mapa e a conferência reclamou"; qualquer outro código
      não-zero é o script ter quebrado. A diferença importa para quem chama: com
      2 o arquivo do mapa EXISTE e é o que o jogo vai carregar, então a ferramenta

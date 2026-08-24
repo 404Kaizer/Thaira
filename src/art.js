@@ -715,7 +715,107 @@ const TEX_DRAW = {
    primeiro: se viesse depois apagaria as bordas costuradas. */
 const TEX_S = 96;
 const _WRAP = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
+/* ------------------------------------------------- terreno vindo de PNG
+   Textura de chão desenhada fora do jogo (folha de referência recortada e
+   costurada por `assets/build_terreno.py`) entra por aqui, e o resto do render
+   não fica sabendo: `tileTexture` continua devolvendo uma folha de 96×96, que é
+   o que o `TEX_S` sempre foi, e o recorte por `x%3, y%3` continua dando as nove
+   células. É por isso que o build entrega 96 e não 32 — em 32 as nove células
+   seriam a mesma e o chão viraria papel de parede.
+
+   ESTA TABELA É O BOTÃO. Ela diz qual `tex` do jogo usa qual PNG; o que não
+   estiver aqui continua sendo desenhado por código, como sempre foi. Trocar a
+   grama da ilha por outra variante é mudar uma linha — e as variantes que
+   sobram (grama_clara, grama_mata, grama_seca, grama_rala) estão em
+   `assets/terreno/` esperando endereço, porque QUAL grama vai em QUAL lugar é
+   decisão de mundo e não de render. */
+const TEX_PNG_MAP = {
+  grass: 'grama', dirt: 'terra', pave: 'calcada', rock: 'pedra', gravel: 'cascalho',
+  grama_clara: 'grama_clara', grama_mata: 'grama_mata', grama_seca: 'grama_seca',
+  grama_rala: 'grama_rala', terra_escura: 'terra_escura',
+  grama_densa: 'grama_densa', grama_florida: 'grama_florida', grama_pedra: 'grama_pedra', terra_umida: 'terra_umida',
+  terra_lisa: 'terra_lisa', areia_fina: 'areia_fina', calcada_bloco: 'calcada_bloco', calcada_seixo: 'calcada_seixo',
+  agua_clara: 'agua_clara', grama_alta: 'grama_alta', grama_papoula: 'grama_papoula', grama_mostarda: 'grama_mostarda',
+  terra_pedrisco: 'terra_pedrisco', terra_rachada: 'terra_rachada', areia_grossa: 'areia_grossa', calcada_clara: 'calcada_clara',
+  calcada_musgo: 'calcada_musgo', agua_funda: 'agua_funda', cascalho_claro: 'cascalho_claro', calcada_paralelo: 'calcada_paralelo',
+  pedra_irregular: 'pedra_irregular', calcada_laje: 'calcada_laje', calcada_mosaico: 'calcada_mosaico', tijolo: 'tijolo',
+  tijolo_musgo: 'tijolo_musgo', tabua_deitada: 'tabua_deitada', tabua_clara: 'tabua_clara', tabua_escura: 'tabua_escura',
+  tabua_travessa: 'tabua_travessa', tabua_larga: 'tabua_larga', tapete: 'tapete', terra_pedregosa: 'terra_pedregosa',
+  pedregulho: 'pedregulho', rocha_basalto: 'rocha_basalto', ossada: 'ossada', lava_viva: 'lava_viva',
+  neve_pedra: 'neve_pedra', neve_mato: 'neve_mato', gelo_agua: 'gelo_agua', gelo_trincado: 'gelo_trincado',
+  neve_funda: 'neve_funda', gelo_liso: 'gelo_liso', pantano_vitoria: 'pantano_vitoria', junco_seco: 'junco_seco',
+  junco_verde: 'junco_verde', pantano_folha: 'pantano_folha', mato_seco: 'mato_seco', pedra_musgo: 'pedra_musgo',
+  arbusto_frutos: 'arbusto_frutos', areia_pedra: 'areia_pedra', areia_mato: 'areia_mato', terra_gretada: 'terra_gretada',
+  ossada_areia: 'ossada_areia', duna: 'duna'
+};
+const TEX_PNG = {};
+/* A raiz do projeto, tirada de onde o próprio art.js foi carregado. O jogo abre
+   em `/`, o editor em `/tools/` e as bancadas em `/tools/amostra/` — um caminho
+   relativo cravado funcionaria num e quebraria calado nos outros. */
+const _RAIZ = (() => {
+  /* Fora do navegador não há de onde tirar, e nem precisa: o `compor.js`, o
+     `planta_png.js` e a suíte carregam o art.js num `vm` com um DOM de mentira,
+     e nenhum deles desenha textura de chão. Sem esta guarda o `querySelectorAll`
+     do stub estoura e derruba a composição de mapa inteira — que foi como este
+     carregador quebrou o `varrokgaard.js` na primeira vez. */
+  if (typeof document === 'undefined' || !document.querySelectorAll) return null;
+  const s = [...document.querySelectorAll('script')].find(s => /\/art\.js(\?|$)/.test(s.src || ''));
+  return s ? s.src.replace(/src\/art\.js.*$/, '') : '';
+})();
+/* Sem índice e sem lista gerada: tenta carregar, e o que não existir cai no
+   `onerror` e continua sendo desenhado por código. Um `terrenos.js` gerado
+   seria uma segunda fonte de verdade sobre o que há na pasta — e ela sairia do
+   ar no dia em que alguém apagasse um PNG sem rodar o build. */
+/* RESERVA DE DESENHO. Todo `tex` precisa de rotina em TEX_DRAW, e não é
+   burocracia: se o PNG não carregar — arquivo apagado, pasta não publicada,
+   página aberta sem servidor — o `tileTexture` cai no desenho por código, e sem
+   rotina ele estoura no meio do render. As variantes emprestam a rotina do
+   material de origem, com a COR delas: sai um chão parecido em vez de uma tela
+   preta ou um erro. */
+for (const [alvo, base] of [['grama_clara', 'grass'], ['grama_mata', 'grass'],
+                            ['grama_seca', 'grass'], ['grama_rala', 'grass'],
+                            ['terra_escura', 'dirt'],
+                            ['grama_densa', 'grass'], ['grama_florida', 'grass'], ['grama_pedra', 'grass'],
+                            ['terra_umida', 'dirt'], ['terra_lisa', 'dirt'], ['areia_fina', 'sand'],
+                            ['calcada_bloco', 'pave'], ['calcada_seixo', 'pave'], ['agua_clara', 'water'],
+                            ['grama_alta', 'grass'], ['grama_papoula', 'grass'], ['grama_mostarda', 'grass'],
+                            ['terra_pedrisco', 'dirt'], ['terra_rachada', 'dirt'], ['areia_grossa', 'sand'],
+                            ['calcada_clara', 'pave'], ['calcada_musgo', 'pave'], ['agua_funda', 'water'],
+                            ['cascalho_claro', 'gravel'], ['calcada_paralelo', 'pave'], ['pedra_irregular', 'rock'],
+                            ['calcada_laje', 'pave'], ['calcada_mosaico', 'pave'], ['tijolo', 'pave'],
+                            ['tijolo_musgo', 'pave'], ['tabua_deitada', 'plank'], ['tabua_clara', 'plank'],
+                            ['tabua_escura', 'plank'], ['tabua_travessa', 'plank'], ['tabua_larga', 'plank'],
+                            ['tapete', 'plank'], ['terra_pedregosa', 'dirt'], ['pedregulho', 'rock'],
+                            ['rocha_basalto', 'rock'], ['ossada', 'bone'], ['lava_viva', 'lava'],
+                            ['neve_pedra', 'snow'], ['neve_mato', 'snow'], ['gelo_agua', 'snow'],
+                            ['gelo_trincado', 'snow'], ['neve_funda', 'snow'], ['gelo_liso', 'snow'],
+                            ['pantano_vitoria', 'swamp'], ['junco_seco', 'swamp'], ['junco_verde', 'swamp'],
+                            ['pantano_folha', 'swamp'], ['mato_seco', 'grass'], ['pedra_musgo', 'rock'],
+                            ['arbusto_frutos', 'grass'], ['areia_pedra', 'sand'], ['areia_mato', 'sand'],
+                            ['terra_gretada', 'dirt'], ['ossada_areia', 'bone'], ['duna', 'sand']])
+  TEX_DRAW[alvo] = TEX_DRAW[base];
+
+function carregaTerrenos() {
+  if (_RAIZ === null || typeof Image === 'undefined') return;
+  for (const kind in TEX_PNG_MAP) {
+    const nome = TEX_PNG_MAP[kind];
+    const im = new Image();
+    im.onerror = () => { };
+    im.onload = () => {
+      TEX_PNG[kind] = im;
+      /* O cache guarda por `kind+hex` e já pode ter a versão desenhada por
+         código: sem limpar, a textura nova só apareceria no tile que ninguém
+         tinha olhado ainda, e o mapa ficaria metade de cada. */
+      for (const k in TEX_CACHE) if (k.startsWith(kind)) delete TEX_CACHE[k];
+      for (const k in FLOW_CACHE) if (k.startsWith(kind)) delete FLOW_CACHE[k];
+    };
+    im.src = _RAIZ + 'assets/terreno/' + nome + '.png';
+  }
+}
+carregaTerrenos();
+
 function tileTexture(kind, hex) {
+  if (TEX_PNG[kind]) return TEX_PNG[kind];
   const key = kind + hex;
   if (TEX_CACHE[key]) return TEX_CACHE[key];
   const c = _canvas(TEX_S), g = c.getContext('2d'), seed = _hash(key);
@@ -758,6 +858,21 @@ function flowTexture(kind, hex) {
    ela invade o terreno e nunca o contrário. */
 const TERRAIN_PRIO = {
   water: 0, swamp: 1, lava: 1, grass: 2,
+  /* As variantes de grama têm a MESMA prioridade da grama, e a terra escura a
+     mesma da terra: prioridade é quem desenha borda por cima de quem, e uma
+     grama não tem por que invadir a outra — entre iguais a borda não deve
+     existir. Sem entrada aqui o tile cai calado no 0 e some sob a borda de
+     qualquer vizinho, que é o defeito que o #48b catalogou. */
+  grama_clara: 2, grama_mata: 2, grama_seca: 2, grama_rala: 2, terra_escura: 4,
+  grama_densa: 2, grama_florida: 2, grama_pedra: 2, terra_umida: 4, terra_lisa: 4, areia_fina: 5,
+  calcada_bloco: 5, calcada_seixo: 5, agua_clara: 0, grama_alta: 2, grama_papoula: 2, grama_mostarda: 2,
+  terra_pedrisco: 4, terra_rachada: 4, areia_grossa: 5, calcada_clara: 5, calcada_musgo: 5, agua_funda: 0,
+  cascalho_claro: 4, calcada_paralelo: 5, pedra_irregular: 6, calcada_laje: 5, calcada_mosaico: 5, tijolo: 5,
+  tijolo_musgo: 5, tabua_deitada: 5, tabua_clara: 5, tabua_escura: 5, tabua_travessa: 5, tabua_larga: 5,
+  tapete: 5, terra_pedregosa: 4, pedregulho: 6, rocha_basalto: 6, ossada: 4, lava_viva: 1,
+  neve_pedra: 3, neve_mato: 3, gelo_agua: 3, gelo_trincado: 3, neve_funda: 3, gelo_liso: 3,
+  pantano_vitoria: 1, junco_seco: 1, junco_verde: 1, pantano_folha: 1, mato_seco: 2, pedra_musgo: 6,
+  arbusto_frutos: 2, areia_pedra: 5, areia_mato: 5, terra_gretada: 4, ossada_areia: 4, duna: 5,
   crop: 3, snow: 3, cave: 3, moss: 3, ash: 3, webf: 3,
   dirt: 4, gravel: 4, bone: 4, hay: 4,
   sand: 5, rock: 6, ore: 6,
@@ -773,39 +888,110 @@ const TERRAIN_PRIO = {
    MÁSCARA, então mora aqui junto dela — o laço de borda do render2d usa esta
    mesma lista, para não haver duas ordens de vizinho que possam divergir. */
 const EDGE_DIR = [[0, -1], [1, 0], [0, 1], [-1, 0], [1, -1], [1, 1], [-1, 1], [-1, -1]];
-const MASK_CACHE = [];
-function edgeMask(m) {
-  if (MASK_CACHE[m]) return MASK_CACHE[m];
+/* A BORDA É UMA FRANJA, E A FRANJA ATRAVESSA O TILE.
+   Relato do dono, com imagens de Tibia por referência: "preciso que os tiles
+   sejam irregulares. Hoje tudo é uniforme, tile quadrado. Uma rua de barro não
+   é exatamente reta". Ele estava certo, e a causa era estrutural: o
+   `MASK_CACHE` guardava OITO máscaras no total, semeadas só pela direção — toda
+   borda norte do mapa usava a MESMA estampa de 32 px. Medido no contorno,
+   o período mais forte era 32 px com força 100%: o motivo mais forte da borda
+   era a própria grade de tiles.
+
+   A PRIMEIRA TENTATIVA ERROU, e o erro vale mais que o acerto. Eu ataquei pela
+   profundidade — invasão de 11 a 18 px, ondulando. Saiu um quebra-cabeça de
+   abas retangulares, e a medição explicou: a invasão chegava a 56% do tile.
+   Num degrau de um tile, os dois lados ortogonais mais o canto cobrem quase o
+   tile inteiro, e meio tile invadido lê como tile CHEIO — as abas eram a escada
+   da própria região sendo engordada. Daí a trava: `bordaProf` nunca passa de
+   ~32% de 32 px, e há teste cobrando.
+
+   O que resolve não é invadir mais fundo, é a SILHUETA. O contorno (`rimMask`)
+   é derivado da máscara, então enquanto a máscara for um recuo LISO da borda
+   quadrada ele traça fielmente a escada dos tiles — desenha a grade em vez de
+   escondê-la. Tufando a silhueta, o contorno vem esfarrapado de graça.
+
+   Três escalas somadas, e cada uma faz uma coisa:
+     BORDA_BASE  a invasão média;
+     BORDA_ONDA  passo de ~2 tiles, o caminhar largo da junta;
+     BORDA_TUFO  passo de 7 px, a silhueta de tufo de capim.
+   O ruído é PERIÓDICO em `BORDA_P` tiles, e é isso que dá continuidade: a
+   variante do tile x é a fatia de x·32 a x·32+32 do mesmo ruído contínuo, então
+   a fatia do tile x+1 começa onde a do x terminou e a curva não tem degrau na
+   junta. O cache fica em `BORDA_P` variantes por direção em vez de uma por tile
+   do mapa. Julgado em tools/amostra/bordas.html, com controles ao vivo. */
+const BORDA_P = 8;                   // período do ruído, em tiles
+const BORDA_BASE = 6.5;              // invasão média, em px
+const BORDA_ONDA = 2.5;              // amplitude do caminhar largo, em px
+const BORDA_TUFO = 2.6;              // amplitude do tufo, em px
+const BORDA_PASSO = 7;               // passo do tufo, em px
+const BORDA_RIM = .42;               // alfa do contorno
+const BORDA_QUEBRA = .55;            // fração do contorno que é apagada
+const BORDA_TETO = .32;              // teto de invasão, em fração do tile
+
+function _ruidoBorda(passoPx, semente) {
+  const N = BORDA_P * 32, v = new Float32Array(N);
+  const k = Math.max(2, Math.round(N / passoPx)), r = _mulberry(semente);
+  const p = Array.from({ length: k }, () => r());
+  for (let i = 0; i < N; i++) {
+    const f = i / N * k, a = Math.floor(f), t = f - a, e = t * t * (3 - 2 * t);
+    v[i] = p[a % k] + (p[(a + 1) % k] - p[a % k]) * e;
+  }
+  return v;
+}
+const _RB_ONDA = _ruidoBorda(72, 1337);
+const _RB_TUFO = _ruidoBorda(BORDA_PASSO, 909);
+const _RB_QUEBRA = _ruidoBorda(19, 4242);
+const _rb = (v, i) => v[((i % v.length) + v.length) % v.length];
+
+/* A profundidade da franja em `u`, que é a coordenada de MUNDO ao longo da
+   junta. Sai daqui e não de dentro do desenho porque é ela que o teste cobra:
+   sem canvas no node, o que dá para afirmar é o PERFIL. */
+function bordaProf(u) {
+  return BORDA_BASE + BORDA_ONDA * (_rb(_RB_ONDA, u) * 2 - 1)
+                    + BORDA_TUFO * (_rb(_RB_TUFO, u) * 2 - 1);
+}
+
+const MASK_CACHE = {};
+function edgeMask(m, v = 0) {
+  const key = m + ':' + v;
+  if (MASK_CACHE[key]) return MASK_CACHE[key];
   const c = _canvas(32), g = c.getContext('2d');
-  _rnd = _mulberry(m * 7919 + 13);
+  g.fillStyle = '#fff';
+  const pena = 1.2;                  // franja tem CONTORNO; degradê largo a apaga
   if (m < 4) {
-    const [ax, ay] = [[0, 1], [-1, 0], [0, -1], [1, 0]][m];      // sentido do desvanecer
-    const gr = g.createLinearGradient(16 - ax * 16, 16 - ay * 16, 16 + ax * 16, 16 + ay * 16);
-    gr.addColorStop(0, '#fff'); gr.addColorStop(.12, '#fff'); gr.addColorStop(.45, 'rgba(255,255,255,0)');
-    g.fillStyle = gr;
+    for (let i = 0; i < 32; i++) {
+      const d = bordaProf(v * 32 + i);
+      for (let j = 0; j < 32; j++) {
+        const a = j < d - pena ? 1 : j < d ? (d - j) / pena : 0;
+        if (a <= 0) break;
+        g.globalAlpha = a;
+        /* m: 0 = vizinho ao norte (invade pelo topo), 1 = leste, 2 = sul,
+           3 = oeste. `i` corre ao longo da junta, `j` para dentro do tile. */
+        if (m === 0) g.fillRect(i, j, 1, 1);
+        else if (m === 2) g.fillRect(i, 31 - j, 1, 1);
+        else if (m === 3) g.fillRect(j, i, 1, 1);
+        else g.fillRect(31 - j, i, 1, 1);
+      }
+    }
   } else {
+    /* Canto: o mesmo perfil, indexado pelo ÂNGULO. Um quarto de círculo liso
+       denuncia a grade justamente onde duas bordas se encontram. */
     const cx = m === 4 || m === 5 ? 32 : 0, cy = m === 5 || m === 6 ? 32 : 0;
-    const gr = g.createRadialGradient(cx, cy, 0, cx, cy, 15);
-    gr.addColorStop(0, '#fff'); gr.addColorStop(.3, '#fff'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = gr;
+    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+      const dx = x + .5 - cx, dy = y + .5 - cy, r = Math.hypot(dx, dy);
+      const ang = (Math.atan2(dy, dx) / (Math.PI * 2) + 1) % 1;
+      const lim = bordaProf(v * 32 + (ang * 128 | 0)) + 4;
+      const a = r < lim - pena ? 1 : r < lim ? (lim - r) / pena : 0;
+      if (a > 0) { g.globalAlpha = a; g.fillRect(x, y, 1, 1); }
+    }
   }
-  g.fillRect(0, 0, 32, 32);
-  const d = g.getImageData(0, 0, 32, 32).data;
-  g.globalCompositeOperation = 'destination-out';
-  for (let i = 0; i < 300; i++) {
-    const x = (_rnd() * 16 | 0) * 2, y = (_rnd() * 16 | 0) * 2;
-    const a = d[(y * 32 + x) * 4 + 3] / 255;
-    if (_rnd() > 1 - a) continue;                                // quanto mais opaco, menos mordida
-    g.globalAlpha = .6 + _rnd() * .4;
-    g.fillRect(x, y, 2, 2);
-  }
-  _rnd = Math.random;
-  return MASK_CACHE[m] = c;
+  g.globalAlpha = 1;
+  return MASK_CACHE[key] = c;
 }
 
 const BORDER_CACHE = {};
-function borderSprite(kind, hex, m) {
-  const key = kind + hex + '|' + m;
+function borderSprite(kind, hex, m, v = 0) {
+  const key = kind + hex + '|' + m + '|' + v;
   if (BORDER_CACHE[key]) return BORDER_CACHE[key];
   const c = _canvas(32), g = c.getContext('2d');
   /* ponytail: recorte fixo (0,0) dos 96 — a borda não continua o padrão exato do
@@ -813,17 +999,17 @@ function borderSprite(kind, hex, m) {
      Se entrar terreno estruturado na borda, indexar o recorte por x%3,y%3. */
   g.drawImage(tileTexture(kind, hex), 0, 0, 32, 32, 0, 0, 32, 32);
   g.globalCompositeOperation = 'destination-in';
-  g.drawImage(edgeMask(m), 0, 0);
+  g.drawImage(edgeMask(m, v), 0, 0);
   /* O contorno vem ASSADO aqui e não num segundo sprite: a chave é a mesma
      (tex + cor + lado), então não custa cache nenhum e poupa um drawImage por
      lado por tile — que no pior caso eram oito por tile, todo quadro.
      Ordem: o lábio claro primeiro, a linha escura por cima. Invertida, o claro
      sobra por fora e vira halo, que é o brilho que o §23 veta. */
   g.globalCompositeOperation = 'source-atop';
-  g.globalAlpha = .5;
-  g.drawImage(_tinge(rimMask(m, RIM + 3), _rgb(hex, 1.35)), 0, 0);
-  g.globalAlpha = .62;
-  g.drawImage(_tinge(rimMask(m, RIM), _rgb(hex, .32)), 0, 0);
+  g.globalAlpha = BORDA_RIM * .8;
+  g.drawImage(_tinge(rimMask(m, RIM + 2, v), _rgb(hex, 1.30)), 0, 0);
+  g.globalAlpha = BORDA_RIM;
+  g.drawImage(_tinge(rimMask(m, RIM - 1, v), _rgb(hex, .34)), 0, 0);
   return BORDER_CACHE[key] = c;
 }
 /* Pinta uma máscara de uma cor só. Sai daqui porque `source-in` sobre o próprio
@@ -849,14 +1035,26 @@ function _tinge(mask, cor) {
    contorno passaria ao lado da borda em vez de em cima dela. */
 const RIM = 3;
 const RIM_CACHE = {};
-function rimMask(m, d) {
-  const key = m + ':' + d;
+function rimMask(m, d, v = 0) {
+  const key = m + ':' + d + ':' + v;
   if (RIM_CACHE[key]) return RIM_CACHE[key];
   const c = _canvas(32), g = c.getContext('2d');
   const [ax, ay] = EDGE_DIR[m];
-  g.drawImage(edgeMask(m), 0, 0);
+  g.drawImage(edgeMask(m, v), 0, 0);
   g.globalCompositeOperation = 'destination-out';
-  g.drawImage(edgeMask(m), ax * d, ay * d);
+  g.drawImage(edgeMask(m, v), ax * d, ay * d);
+  /* A QUEBRA apaga trechos do contorno. Sem ela ele é uma linha inteira em
+     volta da região, e linha inteira em volta de uma silhueta feita de
+     quadrados desenha o quadrado — foi o que a primeira tentativa mostrou. Com
+     ela vira CONTATO entre dois chãos, que é o que a referência tem. */
+  for (let i = 0; i < 32; i++) {
+    const q = _rb(_RB_QUEBRA, v * 32 + i + m * 53);
+    const corta = (q - (1 - BORDA_QUEBRA)) / BORDA_QUEBRA;
+    if (corta <= 0) continue;
+    g.globalAlpha = Math.min(1, corta * 1.4);
+    if (m === 0 || m === 2) g.fillRect(i, 0, 1, 32); else g.fillRect(0, i, 32, 1);
+  }
+  g.globalAlpha = 1;
   return RIM_CACHE[key] = c;
 }
 /* ------------------------------------------------------------ arrebentação */
@@ -877,10 +1075,17 @@ function foamSprite(m) {
   _rnd = _mulberry(m * 104729 + 7);
   const [ax, ay] = [[0, 1], [-1, 0], [0, -1], [1, 0]][m];      // mesmo sentido de edgeMask
   const gr = g.createLinearGradient(16 - ax * 16, 16 - ay * 16, 16 + ax * 16, 16 + ay * 16);
+  /* O pico segue a FRANJA, e agora é derivado dela em vez de cravado. Os
+     valores antigos (.22/.38/.60) tinham sido escolhidos contra o alcance da
+     borda de então — "o desvanecer morre em ~.45 de 32px" —, e a franja nova
+     invade 6,5 px em média. Cravado, o pico ficaria 5 px para dentro da água,
+     ou seja fora do contato: espuma no meio do lago. Derivar é o que impede os
+     dois de brigarem de novo no próximo ajuste. */
+  const pico = BORDA_BASE / 32;
   gr.addColorStop(0, `rgba(${FOAM_COR},0)`);
-  gr.addColorStop(.22, `rgba(${FOAM_COR},0)`);
-  gr.addColorStop(.38, `rgba(${FOAM_COR},.9)`);
-  gr.addColorStop(.60, `rgba(${FOAM_COR},0)`);
+  gr.addColorStop(Math.max(0, pico - .12), `rgba(${FOAM_COR},0)`);
+  gr.addColorStop(pico, `rgba(${FOAM_COR},.9)`);
+  gr.addColorStop(pico + .22, `rgba(${FOAM_COR},0)`);
   g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
   g.globalCompositeOperation = 'destination-out';
   for (let i = 0; i < 150; i++) {

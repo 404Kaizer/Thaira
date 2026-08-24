@@ -140,7 +140,7 @@ vm.runInContext(`
     damageFormula, skillOf, recalc, G, creatureSprite, TEX_DRAW, tileTexture, decoSprite, buildMinimaps, drawWorld, w2s,
     corDoCeu, ehNoite, ambienteAgora, climaAgora, souCoberto, FLOOR_AMBIENCE, silhouette, edgeShadow, cloudTexture,
     horaDoJogo, CLIMA_AVISO, poolTexture,
-    TERRAIN_PRIO, OBJ_DRAW, PAREDE_DRAW, CERCA_TOP, WALL_TOP, paredeSprite, cercaSprite, escoraSprite, teiaSprite, edgeMask, _mulberry, RANGER_DIR, SHEET_POS, rangerSprite,
+    TERRAIN_PRIO, OBJ_DRAW, PAREDE_DRAW, CERCA_TOP, WALL_TOP, paredeSprite, cercaSprite, escoraSprite, teiaSprite, edgeMask, bordaProf, BORDA_P, BORDA_TETO, _mulberry, RANGER_DIR, SHEET_POS, rangerSprite,
     SANGUE_CLASSE, SANGUE_PADRAO, SANGUE_MAX, bloodSpray, plateAnchor, resizeCam, CAM,
     itemCell, showTip, hideTip, tipCheck,
     HUNTS, huntAt, BEST_DIFF, MOB_META, bestStage, bestiaryKill, bestKills, toggleCharm, spawnCorpse, CHARM_COST, CHARM_BONUS,
@@ -491,6 +491,38 @@ A((() => {
 A(Object.values(S.TILE).every(t => !t.tex || S.TERRAIN_PRIO[t.tex] !== undefined),
   'todo tile texturizado tem prioridade de borda: ' + Object.values(S.TILE).filter(t => t.tex && S.TERRAIN_PRIO[t.tex] === undefined).map(t => t.tex));
 A([0, 1, 2, 3, 4, 5, 6, 7].every(m => S.edgeMask(m).width === 32), 'as 8 máscaras de borda saem em 32×32');
+
+/* --- a franja da junta entre terrenos ----------------------------------- */
+/* Sem canvas de verdade no node não dá para contar pixel de máscara — o que dá
+   para afirmar é o PERFIL, que é de onde a máscara sai. As três juntas nasceram
+   de defeitos reais: a borda repetindo com período de um tile (a queixa), o
+   quebra-cabeça de abas (a primeira tentativa) e o degrau na junta entre tiles. */
+{
+  const perfil = n => Array.from({ length: n }, (_, u) => S.bordaProf(u));
+  const p = perfil(S.BORDA_P * 32);
+  const mu = p.reduce((a, b) => a + b, 0) / p.length;
+  const desvio = Math.sqrt(p.reduce((a, x) => a + (x - mu) * (x - mu), 0) / p.length);
+
+  /* A trava que custou o quebra-cabeça: passando de ~metade do tile, os dois
+     lados ortogonais mais o canto cobrem quase o tile inteiro num degrau de um
+     tile, e meio tile invadido lê como tile CHEIO. Medido a 56%: abas
+     retangulares por todo lado. */
+  A(Math.max(...p) <= 32 * S.BORDA_TETO,
+    `a franja não invade mais que ${(S.BORDA_TETO * 100) | 0}% do tile (máx ${Math.max(...p).toFixed(1)} px)`);
+  A(Math.min(...p) > 0, 'e nunca some de todo, senão a junta abre buraco');
+
+  /* A franja tem de VARIAR: era isto que não acontecia, com oito máscaras no
+     total para o mapa inteiro. */
+  A(desvio > 1.5, `a franja varia ao longo da junta (desvio ${desvio.toFixed(2)} px)`);
+
+  /* CONTINUIDADE, que é o que faz a curva atravessar o tile: a variante do tile
+     x termina onde a do x+1 começa. Sem isto cada tile teria a própria franja e
+     apareceria um degrau a cada 32 px — a mesma grade por outra porta. */
+  const salto = Math.abs(S.bordaProf(31) - S.bordaProf(32));
+  A(salto < 1.5, `a franja não dá degrau na junta entre tiles (salto ${salto.toFixed(2)} px)`);
+  const volta = Math.abs(S.bordaProf(0) - S.bordaProf(S.BORDA_P * 32));
+  A(volta < 0.01, 'e o ruído fecha no período, senão o degrau só mudaria de lugar');
+}
 /* a folha do ranger tem linhas de 7,6,6,5: apontar para um quadro inexistente
    não estoura, só desenha a célula vazia da ponta da linha e o boneco some */
 A(Object.values(S.RANGER_DIR).every(f => f.length === 3 && f.every(k => S.SHEET_POS[k])),
@@ -2304,9 +2336,20 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
           }
         }
     const vizinhos = Object.entries(contatos).filter(([, n]) => n > 500).map(([k]) => k.split(',').map(Number));
-    const perto = vizinhos.filter(([a, b]) => dist(cor(a), cor(b)) < 60);
+    /* A régua vale entre MATERIAIS diferentes, não entre variantes do mesmo.
+       Grama de mata e grama de campo têm de se parecer — exigir 60 entre elas
+       seria medir identidade com a régua de legibilidade, que é exatamente o
+       erro que o #48b já corrigiu para parede e cerca. O que nunca pode se
+       confundir é grama com pântano, e isso continua travado.
+       `familia` é declaração de autor, e é o que impede a saída fácil: para
+       escapar da régua alguém teria de escrever que pântano é grama, e isso se
+       lê numa linha da tabela. */
+    const fam = t => (S.TILE[t] || {}).familia || ('t' + t);
+    const perto = vizinhos.filter(([a, b]) => fam(a) !== fam(b) && dist(cor(a), cor(b)) < 60);
     A(vizinhos.length >= 6, `o mundo encosta terreno diferente em ${vizinhos.length} pares (amostra suficiente)`);
-    A(!perto.length, `terreno vizinho é distinguível (mínimo de 60; pior par ${Math.min(...vizinhos.map(([a, b]) => dist(cor(a), cor(b))))})`);
+    const entreFamilias = vizinhos.filter(([a, b]) => fam(a) !== fam(b));
+    A(!perto.length, `terreno de família diferente é distinguível (mínimo de 60; pior par ${
+      entreFamilias.length ? Math.min(...entreFamilias.map(([a, b]) => dist(cor(a), cor(b)))) : '—'})`);
 
     const sat = h => {
       const r = (h >> 16 & 255) / 255, g = (h >> 8 & 255) / 255, b = (h & 255) / 255;
@@ -2316,10 +2359,30 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
     const tiles = Object.values(S.T).filter(t => t !== S.T.VOID);
     const media = tiles.reduce((a, t) => a + sat(cor(t)), 0) / tiles.length;
     A(media >= .33, `a saturação média do terreno não caiu para o cinza (${(media * 100).toFixed(0)}%, piso 33%)`);
-    /* O TETO importa tanto quanto o piso: uma régua que só empurrasse saturação
-       para cima convidaria o neon que o §23 do CLAUDE.md veta. */
-    const fora = tiles.filter(t => sat(cor(t)) < .10 || sat(cor(t)) > .90);
-    A(!fora.length, `nenhum tile fora da faixa 10–90% de saturação (${fora.length} fora)`);
+    /* O PISO continua sendo saturação: "cinza morto" é exatamente o que ela
+       mede, e foi ela que pegou a caverna em escala de cinza. */
+    const apagado = tiles.filter(t => sat(cor(t)) < .10);
+    A(!apagado.length, `nenhum tile abaixo de 10% de saturação, o cinza morto (${apagado.length} fora)`);
+
+    /* O TETO importa tanto quanto o piso — o §23 do CLAUDE.md veta cor gritante,
+       e uma régua que só empurrasse saturação para cima convidaria o neon. Mas
+       ele NÃO pode ser medido em saturação de HSL, e isto custou uma leva para
+       aparecer: em cor escura a saturação estoura sem a cor ter nada de
+       gritante. As gramas da folha `tiles_01` medem 95–98% de saturação com luz
+       de 16 a 23% — são olivas escuras, e a `grama_clara` que já estava no jogo
+       mede 83% pela mesma conta, passando só porque tem azul 10 em vez de 1.
+       Um pixel de azul não separa aprovado de reprovado.
+       Quem mede "gritante" é o CROMA (max-min), que é a distância à linha dos
+       cinzas e não explode no escuro. Medido: o tile mais cromático do jogo é a
+       LAVA em 0,81 e as tais gramas ficam entre 0,31 e 0,45; verde neon
+       (#39ff14) dá 0,92. O teto em 0,85 deixa a lava passar, continua barrando
+       o neon, e passa a reprovar pelo motivo certo. É a mesma lição do #33 e do
+       #48b — a régua tem de medir a coisa que se quer proibir. */
+    const croma = h => (Math.max(h >> 16 & 255, h >> 8 & 255, h & 255)
+                      - Math.min(h >> 16 & 255, h >> 8 & 255, h & 255)) / 255;
+    const gritante = tiles.filter(t => croma(cor(t)) > .85);
+    A(!gritante.length, `nenhum tile em cor gritante (croma acima de 0,85; pior ${
+      Math.max(...tiles.map(t => croma(cor(t)))).toFixed(2)})`);
   }
 
   /* --- #48: vocabulário de tile, um material por significado -------------- */

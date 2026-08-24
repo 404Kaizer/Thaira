@@ -41,6 +41,8 @@ const TIPOS = {
    O launcher JA e um servidor Node. Poe tudo aqui e sobra um duplo clique.
    O script roda pelo proprio binario do Electron com ELECTRON_RUN_AS_NODE, que
    e o mesmo Node -- assim nao ha exigencia de ter `node` no PATH da maquina. */
+const patchFmt = require('./tools/patch_fmt.js');
+const soma = patchFmt.soma;
 const NOME_MAPA = /^[a-z0-9_-]{1,40}$/;
 
 function recompoe(nome, pronto) {
@@ -81,11 +83,11 @@ function gravaPatch(req, res, nome, forcar) {
     if (fs.existsSync(alvo)) {
       try {
         const v = JSON.parse(fs.readFileSync(alvo, 'utf8'));
-        antes = Object.values(v.tiles || {}).reduce((a, t) => a + t.length, 0);
+        antes = soma(v);
         fs.writeFileSync(alvo.replace(/\.json$/, '.bak.json'), fs.readFileSync(alvo));
       } catch (e) { /* patch ilegível: a gravação nova é o conserto */ }
     }
-    const novos = Object.values(dados.tiles || {}).reduce((a, t) => a + t.length, 0);
+    const novos = soma(dados);
     if (novos < antes && !forcar) {
       res.writeHead(409, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, recompos: false, tiles: antes, log:
@@ -98,16 +100,12 @@ function gravaPatch(req, res, nome, forcar) {
     /* Um TILE por linha, e nao um numero por linha: o patch entra no git e o
        diff tem de se ler. JSON.stringify com indent poe cada coordenada numa
        linha e um patch de 25 tiles ocupa 200. */
-    const tiles = dados.tiles || {};
-    const zs = Object.keys(tiles).sort((a, b) => a - b);
-    const txt = ['{', '  "nome": ' + JSON.stringify(nome) + ',', '  "tiles": {']
-      .concat(zs.flatMap((z, i) => ['    "' + z + '": [']
-        .concat(tiles[z].map((t, j) => '      [' + t[0] + ', ' + t[1] + ', ' + t[2] + ']' +
-          (j + 1 < tiles[z].length ? ',' : '')))
-        .concat(['    ]' + (i + 1 < zs.length ? ',' : '')])))
-      .concat(['  }', '}']).join('\n') + '\n';
-    fs.writeFileSync(alvo, txt, 'utf8');
-    const n = zs.reduce((a, z) => a + tiles[z].length, 0);
+    /* O FORMATO mora em tools/patch_fmt.js, e não aqui: embutido no handler
+       ele não tinha como ser exercido por teste, e foi assim que a camada de
+       objeto ficou de fora sem ninguém perceber. O serve.py tem a própria
+       cópia (é Python), e o teste compara as duas saídas byte a byte. */
+    fs.writeFileSync(alvo, patchFmt.serializa(nome, dados), 'utf8');
+    const n = soma(dados);
     recompoe(nome, r => {
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Cache-Control', 'no-store');

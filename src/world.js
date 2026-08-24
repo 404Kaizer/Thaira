@@ -44,15 +44,42 @@ const T = { VOID: 0, GRASS: 1, DIRT: 2, SAND: 3, WATER: 4, ROCK: 5, TREE: 6, CFL
      de combate (drawBlood) nem com campo elemental (criaCampo) — os dois são
      transitórios e do motor; estes dois são AUTORAIS, o autor põe no mapa. */
   GORE: 33, RUNE: 34,
+  /* A folha `tiles_01.png` — 55 chãos, um por quadro, todos VARIANTE de um
+     material que já existe. Nenhum substitui o que estava aqui: `grama` e
+     `grama_densa` convivem, e quem diz que as duas são a mesma coisa para a
+     régua de paleta é o campo `familia`.
+     A ordem é por família, e os ids são contíguos por construção — o
+     `TILE_CHAR` é indexado por id, então mexer na ordem depois de gravar um
+     mapa reescreveria calado o significado de cada tile dele. */
+  GRASS_DENSA: 44, GRASS_FLORIDA: 45, GRASS_PEDRA: 46, GRASS_ALTA: 53, GRASS_PAPOULA: 54, GRASS_MOSTARDA: 55, GRASS_MATO_SECO: 90, GRASS_ARBUSTO: 92,
+  DIRT_UMIDA: 47, DIRT_LISA: 48, DIRT_PEDRISCO: 56, DIRT_RACHADA: 57, DIRT_PEDREGOSA: 75, DIRT_GRETADA: 95,
+  SAND_FINA: 49, SAND_GROSSA: 58, SAND_PEDRA: 93, SAND_MATO: 94, SAND_DUNA: 97,
+  PAVE_BLOCO: 50, PAVE_SEIXO: 51, PAVE_CLARA: 59, PAVE_MUSGO: 60, PAVE_PARALELO: 63, PAVE_LAJE: 65, PAVE_MOSAICO: 66,
+  BRICK: 67, BRICK_MUSGO: 68,
+  WATER_CLARA: 52, WATER_FUNDA: 61,
+  ROCK_IRREGULAR: 64, ROCK_PEDREGULHO: 76, ROCK_BASALTO: 77, ROCK_MUSGO: 91,
+  GRAVEL_CLARO: 62,
+  FLOOR_DEITADA: 69, FLOOR_CLARA: 70, FLOOR_ESCURA: 71, FLOOR_TRAVESSA: 72, FLOOR_LARGA: 73,
+  RUG: 74,
+  BONE_CHAO: 78, BONE_AREIA: 96,
+  LAVA_VIVA: 79,
+  SNOW_PEDRA: 80, SNOW_MATO: 81, SNOW_FUNDA: 84,
+  ICE_AGUA: 82, ICE_TRINCADO: 83, ICE_LISO: 85,
+  SWAMP_VITORIA: 86, SWAMP_JUNCO_SECO: 87, SWAMP_JUNCO: 88, SWAMP_FOLHA: 89,
   /* móveis da vila — o que faz uma rua parecer habitada em vez de um corredor
      entre casas. Todos são OBJETO (`top` entre 0 e 0,5): barram o pé e não a
      vista, que é o mesmo caminho da cerca e do escoramento. O curral NÃO entra
      aqui: curral é cerca em volta de terra batida, e já dá para escrever. */
-  WELL: 35, CART: 36, BARREL: 37, MILL: 38 };
+  WELL: 35, CART: 36, BARREL: 37, MILL: 38,
+  /* variantes de chão vindas de PNG (assets/terreno). São MATERIAIS, não
+     enfeite: a mata tem chão de mata e o corte tem chão pisado. A cor de cada
+     uma é a média do próprio PNG — cravar um hexadecimal à mão aqui faria a
+     planta discordar do que o jogo desenha no primeiro retoque da arte. */
+  GRASS_CLARA: 39, GRASS_MATA: 40, GRASS_SECA: 41, GRASS_RALA: 42, DIRT_ESCURA: 43 };
 const TILE = {
   [T.VOID]:   { c: 0x000000, top: 0,    walk: false, hide: true },
-  [T.GRASS]:  { c: 0x55913a, top: 0,    walk: true,  tex: 'grass' },
-  [T.DIRT]:   { c: 0x7a5c30, top: 0,    walk: true,  tex: 'dirt' },
+  [T.GRASS]:  { c: 0x55913a, top: 0,    walk: true,  tex: 'grass', familia: 'grama' },
+  [T.DIRT]:   { c: 0x7a5c30, top: 0,    walk: true,  tex: 'dirt', familia: 'terra' },
   [T.SAND]:   { c: 0xd8bd6e, top: 0,    walk: true,  tex: 'sand' },
   [T.WATER]:  { c: 0x1f5f9e, top: -0.28, walk: false, tex: 'water' },
   [T.ROCK]:   { c: 0x5a6674, top: 1.1,  walk: false, tex: 'rock' },
@@ -114,7 +141,76 @@ const TILE = {
   /* O moinho é o único que TAPA a vista: é um prédio, não um móvel, e `top`
      1.1 o põe na régua de parede. Numa ilha que vive de trigo ele é a silhueta
      que diz "fazenda" de mais longe que qualquer outra coisa. */
-  [T.MILL]:   { c: 0x8a7a5c, top: 1.1,  walk: false, tex: 'dirt',   parede: 'moinho', span: [2, 3] }
+  [T.MILL]:   { c: 0x8a7a5c, top: 1.1,  walk: false, tex: 'dirt',   parede: 'moinho', span: [2, 3] },
+  /* `familia` diz que estas são VARIANTES do mesmo material, e não materiais
+     diferentes. Quem lê isso é a régua de paleta: ela exige 60 de distância
+     entre terrenos vizinhos, e exigir o mesmo entre duas gramas seria medir
+     identidade com a régua de legibilidade — o erro que o #48b já registrou
+     para parede e cerca, que são a mesma madeira de propósito. Grama de mata e
+     grama de campo TÊM de se parecer; o que nunca pode se confundir é grama
+     com pântano. */
+  [T.GRASS_CLARA]: { c: 0x4e6e0a, top: 0, walk: true, tex: 'grama_clara', familia: 'grama' },
+  [T.GRASS_MATA]:  { c: 0x444b0d, top: 0, walk: true, tex: 'grama_mata',  familia: 'grama' },
+  [T.GRASS_SECA]:  { c: 0x695e13, top: 0, walk: true, tex: 'grama_seca',  familia: 'grama' },
+  [T.GRASS_RALA]:  { c: 0x5a5017, top: 0, walk: true, tex: 'grama_rala',  familia: 'grama' },
+  [T.DIRT_ESCURA]: { c: 0x5c3413, top: 0, walk: true, tex: 'terra_escura', familia: 'terra' },
+  /* Os 55 da `tiles_01.png`. A cor sai da MÉDIA do próprio PNG, e não de um
+     hexadecimal escolhido: cravar à mão faria a planta e o minimapa discordarem
+     do que o jogo desenha no primeiro retoque da arte. */
+  [T.GRASS_DENSA]: { c: 0x547301, top: 0, walk: true, tex: 'grama_densa', familia: 'grama' },
+  [T.GRASS_FLORIDA]: { c: 0x57720c, top: 0, walk: true, tex: 'grama_florida', familia: 'grama' },
+  [T.GRASS_PEDRA]: { c: 0x546f08, top: 0, walk: true, tex: 'grama_pedra', familia: 'grama' },
+  [T.DIRT_UMIDA]: { c: 0x79481a, top: 0, walk: true, tex: 'terra_umida', familia: 'terra' },
+  [T.DIRT_LISA]: { c: 0x8f5b24, top: 0, walk: true, tex: 'terra_lisa', familia: 'terra' },
+  [T.SAND_FINA]: { c: 0xc89442, top: 0, walk: true, tex: 'areia_fina', familia: 'areia' },
+  [T.PAVE_BLOCO]: { c: 0x75685a, top: 0, walk: true, tex: 'calcada_bloco', familia: 'calcada' },
+  [T.PAVE_SEIXO]: { c: 0x524941, top: 0, walk: true, tex: 'calcada_seixo', familia: 'calcada' },
+  [T.WATER_CLARA]: { c: 0x1c5f77, walk: false, top: -0.28, tex: 'agua_clara', familia: 'agua' },
+  [T.GRASS_ALTA]: { c: 0x426001, top: 0, walk: true, tex: 'grama_alta', familia: 'grama' },
+  [T.GRASS_PAPOULA]: { c: 0x495202, top: 0, walk: true, tex: 'grama_papoula', familia: 'grama' },
+  [T.GRASS_MOSTARDA]: { c: 0x4a6602, top: 0, walk: true, tex: 'grama_mostarda', familia: 'grama' },
+  [T.DIRT_PEDRISCO]: { c: 0x784c21, top: 0, walk: true, tex: 'terra_pedrisco', familia: 'terra' },
+  [T.DIRT_RACHADA]: { c: 0x98662c, top: 0, walk: true, tex: 'terra_rachada', familia: 'terra' },
+  [T.SAND_GROSSA]: { c: 0xd19f4b, top: 0, walk: true, tex: 'areia_grossa', familia: 'areia' },
+  [T.PAVE_CLARA]: { c: 0x7e7062, top: 0, walk: true, tex: 'calcada_clara', familia: 'calcada' },
+  [T.PAVE_MUSGO]: { c: 0x5e573b, top: 0, walk: true, tex: 'calcada_musgo', familia: 'calcada' },
+  [T.WATER_FUNDA]: { c: 0x092a41, walk: false, top: -0.28, tex: 'agua_funda', familia: 'agua' },
+  [T.GRAVEL_CLARO]: { c: 0x7b6546, top: 0, walk: true, tex: 'cascalho_claro', familia: 'brita' },
+  [T.PAVE_PARALELO]: { c: 0x6e6053, top: 0, walk: true, tex: 'calcada_paralelo', familia: 'calcada' },
+  [T.ROCK_IRREGULAR]: { c: 0x736456, top: 0, walk: true, tex: 'pedra_irregular', familia: 'pedra' },
+  [T.PAVE_LAJE]: { c: 0x847464, top: 0, walk: true, tex: 'calcada_laje', familia: 'calcada' },
+  [T.PAVE_MOSAICO]: { c: 0x67594c, top: 0, walk: true, tex: 'calcada_mosaico', familia: 'calcada' },
+  [T.BRICK]: { c: 0x6c5e52, top: 0, walk: true, tex: 'tijolo', familia: 'tijolo' },
+  [T.BRICK_MUSGO]: { c: 0x534729, top: 0, walk: true, tex: 'tijolo_musgo', familia: 'tijolo' },
+  [T.FLOOR_DEITADA]: { c: 0x663910, top: 0, walk: true, tex: 'tabua_deitada', familia: 'tabua' },
+  [T.FLOOR_CLARA]: { c: 0x673c12, top: 0, walk: true, tex: 'tabua_clara', familia: 'tabua' },
+  [T.FLOOR_ESCURA]: { c: 0x693e14, top: 0, walk: true, tex: 'tabua_escura', familia: 'tabua' },
+  [T.FLOOR_TRAVESSA]: { c: 0x6a3e13, top: 0, walk: true, tex: 'tabua_travessa', familia: 'tabua' },
+  [T.FLOOR_LARGA]: { c: 0x683b11, top: 0, walk: true, tex: 'tabua_larga', familia: 'tabua' },
+  [T.RUG]: { c: 0x1e3657, top: 0, walk: true, tex: 'tapete', familia: 'tapete' },
+  [T.DIRT_PEDREGOSA]: { c: 0x5e5134, top: 0, walk: true, tex: 'terra_pedregosa', familia: 'terra' },
+  [T.ROCK_PEDREGULHO]: { c: 0x604b28, top: 0, walk: true, tex: 'pedregulho', familia: 'pedra' },
+  [T.ROCK_BASALTO]: { c: 0x675951, top: 0, walk: true, tex: 'rocha_basalto', familia: 'pedra' },
+  [T.BONE_CHAO]: { c: 0x5b4b3e, top: 0, walk: true, tex: 'ossada', familia: 'osso' },
+  [T.LAVA_VIVA]: { c: 0x5f2915, walk: false, top: -0.1, tex: 'lava_viva', familia: 'lava' },
+  [T.SNOW_PEDRA]: { c: 0xb7c5d2, top: 0, walk: true, tex: 'neve_pedra', familia: 'neve' },
+  [T.SNOW_MATO]: { c: 0xb8c8d5, top: 0, walk: true, tex: 'neve_mato', familia: 'neve' },
+  [T.ICE_AGUA]: { c: 0x76a7bf, top: 0, walk: true, tex: 'gelo_agua', familia: 'gelo' },
+  [T.ICE_TRINCADO]: { c: 0xadd2e5, top: 0, walk: true, tex: 'gelo_trincado', familia: 'gelo' },
+  [T.SNOW_FUNDA]: { c: 0xb9ccdc, top: 0, walk: true, tex: 'neve_funda', familia: 'neve' },
+  [T.ICE_LISO]: { c: 0x58a5cb, top: 0, walk: true, tex: 'gelo_liso', familia: 'gelo' },
+  [T.SWAMP_VITORIA]: { c: 0x30502d, walk: true, top: -0.06, tex: 'pantano_vitoria', familia: 'pantano' },
+  [T.SWAMP_JUNCO_SECO]: { c: 0x45440f, walk: true, top: -0.06, tex: 'junco_seco', familia: 'pantano' },
+  [T.SWAMP_JUNCO]: { c: 0x3a4822, walk: true, top: -0.06, tex: 'junco_verde', familia: 'pantano' },
+  [T.SWAMP_FOLHA]: { c: 0x34552a, walk: true, top: -0.06, tex: 'pantano_folha', familia: 'pantano' },
+  [T.GRASS_MATO_SECO]: { c: 0x3c340c, top: 0, walk: true, tex: 'mato_seco', familia: 'grama' },
+  [T.ROCK_MUSGO]: { c: 0x443f21, top: 0, walk: true, tex: 'pedra_musgo', familia: 'pedra' },
+  [T.GRASS_ARBUSTO]: { c: 0x493e0b, top: 0, walk: true, tex: 'arbusto_frutos', familia: 'grama' },
+  [T.SAND_PEDRA]: { c: 0xb98237, top: 0, walk: true, tex: 'areia_pedra', familia: 'areia' },
+  [T.SAND_MATO]: { c: 0xac7b2f, top: 0, walk: true, tex: 'areia_mato', familia: 'areia' },
+  [T.DIRT_GRETADA]: { c: 0xab7633, top: 0, walk: true, tex: 'terra_gretada', familia: 'terra' },
+  [T.BONE_AREIA]: { c: 0x9d6f38, top: 0, walk: true, tex: 'ossada_areia', familia: 'osso' },
+  [T.SAND_DUNA]: { c: 0xc58d3a, top: 0, walk: true, tex: 'duna', familia: 'areia' }
 };
 
 /* ------------------------------------------------------------------ OBJETOS
@@ -900,7 +996,19 @@ function buildMinimaps() {
    em qual linha a mudança caiu — que é exatamente o que importa quando o mapa
    passa a ser desenhado à mão. Comprimir economizaria uns KB e custaria as duas
    coisas. Aleto, a 128×128, dá 16 KB por andar. */
-const TILE_CHAR = '.gdswRTcCLv^#npMPDFHjyISauOkWebzmxr@%$&';   // índice = id do tile em T
+/* Índice = id do tile em T, e por isso caractere NOVO entra sempre no FIM:
+   inserir no meio reescreveria calado o significado de todo mapa já gravado.
+   Os sete últimos são Latin-1 e não ASCII, e não por capricho: ASCII
+   imprimível dá 94 caracteres, dois deles proibidos por serem aspa e barra
+   dentro de JSON, e a folha `tiles_01.png` levou a tabela de 44 para 99
+   tiles. São um code unit só em UTF-16, então `TILE_CHAR[i]` continua
+   valendo exatamente um tile e o mapa continua um caractere por tile —
+   o que muda é só o arquivo gravado, que passa a ter 2 bytes onde um
+   desses aparece. O teto seguinte é o fim do Latin-1; ver o tasks.html. */
+const TILE_CHAR = '.gdswRTcCLv^#npMPDFHjyISauOkWebzmxr@%$&lfhiE'
+  + "!'()*+,-/0123456789:;<=>?ABGJKNQUVXYZ[]_`oqt{|}~ÀÁÂÃÄÅ";
+/* Caractere novo entra sempre no FIM: o índice É o id, então inserir no meio
+   reescreveria calado o significado de todo mapa já gravado. */
 const CHAR_TILE = {};
 for (let i = 0; i < TILE_CHAR.length; i++) CHAR_TILE[TILE_CHAR[i]] = i;
 
@@ -1006,13 +1114,23 @@ function parteCamadas(t, deco, w, h) {
        cada uma sem par do outro lado. É a armadilha de sempre: escada que sobra
        não deixa buraco visível na planta, e quem acusou foi o teste de par.
        A régua certa é "chão comum", não "chão que se pisa". */
+    /* ANÉIS CRESCENTES, e não só as oito vizinhas. Numa mata densa a árvore tem
+       as oito vizinhas também árvore — todas em MIGRA, todas fora do voto —, e
+       aí a reserva fixa entrava. Isso pintava chão de CAMPO sob a mata inteira:
+       medido, 806 árvores sobre `grass` contra 697 sobre `grama_mata`, e a Mata
+       Funda ficou com o chão errado no miolo justamente onde ela é mais fechada.
+       Abrindo o anel até achar chão de verdade, o miolo herda o chão da região
+       em que está. A reserva continua existindo para o caso de não haver chão
+       nenhum por perto — ilha de árvore cercada de água. */
     const conta = {};
-    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
-      const v = em(x + i, y + j);
-      if (v < 0 || MIGRA[v] || !TILE[v] || !TILE[v].walk) continue;
-      if (v === T.DOWN || v === T.UP) continue;
-      conta[v] = (conta[v] || 0) + 1;
-    }
+    for (let r = 1; r <= 6 && !Object.keys(conta).length; r++)
+      for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) {
+        if (Math.max(Math.abs(i), Math.abs(j)) !== r) continue;   // só a casca do anel
+        const v = em(x + i, y + j);
+        if (v < 0 || MIGRA[v] || !TILE[v] || !TILE[v].walk) continue;
+        if (v === T.DOWN || v === T.UP) continue;
+        conta[v] = (conta[v] || 0) + 1;
+      }
     let melhor = mg.chao, n = 0;
     for (const k in conta) if (conta[k] > n) { n = conta[k]; melhor = +k; }
     t[y * w + x] = melhor;

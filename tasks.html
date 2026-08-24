@@ -134,13 +134,52 @@
     2026-08-22 a lore e a planta das terras moram em documentos próprios —
     <b>mundo_varrokgaard.html</b>, <b>mundo_aleto.html</b> e <b>proposta_24.html</b> —, e este aqui
     ficou com o estado técnico e a fila.
-    <b>756 verificações</b> passando em <code>tests/test.js</code>.
+    <b>762 verificações</b> passando em <code>tests/test.js</code>, mais <b>26</b> na suíte
+    nova do <code>tools/</code>.
   </div>
+
+<div class="lede">
+  <p><b>Onde o projeto está em 2026-08-23</b>, depois de um dia longo. Cinco coisas mudaram de
+  estado e valem antes de qualquer leitura:</p>
+  <ul class="col">
+    <li><b>Objeto deixou de ser tile.</b> O mapa tem duas camadas — <code>t</code> (chão, denso)
+      e <code>objs</code> (esparso, com id, <code>span</code> e estado). Parede é objeto, vários
+      objetos por tile. <code>T.TREE</code> e companhia viraram <b>vocabulário de autor</b>: o
+      script pinta em uma camada e o <code>parteCamadas</code> desce para duas.</li>
+    <li><b>O editor mostra o jogo.</b> Chama o <code>drawWorld</code> do render, não uma cópia.
+      Vista (V), duas luzes (L), grade (X), zoom sem teto, pincel de objeto, paleta com o sprite
+      de verdade, e nada anima.</li>
+    <li><b>O chão pode vir de PNG.</b> <code>assets/build_terreno.py</code> recorta folha gerada
+      por IA, costura e entrega 96×96 em <code>assets/terreno/</code>. Dez em uso, e cinco tiles
+      de chão novos com <code>familia</code>.</li>
+    <li><b>A conferência de mapa nomeia em vez de contar.</b> Recinto fechado de propósito entra
+      numa lista com nome e um ponto dentro dele.</li>
+    <li><b>O pincel tem forma e densidade.</b> Quadrado, círculo e mancha (Q/C/M), régua de
+      densidade de 5 a 100% e seis tamanhos até 13×13 — espalhar árvore deixou de ser pintar
+      uma por uma ou tapar o pincel inteiro. O <b>X</b> passou a ciclar as DUAS grades, porque a
+      marca de ouro do que se mexeu também é uma grade. E o <code>tools/</code> ganhou a
+      primeira suíte, que recorta o bloco do <code>editor.html</code> por marca em vez de
+      copiá-lo.</li>
+  </ul>
+  <p>Continua parado, e por decisão: o <b>balanceamento</b> (com a exceção do #31), a
+  <b>bancada de sombras</b> (<code>tools/amostra/sombras.html</code>, medida e montada, nada
+  aplicado no motor), a <b>bancada de traçado</b> (<code>tools/amostra/tracado.html</code>, de pé
+  e medida — o dono mandou ignorar por enquanto, e a medição concorda que a diferença é pequena)
+  e a <b>segunda fatia do editor</b> — spawn, hunt, POI e escada.</p>
+</div>
   <div class="lede col" style="margin-top:14px;font-size:15px">
     <b>Se você só tem cinco minutos:</b> leia <em>Regras que não devem ser quebradas</em> e
     <em>Armadilhas conhecidas</em>. Em seguida, os cinco casos em que a medição contrariou o
-    diagnóstico escrito aqui — #26, #27, #38, #38b e agora #31 —, porque são o melhor argumento
-    contra confiar em impressão de jogo sem medir. O que está aberto está em <em>Pendente</em>, e o
+    diagnóstico escrito aqui — #26, #27, #38, #38b e #31 —, porque são o melhor argumento
+    contra confiar em impressão de jogo sem medir. Em 2026-08-23 a lista cresceu de um jeito que
+    vale ler junto: <b>a régua errada apareceu seis vezes num dia só</b> — contei "coluna
+    escura" achando que media fresta e media oceano e copa; medi a caixa da sombra com o sprite
+    da árvore dentro; medi costura contra a saída borrada em vez de contra a fonte; escolhi a
+    escala do tile por variedade quando o que estava em jogo era proporção; e conferi a marca do
+    pincel lendo o buffer do canvas quando o overlay é desenhado em pixel de CSS, num visor
+    encolhido que cortava metade do pincel; e ataquei a borda quadrada pela PROFUNDIDADE quando o
+    que a denunciava era a silhueta, o que produziu um quebra-cabeça de abas. Nas seis o conserto
+    foi o mesmo: <b>medir por diferença contra um controle</b>, e não por limiar absoluto. O que está aberto está em <em>Pendente</em>, e o
     balanceamento continua em pausa por decisão do dono do projeto, com a exceção anotada no #31.
   </div>
   <div class="lede col" style="margin-top:14px;font-size:15px">
@@ -204,7 +243,7 @@
         <tr><th scope="row"><code>ui.js</code></th><td class="n">474</td><td>Bestiário, contratos de caça, forja (imbuements), mapa expandido.</td></tr>
         <tr><th scope="row"><code>hud.js</code></th><td class="n">368</td><td>Posicionamento e visibilidade dos painéis.</td></tr>
         <tr><th scope="row"><code>main.js</code></th><td class="n">276</td><td>O launcher Electron, e o servidor de tudo: serve o jogo, GRAVA o patch do editor e RECOMPÕE o mapa rodando <code>tools/mapas/&lt;terra&gt;.js</code> pelo próprio binário (<code>ELECTRON_RUN_AS_NODE</code>), sem exigir <code>node</code> no PATH. <code>--editor</code> abre a janela do editor junto; F9 no jogo também.</td></tr>
-        <tr><th scope="row"><code>tools/editor.html</code></th><td class="n">694</td><td>O editor de mapas. Pincel, balde, retângulo, conta-gotas, paleta agrupada, câmera com zoom na roda. Não grava o mapa: grava o DIFF em <code>maps/&lt;terra&gt;.patch.json</code>.</td></tr>
+        <tr><th scope="row"><code>tools/editor.html</code></th><td class="n">1180</td><td>O editor de mapas. Pincel com <b>forma</b> (quadrado, círculo, mancha) e <b>densidade</b>, balde, retângulo, conta-gotas, paleta agrupada, câmera com zoom na roda. Não grava o mapa: grava o DIFF em <code>maps/&lt;terra&gt;.patch.json</code>.</td></tr>
         <tr><th scope="row"><code>tools/compor.js</code></th><td class="n">335</td><td>A biblioteca de composição: primitivas de desenho, derivação da decoração, aplicação do patch e as conferências (componentes, rastro de objeto).</td></tr>
         <tr><th scope="row"><code>tools/planta_png.js</code></th><td class="n">91</td><td>A planta de um andar como PNG, sem navegador — <code>zlib</code> da stdlib e a cor de tile saindo do <code>TILE</code> do próprio <code>world.js</code>.</td></tr>
       </tbody>
@@ -215,7 +254,14 @@
     <p>
       <code>node tests/test.js</code>. Roda sem navegador: carrega os fontes num contexto <code>vm</code>
       com stubs mínimos de DOM e THREE. Não usa framework. Saída é uma contagem e a lista de falhas.
-      É a única rede de segurança do projeto — <strong>toda mudança de lógica deve deixar uma verificação</strong>.
+      É a rede de segurança do projeto — <strong>toda mudança de lógica deve deixar uma verificação</strong>.
+    </p>
+    <p>
+      São três, e cobrem coisas diferentes: <code>tests/test.js</code> (756) para o
+      <code>src/</code>, <code>tests/test_launcher.js</code> para o que o Electron falha em
+      silêncio, e <code>tests/test_tools.js</code> (16) para o <code>tools/</code> — este
+      último <b>recorta o bloco a testar do próprio <code>editor.html</code> por marca</b>, em
+      vez de copiá-lo, para não criar a segunda fonte de verdade de sempre.
     </p>
     <h3>Grafo de conhecimento</h3>
     <p>
@@ -244,7 +290,9 @@
         <tr><th scope="row">Pontos de interesse</th><td class="n">0</td><td class="now">39</td><td class="delta">5 tipos</td></tr>
         <tr><th scope="row">Imbuements</th><td class="n">0</td><td class="now">11</td><td class="delta">forja</td></tr>
         <tr><th scope="row">Ícones PNG</th><td class="n">0</td><td class="now">250</td><td class="delta">222 itens com arte própria, 77 emprestando genérico, <b>30 ainda em emoji</b> — ver #14</td></tr>
-        <tr><th scope="row">Verificações</th><td class="n">339</td><td class="now">577</td><td class="delta">+238. O documento dizia 600 quando o real era 488; o #43 levou a 535 e o #32 a 577</td></tr>
+        <tr><th scope="row">Verificações</th><td class="n">339</td><td class="now">577</td><td class="delta">+238. O documento dizia 600 quando o real era 488; o #43 levou a 535 e o #32 a 577.
+              Depois: 712 (#48), 714 (#27b), 730 e 746 (esboço 3, móveis e porta) e <b>756</b>
+              hoje, com a separação de camadas</td></tr>
       </tbody>
     </table>
   </div>
@@ -1277,10 +1325,14 @@
       moinho (25), parede (12) e barris (5). É uma <b>eira murada</b>, e tem cara de
       deliberada — só que nenhum tile andável encosta nela, então o jogador vê e nunca entra.
       Se é para ficar fechada, a régua de conferência é que tem de mudar; se é para se
-      entrar, falta uma porta ou um vão de um tile na cerca. <b>Não mexer sem perguntar.</b></li>
+      entrar, falta uma porta ou um vão de um tile na cerca.
+      <b>DECIDIDO em 2026-08-23: fica fechada</b>, e quem mudou foi a régua de conferência —
+      ver "O pátio de palha fica fechado" mais abaixo.</li>
     <li>A <b>vila murada</b> é o outro pedaço, e esse é esperado: só se entra pela ponte.</li>
   </ul>
-  <p class="why">E fica uma dívida de régua: a conferência conta "2 pedaços" com a vila como
+  <p class="why"><b>Esta dívida venceu no mesmo dia e está paga</b> — ver "O pátio de palha fica
+  fechado". O texto original fica porque a previsão acertou:
+  E fica uma dívida de régua: a conferência conta "2 pedaços" com a vila como
   exceção escrita à mão. No dia em que houver um segundo recinto fechado de propósito, ela vai
   reclamar para sempre — o certo é ela passar a <b>listar quais são esperados</b> em vez de
   contar. Ainda não vale o trabalho; com o terceiro recinto, vale.</p>
@@ -1509,7 +1561,7 @@
   <p>O mapa recomposto dá <b>12.417 tiles andáveis em 3 componentes — 10.005, 2.390 e 22</b>.
   Conferido contra a cópia datada do mapa anterior com a régua antiga: <b>os mesmos três
   números</b>. O componente de 22 tiles em x&nbsp;72–77, y&nbsp;15–19 é o pátio de palha que já
-  estava registrado aqui e continua <b>esperando decisão</b> — não é regressão.
+  estava registrado aqui — não é regressão, e foi decidido no mesmo dia que fica fechado.
   O arquivo foi de 166&nbsp;KB para 198&nbsp;KB (+22%), uma linha por objeto, ordenada por y e
   depois x, para o git apontar a linha exata.</p>
   <p>Contagem em jogo, e bate exata com o arquivo antigo: árvore 1.887, rochedo 1.362, pbloco
@@ -1697,7 +1749,8 @@
 
   <p class="it-t">editor: vista de jogo (V) · duas luzes (L) · grade (X) · zoom sem teto ·
   pincel de objeto com N por tile · paleta com sprite real · estático ·
-  conferência de recintos por NOME · 756 verificações · o patch de 918 tiles do dono, intacto</p>
+  conferência de recintos por NOME · 756 verificações · o patch de 918 tiles do dono, intacto<br>
+  a tecla X virou ciclo de três estados na leva seguinte — ver "São DUAS grades" acima</p>
 
 
   <h4>O pátio de palha fica fechado, e a conferência deixou de contar</h4>
@@ -1736,11 +1789,679 @@
   coordenada. Agora quem decide é o dono, na tecla <b>X</b>, e sobre a arte ela
   entra clara e discreta em vez de preta. Continua escondida abaixo de 7&nbsp;px,
   onde viraria ruído sólido.</p>
+  <p><b>São DUAS grades, e o X passou a cobrir as duas</b> — 2026-08-23, depois do
+  pincel novo. Relato do dono: <i>"quando coloco algo no mapa fica com uma grade
+  amarela e dificulta ver os tiles"</i>. Ele estava certo e o nome estava certo: a
+  marca de ouro do que se mexeu é <b>um contorno por tile</b>, então numa região
+  recém-pintada ela É uma grade — e cai exatamente em cima do que se acabou de pôr,
+  que é onde se quer julgar o tile. Com a densidade e a mancha isso piorou de vez,
+  porque agora se pinta área grande de uma vez.</p>
+  <p>O X virou ciclo de três: <b>as duas → só a de edição → nenhuma → as duas</b>.
+  Um botão só, porque a pergunta é uma só ("quanto rabisco por cima da arte?") e
+  dois botões fariam o dono lembrar de qual é qual; e o botão <b>diz em que estado
+  está</b> em vez de só acender, porque com três estados aceso/apagado não
+  distingue "só a de edição" de "nenhuma". Medido nos três, com 15 tiles mexidos a
+  16&nbsp;px por tile: do estado 1 para o 2 mudam <b>19.778 px</b> (some a do mapa),
+  do 2 para o 3 mudam <b>301 px</b> (some a de edição), e do 1 para o 3 mudam
+  <b>20.297</b> — a soma, ou seja as duas são de fato independentes.</p>
+  <p>O contador de "por gravar" no rodapé <b>fica</b> nos três estados: desligar a
+  marca esconde onde está o que você mexeu, e não pode esconder que há coisa
+  pendente — sair com trabalho não gravado é a perda mais boba que um editor
+  permite, e já há um <code>beforeunload</code> guardando isso.</p>
   <p>E o zoom perdeu o teto de 28&nbsp;px por tile, que era arbitrário e
   atrapalhava justamente o que o editor passou a servir: a 64, 160 ou 320&nbsp;px
   por tile dá para conferir a junta entre dois terrenos e a silhueta de um
   objeto, que é onde a arte se decide. O piso de 1 fica — abaixo disso não há o
   que editar, e para navegar longe existe o "ver tudo".</p>
+
+
+  <h3>O pincel ganhou forma e densidade — 2026-08-23</h3>
+  <p>Dois pedidos do dono do projeto: <i>"o pincel deve ser como photoshop, deve ter
+  'spray' de vários formatos, não só quadrado. O mapa nem sempre tem chão uniforme"</i> e
+  <i>"pincel com tiles aleatórios dentro da área — para árvores, arbustos, aleatoriedade no
+  posicionamento pode ser interessante ao invés de posicionar um por um ou uma porrada em
+  todos os tiles do pincel"</i>. Os dois eixos são independentes e ficaram assim: a
+  <b>forma</b> decide o contorno (quadrado <b>Q</b>, círculo <b>C</b>, mancha <b>M</b>) e a
+  <b>densidade</b> decide quantos tiles de dentro dele a tinta acerta (régua de 5 a 100%).
+  O tamanho foi de três degraus para seis — 1×1 a 13×13, teclas 1..6 —, porque espalhar
+  árvore num 5×5 não é espalhar, é preencher.</p>
+  <ul class="col">
+    <li><b>Uma função decide quais tiles o pincel acerta</b>, e tanto a pintura quanto a
+      marca sob o cursor leem dela. Duas listas divergiriam e a marca passaria a mentir sobre
+      onde a tinta cai — que é a mesma razão pela qual a vista do editor chama o
+      <code>drawWorld</code> do jogo em vez de ter laço próprio.</li>
+    <li><b>A marca deixou de ser um retângulo</b> e virou a união das células, desenhada só
+      nas arestas que fazem divisa com quem está de fora — com círculo e mancha o retângulo
+      passou a ser mentira, e 169 quadradinhos contornados viram malha. Objeto de
+      <code>span</code> entra no desenho com o rastro inteiro, senão a marca mostraria a
+      âncora e cairia um moinho de 2×3.</li>
+    <li><b>A densidade fica FORA da marca, de propósito.</b> Ela sorteia a cada clique, então
+      mostrar o resultado dela seria mostrar um sorteio que não vai se repetir. A marca diz
+      "aqui pode cair"; a pintura decide quantos caem. Arrastar constrói por cima, como
+      aerógrafo — e o <code>poeObj</code> continua idempotente, então arrastar não empilha
+      cinquenta árvores num tile.</li>
+    <li><b>A mancha morde o raio com ruído do MAPA, não com sorteio do traço.</b> Com o ruído
+      amarrado a (x,y) a marca mostra exatamente o contorno que vai cair, e arrastar não
+      carimba a mesma bolha repetida: a borda muda porque o lugar mudou. É o que separa
+      "mancha" de "carimbo irregular".</li>
+    <li><b>O 1×1 escapa das duas.</b> Pincel de um tile que às vezes não pinta é ferramenta
+      quebrada, não spray.</li>
+  </ul>
+
+  <h4>Dois defeitos meus, e o segundo só apareceu medindo</h4>
+  <p><b>O hash do ruído nascia enviesado.</b> <code>n ^ (n &gt;&gt; 16)</code> com
+  deslocamento COM sinal zera o bit 31 sempre, então o hash saía na faixa
+  <b>[0, 0,5)</b> em vez de [0, 1). Efeito: a mancha ficava com <b>dois terços da área do
+  círculo</b> do mesmo tamanho, e trocar de forma encolhia o pincel junto — botão fazendo
+  duas coisas de uma vez. <b>Nada acusava</b>, porque ruído enviesado ainda parece ruído; foi
+  a comparação com o círculo que apontou. Corrigido com <code>&gt;&gt;&gt;</code> e
+  <code>Math.imul</code> (o produto de 32 bits estourava o inteiro seguro), e a mordida
+  recentrada em 1 (0,72 a 1,28 do raio) para que forma e tamanho voltem a ser eixos
+  separados. Medido depois: hash com média 0,500 na faixa 0–1, mancha em 59–72 células
+  contra 69 do círculo.</p>
+  <p><b>E medi a marca com a régua errada, de novo.</b> A primeira conferência disse que a
+  marca cobria 19 de 133 células, e eu quase saí atrás de um defeito de desenho: o
+  <code>desenhaJogo</code> termina em <code>setTransform(dpr()…)</code>, então o overlay é
+  desenhado em <b>pixel de CSS</b> e eu estava lendo o buffer, que é 2×. Corrigida a escala,
+  sobrou um segundo viés — o visor estava encolhido e metade do pincel caía fora do canvas,
+  então o que faltava não era marca, era tela. Medindo com o cursor no centro do canvas de
+  verdade: <b>0 faltando e 0 sobrando nas três formas</b>. É a quinta vez que a régua errada
+  produz alarme falso neste projeto, e de novo o conserto foi comparar contra um controle.</p>
+
+  <h4>O tools/ ganhou a primeira suíte</h4>
+  <p>A dívida estava anotada desde a leva do terreno de PNG: <i>"o caminho barato, quando
+  incomodar, é um <code>tests/test_tools.js</code>"</i>. Incomodou aqui, e a razão está acima
+  — o viés do hash é exatamente o defeito que cala. O teste <b>recorta o bloco do
+  <code>editor.html</code> por marca</b> (<code>[PINCEL]</code> … marca de fecho) e o roda no
+  node; copiar o código para o teste criaria a segunda fonte de verdade que este projeto já
+  pagou três vezes, e marca que sumir derruba o teste alto em vez de testar nada.</p>
+  <p><b>16 verificações, seis mutações, cinco pegas.</b> A que escapou foi medida antes de eu
+  mexer no teste: trocar <code>&gt;&gt;&gt; 13</code> por <code>&gt;&gt; 13</code> não
+  enviesa nada — as duas formas dão média 0,499 e pior decil a 1,01× do esperado, porque
+  aquele deslocamento não é o último antes da leitura sem sinal. Travar esse número seria
+  travar um número que não carrega significado, então ficou como está, com a medição no
+  comentário. Só o deslocamento do 16 é defeito.</p>
+  <p class="it-t">pincel: 3 formas · densidade de 5 a 100% · 6 tamanhos até 13×13 ·
+  X cicla as DUAS grades (mapa e edição) ·
+  marca por união de células, conferida em 0 faltando / 0 sobrando ·
+  <code>tests/test_tools.js</code> com 16 verificações · 756 + 16 + launcher passando ·
+  o patch de 918 tiles do dono, intacto</p>
+
+
+  <h3>A folha tiles_01: 54 chãos novos — 2026-08-23</h3>
+  <p>Pedido do dono: <i>"recorte os tiles e adicione ao editor"</i>, sobre a
+  <code>assets/scenario/tiles_01.png</code> — a mesma folha que o #19 e o #12 tinham
+  catalogado como arriscada. Decisão dele depois de ver a folha de contato: <b>todas
+  entram como tiles NOVOS, nenhuma substitui as dez que já existem</b>, e objeto e
+  parede ficam para leva própria.</p>
+
+  <h4>O pipeline recusou a folha inteira, e baixar as constantes traria um defeito velho de volta</h4>
+  <p>Medido: a folha é 9×9 em 1254&nbsp;px, ou seja <b>139&nbsp;px por quadro</b>, e o
+  miolo sólido depois de erodir a borda serrilhada fica em <b>~100×100</b>. O
+  <code>build_terreno.py</code> pede <code>TRABALHO+BANDA</code> = 224, número que veio
+  da <code>tiles_02</code> (quadros de 285, miolos de 254 a 260). <b>Os 81 quadros foram
+  recusados, todos.</b></p>
+  <p>A saída óbvia — baixar o TRABALHO — é armadilha, e quase caí nela: o
+  <code>reduz</code> exige TRABALHO múltiplo de ESCALA, então o degrau abaixo de 192 é
+  96 e depois 48; e a <code>costura</code> não reduz nada, ela <b>recorta</b> N de N+b.
+  Com TRABALHO 48 o tile do jogo passaria a mostrar 48&nbsp;px de um quadro de 139 —
+  menos da metade do motivo, ampliado duas vezes. É exatamente o <i>"parece que a pedra
+  é maior que o personagem"</i> que o ESCALA veio consertar, voltando pela porta dos
+  fundos.</p>
+  <p>O certo é o contrário: <code>normaliza</code> <b>reamostra o miolo</b> para o
+  tamanho de trabalho, e o quadro inteiro continua valendo um tile.
+  <code>MIOLO_ALVO</code> é 257, a mediana dos miolos da folha que calibrou as
+  constantes. E a mudança é <b>estritamente aditiva</b>: miolo que já cabe segue o
+  caminho antigo, sem passar pela reamostragem. Conferido — a <code>tiles_02</code>
+  reprocessada sai <b>byte a byte idêntica</b> aos dez PNG em uso. Depois disso a folha
+  01 fecha com emenda entre <b>0,33 e 0,99</b> nos 71 quadros que têm miolo.</p>
+
+  <h4>Duas armadilhas que estavam armadas dentro do script</h4>
+  <ul class="col">
+    <li><b><code>NOMES</code> era uma lista solta.</b> Ela é da <code>tiles_02</code>, e
+      <code>--aplicar</code> em qualquer outra folha gravaria os quadros dela por cima de
+      <code>grama.png</code>, <code>terra.png</code> e das outras oito, <b>sem erro e sem
+      aviso</b> — a pior forma de perder arte aprovada. Virou dicionário indexado pela
+      folha, e folha sem lista sai numerada com o nome dela na frente.</li>
+    <li><b>Não havia como cortar sem escrever na pasta do jogo.</b> Entrou
+      <code>--saida</code>: folha em avaliação vai para outro lugar, e só o que for
+      aprovado se muda para <code>assets/terreno/</code>.</li>
+    <li><b>O <code>indice.json</code> saiu.</b> Nada o lia, e depois desta folha ele
+      passou a mentir: dez nomes para 64 PNG na pasta. O próprio carregador já dizia por
+      quê — índice gerado é segunda fonte de verdade sobre o conteúdo de uma pasta. Quem
+      manda é o <code>TEX_PNG_MAP</code>.</li>
+  </ul>
+
+  <h4>A folha não é de chão, e é a folha de contato que prova</h4>
+  <p>Dos 81 quadros, <b>16 são objeto ou parede</b>: árvore, cacto, portal, boca de
+  caverna, placa, toco, zigurate, arbusto seco, estandarte, duas grades, portão, duas
+  cachoeiras e duas paredes de rocha. Ladrilhados eles viram <b>papel de parede</b> — o
+  41 é uma parede de bocas de caverna, o 46 um bosque de pinheiros repetidos, o 64 uma
+  fileira de cactos. Não podem entrar por este caminho: precisam de <code>span</code>
+  (árvore e portal não cabem em 32&nbsp;px), de <code>cx</code>/<code>feet</code> para a
+  sombra do MOTOR, e da sombra assada no sprite sair. Ficaram para leva própria, por
+  decisão do dono.</p>
+
+  <h4>A régua de "cor gritante" estava medindo a coisa errada</h4>
+  <p>Com os 55 candidatos dentro, a suíte reprovou cinco pela faixa de saturação — e ao
+  medir, os cinco eram <b>dois problemas diferentes</b>.</p>
+  <p><b>Quatro gramas a 95–98% de saturação, e quem erra é a régua.</b> Elas têm
+  <b>luz de 16 a 23%</b> e <b>croma de 0,31 a 0,45</b>: são olivas escuras, não neon. A
+  saturação de HSL estoura em cor escura — a <code>grama_clara</code> que já estava no
+  jogo mede <b>83%</b> pela mesma conta e passa só porque tem azul 10 em vez de 1.
+  <b>Um pixel de azul separando aprovado de reprovado é o sintoma de régua errada.</b>
+  O teto passou a ser medido em <b>croma</b> (max−min), que é a distância à linha dos
+  cinzas e não explode no escuro: o tile mais cromático do jogo é a LAVA em <b>0,81</b>,
+  verde neon (#39ff14) dá <b>0,92</b>, e o teto ficou em <b>0,85</b> — deixa a lava
+  passar, continua barrando o neon, e reprova pelo motivo certo. Três mutações pegas:
+  neon verde, magenta puro e cinza morto.</p>
+  <p><b>Um tile a 3%, e aí a régua acertou.</b> A <code>pedra_solta</code>
+  (<code>#43413f</code>, croma 0,02) é cinza de verdade, mais apagada que qualquer pedra
+  do jogo — a <code>RUBBLE</code>, a mais fraca, está em 11%. O PISO continua sendo
+  saturação, que é o que mede "cinza morto" e foi o que pegou a caverna em escala de
+  cinza. <b>É o único quadro de chão que ficou de fora</b>, e voltar é uma linha se o
+  dono decidir que pedra cinza cabe em Thaira.</p>
+
+  <h4>O teto do formato de mapa apareceu: 94 tiles</h4>
+  <p><code>TILE_CHAR</code> é <b>um caractere por id</b>, e o índice É o id. ASCII
+  imprimível dá 94 caracteres, dois deles proibidos por serem aspa e barra dentro de
+  JSON — sobravam 48 livres contra os 54 que a folha pede. <b>Faltavam 7.</b> Os seis
+  últimos ids saem do Latin-1 (<code>ÀÁÂÃÄÅ</code>): são <b>um code unit só em
+  UTF-16</b>, então <code>TILE_CHAR[i]</code> continua valendo exatamente um tile e o
+  mapa continua um caractere por tile — o que muda é só o arquivo gravado, que passa a
+  ter 2 bytes onde um desses aparece. Conferido no navegador: 98 tiles, zero duplicata,
+  ida e volta por JSON exata, maior code point 197.</p>
+  <p>Fica <b>registrado como dívida de formato</b>: o próximo teto é o fim do Latin-1, e
+  quando ele chegar a saída é dois caracteres por tile ou um dicionário por mapa. Não é
+  urgente, e a escolha não deve ser feita no meio de uma leva de arte.</p>
+
+  <h4>O que ficou no jogo</h4>
+  <p>54 tiles novos, ids <b>44 a 97</b>, contíguos e agrupados por família:
+  grama&nbsp;8, terra&nbsp;6, calçada&nbsp;7, areia&nbsp;5, tábua&nbsp;5, pedra&nbsp;4,
+  pântano&nbsp;4, neve&nbsp;3, gelo&nbsp;3, água&nbsp;2, tijolo&nbsp;2, osso&nbsp;2,
+  brita&nbsp;1, lava&nbsp;1, tapete&nbsp;1. Cada um traz <code>familia</code>, entrada em
+  <code>TEX_PNG_MAP</code>, prioridade de borda e reserva de desenho emprestada do
+  material de origem. <b>A cor de mapa sai da MÉDIA do próprio PNG</b>, não de
+  hexadecimal escolhido — cravar à mão faria a planta discordar do que o jogo desenha no
+  primeiro retoque da arte. No editor eles entram em <b>15 grupos próprios</b>, porque 54
+  entradas numa lista corrida seriam um índice e não uma paleta.</p>
+  <p>Conferido: o <code>maps/varrokgaard.json</code> gravado lê <b>idêntico</b> —
+  111.165 tiles, 23 ids distintos, maior id <b>42</b>, nada saiu da faixa antiga. As 54
+  amostras da paleta desenham o sprite de verdade; só VOID e a borracha ficam sem
+  pintura, por construção.</p>
+  <p class="it-t">54 tiles de chão · ids 44–97 · <code>normaliza</code> no
+  build_terreno, <code>NOMES</code> por folha, <code>--saida</code> · teto de paleta em
+  croma · TILE_CHAR entrou no Latin-1 · 757 + 16 + launcher passando · os 10 PNG antigos
+  byte a byte intactos</p>
+
+
+  <h3>A franja da junta entre terrenos — 2026-08-23</h3>
+  <p>Relato do dono, com cinco imagens de Tibia por referência: <i>"preciso que os tiles sejam
+  irregulares. Hoje tudo é uniforme, tile quadrado. Uma rua de barro não é exatamente reta, tem
+  curva, tem irregularidade"</i>. Ele estava certo, e a causa era estrutural, não de ajuste.</p>
+
+  <h4>O diagnóstico, medido</h4>
+  <p><code>MASK_CACHE</code> guardava <b>oito máscaras no total</b>, semeadas só pela direção
+  (<code>_mulberry(m * 7919 + 13)</code>): toda borda norte do mapa inteiro usava a MESMA estampa
+  de 32&nbsp;px. Medido no contorno ao longo de 16 tiles, por autocorrelação: <b>período mais forte
+  32&nbsp;px, força 100%</b> — o motivo mais forte da borda era a própria grade de tiles. E o
+  desvanecer morria em <code>.45</code> com mordida de quadrados 2×2, que é dithering e não
+  contorno: profundidade de 4 a 9&nbsp;px com desvio de 1,44.</p>
+
+  <h4>A primeira tentativa saiu um quebra-cabeça, e o erro vale mais que o acerto</h4>
+  <p>Ataquei pela <b>profundidade</b>: borda ondulando com invasão de 11 a 18&nbsp;px. O dono
+  reprovou na hora — <i>"isso aqui ficou MUITO estranho"</i> — e estava certo: saíram abas
+  retangulares por todo lado, como peça de quebra-cabeça. A medição explicou em um número: a
+  invasão chegava a <b>56% do tile</b>. Num degrau de um tile, os dois lados ortogonais mais o
+  canto cobrem quase o tile inteiro, e <b>meio tile invadido lê como tile CHEIO</b> — as abas eram
+  a escada da própria região sendo engordada. Virou trava: <code>BORDA_TETO</code> em 32%, com
+  teste cobrando.</p>
+  <p>Contendo a invasão em 28% as abas somem — e aí aparece a coisa de verdade, que era o achado:
+  o <code>rimMask</code> é <b>derivado</b> da máscara, então enquanto a máscara for um recuo LISO
+  da borda quadrada ele traça fielmente a escada dos tiles. <b>Ele não escondia a grade, ele a
+  contornava.</b> Nenhum ajuste de máscara conserta isso, porque o problema não era a máscara.</p>
+  <p>O motor foi <b>devolvido ao estado anterior</b> antes de qualquer outra coisa — o
+  <code>edgeMask</code> conferido byte a byte contra o do HEAD, o <code>render2d.js</code> sem
+  diff nenhum. Nunca <code>git checkout</code> nesses arquivos: eles têm trabalho não commitado do
+  dono, e a regra que o CLAUDE.md põe em primeiro lugar é exatamente essa.</p>
+
+  <h4>O que resolveu: a SILHUETA, não a profundidade</h4>
+  <p>Na referência o contorno <b>existe</b> (a lava, o piso de pedra) — o que ele não é é um recuo
+  liso. É esfarrapado, porque segue uma silhueta de tufos. Tufando a máscara, o contorno vem
+  esfarrapado de graça, já que ele é derivado dela. Três escalas somadas em
+  <code>bordaProf</code>, e cada uma faz uma coisa:</p>
+  <table>
+    <tr><th>constante</th><th>valor</th><th>o que faz</th></tr>
+    <tr><td><code>BORDA_BASE</code></td><td class="n">6,5 px</td><td>a invasão média</td></tr>
+    <tr><td><code>BORDA_ONDA</code></td><td class="n">2,5 px · passo 72</td><td>o caminhar largo da junta, ~2 tiles</td></tr>
+    <tr><td><code>BORDA_TUFO</code></td><td class="n">2,6 px · passo 7</td><td>a silhueta de tufo de capim</td></tr>
+    <tr><td><code>BORDA_RIM</code></td><td class="n">0,42</td><td>alfa do contorno (era 0,62)</td></tr>
+    <tr><td><code>BORDA_QUEBRA</code></td><td class="n">0,55</td><td>fração do contorno que é apagada</td></tr>
+    <tr><td><code>BORDA_P</code></td><td class="n">8 tiles</td><td>período do ruído</td></tr>
+  </table>
+  <p>O ruído é <b>periódico em <code>BORDA_P</code> tiles</b>, e é isso que dá continuidade: a
+  variante do tile x é a fatia de x·32 a x·32+32 do mesmo ruído contínuo, então a fatia do tile
+  x+1 começa onde a do x terminou e a curva não tem degrau na junta. O cache fica em 8 variantes
+  por direção em vez de uma por tile do mapa, e o <code>borderSprite</code> passou a ter a
+  variante na chave — preguiçoso, só nascem as combinações que aparecem na tela.</p>
+  <p>A <b>quebra</b> é a outra metade: um ruído apaga trechos do contorno. Sem ela ele é uma linha
+  inteira em volta da região, e linha inteira em volta de uma silhueta feita de quadrados desenha
+  o quadrado. Com ela vira <b>contato</b> entre dois chãos, que é o que a referência tem.</p>
+  <p>Medido depois: profundidade <b>3 a 9&nbsp;px</b> (cobre no máximo <b>28%</b> do tile, dentro
+  da trava), desvio <b>1,69</b> contra 1,44, e o período mais forte foi de <b>32&nbsp;px para
+  255</b> — ou seja saiu da grade de tiles.</p>
+
+  <h4>Um acoplamento que quase envelheceu calado</h4>
+  <p>O <code>foamSprite</code> tinha os pontos do gradiente cravados em .22/.38/.60, escolhidos
+  contra o alcance da borda de então — o próprio comentário dizia <i>"o desvanecer de edgeMask
+  morre em ~.45 de 32px"</i>. Com a franja invadindo 6,5&nbsp;px o pico ficaria 5&nbsp;px para
+  dentro da água, ou seja fora do contato: espuma no meio do lago. Agora ele é <b>derivado</b> de
+  <code>BORDA_BASE</code>, que é o que impede os dois de brigarem no próximo ajuste.</p>
+
+  <h4>A bancada fica, e é ela que permite retomar</h4>
+  <p><code>tools/amostra/bordas.html</code>, no molde da de sombras: hoje contra a proposta, sobre
+  o terreno de verdade, com <b>controles ao vivo</b> para base, onda, tufo, passo, contorno e
+  quebra, e a receita exata impressa na página. As duas cenas são escolhidas para castigar: uma
+  costa reta de 16 tiles, onde a repetição apareceria, e uma região com <b>degraus de um tile</b>,
+  que é a forma que produziu o quebra-cabeça.</p>
+  <p class="it-t">franja de junta · 3 escalas, ruído periódico em 8 tiles ·
+  período 32&nbsp;px → 255 · espuma derivada da franja · bancada com controles ao vivo ·
+  762 verificações · 4 mutações, 4 pegas</p>
+
+  <h4>O traçado: bancada de pé, e o item PARADO por decisão do dono</h4>
+  <p>A franja resolve a JUNTA. A outra metade do pedido é a <b>forma</b>: o
+  <code>caminho()</code> do <code>compor.js</code> liga os pontos em reta e pinta largura fixa,
+  então estrada, rio, trilha e galeria saem como segmentos retos com dobra nos pontos de
+  controle. Isso é autoria de mapa, não render.</p>
+  <p>A amostra foi construída antes de qualquer código de motor, que era a lição da tentativa
+  anterior: <code>tools/amostra/tracado.html</code>, com os traçados <b>reais</b> do
+  <code>varrokgaard.js</code> (constantes resolvidas), desenhados sobre terreno de verdade e com
+  a borda do jogo por cima. Ela mede as duas travas que o item tem:</p>
+  <ul class="col">
+    <li><b>Erro na ponta = 0,0000 nos seis traçados.</b> Quem zera é o envelope
+      <code>sin(π·s)</code>, que vale zero nas duas extremidades por construção — é isso que
+      garante que a estrada continua chegando no pixel exato do portão, da ponte e da soleira.
+      Sem ele o desvio na ponta faz a estrada errar a entrada, e o pior caso não é a conferência
+      de componentes reprovar: é ela passar e um lugar ficar inalcançável.</li>
+    <li><b>A cerca não torce: 0 pixels diferentes</b> entre os dois lados. A trava é POR CHAMADA
+      (<code>amp: 0</code>) e não global — ondulação em cerca já foi tentada uma vez e reprovada,
+      e o veredito está registrado acima: <i>"dava desleixo; reta, o que a torce é o terreno"</i>.</li>
+  </ul>
+  <p><b>Parado em 2026-08-23, por decisão do dono</b> — <i>"vamos ignorar isso por enquanto"</i>,
+  depois de <i>"não entendi ainda o objetivo e nem a diferença disso"</i>. E a leitura dele bate
+  com a medição: o desvio máximo ficou em <b>1,53 tile num rio de 52</b> de comprimento, e
+  traçado curto quase não entorta (a estrada da pedreira, 16 tiles, mudou 109 px) porque o passo
+  de 26 tiles é maior que o traçado inteiro. <b>Diferença que o dono não enxerga é resultado, não
+  falha de percepção</b>: o item pode simplesmente não se pagar. A bancada fica de pé com os
+  quatro controles ao vivo e a receita impressa, para quando e se voltar.</p>
+
+  <h4>E um TERCEIRO item, que eu não tinha nomeado — provavelmente o que importa</h4>
+  <p>Reolhando as cinco imagens de Tibia que o dono mandou, o que mais salta não é a junta nem o
+  traçado: é que <b>nenhuma área grande é de um material só</b>. O chão de lá é uma mistura
+  irregular de dois ou três tiles parecidos — terra clara manchada de terra escura, grama
+  manchada de grama rala. Em Varrokgaard um talhão inteiro são dezenas de tiles do MESMO tile, e
+  um campo de grama idem. Se a queixa <i>"tudo é uniforme"</i> for isso, nem a franja nem o
+  traçado a resolvem.</p>
+  <p>É também o mais barato dos três, e as duas levas anteriores já pagaram a conta: existem
+  <b>8 gramas, 6 terras e 5 areias</b> da folha 01, todas com <code>familia</code> declarada, e o
+  pincel de <b>mancha com densidade</b> foi construído exatamente para passar 30% de um tile por
+  cima de outro. O que falta é decidir se isso é composição de script (<code>espalha</code> com
+  tile de mesma família) ou trabalho de editor à mão. <b>Não decidido — perguntado ao dono e a
+  conversa ficou para depois.</b></p>
+
+
+  <h3>Auditoria do editor de mapas — 2026-08-23</h3>
+  <p>Pedido do dono: <i>"analise o editor de mapas, busque por bugs, principalmente na parte de
+  gerar e recompor"</i>. Nove defeitos, e o primeiro é perda de dado — estava lá desde que o
+  pincel de objeto existe.</p>
+
+  <h4>1 · O patch descartava a camada de OBJETO — perda silenciosa</h4>
+  <p>O editor manda <code>{nome, tiles, objs}</code>. O <code>gravaPatch</code> escrevia
+  <b>só <code>tiles</code></b>. O <code>aplicaPatch</code> lê <code>o.objs</code>, que nunca
+  existia no arquivo. Conferido no disco: o <code>maps/varrokgaard.patch.json</code> <b>não tem a
+  chave <code>objs</code></b>, e nunca teve.</p>
+  <p><b>Consequência: toda edição de objeto morria ao gravar, sem erro e sem aviso.</b> Do lado de
+  fora isso lê como "pintei a árvore, gravei, e ela sumiu" — e o pincel de objeto está entregue e
+  documentado desde a leva anterior. Estavam nos <b>dois</b> escritores: o launcher e o
+  <code>tools/serve.py</code>. Consertar um só deixaria o buraco aberto para quem abre pelo
+  navegador.</p>
+  <p>De brinde, o <b>freio de encolhimento</b> contava só tiles: uma sessão inteira de objeto
+  passava por ele como "não encolheu" — e o freio existe justamente para não deixar trabalho
+  sumir.</p>
+
+  <h4>2 · O formato do patch saiu do handler, para poder ser testado</h4>
+  <p>A razão de o bug ter durado é que o serializador vivia <b>dentro</b> do handler HTTP: não
+  havia como exercê-lo sem subir um servidor. Virou <code>tools/patch_fmt.js</code>, e o
+  <code>serve.py</code> ganhou <code>serializa_patch</code> como função de módulo. O teste agora
+  <b>roda os dois e compara byte a byte</b> — dois escritores que divergem significam que o
+  arquivo passa a depender de por onde o dono salvou.</p>
+  <p>A comparação achou uma segunda divergência de imediato: o launcher gravava <b>LF</b> e o
+  <code>serve.py</code> gravava <b>CRLF</b> (modo texto no Windows). Salvar por um ou por outro
+  trocava o arquivo inteiro no diff do git — e o patch tem a formatação que tem justamente para o
+  diff se ler. Corrigido com <code>newline=''</code>.</p>
+  <p>E o <code>serve.py</code> não tinha guarda de <code>__main__</code>: <b>importá-lo subia um
+  servidor</b>. Foi o que travou a primeira versão do teste, que ficou pendurada até o timeout.</p>
+
+  <h4>3 · O editor gravava no mapa da CAIXINHA, não no que estava na tela</h4>
+  <p><code>gravar()</code> lia <code>$('#nome').value</code>. Bastava editar Varrokgaard, digitar
+  outro nome e apertar Ctrl+S para as correções irem para o patch do OUTRO mapa — com as
+  coordenadas calculadas com o <code>W</code> do primeiro. Agora existe <code>carregado</code>: a
+  caixa escolhe o que <b>abrir</b>, e quem manda no gravar é o que está na tela. Se os dois
+  divergirem, ele pergunta antes.</p>
+
+  <h4>4 · Ferramentas que ignoravam o pincel de objeto</h4>
+  <ul class="col">
+    <li><b>Retângulo</b> pintava sempre terreno. Com um objeto escolhido na paleta ele estampava
+      o último tile de chão usado — medido: 9 tiles de LAVA onde se queria árvore, sem erro e sem
+      aviso. Agora respeita o pincel escolhido.</li>
+    <li><b>Balde</b> idem, e pior por ser balde: pinta centenas de tiles de um clique. Inundar de
+      objeto também não é o que se quer, então ele avisa e para.</li>
+    <li><b>Conta-gotas</b> pegava o chão e <b>não zerava</b> o <code>pincelObj</code>: o pincel
+      continuava pintando o objeto, então a ferramenta parecia não fazer nada. Agora pega o
+      OBJETO se houver um no tile, o chão se não houver, e zera o outro nos dois casos.</li>
+  </ul>
+
+  <h4>5 · "Descartar" deixava metade do trabalho para trás</h4>
+  <p>Restaurava só o terreno. As edições de objeto ficavam no mapa <b>e</b> na lista de pendentes,
+  então a gravação seguinte as escrevia mesmo depois de o dono ter mandado descartar. E com só
+  objetos mexidos o botão não fazia nada, porque a guarda olhava <code>mexidos.size</code>.
+  Medido depois do conserto: 1 terreno + 2 objetos → 0 e 0.</p>
+
+  <h4>6 · "Ver tudo" mostrava 46% do mapa na tela do dono</h4>
+  <p><code>verTudo()</code> usava <code>cv.width</code>, que é pixel de <b>buffer</b>, enquanto
+  todo o resto do editor (câmera, mouse, overlay) trabalha em pixel de <b>CSS</b>. Em tela sem
+  HiDPI os dois coincidem e nada aparece; com <code>devicePixelRatio</code> 2 — que é a tela do
+  dono, medida — o zoom saía o dobro do que cabe. Simulado: <b>46% do mapa visível</b> num botão
+  chamado "ver tudo".</p>
+
+  <h4>7 · O aviso de "mapa atrasado" não olhava objeto</h4>
+  <p>Contava só <code>pt.tiles</code>. Enquanto o <code>objs</code> era descartado na gravação não
+  havia o que medir; agora que ele chega ao disco, um mapa não recomposto tem de acusar o objeto
+  que falta, e não só o tile.</p>
+
+  <h4>8 · A paleta se reconstruía inteira a cada clique</h4>
+  <p>Selecionar um tile redesenhava <b>115 sprites</b> de 32×32 — medido em <b>11,8 ms</b>, o
+  dobro do que custa desenhar o mapa inteiro, a cada clique. Agora só troca a marca:
+  <b>0,2 ms</b>, 34× mais barato.</p>
+
+  <h4>9 · Objeto fora de grupo sumia da paleta</h4>
+  <p>O lado do TILE já tinha a rede — tile que não está em <code>GRUPOS</code> cai num bloco
+  "sem grupo". O lado do OBJETO não tinha: <code>GRUPOS_OBJ</code> é lista escrita à mão, e objeto
+  que entrasse em <code>OBJ</code> sem ser listado <b>não aparecia</b>. Hoje os 16 estão listados,
+  então era defeito dormindo. Conferido injetando um objeto novo: aparece em "objeto · sem grupo".
+  Entrou junto o <b>Enter na caixa do nome</b>, que antes não fazia nada.</p>
+
+  <h4>O que ficou registrado sobre a maneira de testar</h4>
+  <p>A primeira versão do teste do patch <b>varria o fonte</b> atrás da palavra "objs" — e passou
+  verde numa mutação que trocava os dados por <code>{}</code> mantendo a palavra. <b>Teste que
+  procura menção não guarda comportamento.</b> Refeito para exercitar os dois escritores de
+  verdade: <b>26 verificações, 5 mutações, 4 pegas</b>. A que escapa é o LF contra CRLF, e escapa
+  por bom motivo — a comparação normaliza a quebra de linha porque o stdout do Python no Windows a
+  traduz, e guardar isso exigiria a suíte escrever arquivo de verdade em <code>maps/</code>. Fica
+  <b>sem teste, de propósito</b>: o que se perde é churn de diff, não dado.</p>
+  <p>Todas as provas de escrita rodaram contra um mapa <b>descartável</b>
+  (<code>zz_prova_patch</code>), nunca contra o do dono — que segue intacto em 19:23 com 31.032
+  bytes, conferido antes e depois.</p>
+  <p class="it-t">9 defeitos · patch de objeto salvo pela primeira vez ·
+  <code>tools/patch_fmt.js</code> como formato único e testável · guarda de
+  <code>__main__</code> no serve.py · 762 + 26 + launcher passando</p>
+
+
+  <h3>Sombras: a análise e a bancada — 2026-08-23</h3>
+  <p>Relato do dono do projeto, olhando o mapa no editor novo: <i>"as sombras do jogo estão
+  péssimas, pelo menos de dia."</i> Medido no jogo, ao meio-dia, dentro da Mata Funda. São três
+  partes e elas não conversam.</p>
+  <table>
+    <tr><th>parte</th><th>alfa</th><th>segue o sol?</th></tr>
+    <tr><td>mancha de contato</td><td>0,50 no centro</td><td><b>não</b></td></tr>
+    <tr><td>silhueta projetada</td><td>0,28 × <code>solF</code></td><td>sim</td></tr>
+    <tr><td>borda de parede (<code>edgeShadow</code>)</td><td>0,45</td><td><b>não</b></td></tr>
+  </table>
+  <ul class="col">
+    <li><b>O sol não se move.</b> <code>SOL_INCL</code> 0,38 e <code>SOL_ACHAT</code> 0,28 são
+      constantes. Isolando a sombra por diferença contra um quadro sem sombra: a da árvore mede
+      <b>65×27 px às 7h, 67×28 ao meio-dia e 66×27 às 18h</b> — o mesmo tamanho o dia inteiro,
+      variando só a intensidade. Ao meio-dia o sol está a pino e a sombra devia encurtar.</li>
+    <li><b>Duas das três partes ignoram o sol.</b> À noite a projetada some e sobram contato e
+      borda em alfa cheio: o objeto fica com um anel escuro e nenhuma sombra, que lê como mancha
+      de terra.</li>
+    <li><b>De dia ela é fraca demais para ler no verde.</b> Escurece <b>10% dos pixels em 16 de
+      255</b>, e olhando a árvore fica pregada como papel no chão — o mesmo defeito dos móveis
+      que gerou a régua "sombra é do motor". A régua existe; a árvore não a cumpre.</li>
+    <li><b>A mancha de contato não conhece a forma do objeto</b> — radial simétrico de largura
+      igual a metade do sprite, igual para cerca corrida, carroça larga e árvore.</li>
+    <li><b>A borda de parede só existe ao norte e a oeste</b>, gradiente fixo de 14 px, e é a
+      única coisa que diz "isto é alto".</li>
+  </ul>
+
+  <h4>A bancada, antes de qualquer número</h4>
+  <p><code>tools/amostra/sombras.html</code>, no molde do <code>campos.html</code>: nove objetos
+  (árvore, moita, barril, carroça, cerca, poço, moinho e as duas paredes) em cinco horas do dia,
+  linha de cima como o jogo desenha hoje e a de baixo com a proposta, sobre o terreno de verdade
+  e com controles ao vivo.</p>
+  <p><b>A coluna "atual" chama o <code>dropShadow</code> e o <code>edgeShadow</code> do próprio
+  <code>render2d.js</code></b> — apontando o <code>g2</code> do render para o canvas da bancada.
+  Se ela redesenhasse a sombra atual por conta própria, a comparação mentiria, que é o defeito
+  que uma bancada não pode ter. A única coisa reimplementada é a PROPOSTA, porque ela ainda não
+  existe no motor; quando for aprovada, vira o <code>dropShadow</code> e sai da página.</p>
+  <p>Medido para confirmar que a bancada faz o serviço: a proposta dá <b>58×19 px com queda de
+  24,5 ao meio-dia</b> (curta e dura) contra <b>82×41 px com queda de 14,5 às 18h</b> (longa e
+  lavada), enquanto a atual fica nos mesmos 66×27 nas duas horas.</p>
+  <p>Três decisões que a proposta toma: <b>a direção NÃO gira</b> (os sprites têm luz assada numa
+  direção fixa, e sombra girando contra brilho parado se contradiz — o que varia é o
+  comprimento); <b>as três partes seguem o mesmo sol</b>; e <b>a projetada sobe até ler no
+  verde</b>. A página imprime a receita com os números exatos, para o que for aprovado ser assado
+  sem ninguém ler valor de um print.</p>
+  <p class="aviso">Duas vezes nesta análise eu medi com a régua errada e tive de refazer: contei
+  "coluna escura" e estava contando oceano e copa em vez de fresta; e medi a caixa da sombra
+  contando o sprite da árvore junto. Nas duas o conserto foi o mesmo — medir por DIFERENÇA contra
+  um quadro de controle, em vez de por limiar absoluto.</p>
+  <p class="it-t">análise medida · bancada de pé · <b>nada aplicado no motor</b>, esperando o
+  julgamento do dono na página</p>
+
+
+  <h3>Terreno de PNG: recorte e costura de folha gerada por IA — 2026-08-23</h3>
+  <p>Pedido do dono do projeto, com uma folha de dez tiles sobre chroma magenta:
+  <i>"recorte esses tiles e ponha no editor de mapa; faça a costura pra que se encaixem sem
+  bordas. Gaste o tempo que for preciso, para utilizarmos posteriormente com imagens geradas por
+  IA."</i> Junto veio a referência de <b>Tibia</b>, e ela decidiu a régua: no Tibia o tile de
+  chão <b>não tem borda nenhuma</b> — grama repete e não se enxerga a grade —, e quem faz a
+  transição entre terrenos é um sprite de borda orgânico por cima, que é o
+  <code>borderSprite</code>/<code>edgeMask</code> que o #49 já entregou. Logo o contorno
+  serrilhado que a folha da IA traz em cada quadro é exatamente o que precisa sumir.</p>
+
+  <h4>O que a folha ensinou, e vale para as próximas</h4>
+  <ul class="col">
+    <li><b>O chroma não é chapado.</b> O "magenta" varia de (211,12,208) a (230,5,224) —
+      comparar por igualdade não recorta nada. A chave é por REGIÃO de cor.</li>
+    <li><b>Não há grade de pixel.</b> Medido: 99% das corridas de cor idêntica têm 1 px. A folha
+      não é pixel art numa resolução nativa baixa, é imagem contínua que PARECE pixel art.
+      Procurar o "pixel verdadeiro" é perder tempo; o caminho é reduzir por área.</li>
+    <li><b>A erosão da borda tem de encolher os quatro lados JUNTOS.</b> Testar "linha cheia" e
+      "coluna cheia" de forma independente não converge: uma coluna atravessa o serrilhado de
+      cima e o de baixo, então nenhuma é 100% arte enquanto as linhas não saírem. Medido, o
+      quadro tinha 24 linhas cheias e ZERO colunas, e a erosão devolvia 96×96 onde havia 250 de
+      sobra.</li>
+  </ul>
+
+  <h4>A costura, e a régua que eu errei três vezes</h4>
+  <p>Cross-fade de transbordo: recorta-se N+b, e a coluna i da saída (i&lt;b) é o esmaecimento
+  entre a coluna N+i do source — o que CONTINUA depois da borda — e a coluna i. Assim a última
+  coluna desemboca na primeira. O tile fecha <b>por construção</b>.</p>
+  <p>E foi provar isso que custou: eu tentei três réguas antes de achar a certa.
+  <b>(1)</b> "emenda dividida pela média do interior" mente por variância — o interior é a média
+  de 95 junções e a emenda é uma, então uma junção que caia num veio de pedra dá 1,8 sem haver
+  emenda. <b>(2)</b> percentil da emenda entre as junções: melhor, mas perde a magnitude, e
+  "pior de todas" pode ser por um fio. <b>(3)</b> a que resolveu: comparar a emenda com a
+  distribuição de junções da <b>FONTE</b>, não da saída — porque o cross-fade abaixa um pouco o
+  contraste da faixa que mistura, e isso infla a razão sem nada ter piorado.</p>
+  <p>Com a régua certa, a resposta apareceu: no cascalho a emenda da saída mede <b>13,77</b> e o
+  par de colunas vizinhas correspondente na fonte mede <b>13,71</b>. São a mesma coisa — o tile
+  já fechava, e a "emenda ruim" era conteúdo: aquele par calhou de cair na quina de uma
+  pedrinha.</p>
+  <p class="aviso">Uma tentativa foi descartada por medição: corte de erro mínimo
+  (Efros–Freeman) no lugar do cross-fade, pela hipótese de que a mistura borrava textura
+  estruturada. Piorou o cascalho de 2,17 para 2,66 e a calçada de 1,47 para 2,01. Saiu do
+  arquivo.</p>
+
+  <h4>O que consertou de verdade: escolher ONDE a emenda cai</h4>
+  <p>Se o tile fecha sempre, o que sobra em aberto é em que par de colunas ele fecha. Entre todos
+  os recortes que cabem no miolo, vence o que põe a emenda no par de colunas e de linhas mais
+  QUIETO — busca exaustiva, determinística. Resultado, emenda contra a junção mediana da fonte:</p>
+  <table>
+    <tr><th></th><th>recorte centrado</th><th>recorte escolhido</th></tr>
+    <tr><td>pior tile</td><td>3,29</td><td><b>0,68</b></td></tr>
+    <tr><td>faixa</td><td>0,53 a 3,29</td><td><b>0,35 a 0,68</b></td></tr>
+  </table>
+  <p>Todos abaixo de 1: a emenda cai numa junção <b>mais quieta que a típica</b> do desenho
+  original. E é essa busca que torna o resultado replicável — não depende de eu olhar e escolher,
+  e a mesma folha dá sempre o mesmo recorte. Conferido: duas execuções seguidas dão PNG
+  byte a byte idênticos.</p>
+
+  <h4>Saída em 96×96, e não em 32</h4>
+  <p>O <code>tileTexture</code> sempre devolveu uma folha de 96 (<code>TEX_S</code>) que o render
+  recorta por <code>x%3, y%3</code> — nove células de 32. Entregando 96 costurado, as nove saem
+  diferentes entre si E contínuas, e o mapa inteiro ladrilha sem emenda porque o 96 fecha em si.
+  Entregar 32 daria a mesma célula nove vezes e o chão viraria papel de parede.</p>
+  <p>No motor entrou uma linha em <code>tileTexture</code> (PNG na frente do desenho por código)
+  mais o carregador. <b><code>TEX_PNG_MAP</code> é o botão</b>: diz qual <code>tex</code> usa
+  qual PNG, e o que não estiver lá continua desenhado por código. Sem índice gerado — tenta
+  carregar e o que não existir cai no <code>onerror</code>, porque um <code>terrenos.js</code>
+  gerado seria uma segunda fonte de verdade sobre o conteúdo de uma pasta.</p>
+  <p>Medido no editor: desligando os PNG, <b>52,2% dos pixels da tela mudam</b> — a arte nova
+  está chegando ao render, e a paleta do editor mostra a textura de verdade porque ela também
+  passa pelo <code>tileTexture</code>.</p>
+
+  <p class="it-t">10 tiles em <code>assets/terreno/</code> · prova 3×3 em
+  <code>assets/terreno/prova/</code> · <code>assets/build_terreno.py</code> determinístico ·
+  os dez mapeados e disponíveis no editor</p>
+
+
+  <h4>Cinco tiles de chão novos, e a régua de paleta teve de mudar junto</h4>
+  <p>Decisão do dono do projeto: <b>grama_mata na Mata Funda, grama_rala no Corte Velho</b>, e
+  todos os dez tiles disponíveis no editor. A primeira parte não cabia no
+  <code>TEX_PNG_MAP</code>: <code>tex</code> é campo do TILE, e só existe um <code>GRASS</code>
+  — variante por região exige tile próprio. Entraram cinco
+  (<code>GRASS_CLARA</code>, <code>GRASS_MATA</code>, <code>GRASS_SECA</code>,
+  <code>GRASS_RALA</code>, <code>DIRT_ESCURA</code>), com a cor de mapa tirada da MÉDIA do
+  próprio PNG — cravar hexadecimal à mão faria a planta discordar do que o jogo desenha no
+  primeiro retoque da arte.</p>
+  <p>Caractere novo entra sempre no FIM do <code>TILE_CHAR</code>: o índice É o id, então
+  inserir no meio reescreveria calado o significado de todo mapa já gravado.</p>
+
+  <h4>A régua de paleta passou a valer entre FAMÍLIAS, não entre tiles</h4>
+  <p>O teste exige 60 de distância de cor entre terrenos vizinhos. Medidas, as cinco gramas
+  ficam entre <b>15 e 62</b> umas das outras — grama_clara × grama dá 15. Pela régua antiga,
+  pôr grama de mata encostada em grama de campo reprovaria o mapa.</p>
+  <p>E estaria errado reprovar: é a lição do #48b outra vez. <b>Distância de cor mede
+  legibilidade, não identidade.</b> Duas gramas TÊM de se parecer; o que nunca pode se confundir
+  é grama com pântano. O invariante passou a exigir os 60 só entre <code>familia</code>
+  diferentes, e <code>familia</code> é declaração de autor na tabela do tile — para escapar da
+  régua alguém teria de escrever que pântano é grama, e isso se lê numa linha.</p>
+  <p>Dois testes pegaram lacunas reais no caminho, e os dois eram defeito de verdade:
+  <b>todo <code>tex</code> precisa de rotina em <code>TEX_DRAW</code></b> (se o PNG não carregar
+  — arquivo apagado, página sem servidor — o render cai no desenho por código e estourava sem
+  ela), e <b>todo <code>tex</code> precisa de prioridade de borda</b> (sem entrada o tile cai
+  calado no 0 e some sob a borda de qualquer vizinho). As variantes emprestam a rotina do
+  material de origem, com a cor delas, e herdam a prioridade dele — entre iguais a borda não
+  deve existir.</p>
+
+  <h4>O voto de chão pintava campo debaixo da mata</h4>
+  <p>Achado conferindo o resultado: o centro da Mata Funda continuava com chão de campo. A causa
+  é do <code>parteCamadas</code>, e é da família que só aparece medindo — numa mata a .54 de
+  densidade a árvore costuma ter <b>as oito vizinhas também árvore</b>, todas em
+  <code>MIGRA</code> e todas fora do voto, e aí o chão caía na reserva fixa
+  <code>T.GRASS</code>. Medido: <b>806 árvores sobre grama de campo contra 697 sobre grama de
+  mata</b>, justamente no miolo, que é onde a mata é mais fechada.</p>
+  <p>Conserto: o voto abre em ANÉIS crescentes até achar chão de verdade, com teto de 6. Depois:
+  <b>944 sobre grama de mata contra 527 sobre campo</b> — e as 527 que sobram são a orla, que é
+  campo mesmo. O chão de mata no mapa foi de 1.590 para <b>1.837</b> tiles.</p>
+  <p>A reserva fixa continua existindo, para o caso de não haver chão nenhum por perto — ilha de
+  árvore cercada de água.</p>
+
+  <p class="it-t">5 tiles de chão novos · <code>familia</code> na régua de paleta ·
+  voto de chão por anéis · Mata Funda com 1.837 tiles de chão próprio e o Corte Velho com 646 ·
+  756 verificações</p>
+
+
+  <h4>Nitidez: o filtro do recorte, e o teto que não é dele</h4>
+  <p>Relato do dono do projeto antes de eu medir: <i>"cuidado pro recorte nao tirar a qualidade
+  das imagens, caso contrario o tile fica embaçado no mundo do jogo."</i> Havia perda, e ela
+  tinha duas partes com tamanhos muito diferentes.</p>
+  <p><b>A parte que era minha.</b> A redução usava média de área com fator inteiro — a mais
+  honesta que existe e que preserva a costura de graça, mas ela suaviza. Medido no mesmo
+  tamanho, gradiente médio de <b>11,72</b> contra <b>12,33</b> do Lanczos. O empecilho era que
+  Lanczos tem suporte largo: na borda ele busca vizinhos que não existem, a biblioteca repete a
+  borda, e isso inventa um degrau que reabre a emenda. Conserto: preencher por <code>wrap</code>
+  antes de reduzir — o filtro encontra do lado de fora exatamente o que vai encostar ali quando
+  ladrilhar, e a borda deixa de ser borda para ele. A folga tem de ser múltipla do fator, senão
+  o recorte cai em meio pixel. Resultado: nitidez de 11,72 para <b>12,35</b> e a emenda seguiu
+  fechada (todas entre 0,36 e 0,79).</p>
+  <p><b>A parte que não é do recorte, e é maior.</b> O motor amostra <b>32 px por tile</b>
+  (<code>TS</code>), e desenha isso em 64 px de tela no zoom 2. A arte de origem tem ~284 px por
+  tile: <b>redução de 8,9×</b>, e nenhum filtro devolve o que essa conta joga fora. Um fio de
+  capim que mede 10 px na fonte vira 1,1 px no tile — some. Medido o detalhe que chega à tela,
+  no mesmo tamanho de 64 px:</p>
+  <table>
+    <tr><th>tile</th><th>fonte</th><th>32 px/tile (hoje)</th><th>64 px/tile</th></tr>
+    <tr><td>grama</td><td>12,7</td><td>9,7</td><td>10,5</td></tr>
+    <tr><td>cascalho</td><td>10,3</td><td>8,9</td><td>9,5</td></tr>
+    <tr><td>grama_mata</td><td>8,1</td><td>6,3</td><td>6,8</td></tr>
+  </table>
+  <p>Dobrar a resolução do tile devolve por volta de <b>8%</b> do detalhe — bem menos do que a
+  intuição sugere, porque o pulo de 32 para 64 ainda é uma redução de 4,4× sobre a fonte. Fica
+  registrado como opção medida, e não como recomendação: custa mudar como o
+  <code>drawFloor</code> amostra a textura, e o ganho é pequeno perto do risco de mexer no
+  caminho mais quente do render. A comparação lado a lado está em
+  <code>assets/terreno/prova/RESOLUCAO.png</code>.</p>
+
+
+  <h4>A proporção estava errada, e a causa era minha</h4>
+  <p>Relato do dono do projeto, jogando: <i>"no mundo parece que a imagem ficou com zoom. O chão
+  de pedra parece que a pedra é maior que o personagem."</i> Estava certo, e o defeito é de
+  raciocínio, não de filtro.</p>
+  <p>Cada quadro da folha é <b>um tile</b> de chão — foi assim que a arte foi enquadrada. Eu
+  reduzia o quadro para 96 e entregava isso como folha; só que o motor lê a folha de 96 como
+  <b>NOVE</b> tiles, pelo recorte <code>x%3, y%3</code>. Um quadro passava a cobrir nove tiles, e
+  o motivo saía ampliado três vezes.</p>
+  <p>Medido por autocorrelação no calçamento, que é o único com passo regular: <b>passo de
+  30&nbsp;px num quadro de 285</b>, ou seja 9,5 pedras por quadro. Entregue daquele jeito, o tile
+  do jogo mostrava <b>2,5 pedras</b> — e uma pedra ocupando 40% da largura do personagem é
+  exatamente o que ele descreveu. O Tibia mostra de 4 a 6 por tile.</p>
+  <p>Conserto: o quadro vira <code>ESCALA</code> pixels e a folha de 96 é ele <b>ladrilhado</b>,
+  não esticado. A folha de 96 continua sendo o que o <code>tileTexture</code> sempre devolveu.</p>
+  <p><b>E o valor ficou em 48, não em 32, decidido por medição.</b> 32 é a leitura literal do
+  enquadramento — um quadro vira um tile — e é pior em tudo que dá para medir:</p>
+  <table>
+    <tr><th></th><th>ESCALA 32</th><th>ESCALA 48</th></tr>
+    <tr><td>pedras por tile (calçada)</td><td>10,7 · 3&nbsp;px cada</td><td>6,4 · <b>5&nbsp;px</b> cada</td></tr>
+    <tr><td>células distintas das 9</td><td><b>1</b></td><td><b>9</b></td></tr>
+    <tr><td>período de repetição no mapa</td><td>1,0 tile</td><td>1,5 tiles</td></tr>
+    <tr><td>emenda</td><td>0,83–0,88</td><td><b>0,67–0,86</b></td></tr>
+  </table>
+  <p>O que decide não é a densidade do Tibia — o CLAUDE.md veta reproduzir Tibia, e "lá são 4 a
+  6" não basta como argumento. O que decide é a linha do meio, e uma medida que só apareceu ao
+  procurá-la: em 32, a autocorrelação da grama e do cascalho encontra <b>passo de 32&nbsp;px</b>,
+  ou seja o motivo mais forte do chão passa a ser <b>a própria grade de tiles</b>. Isso é papel
+  de parede, agora medido em vez de temido. Em 48 ela não encontra período nenhum nesses dois.</p>
+  <p>O segundo motivo é de forma: 3&nbsp;px por pedra não comporta contorno nem luz de um lado,
+  que é a receita do #49 para o que se lê num tile. Em 5&nbsp;px ainda comporta.</p>
+  <p><b>E a troca expôs um resíduo, que era medir na régua errada mais uma vez.</b> Com 48,
+  três tiles saíram com emenda horizontal acima de 1,0 (terra 1,10 · cascalho 1,09 · pedra
+  1,03). A busca de recorte julgava cada candidato pelo par de colunas na FONTE de 224 — barato,
+  e enganoso, porque o que ladrilha no mapa é a saída, e a redução redistribui o contraste.
+  Agora a peneira grossa continua na fonte (é ela que permite varrer mil candidatos) e os 60
+  melhores são reavaliados na <b>saída de verdade</b>, costurada e reduzida. O custo passou a ser
+  o PIOR dos dois eixos e não a soma: um tile ótimo na vertical e ruim na horizontal mostra a
+  linha ruim do mesmo jeito. Pior emenda de todas: <b>1,10 → 0,86</b>, e o build inteiro roda em
+  4,4&nbsp;s. Continua determinístico — duas execuções dão PNG byte a byte idênticos.</p>
+  <p>A costura sobreviveu à mudança — a redução por Lanczos com borda em <code>wrap</code>
+  preserva o fechamento em qualquer tamanho, e as razões ficaram entre 0,70 e 1,06.</p>
+  <p class="aviso">Erro meu de origem, e vale como régua: eu havia escrito no topo do build que
+  "entregar 32 daria a mesma célula nove vezes e o chão viraria papel de parede", e otimizei por
+  VARIEDADE. Variedade não vale proporção. A pergunta que faltou fazer foi <b>quantos tiles de
+  mundo este quadro representa</b> — a mesma pergunta que o CLAUDE.md já manda fazer antes de
+  desenhar objeto ("quantos tiles esta coisa ocupa"), e que eu não apliquei ao chão.</p>
 
   <h4>Dívida que esta leva deixa</h4>
   <p>O <code>tools/</code> não tem suíte. O <code>tests/test.js</code> carrega os fontes de
@@ -1750,6 +2471,11 @@
   <code>tests/test_tools.js</code> que monte um mapa de 12×10 em memória e exercite
   <code>parte</code>, <code>andavel</code> e as duas camadas do <code>aplicaPatch</code>: foi
   exatamente o que a conferência à mão fez, e ela cabe num arquivo.</p>
+  <p><b>Paga pela metade em 2026-08-23</b>, e a leva do pincel foi quem cobrou — ver "O pincel
+  ganhou forma e densidade". O <code>tests/test_tools.js</code> existe, com 16 verificações,
+  mas cobre <b>só o pincel</b>. <code>compor.js</code>, <code>andavel</code> e as duas camadas
+  do <code>aplicaPatch</code> continuam sem rede, e continuam sendo o que a dívida original
+  descreve.</p>
 
   <h3>Os móveis e a porta, jogados — 2026-08-23</h3>
   <p>Quatro relatos do dono do projeto sobre os móveis e três sobre a porta, todos vindos de
@@ -2306,8 +3032,9 @@
         <span class="it-d">Gravar do navegador para o disco pede <code>showSaveFilePicker</code>
         (nativo do Chrome, sem dependência) ou um POST para o <code>tools/serve.py</code>. A segunda é
         menos elegante e não precisa de permissão a cada gravação.</span>
-        <span class="it-d"><b>Primeira fatia entregue em 2026-08-23</b>: pincel, balde, retângulo, conta-gotas, desfazer e gravação por patch. O modelo ficou sendo <b>o script semeia e o editor corrige</b> — ver a seção própria acima. Falta a segunda fatia: colocar e apagar spawn com escolha de espécie, hunt, POI e escada.</span>
-        <span class="it-t">metade feita · a segunda fatia é conteúdo, não terreno</span>
+        <span class="it-d"><b>Entregue em 2026-08-23, em três levas.</b> Primeira: pincel, balde, retângulo, conta-gotas, desfazer e gravação por patch, no modelo <b>o script semeia e o editor corrige</b>. Segunda: <b>vista de jogo</b> chamando o <code>drawWorld</code> do render (V), <b>duas luzes</b> com meio-dia fixo (L), <b>grade</b> por decisão (X), <b>zoom sem teto</b>, <b>pincel de objeto</b> com N por tile, e a paleta desenhando o sprite de verdade. Terceira: o pincel ganhou <b>forma</b> (quadrado Q, círculo C, mancha M), <b>densidade</b> de 5 a 100% e seis tamanhos até 13×13, mais a primeira suíte do <code>tools/</code>. Ver as seções próprias acima.<br>
+        <b>Ainda falta</b> o que é CONTEÚDO e não terreno: colocar e apagar spawn com escolha de espécie, hunt, POI e escada. O terreno e o objeto já se editam.</span>
+        <span class="it-t">terreno e objeto feitos · falta spawn, hunt, POI e escada</span>
       </li>
       <li class="feito">
         <span class="it-n">#48 · Vocabulário de tiles <span class="tag done">feito</span></span>
@@ -3082,7 +3809,7 @@
 
 <footer>
   Thaira · RPG 2D dark-fantasy em JavaScript sem framework, com launcher Electron ·
-  756 verificações passando em <code>tests/test.js</code> ·
+  762 verificações em <code>tests/test.js</code> e 26 em <code>tests/test_tools.js</code> ·
   24 tarefas pendentes · conferido contra o código em 2026-08-23.
 </footer>
 

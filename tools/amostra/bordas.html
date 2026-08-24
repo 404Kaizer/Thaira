@@ -1,0 +1,335 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Bordas de terreno — Thaira</title>
+<style>
+  :root { --bg:#181510; --painel:#211d17; --linha:#332d24; --texto:#ddd5c2;
+          --fraco:#8f8874; --ouro:#d9a441; --ruim:#b4553a; --bom:#6f9a52; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--texto); padding:20px 24px 60px;
+         font:14px/1.6 ui-sans-serif,system-ui,sans-serif; }
+  h1 { font:600 21px/1.2 ui-serif,Georgia,serif; color:var(--ouro); margin:0 0 6px; }
+  h2 { font:600 11px "Segoe UI",sans-serif; letter-spacing:.14em; text-transform:uppercase;
+       color:var(--ouro); margin:24px 0 8px; border-bottom:1px solid var(--linha); padding-bottom:4px; }
+  .lede { color:var(--fraco); max-width:78ch; margin:0 0 14px; }
+  canvas { display:block; image-rendering:pixelated; background:#0d0b09; }
+  .par { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  figure { margin:0; }
+  figcaption { font:11px ui-monospace,Consolas,monospace; color:var(--fraco); margin-top:5px; }
+  .barra { display:flex; gap:15px; align-items:center; flex-wrap:wrap; margin:12px 0;
+           background:var(--painel); border:1px solid var(--linha); padding:9px 12px; }
+  label { font-size:12.5px; color:var(--fraco); display:flex; gap:6px; align-items:center; }
+  select,button { background:#26241f; color:var(--texto); border:1px solid var(--linha);
+                  padding:4px 9px; font:13px inherit; }
+  input[type=range] { width:118px; accent-color:var(--ouro); }
+  table { border-collapse:collapse; font-size:13px; margin-top:8px; }
+  th,td { border:1px solid var(--linha); padding:4px 10px; text-align:left; }
+  th { color:var(--ouro); font-weight:600; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+  code,.n { font-family:ui-monospace,Consolas,monospace; }
+  code { color:var(--ouro); font-size:12.5px; }
+  .ruim { color:var(--ruim); } .bom { color:var(--bom); }
+  #receita { background:var(--painel); border:1px solid var(--linha); padding:10px 12px;
+             white-space:pre; font:12px ui-monospace,Consolas,monospace; color:var(--texto);
+             margin-top:10px; overflow-x:auto; }
+</style>
+
+<h1>Bordas de terreno — a franja</h1>
+<p class="lede">Relato do dono: <i>"preciso que os tiles sejam irregulares. Hoje tudo é uniforme,
+tile quadrado"</i>, com imagens de Tibia por referência. À esquerda o que o jogo desenha
+<b>hoje</b>, chamando o <code>borderSprite</code> do <code>art.js</code> de verdade. À direita a
+proposta, que só existe nesta página até ser aprovada.</p>
+<p class="lede">O alvo <b>não</b> é tirar o contorno — na referência ele existe (a lava, o piso de
+pedra). É que ele seja <b>esfarrapado</b>: hoje é um recuo liso da borda quadrada, e por isso ele
+traça a escada dos tiles em vez de escondê-la. A proposta tufa a <b>silhueta</b>, e o contorno vem
+esfarrapado de graça — ele já é derivado dela.</p>
+<p class="lede"><b>A trava que a tentativa anterior ensinou:</b> a invasão não pode passar de
+~30% do tile. A 56% os dois lados mais o canto cobrem quase o tile inteiro num degrau de um tile,
+e meio tile invadido lê como tile cheio — foi assim que saiu um quebra-cabeça. A tabela mede isso
+em <code>cobre máx</code>.</p>
+
+<div class="barra">
+  <label>de <select id="a"></select></label>
+  <label>para <select id="b"></select></label>
+  <label>zoom <select id="z"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>×</label>
+</div>
+<div class="barra">
+  <label>base <input id="p-base" type="range" min="3" max="12" step="0.5"><span id="v-base" class="n"></span></label>
+  <label>onda <input id="p-onda" type="range" min="0" max="6" step="0.25"><span id="v-onda" class="n"></span></label>
+  <label>tufo <input id="p-tufo" type="range" min="0" max="6" step="0.25"><span id="v-tufo" class="n"></span></label>
+  <label>passo do tufo <input id="p-passo" type="range" min="3" max="16" step="1"><span id="v-passo" class="n"></span>px</label>
+  <label>contorno <input id="p-rim" type="range" min="0" max="1" step="0.02"><span id="v-rim" class="n"></span></label>
+  <label>quebra <input id="p-quebra" type="range" min="0" max="1" step="0.05"><span id="v-quebra" class="n"></span></label>
+</div>
+
+<h2>Uma costa reta de 16 tiles — onde a repetição aparece</h2>
+<div class="par">
+  <figure><canvas id="c-antes"></canvas><figcaption>hoje · o motor</figcaption></figure>
+  <figure><canvas id="c-dep"></canvas><figcaption>proposta</figcaption></figure>
+</div>
+
+<h2>Uma região com degraus de um tile — onde o quebra-cabeça aparecia</h2>
+<div class="par">
+  <figure><canvas id="i-antes"></canvas><figcaption>hoje · o motor</figcaption></figure>
+  <figure><canvas id="i-dep"></canvas><figcaption>proposta</figcaption></figure>
+</div>
+
+<h2>Medido</h2>
+<div class="par">
+  <figure><canvas id="g-antes"></canvas><figcaption>perfil de hoje</figcaption></figure>
+  <figure><canvas id="g-dep"></canvas><figcaption>perfil da proposta</figcaption></figure>
+</div>
+<div id="tabela"></div>
+<p class="lede" style="margin-top:12px">A <b>receita exata</b> do que estiver na tela, para o que
+for aprovado ser assado sem ninguém ler valor de print:</p>
+<div id="receita"></div>
+
+<script src="../../src/world.js"></script>
+<script src="../../src/art.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+
+/* ============================ A PROPOSTA, e só ela ========================
+   O lado "hoje" chama o `borderSprite` do art.js — se esta página redesenhasse
+   os dois, a comparação mentiria, que é o defeito que uma bancada não pode ter.
+   Quando isto for aprovado, vira o `edgeMask` e sai daqui. */
+const P = { base: 6.5, onda: 2.5, tufo: 2.6, passo: 7, rim: .42, quebra: .55 };
+const ONDA_P = 8;                      // período do ruído, em TILES
+
+/* Ruído de rede periódico. O período fecha em ONDA_P tiles, e é isso que faz a
+   variante do tile x emendar na do tile x+1: a fatia de x é o trecho de x·32 a
+   x·32+32 do mesmo ruído contínuo. */
+function fazRuido(passoPx, semente) {
+  const N = ONDA_P * 32, v = new Float32Array(N);
+  const k = Math.max(2, Math.round(N / passoPx));
+  let s = semente;
+  const rnd = () => { s = s + 0x6D2B79F5 | 0;
+    let t = Math.imul(s ^ s >>> 15, 1 | s);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const p = Array.from({ length: k }, rnd);
+  for (let i = 0; i < N; i++) {
+    const f = i / N * k, a = Math.floor(f), t = f - a, e = t * t * (3 - 2 * t);
+    v[i] = p[a % k] + (p[(a + 1) % k] - p[a % k]) * e;
+  }
+  return v;
+}
+let R_ONDA, R_TUFO, R_QUEBRA;
+function semeia() {
+  R_ONDA = fazRuido(72, 1337);          // a curva larga: ~2 tiles
+  R_TUFO = fazRuido(P.passo, 909);      // os tufos
+  R_QUEBRA = fazRuido(19, 4242);        // onde o contorno some
+}
+const amostra = (v, i) => v[((i % v.length) + v.length) % v.length];
+
+/* Profundidade da franja na posição `u` (coordenada de MUNDO ao longo da junta).
+   Duas escalas somadas: a onda dá o caminhar, o tufo dá a silhueta de tufo. */
+function profundidade(u) {
+  return P.base + P.onda * (amostra(R_ONDA, u) * 2 - 1)
+                + P.tufo * (amostra(R_TUFO, u) * 2 - 1);
+}
+
+const MASCARA = {};
+function mascara(m, v) {
+  const key = m + ':' + v;
+  if (MASCARA[key]) return MASCARA[key];
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff';
+  const pena = 1.2;                     // franja tem CONTORNO; degradê largo a apaga
+  const por = (i, j, a) => {
+    g.globalAlpha = a;
+    if (m === 0) g.fillRect(i, j, 1, 1);
+    else if (m === 2) g.fillRect(i, 31 - j, 1, 1);
+    else if (m === 3) g.fillRect(j, i, 1, 1);
+    else g.fillRect(31 - j, i, 1, 1);
+  };
+  if (m < 4) {
+    for (let i = 0; i < 32; i++) {
+      const d = profundidade(v * 32 + i);
+      for (let j = 0; j < 32; j++) {
+        const a = j < d - pena ? 1 : j < d ? (d - j) / pena : 0;
+        if (a <= 0) break;
+        por(i, j, a);
+      }
+    }
+  } else {
+    /* Canto: o mesmo perfil, indexado pelo ÂNGULO. Um quarto de círculo liso
+       denuncia a grade justamente onde duas bordas se encontram. */
+    const cx = m === 4 || m === 5 ? 32 : 0, cy = m === 5 || m === 6 ? 32 : 0;
+    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+      const dx = x + .5 - cx, dy = y + .5 - cy, r = Math.hypot(dx, dy);
+      const ang = (Math.atan2(dy, dx) / (Math.PI * 2) + 1) % 1;
+      const lim = profundidade(v * 32 + (ang * 128 | 0)) + 4;
+      const a = r < lim - pena ? 1 : r < lim ? (lim - r) / pena : 0;
+      if (a > 0) { g.globalAlpha = a; g.fillRect(x, y, 1, 1); }
+    }
+  }
+  g.globalAlpha = 1;
+  return MASCARA[key] = c;
+}
+
+/* O contorno sai da PRÓPRIA máscara (ela menos ela deslocada), como no motor —
+   derivar garante que ele acompanhe a silhueta em vez de passar ao lado.
+   O que muda é a QUEBRA: um ruído apaga trechos dele, e é isso que o tira de
+   "linha desenhada em volta do quadrado" para "contato entre dois chãos". */
+function contorno(m, d, v) {
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d');
+  const [ax, ay] = EDGE_DIR[m];
+  g.drawImage(mascara(m, v), 0, 0);
+  g.globalCompositeOperation = 'destination-out';
+  g.drawImage(mascara(m, v), ax * d, ay * d);
+  if (P.quebra > 0) {
+    for (let i = 0; i < 32; i++) {
+      const q = amostra(R_QUEBRA, v * 32 + i * (m === 1 || m === 3 ? 1 : 1) + m * 53);
+      const corta = Math.max(0, (q - (1 - P.quebra)) / Math.max(.001, P.quebra));
+      if (corta <= 0) continue;
+      g.globalAlpha = Math.min(1, corta * 1.4);
+      if (m === 0 || m === 2) g.fillRect(i, 0, 1, 32);
+      else g.fillRect(0, i, 32, 1);
+    }
+  }
+  return c;
+}
+function tinge(mask, cor) {
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d');
+  g.drawImage(mask, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = cor; g.fillRect(0, 0, 32, 32);
+  return c;
+}
+function bordaNova(kind, hex, m, v) {
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d');
+  g.drawImage(tileTexture(kind, hex), 0, 0, 32, 32, 0, 0, 32, 32);
+  g.globalCompositeOperation = 'destination-in';
+  g.drawImage(mascara(m, v), 0, 0);
+  g.globalCompositeOperation = 'source-atop';
+  g.globalAlpha = P.rim * .8;
+  g.drawImage(tinge(contorno(m, 5, v), _rgb(hex, 1.30)), 0, 0);
+  g.globalAlpha = P.rim;
+  g.drawImage(tinge(contorno(m, 2, v), _rgb(hex, .34)), 0, 0);
+  g.globalAlpha = 1;
+  return c;
+}
+
+/* ================================ as cenas ================================ */
+const TEXS = [...new Set(Object.values(TILE).filter(t => t.tex && !t.obj && !t.parede)
+                .map(t => t.tex))].sort();
+const corDe = tex => (Object.values(TILE).find(t => t.tex === tex) || {}).c || 0x808080;
+
+function cena(cv, W, H, mapa, novo, px) {
+  cv.width = W * 32 * px; cv.height = H * 32 * px;
+  const g = cv.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.setTransform(px, 0, 0, px, 0, 0);
+  const A = $('#a').value, B = $('#b').value;
+  const eB = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? false : !!mapa(x, y);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = eB(x, y) ? B : A;
+    g.drawImage(tileTexture(t, corDe(t)), (x % 3) * 32, (y % 3) * 32, 32, 32, x * 32, y * 32, 32, 32);
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (eB(x, y)) continue;                       // B invade A; só o tile de A desenha
+    let orto = 0;
+    for (let m = 0; m < 8; m++) {
+      if (m > 3 && (orto >> (m - 4) & 1 || orto >> ((m - 3) & 3) & 1)) continue;
+      if (!eB(x + EDGE_DIR[m][0], y + EDGE_DIR[m][1])) continue;
+      if (m < 4) orto |= 1 << m;
+      if (novo) {
+        const v = ((m === 0 || m === 2 ? x : m === 1 || m === 3 ? y : x + y) % ONDA_P + ONDA_P) % ONDA_P;
+        g.drawImage(bordaNova(B, corDe(B), m, v), x * 32, y * 32);
+      } else {
+        g.drawImage(borderSprite(B, corDe(B), m), x * 32, y * 32);
+      }
+    }
+  }
+  g.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+/* ================================ a medição =============================== */
+function perfil(novo) {
+  const out = [];
+  for (let x = 0; x < 16; x++) {
+    const mk = novo ? mascara(0, ((x % ONDA_P) + ONDA_P) % ONDA_P) : edgeMask(0);
+    const d = mk.getContext('2d').getImageData(0, 0, 32, 32).data;
+    for (let i = 0; i < 32; i++) {
+      let p = 0;
+      for (let j = 0; j < 32; j++) if (d[(j * 32 + i) * 4 + 3] > 128) p = j + 1; else break;
+      out.push(p);
+    }
+  }
+  return out;
+}
+function autocorr(v) {
+  const n = v.length, mu = v.reduce((a, b) => a + b, 0) / n, c = v.map(x => x - mu);
+  const v0 = c.reduce((a, x) => a + x * x, 0) / n;
+  let melhor = [0, -1];
+  for (let k = 4; k < n / 2; k++) {
+    let s = 0; for (let i = 0; i + k < n; i++) s += c[i] * c[i + k];
+    s /= (n - k);
+    if (s > melhor[1]) melhor = [k, s];
+  }
+  return [melhor[0], v0 ? melhor[1] / v0 : 0];
+}
+function grafico(cv, v, cor) {
+  cv.width = 512; cv.height = 110;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#0d0b09'; g.fillRect(0, 0, 512, 110);
+  g.strokeStyle = '#2b2620';
+  for (let x = 0; x <= 512; x += 32) { g.beginPath(); g.moveTo(x + .5, 0); g.lineTo(x + .5, 110); g.stroke(); }
+  g.strokeStyle = cor; g.lineWidth = 1.6; g.beginPath();
+  v.forEach((p, i) => { const y = 106 - p * 4; i ? g.lineTo(i, y) : g.moveTo(i, y); });
+  g.stroke();
+}
+const dp = v => { const mu = v.reduce((a, b) => a + b, 0) / v.length;
+  return Math.sqrt(v.reduce((a, x) => a + (x - mu) * (x - mu), 0) / v.length); };
+
+function tudo() {
+  semeia();
+  for (const k in MASCARA) delete MASCARA[k];
+  const px = +$('#z').value;
+  const costa = (x, y) => y >= 2;
+  /* Degraus de UM tile, que é onde o quebra-cabeça nasceu — e de propósito, não
+     um disco liso: é a forma que castiga invasão funda. */
+  const deg = (x, y) => y >= 3 + (x % 4 === 0 ? -1 : x % 5 === 0 ? 1 : 0) && y <= 8 && x >= 1 && x <= 14;
+  cena($('#c-antes'), 16, 5, costa, false, px);
+  cena($('#c-dep'),   16, 5, costa, true,  px);
+  cena($('#i-antes'), 16, 11, deg, false, px);
+  cena($('#i-dep'),   16, 11, deg, true,  px);
+  const pa = perfil(false), pd = perfil(true);
+  grafico($('#g-antes'), pa, '#b4553a');
+  grafico($('#g-dep'), pd, '#6f9a52');
+  const [ka, fa] = autocorr(pa), [kd, fd] = autocorr(pd);
+  const linha = (n, v, k, f) =>
+    `<tr><td>${n}</td><td class="n">${Math.min(...v)}–${Math.max(...v)} px</td>` +
+    `<td class="n ${Math.max(...v) / 32 > .32 ? 'ruim' : 'bom'}">${(Math.max(...v) / 32 * 100).toFixed(0)}%</td>` +
+    `<td class="n">${dp(v).toFixed(2)}</td>` +
+    `<td class="n ${k === 32 ? 'ruim' : 'bom'}">${k} px</td><td class="n">${(f * 100).toFixed(0)}%</td></tr>`;
+  $('#tabela').innerHTML = '<table><tr><th></th><th>profundidade</th><th>cobre máx</th>' +
+    '<th>desvio</th><th>período mais forte</th><th>força</th></tr>' +
+    linha('hoje', pa, ka, fa) + linha('proposta', pd, kd, fd) + '</table>' +
+    (ka === 32 ? '<p class="lede">Período de <b>32 px</b> é a grade de tiles: hoje o motivo mais ' +
+      'forte do contorno é a própria divisão em quadrados.</p>' : '');
+  $('#receita').textContent =
+    'base   ' + P.base.toFixed(2) + '   px de invasão média\n' +
+    'onda   ' + P.onda.toFixed(2) + '   px, passo 72 (a curva larga)\n' +
+    'tufo   ' + P.tufo.toFixed(2) + '   px, passo ' + P.passo + ' (a silhueta de tufo)\n' +
+    'rim    ' + P.rim.toFixed(2) + '   alfa do contorno\n' +
+    'quebra ' + P.quebra.toFixed(2) + '   fração do contorno apagada\n' +
+    'ONDA_P ' + ONDA_P + '      período em tiles\n' +
+    '\ncobre máx ' + (Math.max(...pd) / 32 * 100).toFixed(0) + '% do tile  (teto de 32%, ver o texto)';
+}
+
+for (const sel of ['#a', '#b']) $(sel).innerHTML = TEXS.map(t => `<option>${t}</option>`).join('');
+$('#a').value = TEXS.includes('grass') ? 'grass' : TEXS[0];
+$('#b').value = TEXS.includes('dirt') ? 'dirt' : TEXS[1];
+for (const [id, k] of [['base','base'],['onda','onda'],['tufo','tufo'],['passo','passo'],['rim','rim'],['quebra','quebra']]) {
+  const el = $('#p-' + id);
+  el.value = P[k];
+  $('#v-' + id).textContent = P[k];
+  el.oninput = e => { P[k] = +e.target.value; $('#v-' + id).textContent = P[k]; tudo(); };
+}
+$('#a').onchange = $('#b').onchange = $('#z').onchange = tudo;
+tudo();
+</script>

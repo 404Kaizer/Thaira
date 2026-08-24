@@ -25,6 +25,10 @@
   button b { font-weight: 600; opacity: .5; margin-left: 5px; font-size: 10.5px;
              font-family: ui-monospace, monospace; }
   button.on b { opacity: .65; }
+  input[type=range] { width: 88px; accent-color: var(--ouro); vertical-align: middle; }
+  .barra label { color: var(--fraco); font-size: 12px; }
+  #densN { color: var(--texto); font-family: ui-monospace, monospace; min-width: 32px;
+           display: inline-block; text-align: right; }
 
   .palco { display: grid; grid-template-columns: 214px 1fr; min-height: 0; }
   #paleta { border-right: 1px solid var(--linha); overflow-y: auto; padding: 6px 6px 20px;
@@ -79,9 +83,17 @@
   <button class="tam on" data-r="0">1×1<b>1</b></button>
   <button class="tam" data-r="1">3×3<b>2</b></button>
   <button class="tam" data-r="2">5×5<b>3</b></button>
+  <button class="tam" data-r="3">7×7<b>4</b></button>
+  <button class="tam" data-r="4">9×9<b>5</b></button>
+  <button class="tam" data-r="6">13×13<b>6</b></button>
+  <span class="sep"></span>
+  <button class="fma on" data-m="quadrado">quadrado<b>Q</b></button>
+  <button class="fma" data-m="circulo">círculo<b>C</b></button>
+  <button class="fma" data-m="mancha">mancha<b>M</b></button>
+  <label>densidade <input id="dens" type="range" min="5" max="100" step="5" value="100"><span id="densN">100%</span></label>
   <span class="sep"></span>
   <button id="verTudo">ver tudo<b>0</b></button>
-  <button id="btGrade">grade<b>X</b></button>
+  <button id="btGrade">grade: as duas<b>X</b></button>
   <button id="desfazer">desfazer<b>^Z</b></button>
   <span class="sep"></span>
   <button id="gravar">gravar e recompor<b>^S</b></button>
@@ -175,9 +187,18 @@ let luz = 'andar';
    grade RABISCA (é linha preta em cima de cada tile desenhado), e sobre a
    planta ela é metade do trabalho, porque contar tile é como se acerta uma
    coordenada. Quem decide é o dono, na tecla X.
-   O padrão continua sendo o comportamento antigo, agora explícito: ligada, e
-   ainda assim escondida abaixo de 7 px, onde ela viraria ruído sólido. */
-let grade = true;
+   São DUAS grades e o X passa pelas duas, em ciclo de três estados, porque a
+   segunda atrapalha pelo mesmo motivo que a primeira: a marca de ouro do que
+   você mexeu vira uma grade amarela em cima da região recém-pintada, que é
+   justamente onde se quer olhar o tile. Um botão só, porque a pergunta é uma
+   só — "quanto rabisco por cima da arte?" — e dois botões fariam o dono lembrar
+   de qual é qual.
+   O padrão continua sendo o comportamento antigo, agora explícito: as duas
+   ligadas, e a do mapa ainda escondida abaixo de 7 px, onde viraria ruído. */
+const GRADES = ['as duas', 'só a de edição', 'nenhuma'];
+let grade = 0;                     // índice em GRADES: 0 = padrão
+const gradeMapa = () => grade === 0;
+const gradeEdicao = () => grade < 2;
 const dpr = () => Math.max(1, Math.round(devicePixelRatio || 1));
 
 /* A troca de luz por cima do `ambienteAgora`, que é declaração de função e
@@ -209,7 +230,13 @@ window.ambienteAgora = function (zz, ms) {
    estado de clima só para o editor seria uma segunda régua de tempo. */
 const climaReal = climaAgora;
 window.climaAgora = function () { return CLIMA_PARADO; };
-let pincel = T.GRASS, ferramenta = 'pincel', raio = 0;
+let pincel = T.GRASS, ferramenta = 'pincel', raio = 0, forma = 'quadrado', dens = 100;
+/* QUEM ESTÁ CARREGADO, que não é o mesmo que o que está escrito na caixinha.
+   O `gravar` lia o campo de texto, então bastava trocar o nome depois de editar
+   (ou digitar e apertar Ctrl+S) para as correções de UM mapa serem gravadas no
+   patch de OUTRO — com as coordenadas calculadas com o W do primeiro. A caixa
+   escolhe o que CARREGAR; quem manda no gravar é o que está na tela. */
+let carregado = null;
 let base = null;                 // o mapa como o script o deixou, para o diff
 let mexidos = new Map();         // "z:i" -> tile, só o que difere da base
 /* A SEGUNDA CAMADA tem o próprio diff, e a unidade dele é a LISTA de objetos
@@ -222,6 +249,65 @@ let mexidosObj = new Map();      // "z:i" -> [ids], só o que difere de baseObj
 let pincelObj = null;
 let pilha = [];                  // desfazer: cada traço é um lote
 let arrastando = null, panning = null, hover = null;
+
+/* ------------------------------------------------- a forma do pincel
+   Um lugar só decide QUAIS tiles o pincel acerta, e tanto a pintura quanto a
+   marca sob o cursor leem dele — duas listas divergiriam, e aí a marca mentiria
+   sobre onde a tinta cai, que é o defeito que um editor não pode ter.
+
+   A mancha morde o raio com ruído do MAPA e não com sorteio do traço: com o
+   ruído amarrado a (x,y), a marca mostra exatamente o contorno que vai cair, e
+   arrastar não carimba a mesma bolha repetida — a borda muda porque o lugar
+   mudou. */
+/* [PINCEL] daqui até a marca de fecho o bloco não toca em DOM nem em mapa, e o
+   tests/test_tools.js o recorta por estas duas marcas para exercitá-lo no node.
+   Mexer nelas quebra o teste alto, que é o que se quer. */
+/* `>>>` e não `>>` no ÚLTIMO deslocamento, e `Math.imul` no produto. Com o
+   deslocamento COM sinal, `n ^ (n >> 16)` zera o bit 31 sempre — o hash saía na
+   faixa [0, .5) em vez de [0, 1), a mancha ficava com dois terços da área do
+   círculo e nada acusava, porque um ruído enviesado ainda parece ruído.
+   Medido: o deslocamento do meio (13) é uniforme com sinal ou sem, então só
+   este último carrega significado — o outro está sem sinal por consistência. */
+const _hxy = (x, y) => {
+  let n = Math.imul(x, 374761393) + Math.imul(y, 668265263) | 0;
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+};
+const RUIDO_CEL = 3;               // tiles por célula do ruído: a escala da mordida
+function ruido(x, y) {
+  const fx = x / RUIDO_CEL, fy = y / RUIDO_CEL;
+  const ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+  const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+  const a = _hxy(ix, iy) + (_hxy(ix + 1, iy) - _hxy(ix, iy)) * sx;
+  const b = _hxy(ix, iy + 1) + (_hxy(ix + 1, iy + 1) - _hxy(ix, iy + 1)) * sx;
+  return a + (b - a) * sy;
+}
+
+/* `espalha` separa o CONTORNO da DENSIDADE porque a marca sob o cursor precisa
+   do contorno inteiro: a densidade sorteia a cada clique, então mostrar o
+   resultado dela seria mostrar um sorteio que não vai se repetir. A marca diz
+   "aqui pode cair"; a pintura decide quantos caem. */
+function celulas(cx, cy, espalha) {
+  /* O 1×1 escapa de forma e densidade: pincel de um tile que às vezes não pinta
+     é ferramenta quebrada, não spray. */
+  if (!raio) return [[cx, cy]];
+  const R = forma === 'mancha' ? raio + 2 : raio, out = [];
+  for (let j = -R; j <= R; j++) for (let i = -R; i <= R; i++) {
+    const x = cx + i, y = cy + j;
+    if (forma !== 'quadrado') {
+      /* A mordida vai de .72 a 1.28 do raio, centrada em 1: trocar de círculo
+         para mancha muda o CONTORNO e não o tamanho do pincel. Com a faixa
+         começando mais baixa a mancha saía com metade da área do círculo, e o
+         botão passava a fazer duas coisas de uma vez. */
+      const lim = forma === 'mancha' ? (raio + .5) * (.72 + .56 * ruido(x, y)) : raio + .5;
+      if (Math.hypot(i, j) > lim) continue;
+    }
+    if (espalha && dens < 100 && Math.random() * 100 >= dens) continue;
+    out.push([x, y]);
+  }
+  return out;
+}
+/* [/PINCEL] */
 
 const chave = (zz, i) => zz + ':' + i;
 const nomeTile = t => Object.keys(T).find(k => T[k] === t) || String(t);
@@ -298,14 +384,44 @@ function amostraObj(id) {
    duas colunas sem ordem que se leia é um índice, não uma paleta: para achar
    CROP você lia a lista inteira. Os grupos são os do vocabulário do #48, que é
    como os tiles foram pensados. */
+/* OS QUATORZE QUE SAÍRAM DAQUI, e sair é o conserto, não a perda.
+   `ROCK`, `TREE`, `CWALL`, `WALL`, `DOOR`, `FENCE`, `PROP`, `SWALL`, `ORE`,
+   `WEB`, `WELL`, `CART`, `BARREL` e `MILL` continuam existindo em `T` — eles são
+   o VOCABULÁRIO DE AUTOR, o que permite o script escrever
+   `C.espalha(m, S, T.TREE, ...)`. O que eles não são é TILE: o `parteCamadas` os
+   desce para a camada de objeto. Na paleta eram armadilha por três motivos,
+   todos medidos:
+     · a amostra desenhava o CHÃO deles — "árvore" saía como grama e "barril"
+       como terra, com distância de cor ZERO contra GRASS e DIRT;
+     · pintar com eles não mostrava nada, porque o mapa carregado já está
+       partido e o objeto só nasce na recomposição seguinte;
+     · e os quatorze JÁ estão na paleta de objeto, com o sprite de verdade.
+   Duas entradas para a mesma coisa, e a pior das duas aparecia primeiro. */
 const GRUPOS = [
-  ['terreno', ['GRASS', 'DIRT', 'SAND', 'WATER', 'ROCK', 'TREE', 'SNOW', 'SWAMP', 'LAVA', 'VOID']],
-  ['madeira', ['WALL', 'FLOOR', 'DOOR', 'FENCE', 'CROP', 'PIER', 'HAY', 'PROP']],
-  ['pedra',   ['SWALL', 'PAVE', 'RUBBLE', 'TEMPLE']],
-  ['subsolo', ['CFLOOR', 'CWALL', 'ORE', 'GRAVEL', 'WEB', 'WEBF', 'BONE', 'ASH', 'MOSS']],
-  ['móveis',  ['WELL', 'CART', 'BARREL', 'MILL']],
-  ['marcas',  ['GORE', 'RUNE']],
-  ['escadas', ['UP', 'DOWN']]
+  ['chão · campo',   ['GRASS', 'DIRT', 'SAND', 'CROP', 'HAY']],
+  ['chão · variante',['GRASS_CLARA', 'GRASS_MATA', 'GRASS_SECA', 'GRASS_RALA', 'DIRT_ESCURA']],
+  ['chão · água',    ['WATER', 'SWAMP', 'LAVA']],
+  ['chão · vila',    ['PAVE', 'FLOOR', 'PIER', 'TEMPLE', 'RUBBLE']],
+  ['chão · subsolo', ['CFLOOR', 'GRAVEL', 'WEBF', 'BONE', 'ASH', 'MOSS', 'SNOW']],
+  ['marcas',         ['GORE', 'RUNE', 'VOID']],
+  ['escadas',        ['UP', 'DOWN']],
+  /* A folha `tiles_01.png`, agrupada por família — 55 entradas numa lista
+     corrida seriam um índice, não uma paleta. */
+  ['folha 01 · grama', ['GRASS_DENSA', 'GRASS_FLORIDA', 'GRASS_PEDRA', 'GRASS_ALTA', 'GRASS_PAPOULA', 'GRASS_MOSTARDA', 'GRASS_MATO_SECO', 'GRASS_ARBUSTO']],
+  ['folha 01 · terra', ['DIRT_UMIDA', 'DIRT_LISA', 'DIRT_PEDRISCO', 'DIRT_RACHADA', 'DIRT_PEDREGOSA', 'DIRT_GRETADA']],
+  ['folha 01 · areia', ['SAND_FINA', 'SAND_GROSSA', 'SAND_PEDRA', 'SAND_MATO', 'SAND_DUNA']],
+  ['folha 01 · calçada', ['PAVE_BLOCO', 'PAVE_SEIXO', 'PAVE_CLARA', 'PAVE_MUSGO', 'PAVE_PARALELO', 'PAVE_LAJE', 'PAVE_MOSAICO']],
+  ['folha 01 · tijolo', ['BRICK', 'BRICK_MUSGO']],
+  ['folha 01 · água', ['WATER_CLARA', 'WATER_FUNDA']],
+  ['folha 01 · pedra', ['ROCK_IRREGULAR', 'ROCK_PEDREGULHO', 'ROCK_BASALTO', 'ROCK_MUSGO']],
+  ['folha 01 · brita', ['GRAVEL_CLARO']],
+  ['folha 01 · tábua', ['FLOOR_DEITADA', 'FLOOR_CLARA', 'FLOOR_ESCURA', 'FLOOR_TRAVESSA', 'FLOOR_LARGA']],
+  ['folha 01 · tapete', ['RUG']],
+  ['folha 01 · osso', ['BONE_CHAO', 'BONE_AREIA']],
+  ['folha 01 · lava', ['LAVA_VIVA']],
+  ['folha 01 · neve', ['SNOW_PEDRA', 'SNOW_MATO', 'SNOW_FUNDA']],
+  ['folha 01 · gelo', ['ICE_AGUA', 'ICE_TRINCADO', 'ICE_LISO']],
+  ['folha 01 · pântano', ['SWAMP_VITORIA', 'SWAMP_JUNCO_SECO', 'SWAMP_JUNCO', 'SWAMP_FOLHA']]
 ];
 /* Os objetos, agrupados pela mesma lógica do vocabulário. A borracha entra como
    entrada da paleta e não como ferramenta: apagar É pintar nenhum objeto, e uma
@@ -316,6 +432,17 @@ const GRUPOS_OBJ = [
   ['objeto · vila',   ['porta', 'cerca', 'poco', 'carroca', 'barril', 'escora']],
   ['objeto · mato',   ['arvore', 'moita', 'pedra']]
 ];
+/* Selecionar não reconstrói a paleta: só troca a marca. Reconstruir redesenha
+   115 sprites de 32×32 — medido em 11,8 ms, o dobro do que custa desenhar o
+   mapa inteiro — e isso acontecia a cada clique na paleta. */
+function marcaPaleta() {
+  for (const d of document.querySelectorAll('#paleta .tl')) {
+    const t = d.dataset.tile, o = d.dataset.obj;
+    const on = o !== undefined ? pincelObj === o
+                               : (pincelObj === null && +t === pincel);
+    d.classList.toggle('on', on);
+  }
+}
 function paleta() {
   const p = $('#paleta');
   p.innerHTML = '';
@@ -335,7 +462,8 @@ function paleta() {
       d.appendChild(rot);
       d.title = nome + ' · ' + (TILE[t].walk ? 'andável' : 'barra o passo') +
         (TILE[t].span ? ' · ocupa ' + TILE[t].span[0] + '×' + TILE[t].span[1] + ' tiles' : '');
-      d.onclick = () => { pincel = t; pincelObj = null; paleta(); desenha(); };
+      d.dataset.tile = t;
+      d.onclick = () => { pincel = t; pincelObj = null; marcaPaleta(); desenha(); };
       g.appendChild(d);
     }
     p.appendChild(h); p.appendChild(g);
@@ -364,16 +492,27 @@ function paleta() {
         : o.nome + ' · ' + (o.walk ? 'não barra' : 'barra o passo') +
           (o.top > 0.5 ? ' e a vista' : '') +
           (o.span ? ' · ocupa ' + o.span[0] + '×' + o.span[1] + ' tiles' : '');
-      d.onclick = () => { pincelObj = id; paleta(); desenha(); };
+      d.dataset.obj = id;
+      d.onclick = () => { pincelObj = id; marcaPaleta(); desenha(); };
       g.appendChild(d);
     }
     p.appendChild(h); p.appendChild(g);
   };
   for (const [titulo, nomes] of GRUPOS) bloco(titulo, nomes);
+  const postosObj = new Set(GRUPOS_OBJ.flatMap(([, ids]) => ids));
   for (const [titulo, ids] of GRUPOS_OBJ) blocoObj(titulo, ids);
+  /* Objeto que entrar em OBJ e não estiver em GRUPOS_OBJ aparece aqui em vez de
+     SUMIR. O lado do tile já tinha esta rede e o do objeto não — e a lista de
+     grupos é escrita à mão, então ela vai envelhecer. Objeto invisível na
+     paleta é objeto que não existe para quem edita. */
+  const sobraObj = Object.keys(OBJ).filter(k => !postosObj.has(k));
+  if (sobraObj.length) blocoObj('objeto · sem grupo', sobraObj);
   /* Tile que entrar na tabela e não estiver em GRUPOS aparece aqui em vez de
      sumir da paleta: a lista de grupos é escrita à mão e vai envelhecer. */
-  const sobra = Object.keys(T).filter(k => !postos.has(k));
+  /* O que migra para objeto fica FORA da rede de "sem grupo": senão os quatorze
+     voltariam por aqui, que é o mesmo defeito com outro nome. Eles têm entrada
+     própria na paleta de objeto, e é lá que se pega uma árvore. */
+  const sobra = Object.keys(T).filter(k => !postos.has(k) && !MIGRA[T[k]]);
   if (sobra.length) bloco('sem grupo', sobra);
 }
 
@@ -488,7 +627,7 @@ function desenha() {
 
   /* Grade só quando o tile é grande o bastante para ela não virar ruído. Sem
      grade não se conta tile, e contar tile é metade do trabalho de editar. */
-  if (grade && px >= 7) {
+  if (gradeMapa() && px >= 7) {
     ctx.strokeStyle = vistaAgora() === 'jogo' ? 'rgba(255,255,255,.13)' : 'rgba(0,0,0,.24)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -499,14 +638,20 @@ function desenha() {
 
   /* O que VOCÊ mexeu fica marcado enquanto não grava. Sem isso não há como
      saber o que é seu e o que é meu, e a primeira coisa que se perde num editor
-     é a noção do que já foi tocado. */
-  ctx.strokeStyle = 'rgba(216,194,122,.9)'; ctx.lineWidth = px >= 4 ? 1 : 2;
-  for (const k of [...mexidos.keys(), ...mexidosObj.keys()]) {
-    const [kz, ki] = k.split(':').map(Number);
-    if (kz !== z) continue;
-    const x = ki % W, y = (ki / W) | 0;
-    if (x < x0 - 1 || y < y0 - 1 || x > x0 + colunas() || y > y0 + linhas()) continue;
-    ctx.strokeRect(telaX(x) + .5, telaY(y) + .5, Math.max(1, px - 1), Math.max(1, px - 1));
+     é a noção do que já foi tocado.
+     Desligável no X porque, numa região recém-pintada, um contorno por tile É
+     uma grade — e ela cai exatamente em cima do que se acabou de pôr, que é
+     onde se quer julgar o tile. O contador de "por gravar" fica, então
+     desligar a marca não esconde que há coisa pendente. */
+  if (gradeEdicao()) {
+    ctx.strokeStyle = 'rgba(216,194,122,.9)'; ctx.lineWidth = px >= 4 ? 1 : 2;
+    for (const k of [...mexidos.keys(), ...mexidosObj.keys()]) {
+      const [kz, ki] = k.split(':').map(Number);
+      if (kz !== z) continue;
+      const x = ki % W, y = (ki / W) | 0;
+      if (x < x0 - 1 || y < y0 - 1 || x > x0 + colunas() || y > y0 + linhas()) continue;
+      ctx.strokeRect(telaX(x) + .5, telaY(y) + .5, Math.max(1, px - 1), Math.max(1, px - 1));
+    }
   }
 
   // spawn e hunt: não se editam aqui ainda, mas apagar um tile com bicho em
@@ -528,16 +673,41 @@ function desenha() {
   if (hover && ferramenta !== 'conta-gotas') {
     const sp = pincelObj !== null ? (pincelObj && OBJ[pincelObj].span) : TILE[pincel].span;
     const [hx, hy] = hover;
-    let ax, ay, aw, ah;
+    const risca = c => { ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.stroke(c);
+                         ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke(c); };
     if (ferramenta === 'retangulo' && arrastando && arrastando.ret) {
-      ax = Math.min(arrastando.x, hx); ay = Math.min(arrastando.y, hy);
-      aw = Math.abs(hx - arrastando.x) + 1; ah = Math.abs(hy - arrastando.y) + 1;
-    } else if (sp) { ax = hx; ay = hy; aw = sp[0]; ah = sp[1]; }
-    else { ax = hx - raio; ay = hy - raio; aw = raio * 2 + 1; ah = raio * 2 + 1; }
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
-    ctx.strokeRect(telaX(ax) + .5, telaY(ay) + .5, aw * px - 1, ah * px - 1);
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
-    ctx.strokeRect(telaX(ax) + .5, telaY(ay) + .5, aw * px - 1, ah * px - 1);
+      const ax = Math.min(arrastando.x, hx), ay = Math.min(arrastando.y, hy);
+      const c = new Path2D();
+      c.rect(telaX(ax) + .5, telaY(ay) + .5,
+             (Math.abs(hx - arrastando.x) + 1) * px - 1, (Math.abs(hy - arrastando.y) + 1) * px - 1);
+      risca(c);
+    } else if (sp && !raio) {                  // objeto grande sozinho: o rastro dele
+      const c = new Path2D();
+      c.rect(telaX(hx) + .5, telaY(hy) + .5, sp[0] * px - 1, sp[1] * px - 1);
+      risca(c);
+    } else {
+      /* Círculo e mancha não têm contorno retangular, então a marca deixou de ser
+         um retângulo e passou a ser a UNIÃO das células — desenhada só nas arestas
+         que fazem divisa com quem está de fora, senão 169 quadradinhos viram malha.
+         Sem densidade aqui de propósito: ela sorteia a cada clique, e mostrar um
+         sorteio que não se repete seria pior que não mostrar nada. */
+      const dentro = new Set();
+      for (const [x, y] of celulas(hx, hy, false))
+        if (sp) { for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) dentro.add((x + i) + ',' + (y + j)); }
+        else dentro.add(x + ',' + y);
+      const c = new Path2D();
+      ctx.fillStyle = 'rgba(255,255,255,.14)';
+      for (const p of dentro) {
+        const [x, y] = p.split(',').map(Number);
+        const sx = telaX(x), sy = telaY(y);
+        ctx.fillRect(sx, sy, px, px);
+        if (!dentro.has(x + ',' + (y - 1))) { c.moveTo(sx, sy + .5); c.lineTo(sx + px, sy + .5); }
+        if (!dentro.has(x + ',' + (y + 1))) { c.moveTo(sx, sy + px - .5); c.lineTo(sx + px, sy + px - .5); }
+        if (!dentro.has((x - 1) + ',' + y)) { c.moveTo(sx + .5, sy); c.lineTo(sx + .5, sy + px); }
+        if (!dentro.has((x + 1) + ',' + y)) { c.moveTo(sx + px - .5, sy); c.lineTo(sx + px - .5, sy + px); }
+      }
+      risca(c);
+    }
   }
   estado();
 }
@@ -551,7 +721,7 @@ function estado() {
     (vista === 'jogo'
        ? (px >= VISTA_MIN ? 'jogo' : 'planta (jogo volta ao aproximar)')
        : 'planta') + ' (V) · luz ' + (luz === 'andar' ? 'do andar' : 'neutra') + ' (L)' +
-    ' · grade ' + (grade ? (px >= 7 ? 'sim' : 'sim, oculta no zoom') : 'não') + ' (X)';
+    ' · grade ' + GRADES[grade] + (gradeMapa() && px < 7 ? ', a do mapa oculta no zoom' : '') + ' (X)';
 }
 
 /* ------------------------------------------------------------ a edição */
@@ -603,20 +773,22 @@ function poeObj(x, y, id, lote) {
 }
 
 function pintar(x, y, lote) {
+  const cel = celulas(x, y, true);
   if (pincelObj !== null) {
     /* Objeto de mais de um tile pinta só a ÂNCORA: o rastro é do índice, não do
        mapa. É a diferença que a separação de camadas comprou — antes o pincel
        tinha de pintar os 6 tiles do moinho e um deles faltando dava âncora sem
        rastro, que não desenha nada e não dá erro. */
-    for (let j = -raio; j <= raio; j++) for (let i = -raio; i <= raio; i++) poeObj(x + i, y + j, pincelObj, lote);
+    for (const [cx, cy] of cel) poeObj(cx, cy, pincelObj, lote);
     return;
   }
   const sp = TILE[pincel].span;
-  if (sp) {                                    // objeto grande: pinta o rastro inteiro
-    for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) poe(x + i, y + j, pincel, lote);
+  if (sp) {                                    // objeto grande: cada âncora pinta o rastro inteiro
+    for (const [cx, cy] of cel)
+      for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) poe(cx + i, cy + j, pincel, lote);
     return;
   }
-  for (let j = -raio; j <= raio; j++) for (let i = -raio; i <= raio; i++) poe(x + i, y + j, pincel, lote);
+  for (const [cx, cy] of cel) poe(cx, cy, pincel, lote);
 }
 
 /* Balde com pilha explícita e não recursão: 192×192 é 36 mil tiles, e o
@@ -627,6 +799,16 @@ function pintar(x, y, lote) {
    diferença não se enxerga antes de clicar. Então ele MEDE e pergunta. */
 const BALDE_AVISA = 400;
 function balde(x, y, lote) {
+  /* O balde é de TERRENO. Com um objeto escolhido na paleta ele pintava o
+     terreno do último pincel de chão — ação silenciosa e errada, e das piores,
+     porque balde pinta centenas de tiles de uma vez. Inundar de objeto também
+     não é o que se quer (mil árvores num clique), então ele avisa e para. */
+  if (pincelObj !== null) {
+    alert('O balde é de terreno, e o que está escolhido é um objeto.\n\n' +
+          'Escolha um tile de chão na paleta, ou use o pincel com mancha e ' +
+          'densidade para espalhar objeto.');
+    return;
+  }
   const alvo = WORLD.floors[z].t[y * W + x];
   if (alvo === pincel) return;
   const p = [[x, y]], visto = new Set(), area = [];
@@ -663,9 +845,20 @@ cv.addEventListener('mousedown', e => {
   if (e.button !== 0) return;
   const t = tileSob(e);
   if (!dentro(t)) return;
-  if (ferramenta === 'conta-gotas') { pincel = WORLD.floors[z].t[t[1] * W + t[0]]; paleta(); desenha(); return; }
+  if (ferramenta === 'conta-gotas') {
+    /* Pega o OBJETO se houver um, e o chão se não houver — é o que a mão espera
+       ao apontar para um barril. E precisa zerar o outro pincel nos dois casos:
+       pegando o chão com um objeto selecionado, o `pincelObj` continuava valendo
+       e o pincel seguia pintando o objeto, então o conta-gotas parecia não
+       fazer nada. */
+    const aqui = idsEm(t[0], t[1], z);
+    if (aqui.length) { pincelObj = aqui[aqui.length - 1]; }
+    else { pincel = WORLD.floors[z].t[t[1] * W + t[0]]; pincelObj = null; }
+    marcaPaleta(); desenha(); return;
+  }
   const lote = [];
   if (ferramenta === 'balde') { balde(t[0], t[1], lote); if (lote.length) pilha.push(lote); desenha(); return; }
+  
   if (ferramenta === 'retangulo') { arrastando = { x: t[0], y: t[1], lote, ret: 1 }; return; }
   arrastando = { lote };
   pintar(t[0], t[1], lote);
@@ -703,7 +896,12 @@ addEventListener('mouseup', e => {
     if (dentro(t)) {
       const x0 = Math.min(arrastando.x, t[0]), x1 = Math.max(arrastando.x, t[0]);
       const y0 = Math.min(arrastando.y, t[1]), y1 = Math.max(arrastando.y, t[1]);
-      for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) poe(i, j, pincel, arrastando.lote);
+      /* O retângulo respeita o pincel ESCOLHIDO. Pintava sempre terreno, então
+         com um objeto na paleta ele estampava o último tile de chão usado — sem
+         erro e sem aviso, que é o pior jeito de errar uma área inteira. */
+      for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++)
+        if (pincelObj !== null) poeObj(i, j, pincelObj, arrastando.lote);
+        else poe(i, j, pincel, arrastando.lote);
     }
   }
   if (arrastando.lote.length) pilha.push(arrastando.lote);
@@ -735,9 +933,15 @@ cv.addEventListener('wheel', e => {
 }, { passive: false });
 
 function verTudo() {
-  px = Math.max(1, Math.min(cv.width / W, cv.height / H));
-  ecamX = W / 2 - cv.width / px / 2;
-  ecamY = H / 2 - cv.height / px / 2;
+  /* `clientWidth` e não `width`: o primeiro é pixel de CSS e o segundo é pixel
+     de BUFFER, e os dois só coincidem em tela sem HiDPI. Com `devicePixelRatio`
+     2 — que é a tela do dono — o zoom saía o dobro do que cabe e o "ver tudo"
+     mostrava 46% do mapa, medido. Todo o resto do editor (`limitaCam`, o mouse,
+     o overlay) já trabalha em pixel de CSS; era esta função que destoava. */
+  const w = cv.clientWidth, h = cv.clientHeight;
+  px = Math.max(0.05, Math.min(w / W, h / H));
+  ecamX = W / 2 - w / px / 2;
+  ecamY = H / 2 - h / px / 2;
   desenha();
 }
 
@@ -820,6 +1024,7 @@ function carregar(nome, manterVista) {
         z = SURF;
         andares(); verTudo();
       }
+      carregado = nome;
       document.title = 'Editor — ' + nome;
       /* O MAPA ESTÁ ATRASADO EM RELAÇÃO AO PATCH? Acontece quando o patch é
          gravado e ninguém recompõe — o caso clássico é um servidor estranho na
@@ -849,6 +1054,21 @@ function carregar(nome, manterVista) {
               const mg = MIGRA[t];
               if (mg) { if (!objsAt(x, y, iz).some(o => o.o === mg.o)) fora++; }
               else if (WORLD.floors[iz].t[y * W + x] !== t) fora++;
+            }
+          }
+          /* A CAMADA DE OBJETO também conta. Enquanto o `objs` do patch era
+             descartado na gravação isto não tinha o que medir; agora que ele
+             chega ao disco, um mapa não recomposto tem de acusar o objeto que
+             falta, e não só o tile. */
+          for (const kz in pt.objs || {}) {
+            const iz = +kz;
+            if (iz >= FLOORS) { fora += pt.objs[kz].length; total += pt.objs[kz].length; continue; }
+            for (const [x, y, ids] of pt.objs[kz]) {
+              total++;
+              if (x >= W || y >= H) continue;
+              const aqui = objsAt(x, y, iz).map(o => o.o).sort();
+              const quer = (ids || []).slice().sort();
+              if (aqui.length !== quer.length || aqui.some((v, i) => v !== quer[i])) fora++;
             }
           }
           if (!fora) return;
@@ -909,7 +1129,12 @@ function andares() {
 }
 
 function gravar() {
-  const nome = $('#nome').value.trim();
+  const nome = carregado;
+  if (!nome) { alert('não há mapa carregado para gravar.'); return; }
+  if ($('#nome').value.trim() !== nome && !confirm(
+      'A caixa diz "' + $('#nome').value.trim() + '" mas o que está na tela é "' + nome + '".\n\n' +
+      'Vou gravar em ' + nome + ', que é o que você editou. Para abrir o outro, use "carregar".'))
+    return;
   /* O patch ACUMULA no arquivo, não na sessão. Somar é o certo — mas somar
      CALADO não é, e isso custou uma medição: um balde de teste no oceano deixou
      19.646 tiles no arquivo, e a gravação seguinte de 31 tiles reportou 31
@@ -1013,28 +1238,57 @@ function gravar() {
 
 /* ------------------------------------------------------------- ligações */
 $('#carregar').onclick = () => carregar($('#nome').value.trim());
+/* Enter na caixa CARREGA. Sem isto o campo aceitava o nome, o dono apertava
+   Enter e não acontecia nada — e o guarda de INPUT do keydown engole a tecla,
+   então tem de ser tratada aqui. */
+$('#nome').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); carregar($('#nome').value.trim()); e.target.blur(); }
+});
 $('#desfazer').onclick = desfazer;
 $('#gravar').onclick = gravar;
-function marcaGrade() { $('#btGrade').classList.toggle('on', grade); }
-$('#btGrade').onclick = () => { grade = !grade; marcaGrade(); desenha(); };
+/* O botão DIZ em que estado está, em vez de só acender: com três estados,
+   aceso/apagado não distingue "só a de edição" de "nenhuma". */
+function marcaGrade() {
+  const b = $('#btGrade');
+  b.classList.toggle('on', grade === 0);
+  b.innerHTML = 'grade: ' + GRADES[grade] + '<b>X</b>';
+}
+const ciclaGrade = () => { grade = (grade + 1) % GRADES.length; marcaGrade(); desenha(); };
+$('#btGrade').onclick = ciclaGrade;
 marcaGrade();
 $('#verTudo').onclick = verTudo;
 $('#limpar').onclick = () => {
-  if (!mexidos.size || !confirm('Descartar ' + mexidos.size + ' tile(s) mexido(s) nesta sessão?')) return;
+  /* As DUAS camadas. Descartava só o terreno: as edições de objeto ficavam no
+     mapa E na lista de pendentes, então a gravação seguinte as escrevia mesmo
+     depois de o dono ter mandado descartar. E com só objetos mexidos o botão
+     não fazia nada, porque a guarda olhava `mexidos.size`. */
+  const n = mexidos.size + mexidosObj.size;
+  if (!n || !confirm('Descartar ' + n + ' tile(s) mexido(s) nesta sessão?')) return;
   for (const [k] of mexidos) {
     const [kz, ki] = k.split(':').map(Number);
     WORLD.floors[kz].t[ki] = base[kz][ki];
   }
-  mexidos = new Map(); pilha = []; desenha();
+  for (const [k] of mexidosObj) {
+    const [kz, ki] = k.split(':').map(Number);
+    desfazObj(k, (baseObj[kz][ki] || []).slice());
+  }
+  mexidos = new Map(); mexidosObj = new Map(); pilha = [];
+  miniSujo = true; desenha();
 };
 const marca = (sel, b) => document.querySelectorAll(sel).forEach(o => o.classList.toggle('on', o === b));
 document.querySelectorAll('.fer').forEach(b => b.onclick = () => { ferramenta = b.dataset.f; marca('.fer', b); desenha(); });
 document.querySelectorAll('.tam').forEach(b => b.onclick = () => { raio = +b.dataset.r; marca('.tam', b); desenha(); });
+document.querySelectorAll('.fma').forEach(b => b.onclick = () => { forma = b.dataset.m; marca('.fma', b); desenha(); });
+$('#dens').oninput = e => { dens = +e.target.value; $('#densN').textContent = dens + '%'; };
+/* Devolve o foco ao mapa depois de arrastar: com o range focado, o guarda de
+   INPUT do keydown engoliria B, G, R e todo o resto dos atalhos. */
+$('#dens').onpointerup = e => e.target.blur();
 
 /* Atalho de uma tecla para ferramenta e tamanho: com os dois a um toque, a mão
    não sai do mapa para ir à barra e voltar — que é metade do "ruim de mexer".
-   Andar vai em F1..F9 para não brigar com 1..3, que são o tamanho do pincel. */
+   Andar vai em F1..F9 para não brigar com 1..6, que são o tamanho do pincel. */
 const TECLA_FER = { b: 'pincel', g: 'balde', r: 'retangulo', i: 'conta-gotas' };
+const TECLA_FMA = { q: 'quadrado', c: 'circulo', m: 'mancha' };
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   const k = e.key.toLowerCase();
@@ -1051,15 +1305,20 @@ addEventListener('keydown', e => {
     marca('.fer', document.querySelector('.fer[data-f="' + ferramenta + '"]'));
     return desenha();
   }
-  if (k >= '1' && k <= '3') {
-    raio = +k - 1;
-    marca('.tam', document.querySelector('.tam[data-r="' + raio + '"]'));
+  if (k >= '1' && k <= '6') {
+    const b = document.querySelectorAll('.tam')[+k - 1];
+    raio = +b.dataset.r; marca('.tam', b);
+    return desenha();
+  }
+  if (TECLA_FMA[k]) {
+    forma = TECLA_FMA[k];
+    marca('.fma', document.querySelector('.fma[data-m="' + forma + '"]'));
     return desenha();
   }
   if (k === '0') return verTudo();
   if (k === 'v') { vista = vista === 'jogo' ? 'planta' : 'jogo'; return desenha(); }
   if (k === 'l') { luz = luz === 'andar' ? 'neutra' : 'andar'; return desenha(); }
-  if (k === 'x') { grade = !grade; marcaGrade(); return desenha(); }
+  if (k === 'x') return ciclaGrade();
 });
 addEventListener('resize', ajusta);
 /* Sair com coisa não gravada é a perda mais boba que um editor permite. */

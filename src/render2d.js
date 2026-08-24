@@ -585,8 +585,14 @@ function tileBorders(x, y, z, def, sx, sy, t, tw, th) {
     if (nd.hide || nd.top > 0.5) continue;
     if ((TERRAIN_PRIO[nd.tex] || 0) <= p0) continue;
     if (m < 4) orto |= 1 << m;
+    /* A VARIANTE sai da coordenada de MUNDO, e é ela que faz a franja
+       atravessar o tile: a máscara da variante v é a fatia do ruído de v·32 a
+       v·32+32, e o ruído é periódico em BORDA_P tiles — então o tile x+1 começa
+       onde o x terminou e a curva não tem degrau na junta. Borda que corre na
+       horizontal indexa por x, na vertical por y, e o canto pelos dois. */
+    const v = ((m === 0 || m === 2 ? x : m === 1 || m === 3 ? y : x + y) % BORDA_P + BORDA_P) % BORDA_P;
     // o borderSprite já traz o contorno da junta assado dentro dele
-    g2.drawImage(borderSprite(nd.tex, nd.c, m), sx, sy, tw, th);
+    g2.drawImage(borderSprite(nd.tex, nd.c, m, v), sx, sy, tw, th);
     /* Espuma: só no tile de água e só nas ortogonais — a máscara de canto é
        radial e a faixa sairia curva, e o canto quase sempre já tem um dos dois
        lados ortogonais espumando do lado.
