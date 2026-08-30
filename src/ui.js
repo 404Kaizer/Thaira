@@ -655,6 +655,7 @@ addEventListener('DOMContentLoaded', () => {
   $('#tree-close').onclick = () => $('#tree-win').style.display = 'none';
   bindTreeCam($('#tree-list'));
   $('#tree-respec').onclick = () => { respec(); renderTree(); };
+  $('#dev-close').onclick = () => $('#dev-win').style.display = 'none';
   $('#map-btn').onclick = () => openMap();
   $('#map-close').onclick = () => $('#map-win').style.display = 'none';
   $('#minimap').onclick = () => { if (!miniDragMoved) openMap(); };
@@ -662,3 +663,209 @@ addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('#map-tabs .tab').forEach(b =>
     b.onclick = () => { mapFloor = +b.dataset.z; drawBigMap(); });
 });
+
+/* ------------------------------------------------------- menu de teste (/dev)
+   Ferramenta de desenvolvimento, e por isso ela NÃO tem botão na interface: só
+   `/dev` no chat. Atalho de depuração na tela do jogador é exatamente o que o
+   §23 chama de elemento sem propósito de jogo.
+   Tudo aqui reusa o que o jogo já tem — `expForLevel`, `mkItem`, `bagAdd`,
+   `recalc`, e os dois ganchos de cenário do `world.js`. O menu não sabe
+   nenhuma regra: ele só chama as que existem. */
+/* PERÍCIA. O `magic` mora em `P.ml` e o resto em `P.sk[k]` — a tabela
+   `SKILL_NAMES` junta os dois, e é dela que a lista sai: perícia nova no
+   `data.js` aparece aqui sozinha.
+   `t` (o progresso para o próximo ponto) volta a zero de propósito: manter o
+   progresso antigo depois de trocar o nível faria a barra da ficha mostrar uma
+   fração de um degrau que não existe mais. */
+const devSkillL = k => k === 'magic' ? (P.ml ? P.ml.l : 0) : (P.sk[k] ? P.sk[k].l : 0);
+function devSkill(k, n, emLote) {
+  const v = Math.max(0, Math.min(999, n | 0));
+  if (k === 'magic') P.ml = { l: v, t: 0 };
+  else if (P.sk[k]) { P.sk[k].l = v; P.sk[k].t = 0; }
+  else return;
+  if (!emLote) devSkillFim(`${SKILL_NAMES[k]}: ${v}.`);
+}
+function devSkillFim(msg) {
+  recalc(); renderSkills(); renderBars(); devMenu(); log(msg, 'good');
+}
+function devAplicaNivel(n) {
+  P.level = Math.max(1, Math.min(9999, n | 0));
+  P.exp = expForLevel(P.level);
+  recalc(); P.hp = P.st.maxhp; P.mana = P.st.maxmana;
+  renderBars(); renderInv(); renderHotbar(); devMenu();
+  log(`Nível ${P.level}.`, 'good');
+}
+/* TODAS as skins, de TODAS as vocações. O seletor de Opções mostra só as da
+   vocação do personagem de propósito — ali é escolha de jogador. Aqui é teste,
+   e o `skinAtual` já devolve `p.skin` sem perguntar vocação nenhuma, então a
+   trava era só a lista. Folha que não existir cai no boneco procedural sozinha,
+   que é a queda que o render já tem.
+   A lista sai do `VOC_SKINS`: skin nova no data.js aparece aqui sem tocar nisto. */
+function devSkins() {
+  const vistos = new Set(), fora = [];
+  for (const voc in VOC_SKINS) for (const sk of VOC_SKINS[voc])
+    if (!vistos.has(sk.id)) { vistos.add(sk.id); fora.push({ id: sk.id, n: sk.n, voc }); }
+  const at = P.skin || 'auto';
+  const bt = (id, rot) => `<button data-skin="${id}"${at === id ? ' class="on"' : ''}>${rot}</button>`;
+  return bt('auto', 'automático') + bt('none', 'procedural') +
+    fora.map(sk => bt(sk.id, sk.n)).join('');
+}
+/* A CATEGORIA SAI DA FICHA, não de uma lista escrita à mão — item novo no
+   `data.js` cai no grupo certo sem ninguém tocar aqui. A ordem é de leitura:
+   o que se veste primeiro, o que se gasta depois, o resto no fim. */
+const DEV_SLOT_N = { shield: 'Escudos', armor: 'Armaduras', helmet: 'Elmos', legs: 'Pernas',
+  boots: 'Botas', ring: 'Anéis', amulet: 'Amuletos', light: 'Luz' };
+const DEV_WT_N = { sword: 'Espadas', axe: 'Machados', club: 'Clavas',
+  distance: 'Distância', wand: 'Varinhas' };
+const DEV_CAT_ORDEM = ['Armas — Espadas', 'Armas — Machados', 'Armas — Clavas',
+  'Armas — Distância', 'Armas — Varinhas', 'Escudos', 'Armaduras', 'Elmos', 'Pernas', 'Botas',
+  'Anéis', 'Amuletos', 'Luz', 'Runas', 'Consumíveis', 'Materiais de forja', 'Moedas', 'Outros'];
+/* Os materiais saem da tabela de imbuements: é ela que define o que é insumo de
+   forja, e derivar dali é o que mantém a régua do CLAUDE.md — os 28 materiais
+   continuam caindo, e se um sair da forja ele some daqui junto. */
+let DEV_MATS = null;
+function devMatsForja() {
+  if (DEV_MATS) return DEV_MATS;
+  DEV_MATS = new Set();
+  try { for (const im of IMBUEMENTS) for (const [id] of (im.mats || [])) DEV_MATS.add(id); }
+  catch (e) { /* tabela ausente: o grupo fica vazio, e nada quebra */ }
+  return DEV_MATS;
+}
+function devCategoria(id) {
+  const it = ITEMS[id] || {};
+  if (typeof COIN_V !== 'undefined' && COIN_V[id]) return 'Moedas';
+  if (it.rune) return 'Runas';
+  if (it.use) return 'Consumíveis';
+  if (it.slot === 'weapon') return 'Armas — ' + (DEV_WT_N[it.wt] || it.wt || 'outras');
+  if (it.slot) return DEV_SLOT_N[it.slot] || it.slot;
+  if (devMatsForja().has(id)) return 'Materiais de forja';
+  return 'Outros';
+}
+let devRar = 0;
+function devLinha(rot, dentro) {
+  return `<div class="dev-lin"><label>${rot}</label>${dentro}</div>`;
+}
+function devMenu() {
+  const w = $('#dev-win'), b = $('#dev-body');
+  if (!w) return;
+  b.innerHTML =
+    `<div class="dev-sec"><b>Personagem</b>
+      ${devLinha('Nível', `<input type="number" id="dev-nv" value="${P.level}" min="1">
+        <button id="dev-nv-ok">aplicar</button>
+        <button data-nv="1">1</button><button data-nv="15">15</button>
+        <button data-nv="60">60</button><button data-nv="150">150</button>
+        <button data-nv="320">320</button>`)}
+      ${devLinha('Experiência', `<span class="v">${Math.round(P.exp)}</span>
+        <input type="number" id="dev-xp" placeholder="somar"> <button id="dev-xp-ok">somar</button>`)}
+      ${devLinha('Ouro', `<span class="v">${P.gold}</span>
+        <input type="number" id="dev-gold" placeholder="somar"> <button id="dev-gold-ok">somar</button>`)}
+      ${devLinha('Vida e mana', `<button id="dev-cura">encher</button>`)}
+    </div>
+    <div class="dev-sec"><b>Perícias</b>
+      <div class="dev-sk">${Object.keys(SKILL_NAMES).map(k => {
+        const base = k === 'magic' ? (P.ml ? P.ml.l : 0) : (P.sk[k] ? P.sk[k].l : 0);
+        const efe = (() => { try { return skillOf(k); } catch (e) { return base; } })();
+        return `<div><label>${SKILL_NAMES[k]}</label>
+          <button data-sk="${k}" data-d="-1">−</button>
+          <input type="number" data-skv="${k}" value="${base}" min="0">
+          <button data-sk="${k}" data-d="1">+</button>
+          <span class="v" title="com o equipamento">${efe}</span></div>`;
+      }).join('')}</div>
+      ${devLinha('', `<button data-sk-all="10">tudo em 10</button>
+        <button data-sk-all="60">tudo em 60</button>
+        <button data-sk-all="130">tudo em 130</button>`)}
+    </div>
+    <div class="dev-sec"><b>Itens</b>
+      ${devLinha('Buscar', `<input type="text" id="dev-busca" placeholder="nome ou id" autocomplete="off">
+        <label>quantidade</label><input type="number" id="dev-qtd" value="1" min="1" max="100">`)}
+      ${devLinha('Raridade', RARITY.map((r, i) =>
+        `<button data-rar="${i}"${devRar === i ? ' class="on"' : ''} style="color:${r.color}">${r.name}</button>`).join('') +
+        `<span class="v">${RARITY[devRar].affixes} afixo${RARITY[devRar].affixes === 1 ? '' : 's'}</span>`)}
+      <div id="dev-itens"></div>
+    </div>
+    <div class="dev-sec"><b>Aparência</b>
+      ${devLinha('Skin', devSkins())}
+    </div>
+    <div class="dev-sec"><b>Cenário</b>
+      ${devLinha('Hora', `<input type="range" id="dev-hora" min="0" max="239" value="${Math.round(horaDoDia() * 240)}">
+        <span class="v" id="dev-hora-v"></span>`)}
+      ${devLinha('Céu fechado', `<input type="range" id="dev-nub" min="0" max="100" value="${Math.round(nubladoEm(Date.now()) * 100)}">
+        <span class="v" id="dev-nub-v"></span>`)}
+      ${devLinha('', `<button id="dev-auto">voltar ao automático</button>
+        <span class="v" id="dev-modo"></span>`)}
+      ${devLinha('Andar', Array.from({ length: FLOORS }, (_, z) =>
+        `<button data-z="${z}">${z === SURF ? 'superfície' : z}</button>`).join(''))}
+    </div>`;
+
+  const set = (id, ev, fn) => { const e = $(id); if (e) e[ev] = fn; };
+  set('#dev-nv-ok', 'onclick', () => devAplicaNivel(+$('#dev-nv').value));
+  b.querySelectorAll('[data-nv]').forEach(x => x.onclick = () => devAplicaNivel(+x.dataset.nv));
+  b.querySelectorAll('[data-sk]').forEach(x => x.onclick = () => {
+    const k = x.dataset.sk;
+    devSkill(k, devSkillL(k) + (+x.dataset.d));
+  });
+  b.querySelectorAll('[data-skv]').forEach(x => x.onchange = () => devSkill(x.dataset.skv, +x.value));
+  b.querySelectorAll('[data-sk-all]').forEach(x => x.onclick = () => {
+    for (const k of Object.keys(SKILL_NAMES)) devSkill(k, +x.dataset.skAll, true);
+    devSkillFim(`Todas as perícias em ${x.dataset.skAll}.`);
+  });
+  set('#dev-xp-ok', 'onclick', () => { P.exp += +$('#dev-xp').value || 0; recalc(); renderBars(); devMenu(); });
+  set('#dev-gold-ok', 'onclick', () => { P.gold += +$('#dev-gold').value || 0; renderInv(); devMenu(); });
+  set('#dev-cura', 'onclick', () => { P.hp = P.st.maxhp; P.mana = P.st.maxmana; renderBars(); });
+
+  /* TODOS os itens, agrupados. A primeira versão cortava em 80 e o dono viu o
+     que ela era: uma lista que esconde a maior parte da tabela. Agora entram os
+     332, e o que os organiza é CATEGORIA DERIVADA — nenhuma lista à mão, então
+     item novo no `data.js` cai no grupo certo sozinho. */
+  const pinta = () => {
+    const q = ($('#dev-busca').value || '').trim().toLowerCase();
+    const grupos = new Map();
+    for (const id of Object.keys(ITEMS)) {
+      if (q && !id.includes(q) && !(ITEMS[id].n || '').toLowerCase().includes(q)) continue;
+      const c = devCategoria(id);
+      if (!grupos.has(c)) grupos.set(c, []);
+      grupos.get(c).push(id);
+    }
+    const ordem = [...grupos.keys()].sort((a, b) =>
+      (DEV_CAT_ORDEM.indexOf(a) + 1 || 99) - (DEV_CAT_ORDEM.indexOf(b) + 1 || 99) || a.localeCompare(b));
+    $('#dev-itens').innerHTML = ordem.map(c =>
+      `<h4>${c}<span>${grupos.get(c).length}</span></h4>` + grupos.get(c).map(id =>
+        `<div data-id="${id}"><span style="color:inherit">${ITEMS[id].n || id}</span><span>${id}</span></div>`).join('')
+    ).join('') || '<div><span>nada com esse nome</span></div>';
+    $('#dev-itens').querySelectorAll('[data-id]').forEach(el => el.onclick = () => {
+      const id = el.dataset.id, def = ITEMS[id];
+      const n = Math.max(1, Math.min(100, +$('#dev-qtd').value || 1));
+      /* Empilhável sai numa entrada com `count`; o resto sai um a um, porque
+         cada peça é uma instância com afixos próprios. É o `mkItem` que decide,
+         e ele já recebe a raridade. */
+      let ok = 0;
+      if (def.stack) ok = bagAdd(mkItem(id, 0, n)) ? n : 0;
+      else for (let i = 0; i < n; i++) if (bagAdd(mkItem(id, devRar, 1))) ok++;
+      renderInv();
+      log(ok ? `+${ok} ${def.n || id}${!def.stack && devRar ? ' (' + RARITY[devRar].name + ')' : ''}`
+        : 'Mochila cheia.', ok ? 'good' : 'bad');
+    });
+  };
+  b.querySelectorAll('[data-rar]').forEach(x => x.onclick = () => { devRar = +x.dataset.rar; devMenu(); });
+  set('#dev-busca', 'oninput', pinta);
+  pinta();
+
+  const modo = () => {
+    $('#dev-hora-v').textContent = (() => {
+      const h = (DEV.hora === null ? horaDoDia() : DEV.hora) * 24;
+      return `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor(h % 1 * 60)).padStart(2, '0')}`;
+    })();
+    $('#dev-nub-v').textContent = Math.round((DEV.nublado === null ? nubladoEm(Date.now()) : DEV.nublado) * 100) + '%';
+    $('#dev-modo').textContent = DEV.hora === null && DEV.nublado === null ? 'automático' : 'FORÇADO';
+  };
+  set('#dev-hora', 'oninput', e => { DEV.hora = +e.target.value / 240; modo(); });
+  set('#dev-nub', 'oninput', e => { DEV.nublado = +e.target.value / 100; modo(); });
+  set('#dev-auto', 'onclick', () => { DEV.hora = DEV.nublado = null; devMenu(); });
+  b.querySelectorAll('[data-skin]').forEach(x => x.onclick = () => {
+    P.skin = x.dataset.skin; devMenu();
+    log(`Skin: ${x.textContent}.`, 'good');
+  });
+  b.querySelectorAll('[data-z]').forEach(x => x.onclick = () => changeFloor(+x.dataset.z - P.z));
+  modo();
+  w.style.display = 'flex';
+}

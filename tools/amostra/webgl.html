@@ -1,0 +1,419 @@
+<meta charset="utf-8">
+<title>WebGL — o portão</title>
+<style>
+  body{margin:0;background:#15151a;color:#ddd5c2;font:14px/1.6 "Segoe UI",system-ui,sans-serif;padding:24px}
+  h1{font:400 26px/1.1 Cinzel,Georgia,serif;color:#f0cd7a;letter-spacing:.03em;margin:0 0 6px}
+  p.lede{color:#8f8874;margin:0 0 14px;max-width:88ch}
+  p.lede b{color:#ddd5c2} p.lede code{color:#d9a441}
+  .barra{margin:0 0 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+         background:#1e1c18;border:1px solid #3a352b;padding:12px 14px}
+  label{font-size:13px;color:#8f8874;display:flex;gap:7px;align-items:center}
+  select,button{background:#26241f;color:#ddd5c2;border:1px solid #3a352b;padding:5px 10px;font:13px inherit}
+  button{cursor:pointer;color:#f0cd7a;border-color:#584f3d}
+  button:disabled{opacity:.5;cursor:default;color:#8f8874}
+  .cel{background:#1e1c18;border:1px solid #3a352b;padding:11px;margin:0 0 16px}
+  .cel h2{font:600 11px "Segoe UI";letter-spacing:.14em;text-transform:uppercase;color:#d9a441;margin:0 0 9px}
+  canvas{display:block;image-rendering:pixelated;background:#0d0d10;max-width:100%}
+  .tira{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+  figure{margin:0} figcaption{font:10.5px ui-monospace,Consolas,monospace;color:#8f8874;margin-top:5px}
+  table{border-collapse:collapse;font:13px ui-monospace,Consolas,monospace;width:100%}
+  th,td{text-align:right;padding:5px 10px 5px 0;border-bottom:1px solid #3a352b;font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  th{font:600 10.5px "Segoe UI";letter-spacing:.13em;text-transform:uppercase;color:#8f8874}
+  td.bom{color:#9fd08a} td.ruim{color:#c8934a} td.pior{color:#a8523a}
+  #veredito{background:#12110e;border:1px solid #3a352b;padding:12px 14px;margin-top:8px;
+            font:12.5px/1.7 ui-monospace,Consolas,monospace;color:#9fd08a;white-space:pre-wrap;overflow-x:auto}
+  .aviso{color:#c8934a}
+</style>
+
+<h1>WebGL — o portão, não a mudança</h1>
+<p class="lede">Esta página existe para responder <b>uma</b> pergunta, e morrer: <b>o upload
+canvas→textura por quadro custa mais do que o shader economiza?</b> Se custar, a rota do passe de
+pós-processamento morre aqui, por 40 linhas em vez de por uma reescrita dos 83 KB do
+<code>render2d.js</code>.</p>
+<p class="lede">Ela mede o <b>intervalo real de <code>requestAnimationFrame</code></b>, e não
+<code>performance.now()</code> em volta das chamadas de canvas — canvas 2D enfileira no GPU, então
+cronometrar o lado da CPU mede a fila, não o trabalho. Os modos são medidos
+<b>intercalados</b> (A/B/C/A/B/C), porque a máquina esquenta e a primeira amostra sempre sai mais
+rápida que a última.</p>
+<p class="lede">Os três modos desenham <b>o mesmo resultado</b>: cena, luz ambiente por multiply,
+tinte de céu em soft-light e vinheta. O que muda é <i>quem</i> faz os três últimos.</p>
+
+<div class="barra">
+  <label>Tamanho do buffer <select id="tam">
+    <option value="640x360">640 × 360 — 0,23 M</option>
+    <option value="1280x720" selected>1280 × 720 — 0,92 M</option>
+    <option value="1920x1080">1920 × 1080 — 2,07 M</option>
+    <option value="2560x1440">2560 × 1440 — 3,69 M · a janela do dono em dpr 2</option>
+    <option value="3840x2160">3840 × 2160 — 8,29 M · tela cheia em dpr 2</option>
+  </select></label>
+  <label>Quadros por amostra <select id="n">
+    <option>60</option><option selected>90</option><option>150</option>
+  </select></label>
+  <label>Rodadas <select id="r"><option>3</option><option selected>4</option><option>6</option></select></label>
+  <button id="ir">Medir</button>
+  <button id="tudo">Medir todos os tamanhos</button>
+</div>
+
+<div class="cel">
+  <h2>o quadro, nos três modos — têm de sair iguais</h2>
+  <div class="tira" id="amostras"></div>
+</div>
+
+<div class="cel">
+  <h2>medição</h2>
+  <div style="overflow-x:auto"><table id="tab">
+    <thead><tr><th>tamanho</th><th>2D inteiro</th><th>2D + GL passthrough</th><th>2D cru + GL pós</th>
+      <th>custo do upload</th><th>saldo do shader</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+</div>
+
+<div id="veredito">Aperte <b>Medir</b>.</div>
+
+<script src="../../src/data.js"></script>
+<script src="../../src/art.js"></script>
+<script src="../../src/world.js"></script>
+<script>
+if (typeof OBJ === 'undefined') {
+  document.body.innerHTML =
+    '<h1>Abra pelo servidor, não por duplo clique</h1>' +
+    '<p class="lede">Esta bancada desenha com as rotinas do jogo, e o navegador não carrega ' +
+    '<code>src/</code> a partir de <code>file://</code>.</p>' +
+    '<p class="lede">Com o <b>Server.bat</b> aberto:<br>' +
+    '<code style="color:#f0cd7a;font-size:16px">http://localhost:8765/tools/amostra/webgl.html</code></p>';
+  throw new Error('webgl.html: abra pelo servidor');
+}
+</script>
+<script>
+/* ESCOPO PRÓPRIO. A bancada carrega os fontes do jogo, e todo `const` de topo
+   dela divide o escopo global com eles — `CH` (o conjunto da Chama Abissal) e
+   `CEU` (a rampa do céu) colidiram assim, e colisão de `const` é SyntaxError:
+   a página inteira morre sem desenhar nada. Uma IIFE resolve a família toda de
+   uma vez, em vez de renomear um nome por vez até acabarem. */
+(function () {
+'use strict';
+const $ = s => document.querySelector(s);
+const TS = 32;
+
+/* ------------------------------------------------------------------ a cena
+   Chão de verdade, com as texturas do jogo, mais silhuetas por cima. O QUE se
+   desenha não muda o custo do upload — ele é função do número de pixels —, mas
+   muda o custo do 2D, e é contra ele que o GL é comparado. Uma tela chapada
+   inflaria o saldo do shader. */
+const MAPA = ['ggggddwwwwddgggg', 'gggddwwwwwwddggg', 'ggddwwwwwwwwddgg',
+              'gdddwwwwwwwwdddg', 'ggddwwwwwwwwddgg', 'gggddwwwwwwddggg',
+              'ggggddwwwwddgggg', 'gggggddwwddggggg'];
+const CENA_CH = { g: T.GRASS, d: T.DIRT, w: T.WATER };
+
+function desenhaCena(g, w, h) {
+  const cols = Math.ceil(w / TS), rows = Math.ceil(h / TS);
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+    const ch = MAPA[y % MAPA.length][x % MAPA[0].length];
+    const def = TILE[CENA_CH[ch]];
+    const tex = tileTexture(def.tex, def.c);
+    const cx = ((x % 3) + 3) % 3 * TEX_S / 3, cy = ((y % 3) + 3) % 3 * TEX_S / 3;
+    g.drawImage(tex, cx, cy, TS, TS, x * TS, y * TS, TS, TS);
+  }
+  for (let y = 0; y < rows; y += 3) for (let x = 0; x < cols; x += 4) {
+    const spr = outlined(decoSprite(0, (x * 7 + y * 13) & 15));
+    g.drawImage(spr, x * TS + TS / 2 - spr.cx, y * TS + TS - spr.feet, spr.width, spr.height);
+  }
+}
+
+/* ------------------------------------------- os três efeitos, versão canvas 2D
+   É o que o `render2d.js` faz hoje: um multiply de tela cheia (o passe de luz),
+   um soft-light de tela cheia (o tinte do gradePass) e a vinheta pronta em
+   canvas. Reproduzidos aqui para a comparação ser justa — não adianta medir o
+   GL contra uma versão 2D mais barata do que a que embarca. */
+const AMB_LUZ = [126, 138, 168], CEU_POENTE = [176, 118, 79];   // noite azulada, céu de poente
+const GRADE_A = .30, VINHETA_A = .38;
+let vinCv = null;
+function vinheta(w, h) {
+  if (vinCv && vinCv.width === w && vinCv.height === h) return vinCv;
+  vinCv = vinCv || document.createElement('canvas');
+  vinCv.width = w; vinCv.height = h;
+  const vg = vinCv.getContext('2d'), rad = Math.hypot(w, h) / 2;
+  const gr = vg.createRadialGradient(w / 2, h / 2, rad * .55, w / 2, h / 2, rad);
+  gr.addColorStop(0, 'rgba(0,0,0,0)');
+  gr.addColorStop(1, `rgba(0,0,0,${VINHETA_A})`);
+  vg.fillStyle = gr; vg.fillRect(0, 0, w, h);
+  return vinCv;
+}
+function pos2d(g, w, h) {
+  g.globalCompositeOperation = 'multiply';
+  g.fillStyle = `rgb(${AMB_LUZ})`; g.fillRect(0, 0, w, h);
+  const f = 128 / Math.max(1, CEU_POENTE[0] * .3 + CEU_POENTE[1] * .6 + CEU_POENTE[2] * .1);
+  g.globalCompositeOperation = 'soft-light';
+  g.globalAlpha = GRADE_A;
+  g.fillStyle = `rgb(${CEU_POENTE.map(v => Math.min(255, v * f) | 0)})`;
+  g.fillRect(0, 0, w, h);
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = 'source-over';
+  g.drawImage(vinheta(w, h), 0, 0);
+}
+
+/* ------------------------------------------------------------------ o WebGL
+   Um triângulo de tela cheia e um fragment shader. O `passthrough` existe para
+   ISOLAR o upload: ele faz o mínimo possível depois de subir a textura, então a
+   diferença entre ele e o 2D puro é o custo do upload e mais nada. */
+const VS = `attribute vec2 p; varying vec2 uv;
+void main(){ uv = p * .5 + .5; gl_Position = vec4(p, 0., 1.); }`;
+
+const FS_PASS = `precision mediump float; varying vec2 uv; uniform sampler2D cena;
+void main(){ gl_FragColor = texture2D(cena, vec2(uv.x, 1. - uv.y)); }`;
+
+/* Os mesmos três efeitos do `pos2d`, agora por pixel. O soft-light é a fórmula
+   do W3C, a mesma que o canvas usa — senão a comparação sairia entre dois
+   resultados diferentes e o saldo não valeria nada. */
+const FS_POS = `precision mediump float; varying vec2 uv;
+uniform sampler2D cena; uniform vec3 amb; uniform vec3 ceu;
+uniform float gradeA; uniform float vinA; uniform vec2 tam;
+float soft(float b, float s){
+  if (s <= .5) return b - (1. - 2. * s) * b * (1. - b);
+  float d = (b <= .25) ? ((16. * b - 12.) * b + 4.) * b : sqrt(b);
+  return b + (2. * s - 1.) * (d - b);
+}
+void main(){
+  vec3 c = texture2D(cena, vec2(uv.x, 1. - uv.y)).rgb;
+  c *= amb;                                        // o passe de luz
+  vec3 s = vec3(soft(c.r, ceu.r), soft(c.g, ceu.g), soft(c.b, ceu.b));
+  c = mix(c, s, gradeA);                           // o tinte, em soft-light
+  vec2 d = (uv - .5) * vec2(tam.x / min(tam.x, tam.y), tam.y / min(tam.x, tam.y));
+  float r = length(d) / (length(vec2(tam / min(tam.x, tam.y))) * .5);
+  c *= 1. - vinA * smoothstep(.55, 1., r);         // a vinheta
+  gl_FragColor = vec4(c, 1.);
+}`;
+
+function compila(gl, tipo, src) {
+  const s = gl.createShader(tipo);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function programa(gl, fs) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compila(gl, gl.VERTEX_SHADER, VS));
+  gl.attachShader(p, compila(gl, gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+
+function montaGL(cv) {
+  const gl = cv.getContext('webgl', { antialias: false, depth: false, stencil: false,
+    alpha: false, premultipliedAlpha: false, preserveDrawingBuffer: false });
+  if (!gl) return null;
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  for (const [k, v] of [[gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE],
+                        [gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST]])
+    gl.texParameteri(gl.TEXTURE_2D, k, v);
+  const progs = { pass: programa(gl, FS_PASS), pos: programa(gl, FS_POS) };
+  for (const p of Object.values(progs)) {
+    gl.useProgram(p);
+    const loc = gl.getAttribLocation(p, 'p');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  }
+  return { gl, progs, tex };
+}
+
+function sobeEDesenha(ctx, fonte, qual, w, h) {
+  const { gl, progs, tex } = ctx;
+  gl.viewport(0, 0, w, h);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  /* ESTA É A LINHA QUE A BANCADA EXISTE PARA MEDIR. Se o driver fizer a volta
+     pela CPU aqui, a rota inteira morre. */
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fonte);
+  const p = progs[qual];
+  gl.useProgram(p);
+  gl.uniform1i(gl.getUniformLocation(p, 'cena'), 0);
+  if (qual === 'pos') {
+    gl.uniform3f(gl.getUniformLocation(p, 'amb'), AMB_LUZ[0] / 255, AMB_LUZ[1] / 255, AMB_LUZ[2] / 255);
+    const f = 128 / Math.max(1, CEU_POENTE[0] * .3 + CEU_POENTE[1] * .6 + CEU_POENTE[2] * .1);
+    gl.uniform3f(gl.getUniformLocation(p, 'ceu'),
+      Math.min(255, CEU_POENTE[0] * f) / 255, Math.min(255, CEU_POENTE[1] * f) / 255, Math.min(255, CEU_POENTE[2] * f) / 255);
+    gl.uniform1f(gl.getUniformLocation(p, 'gradeA'), GRADE_A);
+    gl.uniform1f(gl.getUniformLocation(p, 'vinA'), VINHETA_A);
+    gl.uniform2f(gl.getUniformLocation(p, 'tam'), w, h);
+  }
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+/* --------------------------------------------------------------- a medição */
+const cv2 = document.createElement('canvas');
+const cvGL = document.createElement('canvas');
+let ctxGL = null, erroGL = null;
+try { ctxGL = montaGL(cvGL); if (!ctxGL) erroGL = 'o navegador não deu contexto webgl'; }
+catch (e) { erroGL = String(e); }
+
+function dimensiona(w, h) {
+  if (cv2.width !== w || cv2.height !== h) { cv2.width = w; cv2.height = h; }
+  if (cvGL.width !== w || cvGL.height !== h) { cvGL.width = w; cvGL.height = h; }
+}
+
+/* Os três modos, e é a coluna do meio que responde a pergunta:
+   · d2   — tudo em 2D, como o jogo faz hoje
+   · pass — 2D inteiro + upload + shader que só copia (isola o upload)
+   · pos  — 2D SEM os três efeitos + upload + shader que os faz (a rota proposta) */
+function quadro(modo, w, h) {
+  const g = cv2.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  desenhaCena(g, w, h);
+  if (modo !== 'pos') pos2d(g, w, h);
+  if (modo === 'd2') return;
+  sobeEDesenha(ctxGL, cv2, modo === 'pos' ? 'pos' : 'pass', w, h);
+}
+
+const amostra = (modo, w, h, n) => new Promise(res => {
+  const ts = []; let last = performance.now();
+  function tick() {
+    quadro(modo, w, h);
+    const x = performance.now(); ts.push(x - last); last = x;
+    if (ts.length < n) requestAnimationFrame(tick);
+    else { ts.sort((a, b) => a - b); res(ts); }
+  }
+  requestAnimationFrame(tick);
+});
+const q = (t, p) => t[Math.floor(t.length * p)];
+const mediana = a => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
+
+async function mede(w, h) {
+  dimensiona(w, h);
+  const n = +$('#n').value, rodadas = +$('#r').value;
+  await amostra('d2', w, h, 30);                       // aquece: shader, textura, cache de tile
+  const acc = { d2: [], pass: [], pos: [] };
+  for (let r = 0; r < rodadas; r++)
+    for (const modo of ['d2', 'pass', 'pos'])
+      acc[modo].push(q(await amostra(modo, w, h, n), .5));
+  return { w, h, d2: mediana(acc.d2), pass: mediana(acc.pass), pos: mediana(acc.pos) };
+}
+
+function pinta(r) {
+  const px = r.w * r.h;
+  const upload = r.pass - r.d2, saldo = r.d2 - r.pos;
+  const cls = v => v > 2 ? 'pior' : v > .6 ? 'ruim' : 'bom';
+  const tr = document.createElement('tr');
+  tr.innerHTML =
+    `<td>${r.w}×${r.h} · ${(px / 1e6).toFixed(2)} M</td>` +
+    `<td>${r.d2.toFixed(2)} ms</td><td>${r.pass.toFixed(2)} ms</td><td>${r.pos.toFixed(2)} ms</td>` +
+    `<td class="${cls(upload)}">${upload >= 0 ? '+' : ''}${upload.toFixed(2)} ms</td>` +
+    `<td class="${saldo > 0 ? 'bom' : 'ruim'}">${saldo >= 0 ? '+' : ''}${saldo.toFixed(2)} ms</td>`;
+  $('#tab tbody').appendChild(tr);
+  return { px, upload, saldo, ...r };
+}
+
+function veredito(rs) {
+  if (!rs.length) return;
+  const grande = rs[rs.length - 1];
+  const nsUp = grande.upload * 1e6 / grande.px;
+  const linhas = [];
+  linhas.push('/* O PORTÃO */');
+  linhas.push('');
+  linhas.push('upload canvas->textura, no maior tamanho medido:');
+  linhas.push('  ' + grande.upload.toFixed(2) + ' ms em ' + (grande.px / 1e6).toFixed(2) +
+              ' M pixels  =  ' + nsUp.toFixed(2) + ' ns/px');
+  linhas.push('');
+  if (rs.length > 1) {
+    const a = rs[0], b = grande;
+    const lin = (b.upload - a.upload) / (b.px - a.px) * 1e6;
+    linhas.push('escala do upload entre o menor e o maior: ' + lin.toFixed(2) + ' ns/px');
+    linhas.push('  (se este número bater com o de cima, o upload e linear no pixel e extrapola)');
+    linhas.push('');
+  }
+  linhas.push('saldo da rota proposta (2D cru + GL pos, contra 2D inteiro):');
+  for (const r of rs)
+    linhas.push('  ' + String((r.px / 1e6).toFixed(2) + ' M').padStart(8) + ' -> ' +
+      (r.saldo >= 0 ? '+' : '') + r.saldo.toFixed(2) + ' ms  ' +
+      (r.saldo > .3 ? 'GANHA' : r.saldo < -.3 ? 'PERDE' : 'empate'));
+  linhas.push('');
+  const ganha = grande.saldo > .3, caro = grande.upload > 2;
+  linhas.push('VEREDITO NO MAIOR TAMANHO:');
+  if (caro && !ganha)
+    linhas.push('  O upload custa ' + grande.upload.toFixed(2) + ' ms e o shader nao paga por ele.');
+  else if (ganha)
+    linhas.push('  O shader paga o upload e sobra ' + grande.saldo.toFixed(2) + ' ms.');
+  else
+    linhas.push('  Empate: nao ha ganho de custo. So vale se a rota comprar EFEITO');
+  linhas.push('');
+  linhas.push('/* O que este numero NAO responde: bloom (precisa de um segundo passe com');
+  linhas.push('   blur), e o custo de manter o drawWorld headless nos testes — o passe de');
+  linhas.push('   pos nao mexe nisso, mas qualquer coisa alem dele mexe. */');
+  $('#veredito').textContent = linhas.join('\n');
+}
+
+/* -------------------------------------------- as três amostras, para conferir
+   que os modos desenham a MESMA coisa. Sem isto o "saldo" poderia estar medindo
+   um shader que faz menos trabalho, e não um shader mais rápido. */
+function mostraAmostras() {
+  const w = 320, h = 180;
+  dimensiona(w, h);
+  const alvo = $('#amostras'); alvo.innerHTML = '';
+  const nomes = { d2: '2D inteiro', pass: '2D + GL passthrough', pos: '2D cru + GL pós' };
+  const saidas = {};
+  for (const modo of ['d2', 'pass', 'pos']) {
+    quadro(modo, w, h);
+    const fonte = modo === 'd2' ? cv2 : cvGL;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(fonte, 0, 0);
+    saidas[modo] = c.getContext('2d').getImageData(0, 0, w, h).data;
+    const fig = document.createElement('figure');
+    fig.appendChild(c);
+    const cap = document.createElement('figcaption');
+    cap.textContent = nomes[modo];
+    fig.appendChild(cap);
+    alvo.appendChild(fig);
+  }
+  // diferença média entre o 2D e o shader, em níveis
+  const dif = (a, b) => { let s = 0, n = 0;
+    for (let i = 0; i < a.length; i += 4) { s += Math.abs(a[i] - b[i]) + Math.abs(a[i+1] - b[i+1]) + Math.abs(a[i+2] - b[i+2]); n += 3; }
+    return s / n; };
+  const cap = document.createElement('figcaption');
+  cap.style.cssText = 'align-self:flex-end;max-width:22ch;color:#c8934a';
+  cap.textContent = 'diferença média 2D × shader: ' + dif(saidas.d2, saidas.pos).toFixed(1) +
+    ' níveis por canal. Acima de ~4 o shader não está fazendo o mesmo trabalho, e o saldo mente.';
+  alvo.appendChild(cap);
+}
+
+async function roda(todos) {
+  if (erroGL) { $('#veredito').innerHTML =
+    '<span class="aviso">Sem WebGL nesta máquina: ' + erroGL + '</span>'; return; }
+  /* ABA OCULTA NÃO MEDE. O navegador estrangula o `requestAnimationFrame` em aba
+     de fundo — ele cai para uns poucos quadros por segundo ou para de vez. A
+     medição não trava: ela sai LENTA e parece resultado. Recusar é o único jeito
+     de o número não mentir, porque nada na tela denuncia isso depois. */
+  if (document.hidden) { $('#veredito').innerHTML =
+    '<span class="aviso">Esta aba está em segundo plano, e aí o navegador estrangula o ' +
+    'requestAnimationFrame — a medição sairia lenta e pareceria resultado. ' +
+    'Traga a aba para a frente e meça de novo.</span>'; return; }
+  $('#ir').disabled = $('#tudo').disabled = true;
+  $('#tab tbody').innerHTML = '';
+  $('#veredito').textContent = 'medindo…';
+  const alvos = todos ? [...$('#tam').options].map(o => o.value) : [$('#tam').value];
+  const rs = [];
+  let fugiu = false;
+  const olho = () => { if (document.hidden) fugiu = true; };
+  document.addEventListener('visibilitychange', olho);
+  for (const v of alvos) {
+    const [w, h] = v.split('x').map(Number);
+    rs.push(pinta(await mede(w, h)));
+    veredito(rs);
+  }
+  document.removeEventListener('visibilitychange', olho);
+  if (fugiu) $('#veredito').innerHTML +=
+    '<br><br><span class="aviso">A aba foi para segundo plano durante a medição. ' +
+    'Os números acima NÃO valem — meça de novo com ela na frente.</span>';
+  mostraAmostras();
+  $('#ir').disabled = $('#tudo').disabled = false;
+}
+
+$('#ir').addEventListener('click', () => roda(false));
+$('#tudo').addEventListener('click', () => roda(true));
+mostraAmostras();
+})();
+</script>

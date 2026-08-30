@@ -107,6 +107,55 @@ b{color:#fff}
   box-shadow:0 0 9px #d9a441aa}
 .panel .ph span{flex:1;font:700 10.5px var(--serif);letter-spacing:.07em;color:var(--gold2);
   text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* FPS no cabeçalho: leitura de diagnóstico, então vai apagada e do lado do
+   nome, não competindo com ele. `pointer-events:none` porque o cabeçalho
+   inteiro é alça de arraste e alvo de recolher — um número não é botão, e sem
+   isto clicar nele fecharia o painel. Largura de dígito fixa pelo mesmo motivo
+   do relógio: sem ela o cabeçalho dança a cada leitura. */
+/* Menu de teste. Toda cor sai dos tokens que já existem — o §29 vale para
+   ferramenta também, senão ela é o primeiro lugar onde um hexadecimal novo
+   entra e vira precedente. */
+#dev-win{width:560px}
+#dev-body{padding:10px 12px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.dev-sec{display:flex;flex-direction:column;gap:6px}
+.dev-sec > b{font:700 10px var(--serif);letter-spacing:.1em;text-transform:uppercase;color:var(--gold2)}
+.dev-lin{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dev-lin label{font-size:12px;color:var(--dim);display:flex;gap:5px;align-items:center}
+.dev-lin input[type=number],.dev-lin input[type=text]{width:88px;background:var(--well);color:var(--txt);
+  border:1px solid var(--line);border-radius:3px;padding:3px 6px;font:12px ui-monospace,Consolas,monospace}
+.dev-lin input[type=text]{width:170px}
+.dev-lin input[type=range]{width:150px}
+.dev-lin .v{font:12px ui-monospace,Consolas,monospace;color:var(--gold2);min-width:3.4em;
+  font-variant-numeric:tabular-nums}
+.dev-lin button{background:var(--stone);color:var(--txt);border:1px solid var(--line2);
+  border-radius:3px;padding:3px 9px;font:12px var(--serif);cursor:pointer}
+.dev-lin button:hover{border-color:var(--gold2);color:var(--gold2)}
+/* o escolhido nao se distingue so por cor: ganha borda e peso — §20 */
+.dev-lin button.on{border-color:var(--gold2);color:var(--gold2);font-weight:700;background:var(--well)}
+#dev-itens{max-height:190px;overflow-y:auto;border:1px solid var(--line);border-radius:3px;
+  background:var(--well);display:flex;flex-direction:column}
+.dev-sk{display:grid;grid-template-columns:repeat(2,1fr);gap:3px 16px}
+.dev-sk > div{display:flex;gap:5px;align-items:center}
+.dev-sk label{font-size:12px;color:var(--dim);flex:1;white-space:nowrap}
+.dev-sk input{width:56px;background:var(--well);color:var(--txt);border:1px solid var(--line);
+  border-radius:3px;padding:2px 5px;font:12px ui-monospace,Consolas,monospace;text-align:center}
+.dev-sk button{background:var(--stone);color:var(--txt);border:1px solid var(--line2);border-radius:3px;
+  width:22px;padding:1px 0;font:13px var(--serif);cursor:pointer;line-height:1}
+.dev-sk button:hover{border-color:var(--gold2);color:var(--gold2)}
+/* o efetivo (com equipamento) ao lado do base: sem ele nao da para ver o que o
+   anel de espada esta somando, que e metade do motivo de mexer na pericia */
+.dev-sk .v{font:11px ui-monospace,Consolas,monospace;color:var(--gold2);min-width:2.4em;text-align:right}
+#dev-itens h4{margin:0;position:sticky;top:0;background:var(--stone);color:var(--gold2);
+  font:700 9.5px var(--serif);letter-spacing:.1em;text-transform:uppercase;padding:4px 7px;
+  border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+#dev-itens h4 span{color:var(--dim);font:10px ui-monospace,Consolas,monospace}
+#dev-itens div{display:flex;justify-content:space-between;gap:8px;padding:3px 7px;font-size:12px;
+  cursor:pointer;color:var(--txt)}
+#dev-itens div:hover{background:var(--stone);color:var(--gold2)}
+#dev-itens span{color:var(--dim);font:11px ui-monospace,Consolas,monospace}
+.panel .ph .ph-fps{flex:none;font:600 9.5px/1 ui-monospace,Consolas,monospace;
+  font-variant-numeric:tabular-nums;color:var(--dim);pointer-events:none}
+.panel .ph .ph-fps::after{content:'FPS';font-size:7.5px;letter-spacing:.08em;margin-left:2px}
 .panel .ph i{font-style:normal;font-size:11px;color:#5c5648;padding:0 2px;opacity:0}
 .panel:hover .ph i{opacity:1}
 .panel .ph i:hover{color:var(--gold2)}
@@ -1120,6 +1169,13 @@ button.mini{background:var(--surface2);color:var(--txt);border:1px solid var(--l
   <h3><span><img class="im" src="assets/icons/ui_settings.png" alt=""> Opções</span><button id="ui-close">✕</button></h3>
   <div id="ui-list"></div>
   <div class="foot"><button id="ui-reset">Restaurar padrão</button></div>
+</div>
+<!-- Menu de desenvolvimento: só abre por `/dev` no chat, e não tem botão em
+     lugar nenhum da interface de propósito — é ferramenta de teste, não recurso
+     de jogo, e o §23 não quer atalho de depuração na tela do jogador. -->
+<div class="win" id="dev-win">
+  <h3><span>Menu de teste</span><button id="dev-close">✕</button></h3>
+  <div id="dev-body"></div>
 </div>
 <div class="screen" id="help">
   <div class="card" style="width:520px">

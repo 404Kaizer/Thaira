@@ -134,7 +134,7 @@
     2026-08-22 a lore e a planta das terras moram em documentos próprios —
     <b>mundo_varrokgaard.html</b>, <b>mundo_aleto.html</b> e <b>proposta_24.html</b> —, e este aqui
     ficou com o estado técnico e a fila.
-    <b>1179 verificações</b> passando em <code>tests/test.js</code>, mais <b>39</b> na suíte
+    <b>1238 verificações</b> passando em <code>tests/test.js</code>, mais <b>39</b> na suíte
     nova do <code>tools/</code>.
   </div>
 
@@ -4609,6 +4609,9 @@
   </div>
 
   <h3>Confirmado, medido e AINDA ABERTO</h3>
+
+  <p><b>Os três primeiros foram fechados na rodada 2</b>, mais abaixo — esta lista fica como o
+  registro da medição que os identificou. Os dois menores (4 e 5) continuam abertos.</p>
   <ul>
     <li><b>Sombra projetada do SOL dentro de casa e dentro da caverna.</b>
       <code>dropShadow</code> usa <code>.28 * solF</code>, e <code>solF = clima.luz</code> é a luz
@@ -4676,6 +4679,770 @@
   <p><b>E a tocha contamina toda medição de luz.</b> O halo tem 7 tiles de raio e anda junto com o
   jogador: qualquer A/B que mova o personagem mede o halo, não o efeito. Tire a tocha ou não mova o
   boneco.</p>
+  <h3>Rodada 2 — os três defeitos fechados, e sete propostas triadas — 2026-08-29</h3>
+
+  <p>O <b>Game Designer</b> foi refeito (o resultado da rodada 1 se perdeu) e entregou a ordem, os
+  conflitos por função, o custo por quadro e o que <i>derrubar</i>. Quatro coisas caíram <b>com
+  medição na mão</b>, e é por isso que elas contam: a premissa do B5 (a água não estava em croma 11
+  — o <code>#cfe8ff</code> era um cintilo a 5–9% de alfa, e trocá-lo muda no máximo 16 níveis num
+  canal); o <code>SOL_LONGO = 1,90</code> do B9, que dá 26,6 px e estoura o teto de 24; a troca do
+  <code>solF</code> pela <code>forca</code> da bancada no B4, que desligaria o céu fechado da conta
+  (e céu fechado é 30,2% do tempo); e o B10 com um segundo buffer de tela cheia, medido em
+  <b>+31,6 MiB e 2,7× o custo do quadro</b> com 8 luzes em cena.</p>
+
+  <p><b>O que entrou, na ordem dele:</b></p>
+  <ul>
+    <li><b>Defeito 2 — o temporal tinha duas direções.</b> A copa deitava para OESTE, a nuvem e a
+      gota andavam para LESTE, e o traço da chuva era desenhado no eixo errado da própria gota
+      (57,6° entre traço e trajetória). O traço <i>não era um quarto voto</i> — ele é o desenho de
+      para onde a gota vai, então estava só errado; descontado ele, a contagem é 2 a 1 para leste e
+      quem vira é a copa. Agora <code>VENTO_SINAL</code> é a única fonte e os três leitores derivam
+      dele. De brinde, a régua nova achou um defeito que ninguém tinha visto: o viés
+      <code>(ventoF − .3)</code> ficava <b>negativo</b> em brisa, então a direção do mato se
+      invertia junto com a força do vento. Virou <code>viesDoVento</code>, com
+      <code>max(0, …)</code>.</li>
+    <li><b>Defeito 1 — sombra de sol dentro de casa e dentro da caverna.</b> Nasceu
+      <code>solNoTile(x, y, z)</code>, e o conserto é na função compartilhada: as quatro chamadas de
+      <code>dropShadow</code> e o item largado no chão passaram a receber o sol <i>do tile</i>. A
+      <b>mancha de contato não passa por aí</b> — ela é oclusão, existe com qualquer luz, e acoplá-la
+      ao sol faria todo barril dentro de casa boiar. O tile vem por parâmetro, nunca reconstruído a
+      partir do pixel de tela.</li>
+    <li><b>Defeito 3 — o <code>gradePass</code> devolvia ao interior a cor do céu.</b> O
+      <code>recorteCeu</code> deixou de ser condicional (o gate era "este andar tem céu?", nunca
+      "este tile tem céu?") e o tinte passou a ser recortado por ele. A <b>vinheta fica de fora</b>:
+      ela é lente, não céu.</li>
+    <li><b>B6</b> — o clarão do relâmpago entra no <code>solF</code>, na <i>atribuição</i> e não no
+      uso, para não colidir com o <code>solNoTile</code>. Antes, o quadro mais claro do dia tinha a
+      sombra mais fraca do dia.</li>
+    <li><b>B4 emendado + B9 com teto</b> — nasceu <code>alturaSol</code> no <code>world.js</code>,
+      junto do <code>corDoCeu</code>, e <code>SOL_NASCE</code>/<code>SOL_POE</code> deixaram de estar
+      escritos três vezes. A divisão que o Game Designer impôs: <b>altura manda no COMPRIMENTO
+      (geometria), <code>solF</code> manda no ALFA (atmosfera)</b>. A borda de parede ganhou rampa
+      própria que <b>nunca desce abaixo da base</b> — acoplada ao sol, toda parede interna perderia a
+      sombra e a casa ficaria de papel.</li>
+    <li><b>B5</b> — o <code>#cfe8ff</code> morreu; a água reflete <code>corDoCeu</code>, calculada
+      uma vez por quadro e compartilhada com o <code>gradePass</code>. Lava fica de fora: ela emite,
+      não reflete. Anunciado pelo que é — <b>remoção de cravado, não efeito visível</b>.</li>
+    <li><b>B7</b> — chuva em dois planos (paralaxe real) e <b>véu de chuva</b>, não "de distância":
+      numa câmera de cima a borda da tela está tão perto quanto o meio, e escurecer borda já é a
+      vinheta. O véu vai <i>dentro</i> do <code>rainPass</code>, que já roda dentro do recorte de
+      céu.</li>
+  </ul>
+
+  <h3>A luz atravessava parede, nos dois sentidos — 2026-08-29</h3>
+
+  <p>Relatado pelo dono do projeto no meio da rodada: <i>"luzes de fora vazam para partes cobertas e
+  vice-versa"</i>. É o B10, que o Game Designer tinha adiado — e o caminho barato que ele desenhou no
+  lugar da versão com buffer é o que entrou.</p>
+
+  <p><b>O mecanismo:</b> <code>halo()</code> é gradiente radial puro e não perguntava geometria
+  nenhuma. <b>O conserto:</b> <code>calcDentro</code> já fazia uma inundação por andar e já era
+  cacheada em <code>f.dentro</code>; ela passou a devolver <b>rótulo de cômodo</b>
+  (<code>Uint16Array</code> no lugar do <code>Uint8Array</code>, mesmo laço) em vez de um booleano.
+  Com o rótulo, "esta luz e este tile estão na mesma sala?" é <b>uma comparação</b>, e o halo recorta
+  nos tiles da sala dele. O lado de fora é a sala 0, então rua com rua se resolve pela mesma conta.
+  A parede entra no recorte quando fecha a sala da luz — senão o cômodo fica com o chão aceso e as
+  paredes pretas, que é pior que o vazamento.</p>
+
+  <p><b>Medido no jogo</b>, ligando e desligando o mecanismo com o relógio, a chama e o laço de
+  <code>requestAnimationFrame</code> congelados (sem matar o rAF a medição dá <b>zero em tudo</b>:
+  o laço redesenha entre o <code>drawWorld</code> e o <code>getImageData</code>):</p>
+
+  <table>
+    <tr><th>tile</th><th>sala</th><th>antes</th><th>depois</th><th>vazamento</th></tr>
+    <tr><td colspan="5"><b>tocha na RUA (83,148)</b></td></tr>
+    <tr><td>80,148</td><td>interior</td><td>35,8</td><td><b>12,1</b></td><td>23,7</td></tr>
+    <tr><td>79,148</td><td>interior</td><td>18,1</td><td>11,0</td><td>7,1</td></tr>
+    <tr><td>85,148</td><td>rua</td><td>52,4</td><td>52,4</td><td><b>0 — controle</b></td></tr>
+    <tr><td colspan="5"><b>tocha DENTRO (78,148)</b></td></tr>
+    <tr><td>82,148</td><td>rua</td><td>29,8</td><td>24,6</td><td>5,2</td></tr>
+    <tr><td>76,148</td><td>interior</td><td>48,3</td><td>48,3</td><td><b>0 — controle</b></td></tr>
+  </table>
+
+  <p>Dois terços da luz naquele tile de interior eram vazamento. Os <b>controles não mudaram nada</b>
+  — é isso que separa conserto de escurecer tudo. <b>Custo medido:</b> 25 µs por luz de raio de
+  tocha, 7,3 µs por tile de lava; <b>30 luzes custam 0,75 ms</b>, 4,5% do orçamento de 60 fps.
+  Nenhum buffer novo, nenhum passe de tela cheia — um <code>clip</code> por luz, memoizado no quadro
+  e compartilhado com o <code>bloomPass</code>, que sofria do mesmo defeito (lava atrás de um muro
+  clareando a rua do outro lado).</p>
+
+  <h3>As réguas novas, e as cinco mutações que as validaram</h3>
+
+  <p>Suíte em <b>1219</b>. O stub de contexto 2D passou a <b>guardar</b> os <code>clip</code> e os
+  <code>transform</code> — mesma ideia do stub de <code>Path2D</code>, que já guardava os
+  <code>rect</code>. Era tudo no-op encadeável, então gravar não muda comportamento: só deixa de
+  jogar fora a evidência.</p>
+
+  <p><b>A régua da luz nasceu fraca e foi refeita.</b> A primeira versão media
+  <code>recorteSala</code> direto — e passou <b>verde</b> na mutação que fazia o
+  <code>lightPass</code> parar de recortar, que é a forma mais provável de isto regredir. A segunda
+  põe uma tocha de verdade no personagem, roda o <code>drawWorld</code> e cobra o <code>clip</code>
+  que <i>chegou ao passe de luz</i>.</p>
+
+  <table>
+    <tr><th>mutação</th><th>o que caiu</th></tr>
+    <tr><td><code>lightPass</code> para de recortar</td><td>1 — a régua de fiação</td></tr>
+    <tr><td>recorte aceita todo tile (o defeito original)</td><td>3</td></tr>
+    <tr><td>parede fora do recorte</td><td>1 — o cômodo de paredes pretas</td></tr>
+    <tr><td>viés do vento invertido</td><td>2</td></tr>
+    <tr><td><code>SOL_LONGO = 1,90</code></td><td>1 — o teto de 24 px</td></tr>
+  </table>
+
+  <h3>WebGL: medido, e a recomendação é esperar</h3>
+
+  <p>Pergunta do dono no meio da rodada. Medido com a régua do jogo — intervalo real de quadro,
+  tempestade forçada <i>pela função</i> (o relógio andando, senão o rAF morre):</p>
+
+  <table>
+    <tr><th>pixels do buffer</th><th>céu limpo</th><th>tempestade</th><th>delta</th></tr>
+    <tr><td>138 k</td><td>6,0 ms</td><td>6,1 ms</td><td>0,1</td></tr>
+    <tr><td>1,39 M</td><td>6,1 ms</td><td>8,8 ms</td><td>2,7</td></tr>
+    <tr><td>2,76 M</td><td>10,3 ms</td><td>15,6 ms (p95 20,1)</td><td>5,3</td></tr>
+  </table>
+
+  <p>Os dois pontos grandes concordam em 1%: <b>1,93 ns por pixel</b> para os passes de clima, e é
+  linear, então extrapola. O piso de 6 ms é do laço, não do render. A 2,76 M de pixels a tempestade
+  já cai abaixo de 60 fps no p95 — e a máquina do dono roda em <code>devicePixelRatio</code> 2, que
+  <b>não dá para cortar</b>: o buffer é criado em pixel de dispositivo de propósito, senão o pixel
+  art sai borrado.</p>
+
+  <p><b>Recomendação: rota 2, e não agora.</b> Reescrever o <code>render2d.js</code> inteiro em GL
+  cai — mata o <code>drawWorld</code> headless, que é o que pegou a máscara de telhado na rodada 1, e
+  não há GL no node. O que sobrevive é <b>um passe de pós-processamento só no fim</b>: o canvas 2D
+  continua desenhando o mundo e um passe GL faz luz, bloom e grade. <b>O risco que decide não foi
+  medido</b> — o custo do upload canvas→textura por quadro. São 40 linhas de protótipo, e é o portão
+  antes de qualquer commit. <i>Ressalva: medido no painel de navegador do Claude Code, não no
+  Electron do dono; o formato do custo (linear no pixel) é o que sustenta a conclusão, os
+  milissegundos absolutos precisam de confirmação na máquina dele.</i></p>
+
+  <h3>Ainda aberto da rodada 2</h3>
+  <ul>
+    <li><b>Réguas que faltam</b>, todas descritas pelo Game Designer: o alfa da projetada em tile
+      abrigado (precisa do stub gravar <code>drawImage</code> com o <code>globalAlpha</code>); o
+      tinte do <code>gradePass</code> recortado (mesma forma da régua da chuva, num segundo
+      consumidor); o clarão endurecendo a sombra; e o cintilo da água comparado com
+      <code>corDoCeu</code>. As duas últimas precisam do relógio controlado no harness.</li>
+    <li><b><code>SOMBRA_PROJ</code> continua em 0,28.</b> O Game Designer propôs 0,42, mas isso é
+      <i>knob de bancada</i> — a 0,42 a projetada passa a ser a coisa mais escura da tela sobre
+      grama, e arte se julga no tamanho e na luz do jogo, não aqui.</li>
+    <li><b>Grupo E não foi feito</b> (tirar as alfas de dentro dos sprites de sombra). O Game
+      Designer pediu como preparo compartilhado de B4 e B9; como nenhum dos dois acabou precisando
+      de alfa variável, virou higiene sem cliente. Fica para quando houver.</li>
+    <li><b>Defeito 5</b> (canvas pisca preto ao redimensionar) e <b>defeito 4</b> ("Tarde" às 12:00,
+      que é convenção e não defeito) não entraram.</li>
+    <li><b>Rodada 3</b>, na ordem do Game Designer: B11 (faixa topo/face por objeto) → B8 (névoa,
+      <b>com bancada antes</b> — é o maior risco de identidade, e ladrilhada em coordenada de mundo
+      ou não entra) → e o que sobrar do B10.</li>
+  </ul>
+
+  <h3>Rodada 3 — B11 caiu medido, a luz virou linha de vista, e a névoa foi para a bancada — 2026-08-29</h3>
+
+  <p><b>B11 CAIU, com medição.</b> A proposta era estender a barril, poço e carroça a faixa de
+  topo/face que hoje só a parede declara. A faixa é um <b>retângulo da largura do tile</b>, e isso
+  funciona na parede porque ela é uma chapa que enche o tile. Medida a cobertura opaca da faixa de
+  topo de cada sprite:</p>
+
+  <table>
+    <tr><th>sprite</th><th>cobertura opaca na faixa de topo</th></tr>
+    <tr><td>poço</td><td>70%</td></tr>
+    <tr><td>barril</td><td>49–54%</td></tr>
+    <tr><td><b>carroça</b></td><td><b>18%</b></td></tr>
+    <tr><td>parede (o caso para o qual a faixa foi escrita)</td><td>100% por construção</td></tr>
+  </table>
+
+  <p>Numa carroça, <b>82% da faixa é pixel transparente</b> — e a faixa entra no buffer de luz, então
+  pintar céu ali acende o <i>chão que aparece atrás</i> do objeto, entre as rodas e sob o varal. O
+  mecanismo certo seria máscara pelo alfa do próprio sprite, o que exige um ou dois buffers de tela
+  cheia — o mesmo custo pelo qual o B10 original foi derrubado, por bem menos retorno. O
+  <code>ponytail:</code> que já estava escrito no <code>topoNaLuz</code> continua valendo, e agora
+  com o número ao lado: <i>quando incomodar, o caminho é o sprite declarar as próprias faixas</i> —
+  e faixa quer dizer máscara, não retângulo.</p>
+
+  <h3>A luz deixou de perguntar "que cômodo?" e passou a perguntar "o que ela alcança?"</h3>
+
+  <p>O rótulo de cômodo da rodada 2 resolvia casa contra rua. Duas medições o derrubaram, e as duas
+  importam:</p>
+
+  <ul>
+    <li><b>O subsolo é um cômodo só.</b> Dos 36.864 tiles do andar de baixo, <b>32.685</b> caem no
+      mesmo "fora" (sala 0) e só 648 são parede — então rochedo nenhum barrava tocha, justamente
+      onde a tocha é a única fonte de luz que existe.</li>
+    <li><b>Porta aberta era tratada como parede.</b> A inundação do <code>calcDentro</code> conta
+      porta como parede <i>de propósito</i> — é a régua certa para "estou dentro de casa?" e a
+      errada para luz. O vão apagava.</li>
+  </ul>
+
+  <p>Quem responde agora é uma <b>inundação local</b> a partir do tile da luz, barrada pelo
+  <code>tapaVista</code> — a MESMA régua que decide o que o jogador enxerga, o que a flecha
+  atravessa e o que o bicho vê. Uma régua para os quatro, e ela já sabe que
+  <code>o.aberta</code> some da conta. O <code>tapaVista</code> mudou de casa
+  (<code>game.js</code> → <code>world.js</code>, junto do <code>objTapaVista</code>) e o render
+  <b>apagou a cópia</b> que mantinha da mesma regra no <code>drawFloor</code>. O rótulo de cômodo
+  continua existindo, mas para quem ele foi feito: o <code>dentroDeCasa</code>.</p>
+
+  <p><b>Medido no jogo</b>, num lance de parede a céu aberto em (99,133) — <b>sala 0 dos dois
+  lados</b>, que é exatamente o caso que o rótulo não separava:</p>
+
+  <table>
+    <tr><th>tile</th><th>onde</th><th>antes</th><th>depois</th><th>vazamento</th></tr>
+    <tr><td>100,133</td><td>atrás do muro</td><td>83,0</td><td><b>42,4</b></td><td><b>40,6</b></td></tr>
+    <tr><td>99,133</td><td>a face do muro</td><td>18,9</td><td>18,9</td><td>0 — controle</td></tr>
+    <tr><td>97,133</td><td>lado da tocha</td><td>61,2</td><td>61,2</td><td>0 — controle</td></tr>
+  </table>
+
+  <p>Metade da luz atrás daquele muro atravessava a parede. Os dois controles não mudaram nada.</p>
+
+  <p><b>O que a inundação NÃO faz, e está marcado com <code>ponytail:</code>:</b> ela modela
+  ALCANCE, não linha de vista — contorna uma pedra de um tile só em dois passos e acende atrás dela.
+  O que ela garante é que a luz não atravessa um <b>lance</b>. Se sombra projetada de parede virar
+  requisito, o degrau é lançar raio por tile a partir da luz, e aí o custo deixa de ser o da
+  inundação.</p>
+
+  <h3>Réguas novas, e as duas mutações que as validaram</h3>
+
+  <p>Suíte em <b>1225</b>. Duas réguas entraram: o lance de parede com o mesmo cômodo dos dois lados
+  (a face acesa, o outro lado apagado, o lado da luz intacto), e o vão — a régua abre uma brecha no
+  lance marcando o objeto como <code>aberta</code>, que é <i>literalmente</i> o caminho da porta,
+  e cobra que a luz atravesse.</p>
+
+  <table>
+    <tr><th>mutação</th><th>o que caiu</th></tr>
+    <tr><td><code>tapaVista</code> some da inundação</td><td>5 — inclusive as três da rodada 2</td></tr>
+    <tr><td><code>o.aberta</code> deixa de contar</td><td>2 — e uma delas é uma régua que já existia, o que prova que a régua é a mesma para tiro, aggro e luz</td></tr>
+  </table>
+
+  <h3>Névoa: a bancada existe, o motor continua sem névoa</h3>
+
+  <p><code>tools/amostra/nevoa.html</code>, no molde do <code>sombras.html</code>: duas cenas —
+  <b>margem de rio</b> e <b>campo aberto</b> —, cinco horas, linha de cima sem névoa e de baixo com,
+  seis controles e um <code>#receita</code> que imprime as constantes que o motor receberia.
+  <b>Julgar no zoom 1.</b></p>
+
+  <p>Três coisas são decisão e não gosto: a folha é ladrilhada em <b>coordenada de MUNDO</b> (névoa
+  presa à tela é chuvisco na lente — a mesma lição que a poça e a nuvem já carregam); a cor sai de
+  <code>corDoCeu</code> e nunca de branco cravado; e a névoa tem <b>onde</b> e <b>quando</b>, senão
+  é filtro. A medição que separa as duas coisas:</p>
+
+  <table>
+    <tr><th>hora</th><th>margem de rio</th><th>campo aberto</th></tr>
+    <tr><td>4h (antes da janela)</td><td>0</td><td>0</td></tr>
+    <tr><td><b>6h (amanhecer)</b></td><td><b>+2,5</b></td><td>+0,7</td></tr>
+    <tr><td>8h</td><td>+0,7</td><td>+0,1</td></tr>
+    <tr><td>12h e 18h</td><td>0</td><td>0</td></tr>
+  </table>
+
+  <p>A margem recebe <b>3,5×</b> a névoa do campo, e ao meio-dia não há névoa nenhuma. Fossem os
+  dois iguais, seria filtro. <b>Nada disso está no motor</b> — a decisão é do dono, e o alerta
+  estrutural do Game Designer segue de pé: se a névoa virar um <code>estado</code> do
+  <code>climaAgora</code>, ela deixa de ser render e vira máquina de estado (entrada em
+  <code>CLIMA_AVISO</code>, áudio, spawn), e aí para e pergunta.</p>
+
+  <p><b>Uma armadilha de canvas nova, achada montando a bancada</b>, e ela vale para qualquer
+  máscara: <code>destination-in</code> aplicado <i>por tile</i> num laço APAGA tudo fora do
+  retângulo da vez — o modo de composição vale para o canvas inteiro, não para o que se está
+  pintando, então o que sobra é a interseção, que é o último tile. A primeira versão da bancada saiu
+  com névoa medindo <b>zero em tudo</b> por causa disso. A máscara tem de ser montada inteira num
+  canvas à parte, em <code>source-over</code>, e aplicada UMA vez. É a mesma família da lição do
+  telhado: a máscara primeiro, o alfa depois.</p>
+
+  <h3>O protótipo de WebGL — o portão passou, e a rota perdeu o motivo — 2026-08-30</h3>
+
+  <p><code>tools/amostra/webgl.html</code>. Ela existe para responder <b>uma</b> pergunta e morrer:
+  o upload canvas→textura por quadro custa mais do que o shader economiza? Se o driver fizesse a
+  volta pela CPU ali, a rota do passe de pós-processamento morreria por 40 linhas em vez de por uma
+  reescrita dos 83 KB do <code>render2d.js</code>.</p>
+
+  <p>Três modos, desenhando <b>o mesmo resultado</b> — cena, luz ambiente por multiply, tinte de céu
+  em soft-light e vinheta: tudo em 2D; 2D inteiro mais upload e um shader que só copia (isola o
+  upload e nada mais); e 2D cru mais um shader que faz os três efeitos. Medidos
+  <b>intercalados</b> (A/B/C/A/B/C), pelo intervalo real de <code>requestAnimationFrame</code>.
+  Antes de comparar tempo, a bancada compara <i>resultado</i>: a diferença média entre o quadro do
+  2D e o do shader é <b>0,8 nível por canal</b>, então os dois estão fazendo o mesmo trabalho e o
+  saldo não mente.</p>
+
+  <table>
+    <tr><th>buffer</th><th>2D inteiro</th><th>2D + GL passthrough</th><th>2D cru + GL pós</th><th>custo do upload</th></tr>
+    <tr><td>0,23 M</td><td>6,10</td><td>6,10</td><td>6,10</td><td>0,00</td></tr>
+    <tr><td>0,92 M</td><td>6,10</td><td>6,10</td><td>6,10</td><td>0,00</td></tr>
+    <tr><td>2,07 M</td><td>6,10</td><td>6,10</td><td>6,10</td><td>0,00</td></tr>
+    <tr><td>3,69 M</td><td>6,90</td><td>6,80</td><td>6,70</td><td>−0,10</td></tr>
+    <tr><td><b>8,29 M</b></td><td><b>14,70</b></td><td><b>14,70</b></td><td><b>14,80</b></td><td><b>0,00</b></td></tr>
+  </table>
+
+  <p>As três primeiras linhas <b>não medem nada</b>: 6,10 ms é o piso do laço, o mesmo já visto na
+  rodada 2, e abaixo dele não há resolução. Quem responde são as duas últimas. A última foi refeita
+  com o dobro de rodadas e deu o mesmo.</p>
+
+  <p><b>O portão PASSOU.</b> O upload de 8,29 M de pixels por quadro custa <b>zero dentro da régua</b>
+  — abaixo dos ~0,2 ms que o intervalo de quadro consegue resolver. O risco que mataria a rota não
+  se materializou: o driver não faz a volta pela CPU.</p>
+
+  <p><b>E a rota perdeu o motivo.</b> O saldo também é zero: o shader não economiza nada, porque os
+  três passes que ele substitui já são baratos. Medido por diferença, os três juntos —
+  <i>multiply</i> de tela cheia, <i>soft-light</i> de tela cheia e a vinheta — custam no máximo
+  <b>0,2 ms dos 14,7</b>, menos de 1,5% do quadro. O que custa os outros 14,5 é <b>desenhar o
+  mundo</b>: os ~8 100 tiles e os sprites por cima deles. E um passe de pós-processamento não toca
+  nisso.</p>
+
+  <p>Isto corrige a leitura da rodada 2. Lá foi medido 1,93 ns/px para o clima e concluído que "os
+  passes de tela cheia" eram o problema. São dois grupos diferentes: <b>nuvem, chuva e poça</b>
+  ladrilham folhas e traçam 280 segmentos, e são caros; <b>luz, tinte e vinheta</b> são três
+  retângulos, e são de graça. Só o segundo grupo é o que um passe de pós faz.</p>
+
+  <p><b>Conclusão: WebGL não é jogada de desempenho neste jogo.</b> A rota é viável e o custo de
+  entrada é zero, mas ela só se paga se comprar <b>efeito</b> — godray, névoa volumétrica, heat
+  haze, color grading de verdade —, nunca milissegundos. Como decisão de arquitetura, ela deixa de
+  ser urgente e vira uma escolha de arte. E o teto de 60 fps continua vindo do
+  <code>drawWorld</code>: a 8,29 M de pixels o quadro está em 14,7 ms, e o que o baixaria é desenhar
+  menos tile, não desenhar em GL.</p>
+
+  <p class="nota"><b>Ressalva:</b> medido no painel de navegador do Claude Code, não no Electron do
+  dono. A bancada fica no repositório justamente para ser re-rodada lá — é um clique em
+  <code>http://localhost:8765/tools/amostra/webgl.html</code>.</p>
+
+  <h3>A armadilha de medição desta leva: aba em segundo plano</h3>
+
+  <p>A primeira tentativa de medir rodou um minuto e produziu <b>zero linhas</b>. A causa não estava
+  no código: o navegador <b>estrangula o <code>requestAnimationFrame</code> em aba de fundo</b> — ele
+  cai para uns poucos quadros por segundo ou para de vez. A medição não trava e não dá erro; ela sai
+  <i>lenta</i>, e lentidão parece resultado.</p>
+
+  <p>É irmã da armadilha da rodada 2 (congelar o relógio não basta, é preciso matar o
+  <code>requestAnimationFrame</code>) e tem o mesmo conserto: a bancada agora <b>recusa</b> medir com
+  <code>document.hidden</code>, e avisa se a aba foi para o fundo <i>no meio</i> da medição,
+  invalidando os números em vez de entregá-los.</p>
+
+  <p>De quebra, uma armadilha de bancada que vale para as próximas: página de
+  <code>tools/amostra/</code> carrega os fontes do jogo, então todo <code>const</code> de topo dela
+  divide o escopo global com eles — <code>CH</code> (o conjunto da Chama Abissal) e <code>CEU</code>
+  (a rampa do céu) colidiram assim. Colisão de <code>const</code> é <i>SyntaxError</i>: a página
+  inteira morre sem desenhar nada. O conserto é uma IIFE em volta do script, que resolve a família
+  toda de uma vez em vez de renomear um nome por vez até acabarem.</p>
+
+  <h3>Grading com curva e godray — a bancada — 2026-08-30</h3>
+
+  <p><code>tools/amostra/shader.html</code>. Os dois efeitos que o portão do WebGL destravou, no
+  molde do <code>sombras.html</code>: linha de cima como o jogo desenha <b>hoje</b>, linha de baixo
+  a <b>proposta</b> num shader, cinco horas, duas cenas, e o <code>#receita</code> imprimindo as
+  constantes. <b>Nada disso está no motor</b> — a decisão é do dono.</p>
+
+  <p>Duas cenas porque cada efeito só é legível numa: <b>caverna com furo no teto</b>, que é onde o
+  feixe existe e onde ele mais paga; e <b>campo ao relento</b>, que é a régua do grading.</p>
+
+  <h4>O feixe: mede-se pela DIREÇÃO, não pelo brilho</h4>
+
+  <p>O sol é fixo no noroeste — a mesma diagonal do <code>SOL_INCL</code> —, então o feixe desce
+  para o sudeste e concorda com a sombra em vez de brigar com ela. A régua compara <b>o mesmo ponto,
+  à mesma distância do furo</b>, a favor e contra o sol. Na força 0,35, a 20 px do furo:</p>
+
+  <table>
+    <tr><th>direção</th><th>ganho de luz</th></tr>
+    <tr><td>a favor do sol (sudeste)</td><td><b>52</b></td></tr>
+    <tr><td>contra o sol (noroeste)</td><td><b>2,1</b></td></tr>
+    <tr><td>contra, a 40 px</td><td>0</td></tr>
+  </table>
+
+  <p>Razão de <b>25 para 1</b>, e a queda a favor é limpa (52 → 28 → 11 aos 20, 40 e 60 px). O feixe
+  sai do buraco, e de nenhum outro lugar. Ao longo do dia ele acompanha o céu: contribuição média de
+  +0,9 às 5h, +2,6 ao meio-dia, +0,8 às 21h.</p>
+
+  <p><b>A força 1,20 do primeiro chute estourava 0,32% dos pixels em 255.</b> 0,35 é onde ele lê sem
+  clipar, e foi assim que o padrão foi escolhido — medindo, não olhando.</p>
+
+  <h4>Três erros meus que a bancada pegou, e os três já estavam respondidos no motor</h4>
+
+  <ul>
+    <li><b>O furo não era furo.</b> O chão sob a abertura estava tão escuro quanto a rocha, então o
+      feixe parecia vir do nada. No motor o <code>abrigado()</code> já é falso ali — aquele tile
+      não leva o corte do telhado. A bancada passou a montar um <b>mapa de luz por tile</b> e
+      multiplicar por ele, que é a forma do próprio <code>lightPass</code>.</li>
+    <li><b>O grading lavava a caverna.</b> O levante de sombra a 18% tirava o subsolo do preto e o
+      deixava leitoso — o mesmo defeito que o <code>bloomPass</code> evita ao manter a tocha fora
+      dele. A regra já existia: <i>o <code>gradePass</code> não roda em andar com luz própria</i>. O
+      shader passou a respeitá-la, e o feixe fica de fora da regra de propósito, porque ele só
+      existe onde há buraco e buraco só existe em lugar coberto.</li>
+    <li><b>O grading lavava o campo ao meio-dia.</b> Eu usava a cor crua do céu, e ao meio-dia ela é
+      branca: o levante empurrava tudo para o branco. O motor já documenta isto —
+      <i>"sem normalizar, o branco do meio-dia clareava ainda mais, o contrário do que se quer"</i>.
+      Com a cor normalizada a meio-tom, o que sobra é só a INCLINAÇÃO de cor.</li>
+  </ul>
+
+  <p>A prova do terceiro está no número. O grading, contra o passe de hoje, ao longo das cinco
+  horas:</p>
+
+  <table>
+    <tr><th></th><th>5h</th><th>8h</th><th>12h</th><th>17h</th><th>21h</th></tr>
+    <tr><td>com a cor crua (errado)</td><td>+9,7</td><td>+14,5</td><td><b>+17,9</b></td><td>+13,5</td><td>+10,0</td></tr>
+    <tr><td>normalizada (certo)</td><td>+10,8</td><td>+10,3</td><td>+10,7</td><td>+10,1</td><td>+11,3</td></tr>
+  </table>
+
+  <p>A segunda linha é <b>chata de propósito</b>: o grading é tratamento de cor, não clareador. A
+  primeira subia junto com o brilho do céu, e era exatamente por isso que o meio-dia saía lavado.</p>
+
+  <h4>Duas armadilhas de bancada, para as próximas</h4>
+
+  <ul>
+    <li><b>Crase dentro de template literal do GLSL.</b> Um comentário citando
+      <code>gradePass</code> entre crases, escrito DENTRO do shader, fecha a string do JavaScript no
+      meio. Erro: <i>Unexpected identifier</i>, e a página morre sem desenhar nada.</li>
+    <li><b>Comparar duas CENAS não isola nada.</b> A primeira régua do feixe media a caverna contra
+      o campo — dois ambientes diferentes —, e a primeira régua de vazamento media um quadrante no
+      canto, longe de qualquer abertura: ela dava +0,0 com qualquer força e teria passado verde com
+      o feixe vazando para todo lado. As duas foram refeitas ligando e desligando <b>só o feixe</b>,
+      no mesmo quadro. É a mesma lição de sempre, e é a terceira vez nesta leva.</li>
+  </ul>
+
+  <p class="nota"><b>O que falta decidir:</b> os sete números da receita são knob de olhar no jogo, e
+  o zoom 1 é o único tamanho que vale. E o feixe, para entrar no motor de verdade, precisa da
+  máscara de abertura subindo como textura a cada quadro — o <code>abrigado()</code> por tile, que
+  a bancada escreve à mão. É aí que ele deixa de ser "mais um arquivo" e vira estrutura; o grading
+  não tem esse custo.</p>
+
+  <h3>O grading entrou no motor, e um contador de FPS no cabeçalho — 2026-08-30</h3>
+
+  <p>Aprovado pelo dono depois da bancada. Entrou <b>só o grading</b>; o feixe de luz continua fora,
+  porque ele precisa da máscara de abertura subindo como textura por quadro — e isso é estrutura,
+  não mais um arquivo.</p>
+
+  <h4>Como o passe de pós entrou sem tocar em nada</h4>
+  <ul>
+    <li><b>Não se trocou qual canvas é o visível.</b> O mundo continua sendo desenhado no
+      <code>gcv</code> de sempre; o shader lê ele e o resultado volta por um <code>drawImage</code>.
+      O <code>index.html</code>, o editor e o HUD não sabem que isto existe, e desligar é apagar uma
+      função.</li>
+    <li><b>O recorte de céu ficou no 2D.</b> O GL trata o quadro inteiro e só a região a céu aberto
+      volta, então o <code>recorteCeu</code> continua sendo um <code>Path2D</code> e o shader não
+      precisa de máscara nenhuma por quadro. É exatamente isto que separa este item do feixe.</li>
+    <li><b>E ele DEGRADA.</b> Sem WebGL — o node dos testes não tem —, o <code>soft-light</code> de
+      hoje continua valendo. É o que mantém o <code>drawWorld</code> headless vivo, que foi quem
+      pegou a máscara de telhado meio tile fora na rodada 1.</li>
+  </ul>
+
+  <p><b>Custo medido no motor: +0,1 ms a 2,76 M de pixels</b>, dentro do ruído — o protótipo
+  previu e o motor confirmou.</p>
+
+  <h4>"Muito claro" — o erro, e o knob que faltava</h4>
+
+  <p>A primeira versão no jogo saiu lavada, e o relato do dono foi imediato. A causa era minha e
+  óbvia depois de vista: o passe de hoje aplica o tinte a <code>GRADE_A</code> = <b>30% de alfa</b>,
+  e eu troquei por uma curva aplicada a <b>100%</b>, sem knob de força nenhum. A curva descreve o
+  <i>tratamento</i>; faltava dizer <i>quanto</i> dele entra.</p>
+
+  <p>Nasceu <code>GRADE_FORCA</code>, misturada <b>dentro do shader</b> e não num segundo
+  <code>drawImage</code> com alfa — um passe só, e o número fica explícito. Padrão provisório em
+  <b>0,30</b>, que é a mesma intensidade do passe antigo. <b>O valor final é decisão do dono</b>,
+  e a régua para escolher é olhar no jogo — de preferência em campo aberto ao poente e de
+  madrugada, não no interior de palha onde o personagem de teste nasce, que já é laranja saturado.</p>
+
+  <table>
+    <tr><th>constante</th><th>valor</th><th>o que manda</th></tr>
+    <tr><td><code>GRADE_GANHO</code></td><td>1,06</td><td>as altas</td></tr>
+    <tr><td><code>GRADE_GAMA</code></td><td>1,04</td><td>os médios</td></tr>
+    <tr><td><code>GRADE_LIFT</code></td><td>0,18</td><td>as sombras, puxando-as para a cor do céu</td></tr>
+    <tr><td><code>GRADE_SPLIT</code></td><td>0,22</td><td>sombra ao complemento, alta ao céu — é o que dá a hora</td></tr>
+    <tr><td><code>GRADE_FORCA</code></td><td><b>0,30</b> (a decidir)</td><td>quanto de tudo isso entra</td></tr>
+  </table>
+
+  <h4>O contador de FPS</h4>
+
+  <p>No cabeçalho do minimapa, ao lado do nome. Três decisões que valem o registro:</p>
+  <ul>
+    <li><b>Fica na FICHA do painel</b> (<code>fps: true</code> em <code>HUD_PANELS</code>), não
+      cravado por id no construtor do cabeçalho: no dia em que outro painel quiser um número ali, é
+      uma chave e não um <code>if</code>.</li>
+    <li><b><code>pointer-events: none</code></b>. O cabeçalho inteiro é alça de arraste e alvo de
+      recolher — sem isso, clicar no número fecharia o painel. Um número não é botão.</li>
+    <li><b>É a MÉDIA de meio segundo</b>, não o inverso do último intervalo, e escreve no DOM só
+      quando a janela fecha — a mesma razão que o relógio do painel já documenta: repintar o mesmo
+      texto 60× por segundo custa layout à toa.</li>
+  </ul>
+
+  <p><b>A régua achou um defeito que o desenho não previa:</b> a janela não se reiniciava depois de
+  uma pausa longa. Com a aba em segundo plano o navegador estrangula o
+  <code>requestAnimationFrame</code>, então no retorno o primeiro intervalo vale vários segundos —
+  e o contador mostraria <b>"1 FPS"</b> logo depois de a aba reaparecer. Nasceu
+  <code>FPS_SALTO</code>: salto grande, ou para trás, reinicia a janela em vez de virar leitura.</p>
+
+  <p>Suíte em <b>1232</b>. Quatro mutações, quatro pegas:</p>
+  <table>
+    <tr><th>mutação</th><th>o que caiu</th></tr>
+    <tr><td>sem a guarda de salto longo</td><td>3</td></tr>
+    <tr><td>divide pela janela nominal em vez do tempo decorrido</td><td>2</td></tr>
+    <tr><td>janela de um quadro (vira instantâneo de fato)</td><td>2 — inclusive a régua do quadro irregular</td></tr>
+    <tr><td>(uma quarta mutação foi descartada: minha "instantânea" era algebricamente idêntica à média, então não mutava nada)</td><td>—</td></tr>
+  </table>
+
+  <p class="nota">A régua do quadro irregular existe por causa disso: com ritmo constante, média e
+  instantâneo dão o mesmo número, e uma régua de ritmo constante passaria verde com qualquer um dos
+  dois. Ela alterna quadros de 5 ms e 28 ms — média de 60 por segundo, e o inverso do último
+  intervalo daria 36 ou 200 conforme onde a janela fechasse.</p>
+
+  <h3>Queda de quadro: três medições minhas foram invalidadas pelo próprio controle — 2026-08-30</h3>
+
+  <p>Relato do dono: <i>"o jogo está caindo de 50 fps algumas vezes, parece ser algo relacionado a
+  chuva"</i>. <b>A investigação continua aberta</b>; o que fechou foi o método e uma correção.</p>
+
+  <h4>O que eu medi errado, três vezes</h4>
+  <ul>
+    <li><b>CPU por passe</b> deu <code>rainPass</code> = 0,032 ms — mas cronometrar o lado da CPU
+      não vê trabalho de GPU, e o véu da chuva é GPU.</li>
+    <li><b>GPU-inclusive</b> (usando <code>texImage2D</code> + <code>gl.finish()</code> como
+      sincronizador) deu <code>cloudPass</code> = 4,31 ms, e eu quase anunciei o culpado. Ao
+      acrescentar um <b>controle que não desliga nada</b>, ele mediu <b>−2,74 ms</b> quando devia
+      dar zero: a máquina derivava mais que o sinal, e a ordem fixa dentro de cada rodada confundia
+      <i>posição</i> com <i>variante</i>. Uma das rodadas chegou a "provar" que tirar a nuvem
+      deixava o quadro <b>6× mais lento</b>.</li>
+    <li><b>Lixo por quadro</b> (a hipótese de coleta, que explicaria queda <i>intermitente</i>):
+      <code>performance.memory</code> acusou coleta em <b>142 de 150</b> amostras — grosso demais
+      para delta por quadro.</li>
+  </ul>
+
+  <p>Regra que sai daqui, e que já está no <code>CLAUDE.md</code>: <b>bancada de tempo sem controle
+  não vale.</b> Uma variante que não muda nada tem de medir ~zero; se não medir, a tabela inteira é
+  posição e não efeito.</p>
+
+  <h4>A correção que a investigação produziu</h4>
+
+  <p>O <code>/fps</code> do dono, com o controle em −0,10 (válido), acusou
+  <b><code>gradePass</code> +1,60 ms</b> — o passe que eu tinha acabado de adicionar, em 13% de um
+  quadro de 12,2 ms. E a causa estava na diferença entre o que eu medi e o que eu embarquei:</p>
+
+  <table>
+    <tr><th>onde</th><th><code>preserveDrawingBuffer</code></th></tr>
+    <tr><td><code>tools/amostra/webgl.html</code> — o protótipo que APROVOU a rota</td><td><b>false</b></td></tr>
+    <tr><td><code>src/render2d.js</code> — o que EMBARCOU</td><td><b>true</b></td></tr>
+  </table>
+
+  <p>Essa flag obriga o driver a guardar o backbuffer em vez de trocá-lo, e desliga caminho rápido
+  em vários. Dá para viver sem: o <code>drawImage(gradeCv)</code> acontece na mesma tarefa do
+  <code>drawArrays</code>, e o buffer só é descartado na composição, no fim da tarefa. Verificado
+  com a flag desligada: o shader <b>continua aplicando</b> (média 55,2 contra 47,7 da queda 2D) e
+  <b>0% de pixel preto</b>.</p>
+
+  <p><b>Bug latente encontrado pelo teste, não pelo relato:</b> <code>gradeShader()</code> estava
+  escrito <code>if (gradeGL || gradeMorto) return gradeGL</code> — marcar <code>gradeMorto</code>
+  não desligava nada depois que o contexto já tinha subido. Só apareceria ao perder o contexto no
+  meio do jogo: o <code>catch</code> marcaria morto e o quadro seguinte voltaria a usar o contexto
+  quebrado.</p>
+
+  <h4><code>/fps</code> — a bancada de queda, no jogo</h4>
+
+  <p>Comando no chat, porque a queda é na máquina do dono e é lá que ela tem de ser medida. Ele
+  nasce com as três lições embutidas:</p>
+  <ul>
+    <li><b>Mede a cauda</b> (p95, p99, pior, e quantos quadros passaram de 20 ms), não a mediana —
+      "cai algumas vezes" é cauda, e a mediana pode estar em 165 com o jogo engasgando.</li>
+    <li><b>Recusa aba em segundo plano</b>, onde o <code>requestAnimationFrame</code> é
+      estrangulado e a medida sai lenta parecendo resultado.</li>
+    <li><b>Tem controle</b>, e se ele não der ~zero a tabela por passe <b>não é impressa</b>.</li>
+  </ul>
+
+  <p>Ele responde à hipótese da chuva por correlação: entre os quadros lentos, quantos caíram com
+  chuva, contra a fração geral de quadros com chuva. E diz sempre sob que clima a amostra foi
+  tirada — sem isso, "nenhum quadro lento" é ambíguo entre "o jogo está bem" e "não choveu
+  durante a medida".</p>
+
+  <p class="nota"><b>Aberto:</b> falta a tabela completa do dono (a primeira foto veio com o topo
+  rolado para fora do log — corrigido, a tabela agora sai numa linha só), tirada <i>durante</i> a
+  queda, a céu aberto e com chuva. Só com ela dá para nomear o passe. Suspeitos de leitura, não de
+  medição: o <code>recorteVisivel</code> aloca um <code>Uint8Array</code>, um <code>Path2D</code> e
+  uma fila <b>por luz, por quadro</b>, e lixo por quadro é o que produz queda intermitente.</p>
+
+  <h3>Defeito 5, duas réguas devidas, e o menu de teste — 2026-08-30</h3>
+
+  <h4>O canvas não pisca mais ao redimensionar</h4>
+  <p>Defeito 5 da rodada 1, aberto desde então. Escrever em <code>canvas.width</code> apaga o
+  desenho, e nada repintava até o próximo <code>requestAnimationFrame</code> — e como o
+  <code>ResizeObserver</code> dispara em rajada, o pisco durava o arrasto inteiro da borda, não um
+  quadro. O redesenho entrou <b>dentro do <code>resizeCam</code></b> e não no observador: são sete
+  chamadores, o editor incluído.</p>
+
+  <h4>O stub de canvas estava FINGINDO ter WebGL</h4>
+  <p>Correção de uma afirmação minha. Eu disse que a suíte provava a queda 2D do
+  <code>gradePass</code>, porque "não há WebGL no node". <b>Não provava.</b> O
+  <code>getContext</code> do stub devolvia o mesmo proxy 2D para qualquer tipo, e o proxy responde
+  qualquer método com uma função encadeável — então <code>getShaderParameter</code> e
+  <code>getProgramParameter</code> saíam truthy, o passe de lente "compilava e ligava", e o ramo
+  que todo navegador sem GL toma <b>nunca era exercido</b>. Agora <code>getContext</code> devolve
+  <code>null</code> para o que não é <code>2d</code>, que é o que um navegador faz.</p>
+
+  <p>Irmão disso, achado na mesma hora: o <code>save</code>/<code>restore</code> do stub
+  <b>gravava a chamada mas não devolvia o estado</b>. O <code>globalCompositeOperation</code>
+  vazava de um quadro para o outro — o <code>soft-light</code> que o <code>gradePass</code> deixa
+  no fim reaparecia no <code>fillRect</code> de fundo do quadro seguinte, e a régua nova contou
+  dois tintes onde o motor pinta um. <b>Stub que mente sobre estado inventa defeito.</b></p>
+
+  <h4>Duas das quatro réguas devidas</h4>
+  <ul>
+    <li><b>O tinte de céu sai DENTRO do recorte.</b> Ela não pergunta se o
+      <code>recorteCeu</code> existe — isso a régua da chuva já cobre. Ela grava a FITA de chamadas
+      (<code>save</code>, <code>clip</code>, <code>fillRect</code> com a composição, <code>restore</code>)
+      e cobra que o preenchimento em <code>soft-light</code> tenha saído entre um <code>clip</code>
+      e o <code>restore</code> dele. É a metade que passaria verde numa mutação que soltasse o
+      recorte e mantivesse a conta.</li>
+    <li><b>Redimensionar repinta na hora</b>, e não tenta desenhar antes de o jogo começar — as
+      duas metades, porque só a primeira quebraria a inicialização.</li>
+  </ul>
+  <p>Suíte em <b>1236</b>. Continuam devidas duas: o clarão endurecendo a sombra e o cintilo da
+  água contra <code>corDoCeu</code>, que precisam do relógio controlado no harness.</p>
+
+  <h4><code>/dev</code> — o menu de teste</h4>
+  <p>Pedido do dono: algo leve para testar cenários dentro do jogo. Abre por <code>/dev</code> no
+  chat e <b>não tem botão em lugar nenhum da interface</b> — é ferramenta de teste, não recurso de
+  jogo, e o §23 não quer atalho de depuração na tela do jogador.</p>
+  <ul>
+    <li><b>Personagem</b> — nível (campo e atalhos 1/15/60/150/320), somar experiência, somar
+      ouro, encher vida e mana.</li>
+    <li><b>Perícias</b> — as dez, cada uma com −/+ e campo, mais atalhos de lote (tudo em
+      10/60/130). A lista sai de <code>SKILL_NAMES</code>, então perícia nova aparece sozinha; o
+      <code>magic</code> mora em <code>P.ml</code> e o resto em <code>P.sk[k]</code>, e a tabela
+      junta os dois. Ao lado de cada uma sai o valor <b>efetivo</b> (com equipamento) — sem ele não
+      dá para ver o que o anel de espada está somando, que é metade do motivo de mexer na perícia.
+      O progresso (<code>t</code>) volta a zero de propósito: mantê-lo depois de trocar o nível
+      deixaria a barra da ficha mostrando fração de um degrau que não existe mais.</li>
+    <li><b>Itens</b> — <b>os 332</b>, agrupados em 18 categorias, mais busca e quantidade. A
+      primeira versão cortava em 80 e o dono viu o que ela era: uma lista que esconde a maior parte
+      da tabela. A <b>categoria é derivada da ficha</b> (moeda, runa, uso, slot, e o
+      <code>wt</code> para partir as 97 armas em espada/machado/clava/distância/varinha), então item
+      novo no <code>data.js</code> cai no grupo certo sem ninguém tocar no menu. Os
+      <b>materiais de forja</b> saem da tabela de imbuements e deram exatamente <b>28</b>, que é o
+      número do invariante — confirmação de graça de que a derivação está certa.</li>
+    <li><b>Raridade</b> — as cinco, e o <code>mkItem</code> já recebia o parâmetro. Peça sai uma a
+      uma (cada instância tem afixos próprios) e empilhável sai numa entrada com <code>count</code>,
+      sempre comum: pilha não leva afixo. Medido: uma adaga lendária saiu "Rúnica Cruel Adaga do
+      Mago do Caçador" com 4 afixos, e 25 flechas saíram numa pilha comum.</li>
+    <li><b>Aparência</b> — <b>todas as skins de todas as vocações</b>. O seletor de Opções mostra só
+      as da vocação do personagem de propósito (ali é escolha de jogador); aqui a trava era só a
+      lista, porque o <code>skinAtual</code> já devolve <code>p.skin</code> sem perguntar vocação, e
+      o <code>creatureSheet</code> cai no boneco procedural sozinho se a folha não existir.
+      Verificado: knight vestindo <code>voc_sorcerer_common</code>.</li>
+    <li><b>Cenário</b> — hora, céu fechado, voltar ao automático, e troca de andar.</li>
+  </ul>
+
+  <p><b>O cenário forçado tem UM lugar, e é a raiz.</b> <code>DEV = { hora, nublado }</code> mora no
+  <code>world.js</code>, dentro do <code>horaDoDia</code> e do <code>nubladoEm</code> — porque tudo
+  o mais deriva desses dois: a hora manda na cor do céu, na luz, na fase e na altura do sol; o
+  nublado manda em chuva, vento, frente e molhado. Dois ganchos cobrem o clima inteiro.
+  <b>Forçar por <code>Date.now</code> seria o caminho errado</b>: ele congela o passo, a animação e
+  o respawn junto, e mata o <code>requestAnimationFrame</code> — foi exatamente essa armadilha que
+  custou três medições nesta sessão.</p>
+
+  <p class="nota">Medido no jogo: nível 60 dá vida 1035 e 3.256.800 de experiência; meia-noite com
+  céu fechado dá chuva 1,00 e luz 0,13; "voltar ao automático" devolve os dois ganchos a
+  <code>null</code>.</p>
+
+  <h3>A queda de quadro era o RECORTE, e a pista veio do dono — 2026-08-30</h3>
+
+  <p>Teste intensivo do dono, com o <code>/dev</code> e o <code>/fps</code> na mão. Dois relatos
+  dele, juntos, apontaram o mecanismo — e nenhum dos dois era o que eu estava perseguindo:</p>
+  <ul>
+    <li><i>"o clima é o que MAIS pesa aqui, eu testei isolado"</i>;</li>
+    <li><i>"aumentar e diminuir zoom também cai fps"</i>.</li>
+  </ul>
+
+  <p>Só uma coisa explica os dois ao mesmo tempo: <b>o custo de um <code>clip</code> é proporcional
+  ao número de retângulos do caminho</b>, e o <code>recorteCeu</code> que eu tornei incondicional na
+  rodada 2 emitia <b>um retângulo por tile visível</b> — recortado <b>quatro vezes por quadro</b>
+  (nuvem, relâmpago, chuva e o tinte do <code>gradePass</code>). A janela cresce quando o zoom
+  diminui, então o preço subia ao afastar a câmera. Defeito meu, das rodadas 2 e 3.</p>
+
+  <h4>Duas reduções, e as duas dão a MESMA região</h4>
+  <ul>
+    <li><b>Corridas.</b> Tiles vizinhos na horizontal viram um retângulo só. A céu aberto quase toda
+      linha é uma corrida.</li>
+    <li><b>Dispensa.</b> Se nada na janela é abrigado — o caso comum em campo aberto — não há o que
+      recortar, e o caminho volta <code>null</code>: o <code>clip</code> some inteiro.</li>
+  </ul>
+
+  <p>Medido em Varrokgaard, contando retângulos (contagem, não tempo — imune à deriva de máquina que
+  invalidou três medições minhas antes):</p>
+
+  <table>
+    <tr><th>onde</th><th>antes</th><th>depois</th><th></th></tr>
+    <tr><td>vila, zoom 1</td><td>348</td><td><b>19</b></td><td>18,3×</td></tr>
+    <tr><td>vila, zoom 2</td><td>156</td><td>13</td><td>12×</td></tr>
+    <tr><td>dentro de casa</td><td>324</td><td>27</td><td>12×</td></tr>
+    <tr><td>campo aberto</td><td>399</td><td><b>0</b></td><td>recorte dispensado</td></tr>
+  </table>
+
+  <p>A relação com o zoom aparece no mesmo lugar: 399 tiles na janela no zoom 1 contra 121 no
+  zoom 3 — o caminho antigo emitia <b>3,3× mais</b> retângulos ao afastar a câmera.</p>
+
+  <h4>O mesmo defeito, por luz — e é ele que derruba a tela cheia de fogo</h4>
+
+  <p>O dono mandou a foto de uma tela coberta de campo de fogo a <b>29 fps</b>, depois 22, depois 10.
+  Cada campo empurra uma <b>luz</b>, e o <code>recorteVisivel</code> da rodada 3 monta uma inundação,
+  um <code>Path2D</code> e um <code>clip</code> <b>por luz</b> — no passe de luz <i>e</i> de novo no
+  bloom. Com dezenas de campos são dezenas de recortes, duas vezes cada.</p>
+
+  <p>Mesma correção. Medido por luz, em campo aberto com mata:</p>
+  <table>
+    <tr><th>luz</th><th>antes</th><th>depois</th></tr>
+    <tr><td>campo de fogo (raio 2,2)</td><td>81</td><td><b>10</b></td></tr>
+    <tr><td>tocha (raio 7)</td><td>289</td><td><b>22</b></td></tr>
+  </table>
+
+  <h4>A régua que faltava é de CUSTO, não de geometria</h4>
+
+  <p>Uma mutação que voltasse ao caminho por tile <b>não derrubava nada</b> — e não é falha das
+  réguas: um retângulo por tile e um por corrida cobrem exatamente a mesma região, então nenhuma
+  régua de cobertura consegue separá-las. Entrou uma invariante de custo: o recorte de céu tem de
+  emitir no máximo um terço de retângulos em relação aos tiles a céu aberto. O teto é folgado de
+  propósito — reprova a volta ao caminho caro sem cobrar um número de corridas, que depende do mapa.
+  Com ela, a mutação cai (202 retângulos para 202 tiles).</p>
+
+  <p>De quebra, as réguas de cobertura tiveram de ser refeitas: elas procuravam o <b>canto</b> de
+  cada tile no conjunto de retângulos, e com corridas só o canto do início da corrida está lá. A
+  pergunta certa era outra o tempo todo — <i>o miolo deste tile está coberto?</i> —, e a versão por
+  canto passava por acaso, porque o encoding era um-para-um.</p>
+
+  <p class="nota"><b>Aberto:</b> o dono ainda não remediu depois da correção. E a tela de fogo tem
+  outros candidatos que estas duas mudanças não tocam — o <code>drawEffects</code>, o desenho por
+  criatura, e o <code>bloomPass</code>, que soma um halo por fonte. O <code>/fps</code> agora cobre
+  quinze passes (chão, efeitos, minimapa, overlay, IA, batalha), então a próxima medida dele nomeia
+  o seguinte.</p>
+
+  <h3>O halo criava 507 gradientes por quadro — 2026-08-30</h3>
+
+  <p>Depois do conserto do recorte, a tela cheia de campo de fogo subiu de <b>10–29 para 55–57 fps</b>,
+  e o dono pediu o próximo. Reproduzida a cena aqui (253 campos), a contagem por quadro — que é
+  medida imune à deriva de máquina:</p>
+
+  <table>
+    <tr><th>por quadro</th><th></th></tr>
+    <tr><td><code>createRadialGradient</code></td><td><b>507</b></td></tr>
+    <tr><td>halos</td><td>507</td></tr>
+    <tr><td><code>clip</code></td><td>149</td></tr>
+    <tr><td>voltas do laço do <code>drawCampos</code></td><td>5060</td></tr>
+  </table>
+
+  <p>São 254 fontes de luz × dois passes (luz e bloom), e o <code>halo</code> criava um
+  <code>CanvasGradient</code> em CADA chamada. A regra já estava escrita na base, no
+  <code>edgeShadow</code>: <i>"criar um CanvasGradient por tile a cada quadro seria lixo à toa"</i>.
+  O <code>halo</code> era quem a violava.</p>
+
+  <p><b>Três coisas fazem o cache pegar</b>, e nenhuma é óbvia sozinha:</p>
+  <ul>
+    <li>o gradiente nasce na <b>origem</b> e o desenho se move até ele por <code>translate</code> —
+      criado em (x, y) ele seria de uma posição só e cada fonte pediria o seu;</li>
+    <li>a <b>força</b> sai para o <code>globalAlpha</code> e o que fica na chave é a <b>razão</b>
+      entre as duas paradas. É isso que faz o tremor da chama não invalidar nada: ele multiplica
+      <code>a0</code> e <code>a1</code> juntos, então a razão não muda;</li>
+    <li>o raio é arredondado ao pixel.</li>
+  </ul>
+
+  <p><b>Medido depois: 507 → 0 gradientes criados por quadro</b>, com o cache quente. E a
+  verificação que importa numa otimização — <b>o quadro tem de sair igual</b>: comparado pixel a
+  pixel contra a implementação antiga, a diferença média é <b>0,72 nível por canal</b> e o pior
+  pixel <b>3,7</b>. Abaixo da régua que esta mesma base já aceitou (0,8 do shader contra o 2D). A
+  razão é guardada em 256 passos porque em 64 a diferença era 1,0.</p>
+
+  <p class="nota"><b>Próximo candidato, ainda não medido em tempo:</b> o <code>drawCampos</code> faz
+  varredura linear de <code>G.campos</code> por fileira — 5060 voltas por quadro nesta cena. O
+  <code>ponytail:</code> dele já traz o conserto escrito: indexar por <code>y</code> uma vez por
+  quadro. Só entra se o <code>/fps</code> do dono apontar para lá — 5060 voltas de um laço barato
+  podem ser ruído perto dos 507 gradientes que acabaram de sair.</p>
+
 </section>
 
 <section>
@@ -5586,7 +6353,7 @@
 
 <footer>
   Thaira · RPG 2D dark-fantasy em JavaScript sem framework, com launcher Electron ·
-  1179 verificações em <code>tests/test.js</code> e 39 em <code>tests/test_tools.js</code> ·
+  1238 verificações em <code>tests/test.js</code> e 39 em <code>tests/test_tools.js</code> ·
   24 tarefas pendentes · conferido contra o código em 2026-08-29.
 </footer>
 

@@ -47,10 +47,38 @@ function parseChildren(html) {
 /* contexto 2D falso: create/getImageData devolvem buffer real, o resto é no-op
    encadeável. getImageData tem de ser buffer também — as máscaras de borda leem
    o alfa que acabaram de pintar, e um proxy encadeável explode na divisão. */
+/* O que o render PEDIU, guardado. Mesma ideia do stub de Path2D, que guarda os
+   `rect` e é o que permitiu medir o recorte de céu sem navegador: régua que
+   procura palavra no fonte passa verde em cima de uma mutação que troca os
+   dados e mantém a palavra. Era tudo no-op encadeável antes, então gravar não
+   muda comportamento nenhum — só deixa de jogar fora a evidência. */
+const REC = { clips: [], transforms: [], ops: [] };
+/* O que `save`/`restore` de verdade empilham. Sem isto o stub gravava a chamada
+   mas NÃO devolvia o estado, e o `globalCompositeOperation` vazava de um quadro
+   para o outro: o `soft-light` que o `gradePass` deixa no fim reaparecia no
+   `fillRect` de fundo do quadro seguinte, e a régua contava dois tintes onde o
+   motor pinta um. Stub que mente sobre estado inventa defeito. */
+const CTX_ESTADO = ['globalCompositeOperation', 'globalAlpha', 'fillStyle', 'strokeStyle', 'lineWidth'];
 const ctx2d = () => new Proxy({
   imageSmoothingEnabled: false, fillStyle: '', strokeStyle: '', lineWidth: 1, globalAlpha: 1,
+  globalCompositeOperation: 'source-over', _pilha: [],
   createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
-  getImageData: (x, y, w, h) => ({ data: new Uint8ClampedArray(w * h * 4) })
+  getImageData: (x, y, w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+  /* `ops` é a FITA: a ordem das chamadas, não só o fato de terem acontecido.
+     É ela que permite cobrar "o preenchimento saiu DENTRO deste recorte" — a
+     diferença entre a conta existir e o render usá-la, que já passou verde uma
+     vez nesta base. */
+  clip(p) { REC.clips.push(p); REC.ops.push({ op: 'clip', p }); },
+  save() { REC.ops.push({ op: 'save' }); this._pilha.push(CTX_ESTADO.map(k => this[k])); },
+  restore() {
+    REC.ops.push({ op: 'restore' });
+    const e = this._pilha.pop();
+    if (e) CTX_ESTADO.forEach((k, i) => { this[k] = e[i]; });
+  },
+  fillRect(x, y, w, h) {
+    REC.ops.push({ op: 'fillRect', x, y, w, h, comp: this.globalCompositeOperation, a: this.globalAlpha });
+  },
+  transform: (a, b, c, d, e, f) => REC.transforms.push([a, b, c, d, e, f])
 }, { get: (t, k) => k in t ? t[k] : chain(), set: (t, k, v) => (t[k] = v, true) });
 function fakeEl() {
   const el = {
@@ -90,7 +118,16 @@ function fakeEl() {
     // remove() precisa desanexar de verdade: código que faz `while (n) el.firstChild.remove()`
     // entra em laço infinito se o stub mentir
     remove() { if (this.parent) this.parent.removeChild(this); },
-    addEventListener() { }, focus() { }, blur() { }, getContext: ctx2d,
+    addEventListener() { }, focus() { }, blur() { },
+    /* SÓ 2D. Devolvendo o mesmo proxy para `webgl`, o stub FINGIA ter WebGL: o
+       proxy responde qualquer método com uma função encadeável, então
+       `getShaderParameter` e `getProgramParameter` saíam truthy, o passe de
+       lente em GL "compilava e ligava", e a queda 2D — que é o caminho que o
+       node de verdade toma — nunca era exercida. A suíte passava verde sobre um
+       ramo que nenhum navegador sem GL usaria.
+       `null` é o que um navegador devolve quando não há contexto daquele tipo, e
+       é o que o `gradeShader()` já sabe tratar. */
+    getContext(tipo) { return !tipo || tipo === '2d' ? ctx2d() : null; },
     // todo Element real tem os dois; sem querySelectorAll, qualquer render que
     // religue handlers depois de montar por innerHTML estoura só no teste
     querySelector() { return fakeEl() }, querySelectorAll() { return [] },
@@ -147,12 +184,15 @@ vm.runInContext(`
     corDoCeu, ehNoite, ambienteAgora, climaAgora, souCoberto, FLOOR_AMBIENCE, silhouette, edgeShadow, cloudTexture,
     luzDaFrente, cristas, faces, WALL_CHAPA, WALL_H, abrigado, dentroDeCasa,
     recorteCeu, cantoDoTile, janelaDeTiles, tpx,
+    tileDaTela, recorteVisivel, salaDe, tapaVista, SALA_PAREDE, alturaSol, SOL_NASCE, SOL_POE,
+    SOL_CURTO, SOL_LONGO, SOMBRA_BORDA_PX, SOMBRA_BORDA_MAX, VENTO, VENTO_SINAL, RAIO_SOMBRA, viesDoVento,
     horaDoJogo, CLIMA_AVISO, poolTexture,
     TERRAIN_PRIO, OBJ_DRAW, PAREDE_DRAW, CERCA_TOP, WALL_TOP, paredeSprite, cercaSprite, escoraSprite, teiaSprite, edgeMask, bordaProf, BORDA_P, BORDA_TETO, _mulberry, RANGER_DIR, SHEET_POS, rangerSprite,
     SANGUE_CLASSE, SANGUE_PADRAO, SANGUE_MAX, bloodSpray, plateAnchor, resizeCam, CAM,
     itemCell, showTip, hideTip, tipCheck,
     HUNTS, huntAt, BEST_DIFF, MOB_META, bestStage, bestiaryKill, bestKills, toggleCharm, spawnCorpse, CHARM_COST, CHARM_BONUS,
     STANCE, HOT_SLOTS, useItem, castSpell, stepPlayer, hitPlayer, hotEntry, notify, updateMobs, clickTile,
+    tickFps, FPS_JANELA, FPS_SALTO,
     regenMobs, descLoot, save, load, changeFloor, spawnDrop, tryStep, spawnMob, removeMob, restaurarBichos,
     habilidade, impacto, cssColOu: cssCol, ELEM, RES, resistOf,
     ELITES, ELITE_CHANCE, defModificada, mixCol, SETS,
@@ -567,22 +607,52 @@ A((() => {
       p.x = p.px = x + 3; p.y = p.py = y; p.z = S.SURF; break busca;
     }
   S.drawWorld();                                    // fixa camX/camY na posição nova
-  const rects = S.recorteCeu(t).rects;
-  const chave = ([x, y]) => x + ',' + y;
-  const tem = new Set(rects.map(chave));
+  const rec = S.recorteCeu(t);
+  /* COBERTURA, não igualdade de canto. O recorte passou a emitir um retângulo
+     por CORRIDA de tiles a céu aberto em vez de um por tile — a região é a
+     mesma e o `clip` fica muito mais barato, mas uma régua que procurasse o
+     canto de cada tile no conjunto passaria a reprovar o que está certo. Ela
+     pergunta o que importa: o MIOLO deste tile está dentro de algum retângulo? */
+  const cobre = (sx, sy) => (rec ? rec.rects : []).some(([rx, ry, rw, rh]) =>
+    sx >= rx && sx < rx + rw && sy >= ry && sy < ry + rh);
   const [cols, rows] = S.janelaDeTiles(t);
   const cx = Math.floor(p.px), cy = Math.floor(p.py);   // drawWorld fixou camX/camY nisto
   let abrigadosNaJanela = 0, abertosNaJanela = 0, vazam = 0, faltam = 0;
   for (let y = cy - rows; y <= cy + rows; y++) for (let x = cx - cols; x <= cx + cols; x++) {
-    const dentro = S.abrigado(x, y, p.z), canto = chave(S.cantoDoTile(x, y, t));
-    if (dentro) { abrigadosNaJanela++; if (tem.has(canto)) vazam++; }
-    else { abertosNaJanela++; if (!tem.has(canto)) faltam++; }
+    const [sx, sy] = S.cantoDoTile(x, y, t);
+    const meio = cobre(sx + t / 2, sy + t / 2);
+    if (S.abrigado(x, y, p.z)) { abrigadosNaJanela++; if (meio) vazam++; }
+    else { abertosNaJanela++; if (!meio) faltam++; }
   }
   Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
   A(abrigadosNaJanela > 0 && abertosNaJanela > 0,
     `a régua do clima por tile tem as duas metades no enquadramento (${abrigadosNaJanela} abrigados, ${abertosNaJanela} a céu aberto)`);
   A(vazam === 0, `a chuva não entra em tile abrigado (${vazam} vazaram)`);
   A(faltam === 0, `e não deixa de cair em tile a céu aberto (${faltam} secaram)`);
+  /* E ELE TEM DE SER COMPACTO. Esta é uma invariante de CUSTO, não de geometria:
+     um retângulo por tile e um por corrida cobrem exatamente a mesma região, e
+     nenhuma régua de cobertura consegue separá-las — foi o que uma mutação
+     provou, voltando ao caminho caro sem derrubar nada.
+     O preço de um `clip` é proporcional ao número de retângulos, e este caminho
+     é recortado quatro vezes por quadro. Medido em Varrokgaard: 348 retângulos
+     viraram 19. O teto de um terço é folgado de propósito — ele reprova a volta
+     ao caminho por tile sem cobrar um número exato de corridas, que depende do
+     mapa. */
+  A(rec !== null && rec.rects.length <= abertosNaJanela / 3,
+    `o recorte de céu junta os tiles em corridas (${rec ? rec.rects.length : 0} retângulos para ` +
+    `${abertosNaJanela} tiles a céu aberto)`);
+  /* E o atalho: sem NENHUM tile abrigado à vista não há o que recortar, e o
+     recorte tem de devolver `null` para o chamador pular o `clip`. É o caso
+     comum em campo aberto, e é de onde vem a maior parte da economia. */
+  busca2: for (let y = 20; y < S.H - 20; y++) for (let x = 20; x < S.W - 20; x++) {
+    let limpo = true;
+    for (let dy = -12; dy <= 12 && limpo; dy++) for (let dx = -18; dx <= 18; dx++)
+      if (S.abrigado(x + dx, y + dy, S.SURF)) { limpo = false; break; }
+    if (limpo) { p.x = p.px = x; p.y = p.py = y; p.z = S.SURF; break busca2; }
+  }
+  S.drawWorld();
+  A(S.recorteCeu(t) === null, 'em campo aberto sem nada abrigado, o recorte é dispensado');
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
 }
 /* O CANTO É O CANTO. `w2s` devolve o CENTRO do tile, e a máscara de telhado
    usava ele direto: 42% de escuro meio tile a sudeste do chão que devia
@@ -596,6 +666,337 @@ A((() => {
   }
   return true;
 })(), 'cantoDoTile é o canto noroeste: meio tile acima e à esquerda do que w2s devolve');
+
+/* --- o TINTE DE CÉU sai DENTRO do recorte ------------------------------- */
+/* O `gradePass` devolvia a cor do céu na tela inteira: o gate era "este andar
+   tem céu?", nunca "este tile tem céu?", e ao poente o interior levava 96% do
+   tinte da rua. A régua não pergunta se o `recorteCeu` existe — isso já é
+   coberto pela régua da chuva. Ela cobra que o PREENCHIMENTO do tinte tenha
+   saído entre um `clip` e o `restore` dele, que é a metade que passaria verde
+   numa mutação que soltasse o recorte e mantivesse a conta. */
+{
+  const p = S.getP(), t = S.tpx();
+  const antes = [p.x, p.y, p.px, p.py, p.z];
+  busca: for (let y = 4; y < S.H - 4; y++) for (let x = 4; x < S.W - 4; x++)
+    if (S.dentroDeCasa(x, y, S.SURF) && S.isWalkable(x + 3, y, S.SURF) && !S.dentroDeCasa(x + 3, y, S.SURF)) {
+      p.x = p.px = x + 3; p.y = p.py = y; p.z = S.SURF; break busca;
+    }
+  REC.ops.length = 0;
+  S.drawWorld();
+  /* o tinte é o único `fillRect` em soft-light do quadro */
+  let prof = 0, dentroDeClip = 0, achou = 0, solto = 0;
+  for (const o of REC.ops) {
+    if (o.op === 'save') prof++;
+    else if (o.op === 'restore') { prof--; if (dentroDeClip > prof) dentroDeClip = prof; }
+    else if (o.op === 'clip') dentroDeClip = prof;
+    else if (o.op === 'fillRect' && o.comp === 'soft-light') {
+      achou++;
+      if (!(dentroDeClip > 0 && prof >= dentroDeClip)) solto++;
+    }
+  }
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  A(achou > 0, `a régua do tinte achou o preenchimento em soft-light (${achou})`);
+  A(solto === 0, `e ele sai DENTRO do recorte de céu (${solto} de ${achou} fora; fita: ` +
+    REC.ops.filter(o => o.op !== 'fillRect' || o.comp === 'soft-light')
+      .slice(-8).map(o => o.op + (o.comp ? ':' + o.comp : '')).join(' ') + ')');
+}
+
+/* --- redimensionar não deixa o canvas em branco ------------------------- */
+/* Escrever em `canvas.width` apaga o desenho, e nada repintava até o próximo
+   `requestAnimationFrame` — o canvas piscava preto durante todo o arrasto da
+   borda, porque o `ResizeObserver` dispara em rajada. */
+{
+  const g = S.G, antes = g.started;
+  let n = 0;
+  /* O patch vai em `S`, que É o objeto de contexto do vm — `globalThis` aqui
+     seria o global do node, e o render nunca o veria. */
+  const orig = S.drawWorld;
+  S.drawWorld = function (...a) { n++; return orig.apply(this, a); };
+  g.started = false; S.resizeCam(); const semJogo = n;
+  g.started = true;  S.resizeCam(); const comJogo = n;
+  S.drawWorld = orig; g.started = antes;
+  A(semJogo === 0, 'antes de o jogo começar, redimensionar não tenta desenhar');
+  A(comJogo > semJogo, 'e com o jogo rodando ele repinta na hora, sem esperar o próximo quadro');
+}
+
+/* COBERTURA, e não canto. Os dois recortes (céu e luz) emitem um retângulo por
+   CORRIDA de tiles, não um por tile — a região é a mesma e o `clip` fica muito
+   mais barato. Régua que procurasse o canto de cada tile no conjunto reprovaria
+   o que está certo; a pergunta certa é se o MIOLO do tile está coberto.
+   `null` quer dizer "nada a recortar", ou seja: tudo coberto. */
+const cobreTile = (rec, sx, sy, t) => rec === null ||
+  rec.rects.some(([rx, ry, rw, rh]) => sx + t / 2 >= rx && sx + t / 2 < rx + rw
+    && sy + t / 2 >= ry && sy + t / 2 < ry + rh);
+
+/* --- a LUZ PARA NA PAREDE, dos dois lados ------------------------------- */
+/* `halo()` é gradiente radial puro: não perguntava geometria nenhuma, então a
+   tocha da rua acendia a sala fechada ao lado e a tocha de dentro vazava para a
+   rua. Medido no jogo antes do conserto: um tile de interior a 3 tiles da tocha
+   da rua estava 66% mais claro do que devia (35,8 contra 12,1 de luminância).
+   A régua conta os retângulos que o `recorteVisivel` DE FATO produziu, e cobra as
+   três metades: a sala da luz inteira acesa, nenhum tile de outra sala aceso, e
+   a parede que fecha a sala acesa — sem a terceira, o cômodo fica com o chão
+   iluminado e as paredes pretas, que é pior que o vazamento. */
+{
+  const p = S.getP(), t = S.tpx(), z = S.SURF;
+  const antes = [p.x, p.y, p.px, p.py, p.z];
+  let dentro = null;
+  busca: for (let y = 6; y < S.H - 6; y++) for (let x = 6; x < S.W - 6; x++)
+    if (S.dentroDeCasa(x, y, z) && S.salaDe(x + 4, y, z) === 0) { dentro = [x, y]; break busca; }
+  A(!!dentro, 'a régua da luz achou um cômodo fechado com rua a 4 tiles');
+  if (dentro) {
+    const [ix, iy] = dentro, sala = S.salaDe(ix, iy, z);
+    const rua = [ix + 4, iy];
+    const chave = ([x, y]) => x + ',' + y;
+    // o enquadramento tem de conter os dois, senão a janela corta a medição
+    p.x = p.px = ix + 2; p.y = p.py = iy; p.z = z;
+    S.drawWorld();
+    const luzEm = ([x, y]) => {
+      const [sx, sy] = S.cantoDoTile(x, y, t);
+      return S.recorteVisivel({ x: sx + t / 2, y: sy + t / 2, r: t * 5 }, t);
+    };
+    const conta = (origem, quer) => {
+      const rec = luzEm(origem);
+      let acesoDaSala = 0, faltaNaSala = 0, vazou = 0, paredeAcesa = 0;
+      for (let y = origem[1] - 6; y <= origem[1] + 6; y++)
+        for (let x = origem[0] - 6; x <= origem[0] + 6; x++) {
+          const [cx0, cy0] = S.cantoDoTile(x, y, t);
+          const s = S.salaDe(x, y, z), aceso = cobreTile(rec, cx0, cy0, t);
+          if (s === quer) { aceso ? acesoDaSala++ : faltaNaSala++; }
+          else if (s === S.SALA_PAREDE) { if (aceso) paredeAcesa++; }
+          else if (aceso) vazou++;
+        }
+      return { acesoDaSala, faltaNaSala, vazou, paredeAcesa };
+    };
+    const d = conta(dentro, sala), r = conta(rua, 0);
+    A(d.acesoDaSala > 0 && r.acesoDaSala > 0,
+      `a régua da luz tem as duas metades (${d.acesoDaSala} tiles do cômodo, ${r.acesoDaSala} da rua)`);
+    A(d.vazou === 0, `luz de DENTRO não sai do cômodo (${d.vazou} tiles de fora acesos)`);
+    A(r.vazou === 0, `luz de FORA não entra no cômodo (${r.vazou} tiles de dentro acesos)`);
+    A(d.paredeAcesa > 0, 'a parede que fecha o cômodo recebe a luz de dentro dele');
+    A(d.faltaNaSala === 0 && r.faltaNaSala === 0,
+      `a luz não abre buraco na própria sala (${d.faltaNaSala + r.faltaNaSala} tiles apagados)`);
+    /* E o RENDER tem de usar isso. As asserções acima medem a função pura, e
+       sozinhas passariam verdes numa mutação que simplesmente parasse de chamar
+       o recorte no `lightPass` — que é a forma mais provável de isto regredir.
+       Esta cobra o `clip` chegando ao passe de luz, com uma tocha de verdade no
+       personagem e ele DENTRO do cômodo. */
+    const eqAntes = p.eq.light;
+    p.eq.light = S.mkItem('torch');
+    p.x = p.px = ix; p.y = p.py = iy; p.z = z;
+    REC.clips.length = 0;
+    S.drawWorld();
+    const ref = luzEm(dentro);
+    const mesmo = (a2, b2) => a2 === null || b2 === null ? a2 === b2
+      : a2.rects.length === b2.rects.length
+        && a2.rects.every((r, i) => r.every((v, k) => Math.abs(v - b2.rects[i][k]) < 1e-6));
+    const bate = REC.clips.some(c => mesmo(c, ref));
+    p.eq.light = eqAntes;
+    A(bate, 'e o passe de luz RECORTA por esse conjunto — não basta a conta existir');
+  }
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+}
+
+/* --- e PAREDE SOLTA também barra, e PORTA ABERTA não ------------------- */
+/* Os dois casos que o rótulo de cômodo deixava passar. O primeiro é o que mais
+   dói: no andar de baixo 32.685 dos 36.864 tiles caem no mesmo "fora", então
+   rochedo nenhum barrava tocha — e lá embaixo a tocha é a única fonte que
+   existe. O segundo é o inverso: porta aberta é vão, e o rótulo a tratava como
+   parede (o que é certo para "estou dentro de casa?" e errado para luz). */
+{
+  const p = S.getP(), t = S.tpx(), z = S.SURF;
+  const antes = [p.x, p.y, p.px, p.py, p.z];
+  const chave = ([x, y]) => x + ',' + y;
+  const recEm = (x, y) => {
+    const [sx, sy] = S.cantoDoTile(x, y, t);
+    return new Set(S.recorteVisivel({ x: sx + t / 2, y: sy + t / 2, r: t * 4 }, t)
+      .rects.map(chave));
+  };
+  /* LANCE DE PAREDE em campo aberto, com o MESMO cômodo dos dois lados — é
+     exatamente a configuração que o rótulo não separava, porque os dois lados
+     tinham o mesmo número.
+     ponytail: o que a inundação garante é que a luz não atravessa um LANCE; ela
+     modela alcance, não linha de vista, então contorna uma pedra de um tile só
+     em dois passos e acende atrás dela. É por isso que a régua procura um lance
+     que atravesse a janela inteira, e não um tile solto: é essa a promessa. Se
+     um dia sombra projetada de parede virar requisito, o degrau é lançar raio
+     por tile a partir da luz — aí o custo deixa de ser o da inundação. */
+  const rl = 2, RJ = rl + 1;             // raio em tiles, e a meia-janela da inundação
+  let lance = null;
+  busca: for (let y = 10; y < S.H - 10; y++) for (let x = 10; x < S.W - 10; x++) {
+    if (!S.tapaVista(x, y, z) || S.tapaVista(x - 1, y, z) || S.tapaVista(x + 1, y, z)) continue;
+    let corre = true;                     // o lance tem de cruzar a janela inteira
+    for (let d = -RJ; d <= RJ && corre; d++) if (!S.tapaVista(x, y + d, z)) corre = false;
+    if (corre && S.salaDe(x - 1, y, z) === S.salaDe(x + 1, y, z)) { lance = [x, y]; break busca; }
+  }
+  A(!!lance, 'a régua achou um lance de parede com o mesmo cômodo dos dois lados');
+  if (lance) {
+    const [wx, wy] = lance;
+    p.x = p.px = wx - 1; p.y = p.py = wy; p.z = z;
+    S.drawWorld();
+    const [sx, sy] = S.cantoDoTile(wx - 1, wy, t);
+    const r = S.recorteVisivel({ x: sx + t / 2, y: sy + t / 2, r: t * rl }, t);
+    const em = (x, y) => cobreTile(r, ...S.cantoDoTile(x, y, t), t);
+    A(em(wx, wy), 'a face do lance continua acesa');
+    A(!em(wx + 1, wy), 'e a luz NÃO passa para o outro lado — aqui os dois lados são o mesmo cômodo');
+    A(em(wx - 2, wy), 'e do lado da luz ela alcança normalmente');
+  }
+  /* O VÃO É VÃO. O mundo do teste é o procedural do `genWorld`, que não tem
+     porta — mas porta aberta e brecha no muro são a MESMA pergunta para a luz,
+     porque as duas passam pelo `tapaVista` (é ele que faz `o.aberta` sumir da
+     conta). Então a régua abre uma brecha no lance e confere que a luz atravessa
+     por ela, e só por ela. É o que prende o recorte ao `tapaVista` em vez de a
+     uma cópia da regra. */
+  if (lance) {
+    const [wx, wy] = lance;
+    const antesT = S.WORLD.floors[z].t[wy * S.W + wx];
+    const alvo = chave(S.cantoDoTile(wx + 1, wy, t));
+    p.x = p.px = wx - 1; p.y = p.py = wy; p.z = z;
+    S.drawWorld();
+    const [sx, sy] = S.cantoDoTile(wx - 1, wy, t);
+    const rec = () => S.recorteVisivel({ x: sx + t / 2, y: sy + t / 2, r: t * rl }, t);
+    const alcanca = (r2, x, y) => cobreTile(r2, ...S.cantoDoTile(x, y, t), t);
+    const fechado = rec();
+    /* A brecha se abre pelo MESMO campo que a porta usa: `o.aberta`. O
+       `objTapaVista` é ficha, não id — `aberta` some da conta em qualquer
+       objeto que a declare, e é por isso que porta aberta já funciona sem o
+       render conhecer porta. Marcar o muro como aberto exercita exatamente esse
+       caminho. */
+    const bloq = S.objsAt(wx, wy, z).filter(S.objTapaVista);
+    for (const o of bloq) o.aberta = true;
+    const terreno = S.TILE[S.WORLD.floors[z].t[wy * S.W + wx]].top > 0.5;
+    if (terreno) S.WORLD.floors[z].t[wy * S.W + wx] = S.WORLD.floors[z].t[wy * S.W + wx - 1];
+    const aberto = rec();
+    for (const o of bloq) delete o.aberta;
+    S.WORLD.floors[z].t[wy * S.W + wx] = antesT;      // devolve o muro
+    A(!alcanca(fechado, wx + 1, wy), 'muro sem brecha barra a luz');
+    A(alcanca(aberto, wx + 1, wy),
+      'e com a brecha aberta ela atravessa — é o mesmo caminho da porta aberta');
+  }
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+}
+
+/* --- o contador de FPS -------------------------------------------------- */
+/* Ele é uma conta pequena com duas armadilhas de verdade: o primeiro quadro não
+   tem intervalo (dividir por zero devolveria Infinity, e o cabeçalho mostraria
+   isso), e a leitura tem de ser a MÉDIA da janela — o inverso do último
+   intervalo faria o número piscar a cada quadro solto. */
+{
+  const J = S.FPS_JANELA;
+  // 60 quadros por segundo: um passo de 1000/60 ms
+  let t = 1000, ultimo = null, leituras = 0;
+  for (let i = 0; i < 200; i++) { const r = S.tickFps(t); if (r !== null) { ultimo = r; leituras++; } t += 1000 / 60; }
+  A(ultimo !== null && Math.abs(ultimo - 60) <= 1, `a 60 quadros por segundo ele lê 60 (leu ${ultimo})`);
+  A(leituras > 1, `e lê mais de uma vez em 200 quadros (${leituras} leituras)`);
+  // 30 fps: o dobro do intervalo tem de dar metade da leitura
+  let t2 = 9e6, r30 = null;
+  S.tickFps(t2);                                  // reinicia a janela
+  for (let i = 0; i < 120; i++) { t2 += 1000 / 30; const r = S.tickFps(t2); if (r !== null) r30 = r; }
+  A(r30 !== null && Math.abs(r30 - 30) <= 1, `a 30 quadros por segundo ele lê 30 (leu ${r30})`);
+  /* MÉDIA, não instantâneo — e este é o único caso que separa os dois. Com
+     ritmo constante as duas contas dão o mesmo número, então uma régua de
+     ritmo constante passaria verde com qualquer uma. Aqui os quadros alternam
+     5 ms e 28 ms: a média são 60 por segundo, e o inverso do ÚLTIMO intervalo
+     daria 36 ou 200 conforme onde a janela fechasse. */
+  A((() => {
+    let t6 = 5e7; S.tickFps(t6);
+    let leu = null;
+    for (let i = 0; i < 200; i++) {
+      t6 += (i % 2 ? 5 : 28);
+      const r = S.tickFps(t6); if (r !== null) leu = r;
+    }
+    return leu !== null && Math.abs(leu - 60) <= 3;
+  })(), 'com quadro irregular ele lê a MÉDIA da janela, não o último intervalo');
+  /* O PRIMEIRO QUADRO não pode produzir leitura: sem intervalo, a conta seria
+     uma divisão por zero e o cabeçalho mostraria Infinity. */
+  A(S.tickFps(2e7) === null, 'o primeiro quadro de uma janela nova não produz leitura');
+  /* PAUSA LONGA reinicia em vez de virar leitura. Aba em segundo plano
+     estrangula o `requestAnimationFrame`, e sem esta guarda o contador
+     mostraria "1 FPS" no quadro seguinte ao retorno — ruído, não medida. */
+  A((() => {
+    let t4 = 4e7; S.tickFps(t4);
+    for (let i = 0; i < 40; i++) { t4 += 1000 / 60; S.tickFps(t4); }
+    const depoisDoSumico = S.tickFps(t4 + S.FPS_SALTO * 3);   // a aba voltou
+    if (depoisDoSumico !== null) return false;
+    let t5 = t4 + S.FPS_SALTO * 3;                            // e a janela recomeça limpa
+    let leu = null;
+    for (let i = 0; i < 60; i++) { t5 += 1000 / 60; const r = S.tickFps(t5); if (r !== null) leu = r; }
+    return leu !== null && Math.abs(leu - 60) <= 1;
+  })(), 'pausa longa reinicia a janela, e a leitura seguinte volta correta');
+  A((() => {                                      // e nenhuma leitura sai antes da janela fechar
+    let t3 = 3e7; S.tickFps(t3);
+    for (let i = 0; i < 5; i++) { t3 += J / 10; if (S.tickFps(t3) !== null) return false; }
+    return true;
+  })(), `nenhuma leitura sai antes de a janela de ${J} ms fechar`);
+}
+
+/* --- a altura do sol, e o teto da borda --------------------------------- */
+/* `alturaSol` manda no COMPRIMENTO da sombra (geometria); `solF` manda no ALFA
+   (atmosfera). A proposta original trocava um pelo outro, e isso desligaria o
+   acoplamento com o céu fechado — que é 30% do tempo de jogo. */
+A(S.alturaSol(S.SOL_NASCE) === 0 && S.alturaSol(S.SOL_POE) === 0,
+  'o sol tem altura zero no nascer e no poente');
+A(S.alturaSol(.05) === 0 && S.alturaSol(.95) === 0, 'e altura zero de madrugada e de noite');
+A(Math.abs(S.alturaSol((S.SOL_NASCE + S.SOL_POE) / 2) - 1) < 1e-9,
+  'e altura 1 no meio do arco');
+A((() => {                              // monótona em cada metade, sem degrau
+  const meio = (S.SOL_NASCE + S.SOL_POE) / 2;
+  for (let i = 1; i <= 60; i++) {
+    const a = S.SOL_NASCE + (meio - S.SOL_NASCE) * (i - 1) / 60;
+    const b = S.SOL_NASCE + (meio - S.SOL_NASCE) * i / 60;
+    if (S.alturaSol(b) < S.alturaSol(a)) return false;
+    const c = meio + (S.SOL_POE - meio) * (i - 1) / 60;
+    const d = meio + (S.SOL_POE - meio) * i / 60;
+    if (S.alturaSol(d) > S.alturaSol(c)) return false;
+  }
+  return true;
+})(), 'a altura do sol sobe até o meio do arco e desce depois, sem degrau');
+/* TETO DURO da borda de parede. A proposta veio com SOL_LONGO = 1,90, que dá
+   26,6 px — acima dos 24 px (0,75 tile) em que a faixa de dois lados mais a
+   quina cobre quase o tile inteiro e o chão vira xadrez. Varre o dia inteiro em
+   vez de confiar no número. */
+A((() => {
+  for (let i = 0; i <= 1000; i++) {
+    const comp = 1 + (S.SOL_LONGO - 1) * (1 - S.alturaSol(i / 1000));
+    if (S.SOMBRA_BORDA_PX * comp > S.SOMBRA_BORDA_MAX + 1e-9) return false;
+  }
+  return true;
+})(), `a borda de parede nunca passa de ${S.SOMBRA_BORDA_MAX} px em nenhuma hora do dia`);
+A((() => {                              // e nunca perde o pé: oclusão existe com qualquer luz
+  for (let i = 0; i <= 1000; i++)
+    if (1 + (S.SOL_LONGO - 1) * (1 - S.alturaSol(i / 1000)) < 1) return false;
+  return true;
+})(), 'e nunca encolhe abaixo da base — parede interna sem sombra deixa a casa de papel');
+
+/* --- um vento, e todos os leitores concordam --------------------------- */
+/* A copa deitava para OESTE enquanto a nuvem e a gota andavam para LESTE, e o
+   traço da chuva era desenhado no eixo errado da própria gota: 57,6° medidos
+   entre o traço e a trajetória. A régua lê o cisalhamento que o render DE FATO
+   aplicou na copa (`transform` com d === 1) e cobra que ele concorde com o
+   `VENTO`, que é a única fonte da direção. */
+{
+  REC.transforms.length = 0;
+  S.drawWorld();
+  // `d === 1` separa o cisalhamento da copa do da sombra projetada, que achata
+  const copa = REC.transforms.filter(([a, b, , d]) => a === 1 && b === 0 && d === 1);
+  A(copa.length > 0, `a régua do vento viu a copa ser inclinada (${copa.length} plantas)`);
+  /* O tremor oscila para os dois lados de propósito, então sinal de UMA planta
+     não diz nada — quem carrega a direção é o viés, e é ele que se varre. */
+  A((() => {
+    for (let i = 0; i <= 100; i++)
+      if (Math.sign(S.viesDoVento(i / 100)) === S.VENTO_SINAL) return false;
+    return true;
+  })(), 'a copa nunca deita CONTRA o vento, em nenhuma intensidade');
+  A(Math.sign(S.viesDoVento(1)) === -S.VENTO_SINAL && S.viesDoVento(0) === 0,
+    'no vento cheio ela deita para onde a nuvem anda, e em ar parado não deita');
+  A((() => {                            // e o viés só cresce: força que sobe não vira o mato
+    for (let i = 1; i <= 100; i++)
+      if (Math.abs(S.viesDoVento(i / 100)) < Math.abs(S.viesDoVento((i - 1) / 100))) return false;
+    return true;
+  })(), 'e o viés só cresce com a força — era ele que se invertia abaixo de .3');
+  A(S.VENTO_SINAL === Math.sign(S.VENTO[0]),
+    'a direção sai do VENTO, não de um sinal cravado em cada leitor');
+}
 
 /* sangue: toda criatura tem cor definida, e o esqueleto não pode escorrer */
 A(Object.values(S.MONSTERS).every(m => m.sangue && m.sangue.cor >= 0),

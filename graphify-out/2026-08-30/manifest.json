@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1788101913.3562224,
-    "ast_hash": "e9a6e6e6cead11540519ee4eb8dcf0bb",
+    "mtime": 1788101030.1723914,
+    "ast_hash": "f410d9a4d15ce3c1d587ff4bc6b7c465",
     "semantic_hash": ""
   },
   "src/ui.js": {
@@ -85,8 +85,8 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1788101319.1627507,
-    "ast_hash": "6c6ba746044601178c3991159be0c3c3",
+    "mtime": 1788096292.7938259,
+    "ast_hash": "282ecf66a1a39c63e61523b28508227d",
     "semantic_hash": ""
   },
   "assets/CREDITOS.md": {
@@ -3040,8 +3040,8 @@
     "semantic_hash": ""
   },
   "tasks.html": {
-    "mtime": 1788102042.037637,
-    "ast_hash": "a36c19de4913403880d53de227daf015",
+    "mtime": 1788101252.9224243,
+    "ast_hash": "8d58ba4767559aa3c7b7dc9f10b300b4",
     "semantic_hash": ""
   },
   "assets/skins/creatures/cyclops/cyclops_brute/cyclops_anim.png": {
@@ -5480,8 +5480,8 @@
     "semantic_hash": ""
   },
   "maps/varrokgaard.json": {
-    "mtime": 1788101341.7447405,
-    "ast_hash": "562b2c8deed94120470b46ad0da5261b",
+    "mtime": 1788101300.8076434,
+    "ast_hash": "b49185e0c7cc2fb2dc6b199ac49d02e5",
     "semantic_hash": ""
   },
   "tools/compor.js": {
@@ -5525,13 +5525,13 @@
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.json": {
-    "mtime": 1788101341.165971,
-    "ast_hash": "d64f83907dfa696b7df997839263a40f",
+    "mtime": 1788101299.090184,
+    "ast_hash": "5f23477b24cbca51744070773f24e181",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.bak.json": {
-    "mtime": 1788101341.1633441,
-    "ast_hash": "505048503f70af48544b6d36ed997833",
+    "mtime": 1788101299.087586,
+    "ast_hash": "a655e2115fd5c662dfedf9717c8edbe1",
     "semantic_hash": ""
   },
   "maps/_bak/varrokgaard.20260823-1330.json": {

@@ -1,11 +1,11 @@
 # Graph Report - Jogo  (2026-08-30)
 
 ## Corpus Check
-- 87 files · ~8,078,167 words
+- 87 files · ~8,077,309 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1539 nodes · 2680 edges · 107 communities (101 shown, 6 thin omitted)
+- 1537 nodes · 2676 edges · 107 communities (101 shown, 6 thin omitted)
 - Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 214 edges (avg confidence: 0.78)
 - Token cost: 0 input · 0 output
 
@@ -118,7 +118,7 @@
 - colher
 - Sessão 2026-08-29 — auditoria gráfica por time (luz, sombra, clima)
 - test_tools.js
-- levelup
+- death
 - tiqueEstado
 - confere_folha.py
 - fakeEl
@@ -207,8 +207,8 @@ Cohesion: 0.03
 Nodes (54): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, BIOMA_POOLS, BO, CAMPO_ACIMA (+46 more)
 
 ### Community 7 - "render2d.js"
-Cohesion: 0.06
-Nodes (67): AGUA_CINTILO_A, bloomPass(), CAM, camadaNuvem(), cantoDoTile(), ceuRGB, chamaTremor(), CHAO_ESCALA (+59 more)
+Cohesion: 0.07
+Nodes (65): AGUA_CINTILO_A, bloomPass(), CAM, camadaNuvem(), cantoDoTile(), ceuRGB, chamaTremor(), CHAO_ESCALA (+57 more)
 
 ### Community 8 - "_corpo_morte"
 Cohesion: 0.40
@@ -284,7 +284,7 @@ Nodes (11): Armor Icon (Steel Plate Cuirass), Axe Icon (Double-Bladed Wood Axe),
 
 ### Community 26 - "sfx/manifest.json"
 Cohesion: 0.13
-Nodes (14): atk_wand, n, v, death, n, v, ext, rev (+6 more)
+Nodes (14): atk_wand, n, v, ext, levelup, n, v, rev (+6 more)
 
 ### Community 27 - "skinAtual"
 Cohesion: 0.67
@@ -335,8 +335,8 @@ Cohesion: 0.14
 Nodes (31): DANO_TIPOS, abrirMagia(), addMagic(), addSkillTry(), castSpell(), _corTexto(), criaCampo(), cssCol() (+23 more)
 
 ### Community 39 - "item"
-Cohesion: 0.22
-Nodes (10): conjunto(), GG(), item(), rune(), spriteImg(), spriteOf(), playSelectedCharacter(), startGame() (+2 more)
+Cohesion: 0.28
+Nodes (8): conjunto(), GG(), item(), rune(), spriteImg(), spriteOf(), ICONES, ICONES2X
 
 ### Community 40 - "heal"
 Cohesion: 0.50
@@ -399,8 +399,8 @@ Cohesion: 0.67
 Nodes (3): hurt, n, v
 
 ### Community 55 - "fixSave"
-Cohesion: 0.21
-Nodes (17): PREFIXES, SUFFIXES, askConfirm(), charId(), deleteCharacter(), exportarPersonagens(), fixSave(), importarPersonagens() (+9 more)
+Cohesion: 0.18
+Nodes (19): PREFIXES, SUFFIXES, askConfirm(), charId(), deleteCharacter(), exportarPersonagens(), fixSave(), importarPersonagens() (+11 more)
 
 ### Community 56 - "freesound.py"
 Cohesion: 0.80
@@ -570,9 +570,9 @@ Nodes (17): 1. O que o dono pediu, 2.1 Máscara de telhado alinhada — `telhado
 Cohesion: 0.18
 Nodes (9): a, b, conta(), falhas, fs, html, path, pincel (+1 more)
 
-### Community 103 - "levelup"
+### Community 103 - "death"
 Cohesion: 0.67
-Nodes (3): levelup, n, v
+Nodes (3): death, n, v
 
 ### Community 104 - "tiqueEstado"
 Cohesion: 0.24

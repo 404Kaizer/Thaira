@@ -10,7 +10,10 @@ const HUD_KEY = 'thaira.hud';
 /* `fixo` não estica: o minimapa é um canvas de altura própria e o equipamento é
    grade absoluta de 178x239 — puxar a borda dos dois só criaria vão morto. */
 const HUD_PANELS = [
-  { id: 'minimap', n: 'Minimapa', dock: 'r', fixo: true },
+  // `fps`: o cabeçalho ganha o contador de quadros. Fica na FICHA e não cravado
+  // no construtor do cabeçalho — no dia em que outro painel quiser um número
+  // ali, é uma chave, não um `if` por id.
+  { id: 'minimap', n: 'Minimapa', dock: 'r', fixo: true, fps: true },
   { id: 'status', n: 'Status', dock: 'r' },
   { id: 'equip', n: 'Equipamento', dock: 'r', fixo: true },
   { id: 'skills', n: 'Habilidades', dock: 'r' },
@@ -338,6 +341,7 @@ addEventListener('DOMContentLoaded', () => {
     const h = document.createElement('div');
     h.className = 'ph';
     h.innerHTML = `<span>${p.n}</span>
+      ${p.fps ? '<b class="ph-fps" id="mini-fps">--</b>' : ''}
       <i data-a="largo" title="ocupar as duas colunas">⇔</i>
       <i data-a="open" title="recolher">▾</i><i data-a="show" title="fechar">✕</i>`;
     h.onclick = e => {

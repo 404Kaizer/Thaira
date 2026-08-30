@@ -874,12 +874,9 @@ function occupied(x, y, z, self) {
    pé e não barrava mais nada: dava para flechar e queimar através dela, e o
    bicho do outro lado enxergava o jogador e vinha. Porta que não protege de
    nada não é porta.
-   Aberta ela some da conta, que é o ponto: o vão é vão. */
-const tapaVista = (x, y, z) => {
-  if (TILE[tileAt(x, y, z)].top > 0.5) return true;
-  for (const o of objsAt(x, y, z)) if (objTapaVista(o)) return true;
-  return false;
-};
+   Aberta ela some da conta, que é o ponto: o vão é vão.
+   A função em si mudou de casa: mora no `world.js`, junto do `objTapaVista`,
+   porque o render e o passe de luz também precisam dela. */
 /* Zona segura: o piso do templo é a própria fronteira, então não existe raio
    mágico aqui — quem está no tile TEMPLE não é perseguido nem atingido, e
    criatura nenhuma pisa nele. A geração já não NASCE spawn perto (world.js),
@@ -3045,6 +3042,8 @@ function bindInput(canvas) {
     e.target.blur();
     if (!txt) return;
     if (txt === '/teste') { bancadaTeste(); return; }
+    if (txt === '/fps') { bancadaFps(); return; }
+    if (txt === '/dev') { devMenu(); return; }
     const sp = SPELLS.find(s => s.w === txt);
     if (sp) { castSpell(sp); return; }
     say(P, txt);
@@ -3432,8 +3431,133 @@ if (typeof BroadcastChannel === 'function') {
 
 /* --------------------------------------------------------------- loop */
 let lastT = 0;
+/* FPS do cabeçalho. Duas decisões que valem o comentário:
+   · é a MÉDIA de uma janela de meio segundo, não o inverso do último intervalo.
+     Um quadro solto de 30 ms faria o número piscar 33 e não diz nada sobre o
+     ritmo — o que se quer saber é se o jogo está segurando 60, não quanto
+     durou um quadro qualquer.
+   · escreve no DOM só quando a janela fecha, pela mesma razão que o relógio já
+     documenta: repintar o mesmo texto 60x por segundo custa layout à toa.
+   Devolve o número quando atualiza e `null` no resto, que é o que permite
+   medi-lo sem DOM. */
+const FPS_JANELA = 500;
+/* Salto grande (ou para trás) REINICIA a janela em vez de virar leitura. Com a
+   aba em segundo plano o navegador estrangula o `requestAnimationFrame`, então
+   na volta o primeiro intervalo vale vários segundos: dividir os quadros por
+   ele mostraria "1 FPS" logo depois de reaparecer, que é ruído e não medida. */
+const FPS_SALTO = 2000;
+let fpsN = 0, fpsT = 0, fpsEl = null;
+function tickFps(t) {
+  fpsN++;
+  const dt = t - fpsT;
+  if (!fpsT || dt < 0 || dt > FPS_SALTO) { fpsT = t; fpsN = 0; return null; }
+  if (dt < FPS_JANELA) return null;
+  const fps = Math.round(fpsN * 1000 / dt);
+  fpsN = 0; fpsT = t;
+  if (!fpsEl) fpsEl = document.querySelector('#mini-fps');
+  if (fpsEl) fpsEl.textContent = fps;
+  return fps;
+}
+/* /fps — a bancada de QUEDA de quadro, e ela nasce com três lições de medição
+   que custaram caro nesta base:
+
+   · MEDE A CAUDA, não a mediana. "Cai algumas vezes" é p95 e p99; a mediana
+     pode estar em 165 com o jogo engasgando visivelmente.
+   · RECUSA ABA OCULTA. O navegador estrangula o `requestAnimationFrame` em
+     segundo plano — a medida não trava, sai lenta, e lentidão parece resultado.
+   · TEM CONTROLE. Cada passe é medido contra a base LOGO AO LADO no tempo
+     (A/B/A/B), e uma das variantes não desliga nada. Se essa não der ~zero, a
+     máquina está derivando mais que o sinal e os números da tabela não valem —
+     e a bancada diz isso em vez de imprimir a tabela. Foi assim que uma
+     medição minha "provou" que tirar a nuvem deixava o quadro 6× mais lento. */
+const FPS_ALVO = 20;                     // ms: abaixo de 50 quadros por segundo
+async function bancadaFps() {
+  if (document.hidden) {
+    log('A aba está em segundo plano — o navegador estrangula o quadro ali e a medida sairia falsa. Traga o jogo para a frente.', 'bad');
+    return;
+  }
+  /* A LISTA COBRE O QUADRO INTEIRO, não só o clima. Na cena que o dono montou —
+     muita criatura, muito efeito, chuva forte — o custo pode estar no desenho do
+     chão, nos efeitos ou na IA, e uma lista só de clima não teria como dizer.
+     `recorteCeu` fica DE FORA de propósito: ele precisa devolver um `Path2D`
+     válido, e um stub que devolva nada estoura dentro do `clip`. */
+  const passes = ['drawFloor', 'drawEffects', 'lightPass', 'bloomPass', 'gradePass',
+    'cloudPass', 'rainPass', 'poolPass', 'recorteVisivel',
+    'drawMinimap', 'updateOverlay', 'updateFx', 'updateMobs', 'renderBattle', '(controle)'];
+  log('Medindo 6 s de jogo. Não mexa em nada.', 'good');
+  const amostra = n => new Promise(res => {
+    const ts = [], ch = [], nv = [];
+    let last = performance.now(), i = 0;
+    const tick = () => {
+      const x = performance.now(), dt = x - last; last = x;
+      if (i++) { ts.push(dt); const c = climaAgora(P.z); ch.push(c.chuva); nv.push(c.nuvens); }
+      if (i <= n) requestAnimationFrame(tick); else res({ ts, ch, nv });
+    };
+    requestAnimationFrame(tick);
+  });
+  const { ts, ch, nv } = await amostra(360);
+  const ord = [...ts].sort((a, b) => a - b);
+  const q = p => ord[Math.min(ord.length - 1, Math.floor(ord.length * p))];
+  const fps = ms => Math.round(1000 / ms);
+  const lentos = ts.filter(v => v > FPS_ALVO).length;
+  log(`quadro: mediana ${q(.5).toFixed(1)} ms (${fps(q(.5))} fps) · p95 ${q(.95).toFixed(1)} · p99 ${q(.99).toFixed(1)} · pior ${ord[ord.length - 1].toFixed(1)}`);
+  log(`abaixo de ${Math.round(1000 / FPS_ALVO)} fps: ${lentos} de ${ts.length} quadros (${(lentos / ts.length * 100).toFixed(1)}%)`,
+    lentos ? 'bad' : 'good');
+  /* O CLIMA DA AMOSTRA sai sempre, e não só quando há queda: sem ele, "nenhum
+     quadro lento" é ambíguo — pode ser que o jogo esteja bem, ou que não tenha
+     chovido nem uma vez durante a medida. Um relatório tem de dizer sob que
+     condição ele foi tirado. */
+  const pctChuva = ch.filter(c => c > 0).length / ch.length * 100;
+  const pctNuvem = nv.filter(c => c > .01).length / nv.length * 100;
+  log(`durante a amostra: chuva em ${pctChuva.toFixed(0)}% dos quadros, nuvem em ${pctNuvem.toFixed(0)}%` +
+    (pctChuva < 5 ? ' — quase não choveu, então esta amostra não testa a chuva' : ''),
+    pctChuva < 5 ? 'bad' : '');
+  /* A PERGUNTA DO DONO, respondida por correlação: os quadros lentos estão
+     concentrados na chuva, ou espalhados? Se a fração com chuva entre os lentos
+     for igual à fração geral, a chuva não tem nada a ver. */
+  if (lentos) {
+    const comChuva = ts.filter((v, i) => v > FPS_ALVO && ch[i] > 0).length;
+    const geral = ch.filter(c => c > 0).length;
+    log(`dos lentos, ${(comChuva / lentos * 100).toFixed(0)}% caíram com chuva; no geral chovia em ${(geral / ch.length * 100).toFixed(0)}% dos quadros`);
+  }
+  log(`Agora o custo por passe: ${passes.length} variantes, uns 40 s. Não mexa em nada.`, 'good');
+  const orig = {}; for (const n of passes) if (window[n]) orig[n] = window[n];
+  const med = async () => { const a = await amostra(24); const o = [...a.ts].sort((x, y) => x - y); return o[o.length >> 1]; };
+  const custo = {};
+  try {
+    for (const alvo of passes) {
+      const A = [], B = [];
+      for (let r = 0; r < 3; r++) {
+        A.push(await med());
+        // `recorteVisivel` devolve caminho ou `null`, e o `null` já é tratado
+        if (orig[alvo]) window[alvo] = alvo === 'recorteVisivel' ? () => null : () => {};
+        B.push(await med());
+        if (orig[alvo]) window[alvo] = orig[alvo];
+      }
+      const md = a => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
+      custo[alvo] = md(A) - md(B);
+    }
+  } finally { for (const n in orig) window[n] = orig[n]; }
+  const ruido = Math.abs(custo['(controle)']);
+  if (ruido > .3) {
+    log(`o CONTROLE deu ${custo['(controle)'].toFixed(2)} ms quando devia dar zero — a máquina está oscilando mais que o efeito, e a tabela por passe não valeria nada. Feche o que estiver pesado e rode de novo.`, 'bad');
+    return;
+  }
+  /* TUDO NUMA LINHA. Em seis linhas o topo da tabela rolava para fora do log e
+     o dono me mandou a foto com as três últimas — justamente sem as maiores,
+     que sao as que interessam. */
+  const ord2 = Object.entries(custo).filter(([n]) => n !== '(controle)').sort((a, b) => b[1] - a[1]);
+  // só os cinco maiores: com quinze nomes a linha vira parede de texto, e o que
+  // interessa é o topo
+  log('mais caros: ' + ord2.slice(0, 5).map(([n, v]) => `${n} ${v >= 0 ? '+' : ''}${v.toFixed(2)}`).join(' · ') + ' ms',
+    ord2[0][1] > .5 ? 'bad' : '');
+  log('resto: ' + ord2.slice(5).map(([n, v]) => `${n} ${v >= 0 ? '+' : ''}${v.toFixed(2)}`).join(' · ') + ' ms');
+  log(`o mais caro é ${ord2[0][0]}, com ${ord2[0][1].toFixed(2)} ms de ${q(.5).toFixed(1)} ms do quadro ` +
+    `(${Math.round(ord2[0][1] / q(.5) * 100)}%) · controle ${custo['(controle)'].toFixed(2)} ms, então a tabela vale`, 'good');
+}
 function frame(t) {
   requestAnimationFrame(frame);
+  tickFps(t);
   const passo = Math.min(50, t - lastT); lastT = t;
   G.real = t;                       // relógio de parede: anda mesmo durante o hitstop
   /* G.now é o relógio DO JOGO: ele acumula em vez de copiar o carimbo do

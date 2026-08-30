@@ -410,6 +410,18 @@ function usaPorta(x, y, z) {
    id de ninguém: no dia em que houver portão ou alçapão, os dois já funcionam. */
 const objBloqueia = o => o.aberta ? false : !(OBJ[o.o] || { walk: true }).walk;
 const objTapaVista = o => o.aberta ? false : (OBJ[o.o] || { top: 0 }).top > 0.5;
+/* O QUE BARRA OS OLHOS. Mora aqui, e não no `game.js`, porque tem TRÊS clientes
+   em camadas diferentes: a mira e o aggro (`lineClear`), o desenho do vizinho
+   alto no `drawFloor`, e o alcance da luz. Enquanto morava no game, o render
+   mantinha a própria cópia da regra — e duas cópias da mesma régua divergem no
+   dia em que uma delas aprender sobre um objeto novo.
+   Porta ABERTA some da conta, que é o ponto: o vão é vão, para os olhos, para o
+   tiro e para a luz. */
+const tapaVista = (x, y, z) => {
+  if (TILE[tileAt(x, y, z)].top > 0.5) return true;
+  for (const o of objsAt(x, y, z)) if (objTapaVista(o)) return true;
+  return false;
+};
 /* Porta fechada é parede para TODO MUNDO, jogador incluído — ele abre de
    propósito, com Ctrl + clique, e só então passa. Houve uma versão em que o A*
    do jogador atravessava a porta fechada e o passo a abria ao chegar; caiu
@@ -860,7 +872,15 @@ const CEU = [
   [0.86, '#4d4f74'],
   [1.00, '#39406b']
 ];
-const horaDoDia = (ms = Date.now()) => (ms % DIA_MS) / DIA_MS;
+/* SOBRESCRITA DE CENÁRIO do menu de desenvolvimento. Mora aqui, na RAIZ do
+   tempo e do clima, e não numa lista de coisas a forçar — porque tudo o mais
+   deriva destes dois: a hora manda na cor do céu, na luz, na fase e na altura
+   do sol; o nublado manda em chuva, vento, frente e molhado. Dois ganchos
+   cobrem o clima inteiro, e `null` devolve o automático.
+   Forçar por `Date.now` seria o caminho errado: ele congela o jogo junto (o
+   passo, a animação e o respawn saem dali) e mata o `requestAnimationFrame`. */
+const DEV = { hora: null, nublado: null };
+const horaDoDia = (ms = Date.now()) => DEV.hora === null ? (ms % DIA_MS) / DIA_MS : DEV.hora;
 
 function corDoCeu(td) {
   let i = 0;
@@ -871,11 +891,23 @@ function corDoCeu(td) {
   const canal = s => Math.round((n0 >> s & 255) + ((n1 >> s & 255) - (n0 >> s & 255)) * k);
   return [canal(16), canal(8), canal(0)];
 }
+/* Amanhecer e poente: os dois cortes da rampa do CÉU acima. Ganharam nome
+   porque estavam escritos de novo no FASES e uma terceira vez na bancada de
+   sombras — três cópias de um número que só pode ter um valor. */
+const SOL_NASCE = .26, SOL_POE = .78;
+/* ALTURA DO SOL no céu, 0..1: zero no nascer e no pôr, 1 no meio do arco.
+   É ela que manda no COMPRIMENTO da sombra — sol rasante projeta longe, sol a
+   pino projeta quase nada. Quem manda no ALFA continua sendo `solF`, que é
+   atmosfera: céu fechado tem de apagar a sombra, e céu fechado é 30% do tempo.
+   Misturar os dois daria desconto duplo e tempestade com sombra de meio-dia. */
+const alturaSol = (td = horaDoDia()) =>
+  td <= SOL_NASCE || td >= SOL_POE ? 0
+    : Math.sin((td - SOL_NASCE) / (SOL_POE - SOL_NASCE) * Math.PI);
 /* Relógio do jogo. O dia dura DIA_MS de verdade, então a hora é a fração do
    ciclo em 24h. Os cortes das fases saem da rampa do CÉU, não de números
    redondos: com 6/12/18/24 na mão o painel anunciava "Manhã" com o céu ainda
-   roxo. Amanhecer é .26 e poente .78 lá em cima — é daí que vêm estes. */
-const FASES = [[.26, 'Madrugada'], [.50, 'Manhã'], [.78, 'Tarde'], [1, 'Noite']];
+   roxo. */
+const FASES = [[SOL_NASCE, 'Madrugada'], [.50, 'Manhã'], [SOL_POE, 'Tarde'], [1, 'Noite']];
 function horaDoJogo(ms = Date.now()) {
   const td = horaDoDia(ms), h = td * 24;
   return { h: Math.floor(h), min: Math.floor(h % 1 * 60), fase: FASES.find(f => td < f[0])[1] };
@@ -903,6 +935,7 @@ const souCoberto = (x = P.x, y = P.y, z = P.z) => z - 1 >= 0 && tileAt(x, y, z -
    sol, e é o que mantém a conta válida sem refazer a cada clique. Roda uma vez
    por andar e fica guardada; o mapa é autoral e só muda quando o editor
    recompõe, e aí o `reindexObjs` joga fora. */
+const SALA_PAREDE = 0xffff;              // parede: fronteira, e por isso de sala nenhuma
 function calcDentro(z) {
   const f = WORLD.floors[z], n = W * H, fecha = new Uint8Array(n), vis = new Uint8Array(n);
   for (let i = 0; i < n; i++) if (TILE[f.t[i]].top > 0.5) fecha[i] = 1;
@@ -924,16 +957,47 @@ function calcDentro(z) {
     if (y > 0) põe(i - W);
     if (y < H - 1) põe(i + W);
   }
-  const dentro = new Uint8Array(n);
-  for (let i = 0; i < n; i++) if (!vis[i] && !fecha[i]) dentro[i] = 1;
-  return dentro;
+  /* Segundo passe: em vez de um booleano "está dentro?", cada recinto fechado
+     ganha um NÚMERO. Mesmo laço e mesma inundação — o que muda é o Uint8 virar
+     Uint16 e a resposta deixar de ser sim/não. Com o rótulo, "esta luz e este
+     tile estão na mesma sala?" é UMA comparação, e é ela que impede a tocha de
+     atravessar parede sem custar buffer nem passe de tela cheia. O lado de fora
+     é a sala 0, então rua com rua também se resolve pela mesma conta. */
+  const sala = new Uint16Array(n);
+  for (let i = 0; i < n; i++) if (fecha[i]) sala[i] = SALA_PAREDE;
+  let id = 0;
+  for (let i0 = 0; i0 < n; i0++) {
+    if (vis[i0] || fecha[i0] || sala[i0]) continue;
+    // ponytail: 65534 recintos num mapa 224² não acontece; se um dia acontecer,
+    // o excedente vira sala 0 e a luz volta a vazar ali — não quebra nada
+    if (id >= SALA_PAREDE - 1) break;
+    const marca = ++id, pilha = [i0];
+    sala[i0] = marca;
+    for (let k = 0; k < pilha.length; k++) {
+      const i = pilha[k], x = i % W, y = (i / W) | 0;
+      const viz = j => { if (!sala[j] && !vis[j]) { sala[j] = marca; pilha.push(j); } };
+      if (x > 0) viz(i - 1);
+      if (x < W - 1) viz(i + 1);
+      if (y > 0) viz(i - W);
+      if (y < H - 1) viz(i + W);
+    }
+  }
+  return sala;
 }
-const dentroDeCasa = (x, y, z) => {
-  if (x < 0 || y < 0 || x >= W || y >= H) return false;
+/* O rótulo do recinto: 0 é o lado de fora, SALA_PAREDE é parede (fronteira, de
+   sala nenhuma), e daí para cima é um cômodo fechado. */
+const salaDe = (x, y, z) => {
+  if (x < 0 || y < 0 || x >= W || y >= H) return 0;
   const f = WORLD.floors[z];
-  if (!f) return false;
+  if (!f) return 0;
   if (!f.dentro) f.dentro = calcDentro(z);
-  return !!f.dentro[y * W + x];
+  return f.dentro[y * W + x];
+};
+/* Parede continua NÃO sendo "dentro de casa" — era assim quando isto era um
+   booleano, e o passe de luz e a chuva dependem disso. */
+const dentroDeCasa = (x, y, z) => {
+  const v = salaDe(x, y, z);
+  return v > 0 && v !== SALA_PAREDE;
 };
 /* Abrigado da luz do céu: ou tem andar por cima, ou as paredes fecham em volta.
    É esta a pergunta que o passe de luz e a chuva fazem — não a do andar. */
@@ -956,6 +1020,7 @@ const abrigado = (x = P.x, y = P.y, z = P.z) => souCoberto(x, y, z) || dentroDeC
 const CLIMA_PARADO = { nublado: 0, chuva: 0, frente: 0, vento: .25, raio: 0, molhado: 0,
                        nuvens: 0, luz: .6, estado: 'abrigado' };
 const nubladoEm = ms => {
+  if (DEV.nublado !== null) return DEV.nublado;
   const m = ms / 60000, c = Math.sin(m / 2.7) * .6 + Math.sin(m / 6.3) * .4;
   return Math.max(0, Math.min(1, (c + .15) / .85));
 };

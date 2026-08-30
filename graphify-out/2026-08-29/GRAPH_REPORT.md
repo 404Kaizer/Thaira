@@ -1,11 +1,11 @@
 # Graph Report - Jogo  (2026-08-29)
 
 ## Corpus Check
-- 86 files · ~8,246,485 words
+- 86 files · ~8,247,693 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1486 nodes · 2594 edges · 104 communities (99 shown, 5 thin omitted)
+- 1489 nodes · 2603 edges · 104 communities (99 shown, 5 thin omitted)
 - Extraction: 91% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 216 edges (avg confidence: 0.78)
 - Token cost: 0 input · 0 output
 
@@ -205,7 +205,7 @@ Nodes (53): AH, AI, BEST_DIFF, BEST_REVEAL, BEST_STAGE, BIOMA_POOLS, BO, CAMPO_A
 
 ### Community 7 - "render2d.js"
 Cohesion: 0.08
-Nodes (52): bloomPass(), CAM, camadaNuvem(), chamaTremor(), CHAO_ESCALA, CHAO_ITEM, CHAO_MOEDA, cloudPass() (+44 more)
+Nodes (55): bloomPass(), CAM, camadaNuvem(), cantoDoTile(), chamaTremor(), CHAO_ESCALA, CHAO_ITEM, CHAO_MOEDA (+47 more)
 
 ### Community 8 - "_corpo_morte"
 Cohesion: 0.40

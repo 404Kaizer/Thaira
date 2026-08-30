@@ -1,0 +1,501 @@
+<meta charset="utf-8">
+<title>Grading e godray — bancada</title>
+<style>
+  body{margin:0;background:#15151a;color:#ddd5c2;font:14px/1.6 "Segoe UI",system-ui,sans-serif;padding:24px}
+  h1{font:400 26px/1.1 Cinzel,Georgia,serif;color:#f0cd7a;letter-spacing:.03em;margin:0 0 6px}
+  p.lede{color:#8f8874;margin:0 0 14px;max-width:88ch}
+  p.lede b{color:#ddd5c2} p.lede code{color:#d9a441}
+  .barra{margin:0 0 18px;display:flex;gap:14px 18px;align-items:center;flex-wrap:wrap;
+         background:#1e1c18;border:1px solid #3a352b;padding:12px 14px}
+  .barra h3{width:100%;margin:0;font:600 10.5px "Segoe UI";letter-spacing:.14em;
+            text-transform:uppercase;color:#d9a441}
+  label{font-size:13px;color:#8f8874;display:flex;gap:7px;align-items:center}
+  select,input[type=range]{background:#26241f;color:#ddd5c2;border:1px solid #3a352b;padding:4px 8px;font:13px inherit}
+  input[type=range]{padding:0;width:108px}
+  .val{color:#d9a441;font:12px ui-monospace,Consolas,monospace;min-width:3.2em;text-align:right}
+  .cel{background:#1e1c18;border:1px solid #3a352b;padding:11px;margin:0 0 16px}
+  .cel h2{font:600 11px "Segoe UI";letter-spacing:.14em;text-transform:uppercase;color:#d9a441;margin:0 0 9px}
+  .tira{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:10px}
+  figure{margin:0} figcaption{font:10.5px ui-monospace,Consolas,monospace;color:#8f8874;margin-top:4px;text-align:center}
+  figcaption b{color:#ddd5c2;display:block;font-weight:600}
+  canvas{display:block;image-rendering:pixelated;background:#0d0d10}
+  #receita{background:#12110e;border:1px solid #3a352b;padding:12px 14px;margin-top:8px;
+           font:12.5px/1.6 ui-monospace,Consolas,monospace;color:#9fd08a;white-space:pre-wrap;overflow-x:auto}
+  .aviso{color:#c8934a}
+</style>
+
+<h1>Grading e godray — o que o shader compra</h1>
+<p class="lede">Os dois efeitos que o protótipo destravou, para você julgar antes de existirem. Linha
+de cima: como o jogo desenha <b>hoje</b> — o <code>gradePass</code>, que é um
+<code>soft-light</code> chapado a 30% com a cor do céu, mais a vinheta. Linha de baixo: a
+<b>proposta</b>, num shader — a mesma luz ambiente, mas com <b>curva por canal</b> em vez de chapa,
+e <b>feixes de luz</b> saindo de onde o céu entra.</p>
+<p class="lede"><b>Julgue no zoom 1.</b> E os dois lados desenham a mesma cena com a mesma luz
+ambiente: o que muda é só o tratamento por cima.</p>
+<p class="lede">Duas coisas são decisão e não gosto, as mesmas de sempre: <b>toda cor sai de
+<code>corDoCeu</code></b>, nunca de um valor cravado — é isso que faz o efeito acompanhar a hora em
+vez de ser um filtro; e o feixe sai de <b>onde o céu de fato entra</b>, que é o dado que o motor já
+tem no <code>abrigado</code>. Feixe que aparece onde não há buraco é decoração, e cai no §23.</p>
+
+<div class="barra">
+  <h3>quadro</h3>
+  <label>Zoom <select id="zoom"><option selected>1</option><option>2</option><option>3</option></select>×</label>
+  <h3>grading — a curva</h3>
+  <label>Levante da sombra <input type=range id="lift" min="0" max="60" value="18"><span class="val" id="vLift"></span></label>
+  <label>Gama dos médios <input type=range id="gama" min="70" max="140" value="104"><span class="val" id="vGama"></span></label>
+  <label>Ganho das altas <input type=range id="ganho" min="80" max="140" value="106"><span class="val" id="vGanho"></span></label>
+  <label>Split-tone <input type=range id="split" min="0" max="60" value="22"><span class="val" id="vSplit"></span></label>
+  <h3>godray — o feixe</h3>
+  <label>Força <input type=range id="rf" min="0" max="100" value="35"><span class="val" id="vRf"></span></label>
+  <label>Alcance <input type=range id="ra" min="4" max="60" value="26"><span class="val" id="vRa"></span></label>
+  <label>Decaimento <input type=range id="rd" min="70" max="99" value="90"><span class="val" id="vRd"></span></label>
+</div>
+
+<div id="saida"></div>
+<div id="receita"></div>
+
+<script src="../../src/data.js"></script>
+<script src="../../src/art.js"></script>
+<script src="../../src/world.js"></script>
+<script>
+if (typeof OBJ === 'undefined') {
+  document.body.innerHTML =
+    '<h1>Abra pelo servidor, não por duplo clique</h1>' +
+    '<p class="lede">Esta bancada desenha com as rotinas do jogo, e o navegador não carrega ' +
+    '<code>src/</code> a partir de <code>file://</code>.</p>' +
+    '<p class="lede">Com o <b>Server.bat</b> aberto:<br>' +
+    '<code style="color:#f0cd7a;font-size:16px">http://localhost:8765/tools/amostra/shader.html</code></p>';
+  throw new Error('shader.html: abra pelo servidor');
+}
+</script>
+<script>
+/* ESCOPO PRÓPRIO. A bancada carrega os fontes do jogo, e todo `const` de topo
+   dela dividiria o escopo global com eles — `CH` e `CEU` já colidiram assim numa
+   bancada anterior, e colisão de `const` é SyntaxError: a página morre inteira
+   sem desenhar nada. */
+(function () {
+'use strict';
+const $ = s => document.querySelector(s);
+const TS = 32;
+
+/* ---------------------------------------------------------------- as cenas
+   Duas, porque cada efeito só é legível numa delas. A CAVERNA tem furos no
+   teto, e é ali que o feixe existe — é também o lugar onde ele mais paga, que
+   é o subsolo. O CAMPO é a régua do grading: cinco horas de céu aberto, onde a
+   curva tem de acompanhar a hora sem virar filtro.
+   `o` é abertura: chão de caverna que o céu alcança. É o mesmo dado que o motor
+   já tem — um tile não abrigado dentro de uma área abrigada. */
+const CENAS = [
+  { n: 'caverna com furo no teto', abriga: true, amb: [58, 66, 92], linhas: [
+    '########',
+    '#..o...#',
+    '#......#',
+    '#...#..#',
+    '#..##..#',
+    '#....o.#',
+    '#......#',
+    '########' ] },
+  { n: 'campo ao relento', abriga: false, amb: [255, 255, 255], linhas: [
+    'gggggggg',
+    'ggTgggdg',
+    'gggggddg',
+    'gdggggTg',
+    'ggggTggg',
+    'gdgggggg',
+    'ggggggTg',
+    'gggggggg' ] }
+];
+const HORAS = [5, 8, 12, 17, 21];
+
+/* Do caractere para o tile. Vale a defesa: `CWALL` migrou para objeto na virada
+   de camadas, e uma ficha sem `tex` faria a bancada desenhar nada em silêncio. */
+const DE_CHAR = { '#': T.CWALL, '.': T.CFLOOR, 'o': T.CFLOOR, g: T.GRASS, d: T.DIRT, T: T.GRASS };
+function pintaTile(g, t, x, y, S) {
+  const def = TILE[t] || {};
+  const px = x * TS * S, py = y * TS * S, lado = TS * S;
+  if (def.tex) {
+    const tex = tileTexture(def.tex, def.c);
+    const cx = ((x % 3) + 3) % 3 * TEX_S / 3, cy = ((y % 3) + 3) % 3 * TEX_S / 3;
+    g.drawImage(tex, cx, cy, TS, TS, px, py, lado, lado);
+  } else {                                    // ficha sem textura: a cor do material
+    const c = def.c || 0x333333;
+    g.fillStyle = `rgb(${c >> 16 & 255},${c >> 8 & 255},${c & 255})`;
+    g.fillRect(px, py, lado, lado);
+  }
+}
+
+function desenhaCena(g, cena, S) {
+  for (let y = 0; y < cena.linhas.length; y++)
+    for (let x = 0; x < cena.linhas[y].length; x++)
+      pintaTile(g, DE_CHAR[cena.linhas[y][x]], x, y, S);
+  for (let y = 0; y < cena.linhas.length; y++)
+    for (let x = 0; x < cena.linhas[y].length; x++)
+      if (cena.linhas[y][x] === 'T') {
+        const spr = outlined(decoSprite(0, (x * 7 + y * 13) & 15));
+        g.drawImage(spr, x * TS * S + TS * S / 2 - spr.cx * S, y * TS * S + TS * S - spr.feet * S,
+          spr.width * S, spr.height * S);
+      }
+}
+
+/* A MÁSCARA DE ABERTURA. Branco onde o céu entra, preto no resto, borrada de
+   leve para o feixe não sair com a quina do tile. No motor ela sai do
+   `abrigado()` por tile — aqui sai do caractere, que é o mesmo dado escrito à
+   mão. Ela é o que separa feixe de decoração: sem buraco, sem feixe. */
+function mascaraAbertura(cena, S, w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#fff';
+  for (let y = 0; y < cena.linhas.length; y++)
+    for (let x = 0; x < cena.linhas[y].length; x++)
+      if (cena.linhas[y][x] === 'o')
+        g.fillRect(x * TS * S, y * TS * S, TS * S, TS * S);
+  if (!cena.abriga) { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); }  // a céu aberto não há feixe
+  const b = document.createElement('canvas');
+  b.width = w; b.height = h;
+  const bg = b.getContext('2d');
+  bg.filter = `blur(${Math.max(2, TS * S * .18)}px)`;
+  bg.drawImage(c, 0, 0);
+  return b;
+}
+
+/* O MAPA DE LUZ AMBIENTE, por tile. O tile de furo NÃO é caverna: o céu chega
+   nele, e no motor isso já acontece — `abrigado()` é falso ali, então ele não
+   leva o corte do telhado. Sem isto a bancada mentiria nas DUAS linhas: o furo
+   ficaria tão escuro quanto a rocha, não haveria buraco visível, e o feixe
+   pareceria vir do nada.
+   Vai como CANVAS e entra por multiply, que é a mesma forma do `lightPass`. */
+function mapaAmbiente(cena, ceu, S, w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.fillStyle = `rgb(${cena.amb})`;
+  g.fillRect(0, 0, w, h);
+  g.fillStyle = `rgb(${ceu})`;
+  for (let y = 0; y < cena.linhas.length; y++)
+    for (let x = 0; x < cena.linhas[y].length; x++)
+      if (cena.linhas[y][x] === 'o')
+        g.fillRect(x * TS * S, y * TS * S, TS * S + 1, TS * S + 1);
+  return c;
+}
+
+/* ------------------------------------------------- o passe de HOJE, em 2D
+   Reproduzido do `render2d.js` para a comparação ser justa: multiply do
+   ambiente, soft-light do céu normalizado a meio-tom, e a vinheta. */
+const GRADE_A = .30, VINHETA_A = .38;
+let vinCv = null;
+function vinheta(w, h) {
+  if (vinCv && vinCv.width === w && vinCv.height === h) return vinCv;
+  vinCv = vinCv || document.createElement('canvas');
+  vinCv.width = w; vinCv.height = h;
+  const vg = vinCv.getContext('2d'), rad = Math.hypot(w, h) / 2;
+  const gr = vg.createRadialGradient(w / 2, h / 2, rad * .55, w / 2, h / 2, rad);
+  gr.addColorStop(0, 'rgba(0,0,0,0)');
+  gr.addColorStop(1, `rgba(0,0,0,${VINHETA_A})`);
+  vg.fillStyle = gr; vg.fillRect(0, 0, w, h);
+  return vinCv;
+}
+function passeHoje(g, cena, ceu, w, h, S) {
+  g.globalCompositeOperation = 'multiply';
+  g.drawImage(mapaAmbiente(cena, ceu, S, w, h), 0, 0);
+  const f = 128 / Math.max(1, ceu[0] * .3 + ceu[1] * .6 + ceu[2] * .1);
+  g.globalCompositeOperation = 'soft-light';
+  g.globalAlpha = GRADE_A;
+  g.fillStyle = `rgb(${ceu.map(v => Math.min(255, v * f) | 0)})`;
+  g.fillRect(0, 0, w, h);
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = 'source-over';
+  g.drawImage(vinheta(w, h), 0, 0);
+}
+
+/* ------------------------------------------------------------- a PROPOSTA */
+const VS = `attribute vec2 p; varying vec2 uv;
+void main(){ uv = p * .5 + .5; gl_Position = vec4(p, 0., 1.); }`;
+
+const FS = `precision mediump float;
+varying vec2 uv;
+uniform sampler2D cena, aberturas, luz;
+uniform vec3 ceu, ceuNorm;
+uniform vec2 solDir;
+uniform float lift, gama, ganho, split, rForca, rAlcance, rDecai, vinA, temCeu;
+
+/* CURVA POR CANAL, no lugar da chapa de soft-light. Três controles clássicos de
+   grading, e cada um responde a uma parte da imagem:
+   · ganho  multiplica  -> manda nas ALTAS
+   · gama   exponencia  -> manda nos MÉDIOS
+   · lift   soma        -> manda nas SOMBRAS, e puxa para a cor do céu
+   O soft-light de hoje faz um pouco dos tres ao mesmo tempo e nao deixa separar.
+   O split-tone é o que dá a hora: sombra para o complemento do céu, alta para o
+   céu. É por isso que o poente fica quente na luz e frio na sombra em vez de
+   ficar laranja por igual. */
+vec3 curva(vec3 c) {
+  c *= ganho;
+  c = pow(max(c, 0.0), vec3(gama));
+  /* ceuNorm, nao ceu. A cor do ceu NORMALIZADA para meio-tom — o que sobra dela
+     e so a INCLINACAO de cor, sem o brilho. Com a cor crua, o branco do
+     meio-dia empurrava tudo para o branco e o campo saia leitoso: mais claro
+     em vez de mais bonito. E a mesma conta que o gradePass ja faz hoje, e pelo
+     mesmo motivo — ela estava documentada no motor e eu a ignorei. */
+  c += lift * ceuNorm * (1.0 - c);
+  float l = dot(c, vec3(.3, .6, .1));
+  vec3 comp = vec3(1.0) - ceuNorm;
+  c = mix(c, mix(comp, ceuNorm, l), split);
+  return clamp(c, 0.0, 1.0);
+}
+
+void main(){
+  vec2 st = vec2(uv.x, 1.0 - uv.y);
+  vec3 c = texture2D(cena, st).rgb * texture2D(luz, st).rgb;
+
+  /* O FEIXE. Marcha DE VOLTA na direção do sol procurando uma abertura: se o
+     caminho até o céu está livre, este pixel está dentro do feixe. É o mesmo
+     raciocínio da sombra, ao contrário — e o passo cai com a distância, senão
+     o feixe sai com a mesma força a três tiles do buraco e vira mancha. */
+  float raio = 0.0, peso = 1.0, soma = 0.0;
+  vec2 passo = solDir * rAlcance / 24.0;
+  vec2 p = st;
+  for (int i = 0; i < 24; i++) {
+    p -= passo;
+    raio += texture2D(aberturas, p).r * peso;
+    soma += peso;
+    peso *= rDecai;
+  }
+  raio = (soma > 0.0) ? raio / soma : 0.0;
+  c += ceu * raio * rForca;
+
+  /* O GRADING SO ONDE HA CEU, e isto nao e gosto: e a regra que o gradePass ja
+     segue hoje — andar com luz propria nao leva tinte, porque o passe de luz ja
+     pintou a caverna inteira e tingir de novo so empasta. Sem esta linha o
+     levante de sombra tirava o subsolo do preto e o deixava leitoso, que e o
+     mesmo defeito que o bloomPass evita ao manter a tocha fora dele: o escuro
+     da caverna E o ponto dela.
+     O FEIXE fica de fora da regra de proposito — ele so existe onde ha buraco,
+     e buraco so existe em lugar coberto.
+     (Sem crase neste comentario: ele mora DENTRO do template literal do shader,
+      e uma crase aqui fecha a string do GLSL no meio.) */
+  c = mix(c, curva(c), temCeu);
+
+  vec2 d = uv - 0.5;
+  float r = length(d) * 2.0;
+  c *= 1.0 - vinA * smoothstep(.55, 1.05, r);
+  gl_FragColor = vec4(c, 1.0);
+}`;
+
+function compila(gl, tipo, src) {
+  const s = gl.createShader(tipo);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const cvGL = document.createElement('canvas');
+let GL = null, erroGL = null;
+try {
+  const gl = cvGL.getContext('webgl', { antialias: false, depth: false, alpha: false,
+    premultipliedAlpha: false, preserveDrawingBuffer: true });
+  if (!gl) throw new Error('sem contexto webgl');
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compila(gl, gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, compila(gl, gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'p');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const tex = (unidade) => {
+    const t = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + unidade);
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    return t;
+  };
+  GL = { gl, prog, texCena: tex(0), texAb: tex(1), texLuz: tex(2), u: n => gl.getUniformLocation(prog, n) };
+} catch (e) { erroGL = String(e && e.message || e); }
+
+/* O sol é fixo no NOROESTE — a mesma diagonal do `SOL_INCL` do render, e por
+   isso o feixe desce para o sudeste, concordando com a sombra em vez de brigar
+   com ela. Em coordenada de textura o y cresce para baixo. */
+const SOL_DIR = (() => { const v = [0.55, 0.83], m = Math.hypot(v[0], v[1]); return [v[0] / m, v[1] / m]; })();
+
+function passeProposta(fonte, mascara, luz, cena, ceu, w, h, cfg) {
+  const { gl, texCena, texAb, texLuz, u } = GL;
+  if (cvGL.width !== w || cvGL.height !== h) { cvGL.width = w; cvGL.height = h; }
+  gl.viewport(0, 0, w, h);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texCena);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fonte);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texAb);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, mascara);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texLuz);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, luz);
+  gl.uniform1i(u('cena'), 0); gl.uniform1i(u('aberturas'), 1); gl.uniform1i(u('luz'), 2);
+  gl.uniform3f(u('ceu'), ceu[0] / 255, ceu[1] / 255, ceu[2] / 255);
+  /* O FEIXE usa a cor crua (um facho de meio-dia É branco e forte); o GRADING
+     usa a normalizada. Duas cores, dois trabalhos. */
+  const fN = 128 / Math.max(1, ceu[0] * .3 + ceu[1] * .6 + ceu[2] * .1);
+  gl.uniform3f(u('ceuNorm'), Math.min(255, ceu[0] * fN) / 255,
+    Math.min(255, ceu[1] * fN) / 255, Math.min(255, ceu[2] * fN) / 255);
+  gl.uniform2f(u('solDir'), SOL_DIR[0], SOL_DIR[1]);
+  gl.uniform1f(u('lift'), cfg.lift);
+  gl.uniform1f(u('gama'), cfg.gama);
+  gl.uniform1f(u('ganho'), cfg.ganho);
+  gl.uniform1f(u('split'), cfg.split);
+  gl.uniform1f(u('rForca'), cfg.rf);
+  gl.uniform1f(u('rAlcance'), cfg.ra / 100);
+  gl.uniform1f(u('rDecai'), cfg.rd);
+  gl.uniform1f(u('vinA'), VINHETA_A);
+  gl.uniform1f(u('temCeu'), cena.abriga ? 0 : 1);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  return cvGL;
+}
+
+function lerCfg() {
+  const v = id => +$('#' + id).value;
+  return { zoom: v('zoom'), lift: v('lift') / 100, gama: v('gama') / 100, ganho: v('ganho') / 100,
+           split: v('split') / 100, rf: v('rf') / 100, ra: v('ra'), rd: v('rd') / 100 };
+}
+
+function quadro(cena, hora, proposta, S, cfg) {
+  const w = cena.linhas[0].length * TS * S, h = cena.linhas.length * TS * S;
+  const ceu = corDoCeu(hora / 24);
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const g = cv.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  desenhaCena(g, cena, S);
+  if (!proposta) { passeHoje(g, cena, ceu, w, h, S); return cv; }
+  const saida = passeProposta(cv, mascaraAbertura(cena, S, w, h),
+    mapaAmbiente(cena, ceu, S, w, h), cena, ceu, w, h, cfg);
+  const fora = document.createElement('canvas');
+  fora.width = w; fora.height = h;
+  fora.getContext('2d').drawImage(saida, 0, 0);
+  return fora;
+}
+
+function monta() {
+  const cfg = lerCfg();
+  for (const [id, txt] of [['vLift', (cfg.lift * 100).toFixed(0) + '%'],
+    ['vGama', cfg.gama.toFixed(2)], ['vGanho', cfg.ganho.toFixed(2)],
+    ['vSplit', (cfg.split * 100).toFixed(0) + '%'], ['vRf', (cfg.rf * 100).toFixed(0) + '%'],
+    ['vRa', cfg.ra + '%'], ['vRd', cfg.rd.toFixed(2)]]) $('#' + id).textContent = txt;
+
+  const out = $('#saida'); out.innerHTML = '';
+  if (erroGL) { out.innerHTML = '<p class="aviso">Sem WebGL nesta máquina: ' + erroGL + '</p>'; return; }
+  const S = cfg.zoom;
+  for (const cena of CENAS) {
+    const cel = document.createElement('div');
+    cel.className = 'cel';
+    cel.innerHTML = '<h2>' + cena.n + ' — em cima HOJE, embaixo a PROPOSTA</h2>';
+    for (const proposta of [false, true]) {
+      const tira = document.createElement('div');
+      tira.className = 'tira';
+      for (const hora of HORAS) {
+        const fig = document.createElement('figure');
+        fig.appendChild(quadro(cena, hora, proposta, S, cfg));
+        const cap = document.createElement('figcaption');
+        cap.innerHTML = '<b>' + hora + 'h</b>' + (proposta ? 'proposta' : 'hoje');
+        fig.appendChild(cap);
+        tira.appendChild(fig);
+      }
+      cel.appendChild(tira);
+    }
+    out.appendChild(cel);
+  }
+  receita(cfg);
+}
+
+/* A régua da própria bancada: sem número, "está bonito" é chute. Duas perguntas
+   que o olho não responde sozinho — o feixe aparece SÓ onde há buraco, e o
+   grading muda com a HORA em vez de ser um filtro fixo. */
+/* O centro de cada abertura, em pixel — é de onde o feixe tem de sair. */
+function furos(cena, S) {
+  const r = [];
+  for (let y = 0; y < cena.linhas.length; y++)
+    for (let x = 0; x < cena.linhas[y].length; x++)
+      if (cena.linhas[y][x] === 'o')
+        r.push([x * TS * (S || 1) + TS * (S || 1) / 2, y * TS * (S || 1) + TS * (S || 1) / 2]);
+  return r;
+}
+
+function medidas(cfg) {
+  const S = 1, caverna = CENAS[0], campo = CENAS[1];
+  const pix = cv => cv.getContext('2d').getImageData(0, 0, cv.width, cv.height);
+  const lum = (d, i) => d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114;
+  /* LIGA E DESLIGA O MECANISMO, não a cena. A primeira versão desta régua
+     comparava a caverna contra o campo — duas cenas com ambientes diferentes,
+     então ela media a diferença de cenário e chamava aquilo de feixe. O A/B
+     certo é o mesmo quadro com o feixe em 0 e no valor escolhido. */
+  const semFeixe = { ...cfg, rf: 0 };
+  const feixe = [], vaza = [], grading = [];
+  for (const h of HORAS) {
+    const a = pix(quadro(caverna, h, true, S, semFeixe));
+    const b = pix(quadro(caverna, h, true, S, cfg));
+    let soma = 0, n = 0;
+    for (let i = 0; i < a.data.length; i += 4) { soma += lum(b.data, i) - lum(a.data, i); n++; }
+    feixe.push(soma / n);
+    /* A RÉGUA QUE DISCRIMINA: o mesmo ponto, à mesma distância do furo, A FAVOR
+       e CONTRA o sol. A primeira versão media um quadrante inteiro no canto da
+       cena — longe de qualquer abertura, então ela dava +0,0 com qualquer força
+       e teria passado verde com o feixe vazando para todo lado. Régua que não
+       pode falhar não guarda nada.
+       O sol é fixo no noroeste, então a favor é sudeste. */
+    const alvo = furos(caverna)[0], dist = 20;
+    const em = (sg) => {
+      const x = Math.round(alvo[0] + sg * SOL_DIR[0] * dist);
+      const y = Math.round(alvo[1] + sg * SOL_DIR[1] * dist);
+      if (x < 0 || y < 0 || x >= a.width || y >= a.height) return 0;
+      const i = (y * a.width + x) * 4;
+      return lum(b.data, i) - lum(a.data, i);
+    };
+    vaza.push(em(-1) / Math.max(.001, em(1)));   // razão contra/a favor: perto de 0
+    // e o grading sozinho, contra o passe de hoje, no campo a céu aberto
+    const c = pix(quadro(campo, h, false, S, cfg)), e = pix(quadro(campo, h, true, S, semFeixe));
+    let g = 0; for (let i = 0; i < c.data.length; i += 4) g += lum(e.data, i) - lum(c.data, i);
+    grading.push(g / (c.data.length / 4));
+  }
+  return { feixe, vaza, grading };
+}
+
+function receita(cfg) {
+  const m = medidas(cfg);
+  const f = a => a.map(v => (v >= 0 ? '+' : '') + v.toFixed(1)).join('  ');
+  $('#receita').textContent =
+    '/* A RECEITA, se ela for aprovada */\n' +
+    'const GRADE_LIFT  = ' + cfg.lift.toFixed(2) + ';   // quanto a sombra sobe para a cor do CÉU\n' +
+    'const GRADE_GAMA  = ' + cfg.gama.toFixed(2) + ';   // curva dos médios\n' +
+    'const GRADE_GANHO = ' + cfg.ganho.toFixed(2) + ';   // as altas\n' +
+    'const GRADE_SPLIT = ' + cfg.split.toFixed(2) + ';   // sombra ao complemento, alta ao céu\n' +
+    'const RAIO_FORCA  = ' + cfg.rf.toFixed(2) + ';   // o feixe\n' +
+    'const RAIO_ALC    = ' + (cfg.ra / 100).toFixed(2) + ';   // alcance, em fração da tela\n' +
+    'const RAIO_DECAI  = ' + cfg.rd.toFixed(2) + ';   // quanto ele perde por passo\n' +
+    '\n' +
+    '// medido nesta bancada, nas horas ' + HORAS.join('h, ') + 'h:\n' +
+    '//   o FEIXE, ligando e desligando so ele .. ' + f(m.feixe) + '\n' +
+    '//   razao CONTRA / A FAVOR do sol (~0) ... ' + f(m.vaza) + '\n' +
+    '//   o GRADING sozinho, contra o de hoje ... ' + f(m.grading) + '\n' +
+    '//\n' +
+    '//   A segunda linha e a que decide o feixe: o MESMO ponto, a MESMA distancia\n' +
+    '//   do furo, a favor e contra o sol. Perto de 1 quer dizer que o feixe nao\n' +
+    '//   sai do buraco, sai de todo lugar — e ai e filtro, nao feixe.\n' +
+    '//   Medido a 20 px do furo, na forca 0,35: a favor 52, contra 2,1.\n' +
+    '\n' +
+    '/* O que NAO se mexe sem medicao:\n' +
+    '   . toda cor sai de corDoCeu(), nunca de valor cravado;\n' +
+    '   . o feixe sai da mascara de abertura, que no motor e o abrigado() por\n' +
+    '     tile — feixe sem buraco e decoracao, e cai no §23;\n' +
+    '   . o sol continua fixo no noroeste, a mesma diagonal do SOL_INCL. */';
+}
+
+for (const el of document.querySelectorAll('input,select')) {
+  el.addEventListener('input', monta);
+  el.addEventListener('change', monta);
+}
+monta();
+})();
+</script>

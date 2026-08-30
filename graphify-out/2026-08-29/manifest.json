@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1788044619.4375582,
-    "ast_hash": "3ce7db506e4480d42844f52846183c9d",
+    "mtime": 1788047841.4802544,
+    "ast_hash": "a4a42de506a01791f47ff10aedf2b310",
     "semantic_hash": ""
   },
   "src/ui.js": {
@@ -80,13 +80,13 @@
     "semantic_hash": ""
   },
   "tests/test.js": {
-    "mtime": 1788044545.1499276,
-    "ast_hash": "2ce77db35493e00ad0ec07aefb1f00df",
+    "mtime": 1788047630.7905993,
+    "ast_hash": "a09173b4d6d4dbbee5b881054b372410",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1788039349.9804623,
-    "ast_hash": "2b25e63d62229c6d58a870581c174a9b",
+    "mtime": 1788044843.9315424,
+    "ast_hash": "b09569632f520fdb1820ef10b044ed18",
     "semantic_hash": ""
   },
   "assets/CREDITOS.md": {

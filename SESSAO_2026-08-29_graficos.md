@@ -1,5 +1,11 @@
 # Sessão 2026-08-29 — auditoria gráfica por time (luz, sombra, clima)
 
+> **DESATUALIZADO em 2026-08-29, mais tarde no mesmo dia.** A rodada 2 aconteceu: os três defeitos
+> do §3 foram fechados, as oito propostas do §4 foram triadas pelo Game Designer (quatro coisas
+> caíram com medição), o vazamento de luz através de parede foi consertado e o WebGL foi medido.
+> **A fonte agora é a seção "Luz, sombra e clima" do `tasks.html`**; este arquivo fica como o
+> registro de como a rodada 1 foi feita.
+
 **Documento de repasse.** A sessão acabou por limite de contexto, no meio da rodada 1 de 3.
 Quem pegar daqui: leia este arquivo, depois a seção *"Luz, sombra e clima — auditoria por time ·
 2026-08-29"* do `tasks.html`, que tem o registro longo.

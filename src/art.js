@@ -2209,14 +2209,27 @@ function contactShadow() {
 /* Oclusão de contato: o sol é fixo no noroeste, então quem é alto ao norte (0)
    ou a oeste (1) escurece aquela borda do tile vizinho. Gradiente pronto em
    canvas — criar um CanvasGradient por tile a cada quadro seria lixo à toa. */
+const SOMBRA_BORDA_PX = 14;              // comprimento base, sol a pino
+/* TETO DURO. Acima de 24 px (0,75 tile) a faixa de dois lados mais a quina
+   cobre quase o tile inteiro num degrau de um tile, e o resultado vira xadrez —
+   a mesma armadilha medida da franja de terreno, onde a invasão nunca passa de
+   ~32% do tile. O `SOL_LONGO` do render dá 23,9 px e cabe; o clamp está aqui
+   para que mexer naquela constante não estoure isto em silêncio. */
+const SOMBRA_BORDA_MAX = 24;
 const EDGE_CACHE = {};
-function edgeShadow(dir) {
-  if (EDGE_CACHE[dir]) return EDGE_CACHE[dir];
+/* `comp` quantiza no PIXEL INTEIRO, e é isso que faz o cache continuar valendo:
+   sem arredondar, cada quadro pediria um comprimento fracionário novo e os dois
+   gradientes seriam reconstruídos 60 vezes por segundo. São 2 direções × 21
+   comprimentos possíveis, ~170 KB no pior caso. */
+function edgeShadow(dir, comp = 1) {
+  const px = Math.min(SOMBRA_BORDA_MAX, Math.max(4, Math.round(SOMBRA_BORDA_PX * comp)));
+  const k = dir + ':' + px;
+  if (EDGE_CACHE[k]) return EDGE_CACHE[k];
   const c = _canvas(32), g = c.getContext('2d');
-  const gr = dir ? g.createLinearGradient(0, 0, 14, 0) : g.createLinearGradient(0, 0, 0, 14);
+  const gr = dir ? g.createLinearGradient(0, 0, px, 0) : g.createLinearGradient(0, 0, 0, px);
   gr.addColorStop(0, 'rgba(0,0,0,.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
-  return EDGE_CACHE[dir] = c;
+  return EDGE_CACHE[k] = c;
 }
 
 /* Sombra de nuvem: manchas moles em folha que casa consigo mesma, para o render
