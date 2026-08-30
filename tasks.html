@@ -134,11 +134,17 @@
     2026-08-22 a lore e a planta das terras moram em documentos próprios —
     <b>mundo_varrokgaard.html</b>, <b>mundo_aleto.html</b> e <b>proposta_24.html</b> —, e este aqui
     ficou com o estado técnico e a fila.
-    <b>762 verificações</b> passando em <code>tests/test.js</code>, mais <b>26</b> na suíte
+    <b>1179 verificações</b> passando em <code>tests/test.js</code>, mais <b>39</b> na suíte
     nova do <code>tools/</code>.
   </div>
 
 <div class="lede">
+  <p><b>O que mudou por último — 2026-08-29.</b> A <b>árvore de talentos</b> entrou, primeira
+  fatia: uma por vocação, tecla <b>K</b>, sete efeitos num vocabulário fechado
+  (<code>EF_CHAVES</code>), 1 ponto a cada 5 níveis e redistribuição paga em ouro no templo. Por
+  decisão do dono, <b>nenhum nó dá poder cru</b> — eles mudam como a magia funciona, não quanto ela
+  bate, para não desmedir o #38 com o balanceamento em pausa. É também o primeiro sistema em que
+  dois personagens da mesma vocação ficam diferentes por escolha. Seção própria mais abaixo.</p>
   <p><b>Onde o projeto está em 2026-08-23</b>, depois de um dia longo. Cinco coisas mudaram de
   estado e valem antes de qualquer leitura:</p>
   <ul class="col">
@@ -2207,6 +2213,391 @@
   <code>__main__</code> no serve.py · 762 + 26 + launcher passando</p>
 
 
+  <h3>A paleta e a interface do editor — 2026-08-24</h3>
+  <p>Dois pedidos do dono no mesmo dia: <i>"verifique todos os tiles que tem no editor, alguns
+  parecem incorretos ou inúteis, pintam em preto ou estão com nomes errados"</i> e
+  <i>"organize melhor a interface, os botões, os tiles, tá tudo muito bagunçado"</i>. Ele mandou
+  print de quatro amostras — água, árvore, veio e teia — saindo como <b>tirinha vertical</b>.</p>
+
+  <h4>1 · A tirinha vertical era COLISÃO DE NOME DE CLASSE</h4>
+  <p><code>.barra</code> era o nome da barra de ferramentas <b>e</b> da marca de "barra o passo"
+  nas amostras da paleta. Os <b>20 tiles com <code>walk:false</code></b> herdavam
+  <code>display:flex</code> e <code>padding:6px 12px</code> da barra — e num quadradinho de
+  32&nbsp;px isso deixa <b>8&nbsp;px de largura</b>. Daí a tirinha, exatamente nos tiles que não
+  se anda: água, árvore, veio, teia.</p>
+  <p><b>Não dava erro nenhum</b>, e nenhuma medição de cor pegaria: a amostra continuava
+  desenhando o sprite certo, só espremida pela caixa. Quem viu foi o olho do dono. Renomeada para
+  <code>.sw.nao-anda</code>, e a família ficou travada por teste — o teste lê o
+  <code>&lt;style&gt;</code>, junta as classes que mexem em CAIXA (display, padding, margin,
+  position, flex) e cobra que nenhuma delas seja pendurada por <code>classList.add</code>, que é
+  como marca de estado entra. Mutação: devolver <code>'barra'</code> derruba a suíte.</p>
+
+  <h4>2 · Quatorze entradas da paleta de tile não eram tile</h4>
+  <p><code>ROCK</code>, <code>TREE</code>, <code>CWALL</code>, <code>WALL</code>,
+  <code>DOOR</code>, <code>FENCE</code>, <code>PROP</code>, <code>SWALL</code>, <code>ORE</code>,
+  <code>WEB</code>, <code>WELL</code>, <code>CART</code>, <code>BARREL</code> e <code>MILL</code>
+  são <b>vocabulário de autor</b>: existem em <code>T</code> para o script escrever
+  <code>C.espalha(m, S, T.TREE, …)</code>, e o <code>parteCamadas</code> os desce para a camada de
+  objeto. Na paleta eram armadilha, por três motivos medidos:</p>
+  <ul class="col">
+    <li>a amostra desenhava o <b>CHÃO</b> deles — "árvore" saía como grama e "barril" como terra,
+      com <b>distância de cor ZERO</b> contra GRASS e DIRT;</li>
+    <li>pintar com eles <b>não mostrava nada</b>: o mapa carregado já está partido, e o objeto só
+      nasce na recomposição seguinte;</li>
+    <li>e os quatorze <b>já estão na paleta de objeto</b>, com o sprite de verdade.</li>
+  </ul>
+  <p>Duas entradas para a mesma coisa, e a pior das duas aparecia primeiro. Saíram da paleta de
+  tile e continuam em <code>T</code>. Saíram também da rede de "sem grupo", senão voltariam por
+  ali — o mesmo defeito com outro nome.</p>
+
+  <h4>3 · Três chãos cuja cor de mapa mentia</h4>
+  <p><code>GRASS</code>, <code>PAVE</code> e <code>GRAVEL</code> passaram a ser desenhados por PNG
+  e ficaram com o hexadecimal escolhido à mão de antes: o minimapa e a planta mostravam uma cor e
+  o jogo desenhava outra. Medido — grama <b>85,145,58</b> no mapa contra <b>82,98,11</b> na tela,
+  distância <b>97</b>, quando a régua exige 60 só para dois terrenos vizinhos serem
+  <i>distinguíveis entre si</i>. Agora saem da média do PNG, que é a regra que o CLAUDE.md já
+  escrevia para os tiles novos, aplicada com atraso aos dez primeiros.</p>
+  <p>Quem migra para objeto ficou de fora disto <b>de propósito</b>: a cor deles é a do MATERIAL
+  (copa, pedra, tábua) e não a do chão sob eles.</p>
+
+  <h4>4 · A interface: duas fileiras, cada uma com uma pergunta</h4>
+  <p>Era uma fileira só com dezenove controles em ordem de quando foram escritos — o andar no meio
+  das ferramentas, "gravar" encostado em "desfazer", a densidade entre a forma do pincel e o zoom.
+  Agora: <b>onde eu estou</b> (mapa, andar) em cima, <b>com o que eu pinto</b> (ferramenta, forma,
+  tamanho, densidade) embaixo, e a vista no fim. Cada grupo tem rótulo e <b>quebra inteiro</b> —
+  sem isso o rótulo "VISTA" ficava no fim de uma linha e os botões dele na seguinte, que é pior
+  que não ter rótulo.</p>
+  <p>As duas ações que <b>mexem no disco</b> foram empurradas para a direita, longe do resto, e
+  ganharam peso próprio: gravar por engano é o erro caro desta ferramenta, e vizinhança é o que
+  produz clique errado.</p>
+
+  <h4>5 · A paleta ganhou filtro, e ele pensa em português</h4>
+  <p>São <b>101 entradas em 26 grupos</b> depois da folha 01 — rolar atrás de um nome virou o que
+  mais custa tempo. Entrou uma caixa de filtro colada no topo (ESC limpa), e grupo que fica vazio
+  não aparece: com 26 grupos, filtrar deixaria uma escada de títulos vazios.</p>
+  <p>O filtro casa contra <b>nome, textura e família</b>, e não só o nome. Só o nome não servia: a
+  chave é <code>SAND_FINA</code> e a textura é <code>areia_fina</code>, então procurar "areia" —
+  que é como o dono pensa — achava <b>1</b> entrada em vez de 6. Medido depois: areia 6, grama 13,
+  tábua 6, água 3, pedra 8.</p>
+  <p>A coluna foi de 214 para 246&nbsp;px porque o rótulo truncava, e o <b>relatório</b> encolheu
+  de 46 para 40&nbsp;ch com teto de 32% de altura e ganhou um <b>×</b>: ele cobria justamente o
+  pedaço de mapa que se acabou de editar, e aviso que não se pode tirar da frente vira estorvo.</p>
+  <p class="it-t">5 defeitos · colisão de classe travada por teste estrutural ·
+  14 falsos tiles fora da paleta · cor de mapa de 3 chãos vinda do PNG ·
+  barra em 2 fileiras com grupo que quebra inteiro · filtro por nome, textura e família ·
+  762 + 27 + launcher passando</p>
+
+
+  <h3>Pastas na paleta, e o filtro que perdia o foco — 2026-08-24</h3>
+
+  <h4>O filtro estava quebrado, e a causa era minha</h4>
+  <p>Relato do dono: <i>"ao digitar ativa atalho de funções do editor, além disso só consigo
+  digitar uma letra e o campo desfoca"</i>. Os dois sintomas eram <b>um defeito só</b>: o input
+  morava DENTRO de <code>#paleta</code>, e <code>paleta()</code> faz
+  <code>innerHTML = ''</code> e reanexa o nó. <b>Reanexar MOVE o nó no DOM, e mover um elemento
+  focado tira o foco</b> — daí "uma letra e desfoca". Com o foco de volta no <code>body</code>, a
+  tecla seguinte virava atalho do editor, que era o outro sintoma.</p>
+  <p>O input saiu para fora da paleta, numa coluna própria. Conferido pelo caminho real —
+  sete <code>keydown</code> no elemento focado, digitando "barrica" (b, r, i e c são atalhos):
+  <b>texto inteiro digitado, foco mantido, nenhum atalho disparou</b>.</p>
+
+  <h4>As pastas saem dos DADOS, e não de uma lista escrita à mão</h4>
+  <p>Pedido do dono: separar em <b>CHÃO, PAREDE, OBJETO, MARCA</b>, e parar de agrupar por folha
+  (<i>"não faça separação por folha"</i>). A lista à mão era o defeito de origem: ela envelhecia a
+  cada tile novo — foi assim que a folha 01 virou "folha 01 · grama", agrupada por ONDE veio em
+  vez de por O QUE é — e tile fora dela sumia da paleta.</p>
+  <p>Agora o grupo é a <code>familia</code> que a própria ficha declara e a pasta é o PAPEL.
+  Para isso, os <b>23 tiles que não tinham família ganharam uma</b>, com singleton onde havia
+  dúvida: família própria não relaxa a régua de 60 de distância, então juntar só quem é o mesmo
+  material de verdade é sempre seguro. Resultado: 26 famílias em 4 pastas, e tile com família
+  nova aparece sozinho, sem ninguém editar lista.</p>
+  <p>A ordem das famílias dentro da pasta é a de USO e não a alfabética — quem edita uma ilha de
+  fazenda pega grama e terra o tempo todo e teia quase nunca.</p>
+
+  <h4>A pasta lê a `cat`, e não adivinha</h4>
+  <p>A primeira versão inferia a pasta de <code>walk</code>/<code>top</code>, e errava: mandava
+  para MARCA tudo que não barrava. As categorias <b>já existiam</b> —
+  <code>parede</code> / <code>objeto</code> / <code>deco</code>, com <code>OBJ_CAT</code>
+  derivando <code>walk</code> e <code>top</code> delas. Categoria é declaração de autor; derivar
+  comportamento dela é certo, adivinhá-la de volta é redundância que diverge.</p>
+
+  <h4>A pedra passou a barrar, e o teste cobrou na hora</h4>
+  <p>Decisão do dono: <i>"pedra e moita são objetos. Pedra deve ter colisão, moita não"</i>. As
+  duas estavam em <code>deco</code>, que é <code>walk:true</code>. Uma pedra que se atravessa não
+  é pedra; uma moita que barra é parede invisível. <code>pedra</code> foi para
+  <code>objeto</code>.</p>
+  <p>Isso derrubou <b>"o centro de todo POI é andável"</b> no mesmo minuto, e o teste estava
+  certo: a decoração é espalhada DEPOIS dos POIs e não perguntava se o tile precisava continuar
+  andável — o centro de um POI é o tesouro, e uma pedra em cima o torna inalcançável. Agora a
+  decoração que BLOQUEIA não cai no centro de POI; a moita continua caindo onde quiser. Só o
+  centro é protegido: pedra na borda é justamente o obstáculo que dá forma ao lugar.</p>
+  <p><b>Sobra medido:</b> com a pedra barrando, a conferência de Varrokgaard acusa <b>dois</b>
+  bolsões de 1 tile onde antes acusava <b>um</b> — ou seja, uma pedra selou um vão de um tile.
+  Medido desfazendo a mudança e refazendo. É um tile, e some tirando aquela pedra no editor;
+  varredura geral de "não sele bolsão" custaria um flood-fill por colocação e fica anotada como
+  não feita.</p>
+  <p class="it-t">filtro fora da paleta (foco conferido no caminho real) ·
+  4 pastas e 26 famílias derivadas dos dados · 23 tiles ganharam família ·
+  pedra barra, moita não · 762 + 27 + launcher passando</p>
+
+
+  <h3>A escada virou par no editor — 2026-08-24</h3>
+  <p>Primeira das quatro coisas que faltavam ao editor (escada, spawn, POI, hunt), e a escolhida
+  primeiro porque ela <b>acabou de se provar sozinha</b>: a ponte sobre o muro quebrou porque o
+  dono pintou tábua por cima de duas escadas com o pincel de tile comum. O mapa continuou
+  parecendo certo — <i>"sumir uma escada não deixa buraco visível na planta"</i>, e só se descobre
+  andando.</p>
+
+  <h4>Não precisou de camada nova, e isso é o achado</h4>
+  <p>Escada JÁ é tile (<code>T.UP</code> / <code>T.DOWN</code> no terreno), então o patch existente
+  já a carrega. O que faltava não era estrutura: era o <b>par</b>. E o lugar certo do par é o
+  <code>poe</code>, que é o funil por onde pincel, balde e retângulo passam — consertar num
+  chamador só deixaria os outros dois quebrados.</p>
+  <p>Escrever <code>DOWN</code> num andar escreve <code>UP</code> no de baixo, e vice-versa —
+  <code>z</code> cresce PARA BAIXO (0 = Sobre o Muro, 1 = Varrokgaard, 2 = A Goela), que é a mesma
+  convenção do <code>C.escada</code> do <code>compor.js</code>. Pintar qualquer outra coisa por
+  cima de uma escada <b>apaga a outra metade junto</b>, senão sobra escada que leva a lugar
+  nenhum. As duas metades vão no MESMO lote, então desfazer desfaz as duas — desfazer meia escada
+  criaria justamente o defeito que isto existe para evitar.</p>
+  <p>Sem botão novo e sem modo novo: as entradas <code>UP</code> e <code>DOWN</code> já estavam na
+  paleta, e agora fazem a coisa certa. O tooltip avisa, porque ferramenta que faz duas coisas num
+  clique tem de dizer.</p>
+
+  <h4>Recursão infinita, pega rodando e não lendo</h4>
+  <p>A primeira versão estourava a pilha: apagar a metade de cima mandava apagar a de baixo, que
+  via a de cima ainda no lugar e mandava apagá-la de volta. Entrou <code>semPar</code> como guarda
+  de reentrância — quem mexe no par é sempre a chamada de FORA. Vale como lembrete de que regra
+  recursiva sobre estado compartilhado precisa de rodar, não de releitura.</p>
+
+  <h4>Medido no editor, em memória</h4>
+  <ul class="col">
+    <li>pôr <code>DOWN</code> na superfície: <b>2 tiles no lote</b>, <code>DOWN</code> em cima e
+      <code>UP</code> em A Goela;</li>
+    <li>pintar grama por cima: <b>as duas metades somem</b>;</li>
+    <li>desfazer uma vez devolve o par inteiro, desfazer de novo volta ao original;</li>
+    <li><code>UP</code> no andar mais alto: <b>1 tile só</b> — escada para fora do mundo não se
+      cria.</li>
+  </ul>
+  <p>A regra do par saiu como função pura (<code>parDe</code>, <code>ehEscada</code>) atrás das
+  marcas <code>[ESCADA]</code>, e o <code>tests/test_tools.js</code> a recorta do próprio
+  <code>editor.html</code> — a mesma receita do pincel, pelo mesmo motivo: cópia vira segunda
+  fonte de verdade. <b>7 verificações novas, 4 mutações, 4 pegas</b> (par no andar errado, par
+  fora do mundo, par DOWN/DOWN, e só UP contando como escada).</p>
+
+  <h4>Junto, três consertos de mapa</h4>
+  <ul class="col">
+    <li><b>A ponte.</b> O conserto foi no PATCH do dono e não no script — ele tinha pintado
+      <code>FLOOR</code> em quatro tiles, e os de 122 e 123 são o tabuado (certos). Tirei só os
+      dois que cobriam escada, deixando o <code>DOWN</code> do script reaparecer; gravado com o
+      mesmo <code>patch_fmt</code> dos servidores, com cópia datada antes. O patch foi de 2.185
+      para 2.183 endereços. Conferido no arquivo: <b>UP/DOWN nos dois andares</b>.</li>
+    <li><b>O pátio de palha saiu da lista de recintos</b> — o dono abriu a eira no editor. A régua
+      funcionou nos dois sentidos: fechado, cobrava que estivesse declarado; aberto, cobrou que
+      saísse. É a diferença entre nomear e contar.</li>
+    <li><b>Minha regressão da pedra.</b> Ela passou a barrar e dois spawns nasceram dentro de
+      pedra. O <code>espalhaDeco</code> agora não põe decoração que bloqueia sobre spawn, sobre
+      centro de POI, nem onde ela <b>selaria um vizinho</b> — e essa terceira parecia cara e não
+      é: basta perguntar se algum vizinho andável ficaria sem nenhuma saída, O(8) por
+      colocação.</li>
+  </ul>
+  <p class="it-t">escada como par no funil do <code>poe</code> · sem camada nova ·
+  guarda de reentrância · 7 verificações e 4 mutações · a ponte fecha ·
+  762 + 34 + launcher passando</p>
+
+
+  <h3>A terceira camada do patch: spawn — 2026-08-24/25</h3>
+  <p>Segunda das quatro que faltavam ao editor. Combinado com o dono: o script continua
+  <b>povoando</b> e o editor <b>corrige</b> — mover, apagar, acrescentar um aqui e ali. O
+  <code>povoa</code> distribui em núcleos densos com corredor vazio entre eles, e isso é
+  invariante travada por teste; colocar 150 spawns à mão perderia a propriedade e ninguém
+  perceberia.</p>
+
+  <h4>A rede veio ANTES da ferramenta, e ela pagou na hora</h4>
+  <p>Foi o combinado, porque esta é a mesma superfície da camada de objeto — que passou semanas
+  sendo descartada na gravação em silêncio. A lista de camadas virou <b>fonte única</b>
+  (<code>CAMADAS = ['tiles','objs','spawns']</code> no <code>patch_fmt.js</code> e a mesma linha no
+  <code>serve.py</code>), e o teste exercita os dois escritores e compara byte a byte. Quatro
+  mutações, quatro pegas: cada escritor esquecendo a camada, e cada um numa ordem diferente do
+  outro.</p>
+
+  <h4>O teste conseguia NÃO pegar, e a culpa não era dele</h4>
+  <p>Rodando as mutações em laço, "serve.py em outra ordem" passou verde; rodando sozinha, era
+  pega. A causa: <code>['tiles','objs','spawns']</code> e <code>['tiles','spawns','objs']</code>
+  têm <b>o mesmo tamanho em bytes</b>, e o <code>importlib</code> valida o <code>.pyc</code> por
+  (mtime, tamanho) — com as duas escritas dentro do mesmo segundo, o Python reusou o bytecode
+  velho. <b>Teste que às vezes não pega é pior que teste nenhum</b>, e aqui nem era o teste: era o
+  cache no meio do caminho. Agora o teste faz <code>exec</code> do FONTE em vez de importar, com
+  <code>-B</code>: não há cache, as quatro mutações são pegas em laço, e de quebra nenhum
+  <code>__pycache__</code> nasce em <code>tools/</code>.</p>
+
+  <h4>A camada, ponta a ponta</h4>
+  <ul class="col">
+    <li><b>Formato:</b> <code>spawns: { "&lt;z&gt;": [[x, y, [espécie, …]], …] }</code> — a
+      unidade de diff é a LISTA ancorada num tile, igual à de objeto, pelo mesmo motivo: cobre
+      pôr, tirar e vários por tile com uma forma só. Lista vazia é "não há bicho aqui", que é como
+      uma remoção viaja.</li>
+    <li><b>Aplicação:</b> por ÚLTIMO no <code>aplicaPatch</code>, porque o spawn se apoia no chão e
+      nos objetos que as outras duas deixaram — mover um bicho para cima de uma parede
+      recém-pintada tem de ser visto pela conferência, e ela roda depois. Espécie que saiu da
+      tabela é <b>contada e não aplicada</b>, como o tile órfão.</li>
+    <li><b>Editor:</b> <code>baseSpawn</code> por andar, <code>mexidosSpawn</code>, e
+      <code>poeSpawn</code> espelhando o <code>poeObj</code> — idempotente, com borracha como
+      entrada da paleta e não como ferramenta.</li>
+    <li><b>Paleta:</b> pastas BICHO e CHEFE, ordenadas por tier e depois por nome — é como se
+      procura um bicho, ninguém lembra o id. A amostra é a cor da ficha com a inicial: desenhar 83
+      sprites de criatura a cada redesenho da paleta custaria mais que o mapa inteiro.</li>
+    <li><b>Chefe separado</b>, a pedido do dono. Os 16 não são "mais um bicho da lista": cada hunt
+      tem UM, no centro dela, com ponto próprio e respawn de 13 a 22 minutos — pôr um sem querer
+      no meio de 83 nomes é fácil e não dá erro nenhum, só quebra o desenho do lugar. A marca é o
+      <code>diff: 'boss'</code> da própria ficha, não uma lista à mão. E o chefe se distingue
+      também na PRÓPRIA amostra, com contorno vermelho: filtrando por nome os dois grupos se
+      misturam de novo, e aí a pasta sozinha não protegeria. Medido — filtrar "rei" traz seis, e
+      os quatro chefes continuam marcados.</li>
+  </ul>
+  <p><b>Medido no editor, em memória:</b> pôr um rato num tile vazio dá <code>['rat']</code>;
+  pôr lobo e o mesmo rato de novo dá <code>['rat','wolf']</code> com <b>um</b> registro no lote (o
+  repetido é idempotente); a borracha num tile que <b>não tinha</b> bicho na base sai do diff
+  (volta a zero mexido), e num que <b>tinha</b> conta como mexido — que é o comportamento certo do
+  diff contra a base. Desfazer devolve os 150 spawns originais.</p>
+  <p><b>Medido no disco</b>, contra um mapa descartável: as três camadas gravam, o servidor conta
+  5 endereços, e a lista de espécies chega intacta, inclusive a vazia.</p>
+
+  <h4>A armadilha do servidor velho apareceu de novo</h4>
+  <p>A primeira gravação de prova saiu <b>sem</b> a camada de spawn. Não era o código: era o
+  <code>serve.py</code> em memória, de antes da mudança — Python não recarrega, e o tasks.html já
+  documenta isso desde a primeira fatia do editor. Reiniciado, as três camadas gravaram. Vale
+  como lembrete de que a checagem "este servidor sabe recompor?" tem valor, e de que ela não cobre
+  "este servidor está com o código de hoje?".</p>
+  <h4>E o bicho passou a APARECER no mapa</h4>
+  <p>Pedido do dono assim que a camada ficou de pé: <i>"faça com que eu consiga ver as criaturas
+  no mapa, como os objetos, tiles, árvores"</i>. O editor desenhava um quadradinho amarelo, e isso
+  bastava enquanto spawn não se editava — agora que se põe e se tira criatura ali, "um quadrado" é
+  o mesmo defeito da paleta que mostrava cor chapada: não dá para saber o que se acabou de pôr,
+  nem se o lugar ficou com lobo ou com rato.</p>
+  <p>Chama o <code>creatureSprite</code> do <code>art.js</code>, o MESMO do render — nada de arte
+  própria do editor, pela razão de sempre. Três decisões: <code>outlined</code>, porque bicho
+  parado sobre grama some (no jogo ele se move e a silhueta se lê pelo movimento; numa planta
+  parada, não); direção SUL e quadro 0 fixos, pelo mesmo motivo que o editor não anima; e o sprite
+  só sai a partir de <b>6 px por tile</b> — abaixo disso ele é um borrão e o ponto colorido diz
+  mais. O ponto que sobra usa a cor da ficha, e não mais o amarelo único.</p>
+  <h4>E a folha de animação não aparecia — caminho relativo, de novo</h4>
+  <p>Relato do dono no minuto seguinte: <i>"ciclope e demônio têm imagem, por que está mostrando o
+  procedural no mapa?"</i>. Duas causas empilhadas, e a segunda é a que interessa.</p>
+  <p>A primeira era minha: o render tenta a FOLHA antes do procedural
+  (<code>creatureSheet</code> e só então <code>creatureSprite</code>), e eu tinha escrito só o
+  segundo ramo no editor. A segunda estava dormindo no <code>art.js</code>:
+  <code>creatureSheet</code> carregava <code>assets/creatures/…</code> com <b>caminho
+  relativo cru</b>. O jogo abre em <code>/</code> e o editor em <code>/tools/</code>, então lá
+  virava <code>/tools/assets/creatures/…</code> e dava 404 — e o sintoma não é erro nenhum:
+  a função devolve <code>null</code>, o chamador cai no procedural, e o boneco desenhado por
+  código aparece onde há arte pronta.</p>
+  <p>A textura de chão já tinha aprendido isso e tinha <code>_RAIZ</code>; a folha de criatura e o
+  ícone de item, não. Os dois passaram a usá-lo. Conferido: <code>/assets/creatures/cyclops.png</code>,
+  1760&nbsp;px, carregado, e <code>creatureSheet</code> devolvendo sprite em vez de
+  <code>null</code>. <b>Isto conserta o editor e as bancadas de uma vez</b> — qualquer página fora
+  da raiz tinha o mesmo buraco.</p>
+  <p class="it-t">camada de spawn ponta a ponta · lista de camadas como fonte única ·
+  teste deixou de depender do cache do Python · pastas BICHO e CHEFE ·
+  criatura desenhada com o sprite do jogo, folha antes do procedural · 762 + 39 + launcher passando ·
+  o patch do dono intacto em 2.183 endereços</p>
+
+
+  <h3>"Estão sumindo objetos ao gravar" — a investigação — 2026-08-25</h3>
+  <p>Relato do dono: <i>"Ao gravar e recompor, estão SUMINDO objetos, tiles, paredes, etc, que
+  eu adicionei no mapa"</i>. Antes de qualquer teoria, <b>cópia datada</b> do patch e do mapa
+  (<code>URGENTE_patch_20260825_002821.json</code> e <code>URGENTE_mapa_…</code>) — a regra de nunca
+  destruir trabalho do dono vale em dobro quando a queixa É perda de trabalho.</p>
+
+  <h4>Medido: o encanamento NÃO está perdendo dado</h4>
+  <table>
+    <tr><th>medida</th><th>resultado</th></tr>
+    <tr><td>tamanho do patch</td><td class="n">2.183 → 4.514 endereços (cresceu)</td></tr>
+    <tr><td>dois recompor seguidos</td><td>mapa <b>idêntico byte a byte</b></td></tr>
+    <tr><td>camada de tiles aplicada</td><td class="n">3.547 de 3.569</td></tr>
+    <tr><td>camada de objetos aplicada</td><td class="n">945 de 945</td></tr>
+    <tr><td>laço inteiro em cópia descartável</td><td>6 de 6 objetos sobreviveram a gravar → recompor → recarregar</td></tr>
+  </table>
+  <p>Os 22 tiles que "não aplicaram" estão <b>todos explicados</b>: são <code>FENCE</code>/<code>TREE</code>
+  que a camada de OBJETO apaga com <code>[]</code> logo depois (apagamento deliberado, e a camada de
+  objeto ganha por precedência) e entradas de <code>MILL</code>, que são rastro de <code>span</code> —
+  só a âncora vira objeto. Nenhum é perda.</p>
+
+  <h4>Um caminho de perda REAL, e fechado</h4>
+  <p>Achado na auditoria e não no relato: quando o servidor <b>recusava</b> a gravação (o freio de
+  encolhimento, HTTP 409), o editor limpava <code>mexidos</code>, <code>mexidosObj</code> e
+  <code>mexidosSpawn</code> assim mesmo. Ou seja: a gravação não aconteceu <b>e</b> a sessão inteira
+  de edição era jogada fora — o freio que existia para proteger o trabalho era quem o destruía.
+  Agora o 409 devolve o aviso e diz, em letra: <i>o que você fez nesta sessão CONTINUA na tela</i>.</p>
+
+  <h4>A hipótese mais forte: a borracha com pincel grande</h4>
+  <p>No patch do dono há <b>129 apagamentos na camada de objeto</b>, e <b>78 deles têm dois ou mais
+  vizinhos ortogonais também apagados</b>. Isso é assinatura de <b>pincel grande</b>, não de clique
+  escolhido um a um — quem apaga um barril errado apaga um tile, não uma mancha de treze por treze.
+  A borracha era uma entrada de paleta como qualquer outra: mesmo visual das que pintam, e com o
+  pincel em 13×13 na forma "mancha" limpava <b>até 169 tiles num clique</b>, sem perguntar nada.</p>
+  <p>Dois consertos, no espírito do freio do balde que já existia:</p>
+  <ul>
+    <li><b>Freio</b>: borracha com pincel maior que 1×1 <b>conta quantos tiles têm mesmo objeto</b>
+      (ou bicho) e pergunta acima de 8. Contar a área do pincel não serviria — borracha passada em
+      campo aberto não apaga nada e não pode incomodar. Medido no mapa real: o pior clique na mata
+      apagaria <b>111 tiles com objeto de uma vez</b>, e agora ele pergunta.</li>
+    <li><b>Aparência</b>: o quadro da borracha na paleta é tracejado <b>vermelho</b>, não cinza —
+      ferramenta que apaga não pode parecer igual às que pintam.</li>
+  </ul>
+  <p class="it-t">encanamento medido e limpo · 409 não descarta mais a sessão · freio da borracha
+  em 8 tiles com conteúdo · 774 + 39 verificações passando</p>
+
+  <h3>Objetos que acendem — 2026-08-25</h3>
+  <p>Pedido do dono: <i>"preciso de objetos luminosos no editor de mapa, objetos que reproduzem
+  luz, como tochas, lampiões, poste"</i>. Medido antes de escrever: <b>o motor já tinha tudo</b>.
+  O balde <code>luzes</code> existe desde sempre e é alimentado pela tocha da mão, pela tocha
+  largada no chão, pela lava, pelo vaga-lume, pelo campo elemental e pelo projétil mágico. O que
+  faltava era um só ponto: <b>nenhuma ficha de <code>OBJ</code> declarava emissão</b>, então não
+  havia como o autor pôr uma tocha na parede da Goela.</p>
+
+  <h4>Quatro fichas e uma linha no render</h4>
+  <table>
+    <tr><th>objeto</th><th>luz</th><th>categoria</th><th>por quê</th></tr>
+    <tr><td>tocha de parede</td><td class="n">2,4</td><td>deco</td><td>mora na parede, não ocupa o chão</td></tr>
+    <tr><td>lampião</td><td class="n">2,8</td><td>objeto</td><td>plantado no chão</td></tr>
+    <tr><td>fogueira</td><td class="n">3,2</td><td>objeto</td><td>plantada no chão</td></tr>
+    <tr><td>poste de luz</td><td class="n">3,6</td><td>objeto</td><td>o maior alcance dos quatro</td></tr>
+  </table>
+  <p><code>luz</code> é o RAIO EM TILES, e é de propósito a <b>mesma unidade</b> da tocha da mão e
+  do vaga-lume: unidade que diverge faz o poste virar holofote ou vela sem nada acusar. A emissão
+  entra na MESMA lista das outras luzes — é isso que faz o passe de luz e o bloom lerem a mesma
+  coisa; uma segunda régua de brilho acenderia o que a outra não acende. E vai com
+  <code>tocha: 1</code>, como a tocha largada, para ficar fora do bloom: sem isso o poste vira
+  holofote de dia.</p>
+  <p><b>Chama nua treme, luz atrás de vidro não.</b> <code>tremula</code> mora na FICHA e não no
+  render — tocha e fogueira pulsam, lampião e poste queimam parelho. Sem isso o render voltaria a
+  conhecer objeto por nome, que é o defeito que a ficha existe para não ter.</p>
+
+  <h4>A chama NÃO é desenhada no sprite</h4>
+  <p>O sprite tem o corpo e um núcleo claro; o halo é do motor. Assar um brilho dentro do desenho
+  o faria escurecer junto com o objeto à noite — é a régua "sombra é do motor" pelo outro lado, e
+  o resultado seria uma tocha que apaga justamente quando a noite chega. O desenho segue a receita
+  do #49, a mesma dos móveis: objeto discreto, paleta curta de <code>_tons</code>, sombra de um
+  lado e luz do outro.</p>
+
+  <h4>Medido, e as duas primeiras medições foram com a régua errada</h4>
+  <p>A primeira dizia <b>+0,8 de brilho</b> e "não acendeu". Duas causas, as duas minhas: eu
+  media a média da TELA INTEIRA, que dilui um halo local, e dois dos três objetos de prova tinham
+  caído em tile que não desenha — só um chegou ao balde. Medindo <b>em volta do ponto</b> e com os
+  objetos em chão de caverna de verdade: brilho de <b>9 para 15</b>, ou seja <b>+67%</b>, com
+  quatro luzes no balde e raios de 80 a 122&nbsp;px. É a mesma lição de sempre, e a sexta vez
+  nesta série: medir com régua diferente da do jogo dá alarme falso, e o alarme falso esconde o
+  verdadeiro.</p>
+  <p>Julgado no ESCURO, que é onde luz se julga — a Goela, com a luz do próprio andar. De dia,
+  sobre a grama, os quatro não provariam nada.</p>
+  <p>Os quatro entraram na paleta <b>sozinhos</b>, sem ninguém editar lista: ela é derivada da
+  <code>cat</code> desde a leva das pastas. <b>774 verificações</b> (12 novas), quatro mutações e
+  quatro pegas — poste com raio de holofote, tocha barrando o passo, fogueira parando de tremer, e
+  tocha sem rotina de desenho.</p>
+  <p class="it-t">4 objetos que acendem · raio em tiles, a mesma unidade da tocha da mão ·
+  chama do motor e não assada no sprite · 774 + 39 + launcher passando</p>
+
+
   <h3>Sombras: a análise e a bancada — 2026-08-23</h3>
   <p>Relato do dono do projeto, olhando o mapa no editor novo: <i>"as sombras do jogo estão
   péssimas, pelo menos de dia."</i> Medido no jogo, ao meio-dia, dentro da Mata Funda. São três
@@ -2917,12 +3308,1374 @@
       <li class="feito"><strong>Nenhuma entrada de <code>COLETA</code> carrega emoji</strong>, e
         toda coleta tem infinitivo e terceira pessoa — com um campo só, o log dizia
         "Você minerar e obtém".</li>
+    <li class="feito">Na árvore, <b>desenho e regra saem da mesma linha</b>: o traço é gerado do
+      mesmo <code>req</code> que o jogo cobra, sem par repetido. Não há como o desenho mostrar
+      ligação que o jogo não exige, nem esconder uma que exige. Junto: <b>todo nó é alcançável</b>
+      andando pela regra real de vizinhança a partir das raízes — nó fora desse conjunto seria
+      ponto que nunca se consegue gastar, e ficaria apagado para sempre sem dar erro.</li>
+    <li class="feito"><b>A convergência abre pelos DOIS lados.</b> Nó com mais de uma ligação é
+      alcançado subindo por qualquer uma delas, isoladamente — testar um lado só deixaria passar
+      uma regra que na verdade exigisse os dois, que é justamente o que o grafo veio desfazer.</li>
+    <li class="feito"><b>Nenhuma bolinha cobre outra, e nenhum rótulo cobre outro.</b> A posição de
+      cada nó cabe no quadro sem encostar na borda, dois nós nunca ficam a menos de 9% um do outro,
+      e dois da MESMA fileira nunca ficam mais perto que a largura do rótulo (28%). A régua cobra
+      os dois lados — as posições no <code>data.js</code> e o número declarado no CSS —, porque em
+      porcentagem a colisão não depende do tamanho da tela.</li>
+    <li class="feito"><b>Cada vocação enquadra a arte no SEU ponto, e nenhuma compartilha o
+      enquadramento das outras.</b> Um número só serviria a uma das quatro e cortaria três — a
+      régua cobra que os valores difiram, que todos fiquem acima do centro, e que a origem da
+      escala saia do mesmo ponto do enquadramento.</li>
+    <li class="feito"><b>A arte de fundo da vocação existe em disco, preenche e o zoom não a
+      alcança.</b> A terceira metade é estrutural e é a que importa: a camada da arte não pode
+      aparecer dentro do bloco do grafo, porque o zoom é um transform ali — mover a camada para
+      dentro seria invisível no CSS e quebraria a promessa. Junto: o enquadramento fica acima do
+      centro e a origem da escala sai do mesmo ponto, senão a folga do desfoque desloca o
+      enquadramento escolhido.</li>
+    <li class="feito"><b>O balão fica colado no que descreve, em qualquer zoom.</b> A folga entre
+      ele e a bolinha é a mesma no zoom 1 e no 3,5. A outra metade é o que registra o porquê:
+      ancorado na caixa do botão — que cresce com o zoom — a distância até o círculo aumenta. O
+      balão não escala: conteúdo escala, interface de leitura não.</li>
+    <li class="feito"><b>Mapa e talentos abrem SEMPRE em tela cheia</b> e recusam o arraste pelo
+      cabeçalho — quem se move ali é o conteúdo, por câmera própria. A régua olha os dois lados: a
+      marca no HTML e a recusa no código, mais a ausência de qualquer resto do alternador. Junto:
+      <b>a câmera da árvore não perde o grafo</b> — no piso de zoom o limite de deslocamento é zero
+      e o clamp recentra sozinho, e o piso valer 1 é o que garante isso.</li>
+    <li class="feito"><b>Arrastar janela respeita o quadro de referência do PAI.</b> As janelas
+      moram dentro do <code>#stage</code>, então <code>left</code> é medido do palco e o mouse fala
+      em tela; sem descontar a origem do palco a janela salta a distância das barras laterais. Os
+      quatro lados ficam presos ao palco, o ponto onde se agarrou o cabeçalho é preservado, e
+      janela maior que o palco encosta no canto em vez de sair dele — de onde não haveria volta.</li>
+    <li class="feito">No mapa, <b>o mesmo arrasto em pixel de tela anda os mesmos tiles em
+      <code>devicePixelRatio</code> 1 e 2</b>, o buffer acompanha o dpr, e num quadro retangular
+      quem decide a escala é a menor dimensão. Enquanto o canvas era 620×620 cravado os dois
+      mundos coincidiam; elástico, só coincidem em tela sem HiDPI — e a do dono não é.</li>
+    <li class="feito">O <b>vocabulário de talentos fecha dos DOIS lados</b>: toda chave de
+      efeito declarada por um nó existe em <code>EF_CHAVES</code>, <b>e toda chave de
+      <code>EF_CHAVES</code> é lida no <code>game.js</code></b>. A metade de trás é a que passaria
+      calada — chave que ninguém lê faz o jogador gastar um ponto em nada, sem erro nenhum. Junto:
+      todo efeito é dado por algum nó, senão é código morto.</li>
+    <li class="feito">Os <b>sete efeitos mudam alguma coisa observável</b> — mana que sai da barra,
+      tiles atingidos, alcance, duração do buff, estado aplicado, mana da varinha e estado limpo
+      pela cura. Medidos pelo <b>comportamento</b> e não pela função pura: a primeira versão media
+      <code>custoDe()</code> e passava verde nas duas mutações que desligavam o desconto dentro do
+      <code>castSpell</code>.</li>
+    <li class="feito">A cura que <b>limpa estado não apaga buff conjurado</b> —
+      <code>P.buffs</code> guarda pressa e regeneração no mesmo mapa dos estados. As duas metades
+      juntas, porque só a primeira passaria com uma limpeza que varresse tudo.</li>
+    <li class="feito">Na árvore, <b>o pai barra o filho, um degrau do pai já abre o ramo</b>, o
+      teto do nó trava, e nó de outra vocação não se compra nem rende efeito. Junto:
+      <b>todo nó aparece em algum ramo desenhado</b> — foi este que pegou o irmão de bifurcação
+      sumindo da janela.</li>
+    <li class="feito"><b>Perder nível não desaloca talento.</b> A morte tira nível sem piso, então
+      o saldo pode ficar negativo; o comprado continua valendo e só para de entrar ponto novo.
+      Desalocar sozinho seria confiscar em silêncio o que o jogador pagou.</li>
+    <li class="feito">O <b>save descarta nó extinto e apara degrau acima do teto</b>, e o ponto não
+      se perde — <code>pontosGastos</code> conta o que sobrou, então a devolução acontece sozinha.
+      Junto: redistribuir cobra o ouro, devolve tudo e zera o efeito no mesmo <code>recalc</code>.</li>
       <li class="feito"><strong>O <code>build/icon.ico</code> existe e é um <code>.ico</code> de
         verdade</strong> (em <code>tests/test_launcher.js</code>). Caminho de ícone errado no
         <code>BrowserWindow</code> não dá erro nenhum — o Electron cai no átomo padrão em silêncio,
         que foi como um <code>assets/icons/app.png</code> inexistente sobreviveu.</li>
     </ul>
   </div>
+</section>
+
+<section>
+  <h2>Progressão visual do personagem — 2026-08-26</h2>
+  <p>Pedido do dono: <i>"se o jogador equipa uma armadura melhor, a armadura deveria ter efeito no
+  visual do personagem"</i>, com o RuneScape como referência. Até aqui o ranger tinha uma folha e
+  ela era sempre a mesma; as outras três vocações caíam no boneco procedural.</p>
+
+  <div class="aviso">
+    <h4>Não é paperdoll, e a diferença é o que torna a coisa possível</h4>
+    <p>Paperdoll literal — cada peça equipada desenhada em cima do corpo, como o RuneScape faz —
+    seriam <b>238 itens equipáveis × 24 quadros</b> registrados um sobre o outro, em quatro direções.
+    Não é caro: é impossível. O que sobe de degrau aqui é o <b>KIT inteiro</b>, uma arte por degrau.</p>
+    <p>Quem manda no degrau é o <b>conjunto vestido</b>, com a régua que o <code>SETS</code> já usava:
+    cada degrau de bônus alcançado (2, 4, 6/7, 8 peças) sobe um degrau de aparência. São <b>4 degraus
+    de aparência</b> para 4 degraus de bônus mais o degrau nu, então os dois últimos dividem arte.
+    Com dois conjuntos meio vestidos, ganha o mais completo — sem isso, a ordem das chaves do
+    <code>P.eq</code> decidiria a aparência do personagem.</p>
+  </div>
+
+  <h3>O que já estava pago e desligado</h3>
+  <p><code>assets/skins/voc_knight/</code> tinha <code>voc_knight_commom</code> e
+  <code>voc_knight_veteran</code> — dois degraus visuais do mesmo knight, 384×256, nomeados
+  <b>quase</b> no padrão que o <code>assets/build_criaturas.py</code> já consumia. Faltava só o
+  prefixo do nome nos arquivos e o script enxergar a pasta. Nenhuma arte nova foi desenhada.</p>
+  <div class="band">
+    <table>
+      <thead><tr><th>Peça</th><th>O que mudou</th></tr></thead>
+      <tbody>
+        <tr><th><code>build_criaturas.py</code></th><td>segunda raiz <code>skins/voc_*/*</code>; lado sem arte cai na FRENTE em vez de virar linha vazia; <code>confere()</code> passou a reprovar linha vazia</td></tr>
+        <tr><th><code>data.js</code></th><td><code>VOC_SKINS</code>, <code>SKIN_DEGRAUS</code>, <code>skinConjunto()</code>, <code>skinDoDegrau()</code>, <code>skinAtual()</code> — tudo puro, recebe o <code>eq</code> e não lê o <code>P</code></td></tr>
+        <tr><th><code>render2d.js</code></th><td><code>_criaturaCrua</code> pergunta ao <code>skinAtual</code> em vez de perguntar se a vocação é ranger</td></tr>
+        <tr><th><code>art.js</code></th><td>arma e escudo desenhados também de COSTAS, espelhados em torno do meio</td></tr>
+        <tr><th><code>hud.js</code></th><td>seção "Aparência do personagem" na janela de Opções, com as linhas de rádio que já existiam</td></tr>
+        <tr><th><code>tests/test.js</code></th><td>o harness passou a carregar <code>criaturas.js</code> — <b>faltava</b>, e com ele a contagem de quadros de toda folha</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>A armadilha: linha vazia na folha é boneco INVISÍVEL</h4>
+  <p>O knight comum só foi desenhado de frente. O <code>build_criaturas.py</code> espelha esquerda
+  ↔ direita e repete o parado quando falta o passo, mas um lado sem arte <b>nem oposto</b> saía como
+  linha vazia — célula transparente na folha, e o jogo desenhando nada. O jogador viraria para o
+  norte e sumiria, sem erro nenhum no console. Consertado no <b>build</b> e não no jogo: a
+  substituição vira invariante da folha, e <code>confere()</code> agora reprova linha vazia, então
+  a falha não pode voltar calada por outra pasta de arte.</p>
+
+  <h4>Arma e escudo pararam de sumir no norte</h4>
+  <p><code>if (o.weapon &amp;&amp; !costas)</code> — os dois eram simplesmente pulados na direção
+  norte, e a espada piscava fora de existência a cada passo para cima. Pedido explícito do dono.
+  Quem está de costas não largou o que estava segurando; o que muda é o <b>lado</b>, porque virado,
+  a mão direita dele cai na esquerda da tela. Espelho em torno do meio do sprite. No perfil o escudo
+  continua escondido — ali é verdade do mundo, não quadro faltando.</p>
+
+  <h4>O seletor, e por que a progressão não virou trava</h4>
+  <p>Decisão do dono: o seletor lista <b>todas</b> as skins da vocação, não só as destravadas. O
+  padrão é <b>"Pelo equipamento"</b> — é ele que faz a progressão aparecer — e abaixo dele o
+  procedural e cada arte, escolhíveis a qualquer hora. Mora em <code>P.skin</code> e não no
+  <code>HUD</code>: a lista depende da vocação, e quem tem um knight e um ranger não quer a escolha
+  de um valendo no outro. O save leva todo campo de <code>P</code>, então não precisou de campo novo
+  no serializador.</p>
+  <p>Uma troca que o seletor deixa explícita: <b>só o procedural mostra a arma equipada</b>. As
+  folhas trazem a arma desenhada dentro, então escolher uma skin é trocar detalhe por acabamento.
+  O rótulo da opção diz isso, para a pergunta não nascer.</p>
+
+  <h3>Medido</h3>
+  <ul class="itens">
+    <li class="feito"><span class="it-n">A escada, conferida no jogo rodando</span>
+      <span class="it-d">0–1 peças → degrau 1 · 2–3 → 2 · 4–5 → 3 · 6–8 → 4. Com 4 peças do
+      Escudeiro Nobre o boneco troca de <code>voc_knight_commom</code> para
+      <code>voc_knight_veteran</code> na tela.</span></li>
+    <li class="feito"><span class="it-n">Norte, olhado nas quatro direções lado a lado</span>
+      <span class="it-d">frente: arma à direita, escudo à esquerda. Costas: os dois trocados de lado,
+      à mesma distância do meio. Perfil: arma sim, escudo escondido.</span></li>
+    <li class="feito"><span class="it-n">14 verificações novas em <code>tests/test.js</code></span>
+      <span class="it-d">796 passando. A régua da arte é a REGRA e não o resultado ("todo degrau
+      aponta para arte que existe", "a arte nunca regride ao subir de degrau"), então ela se refaz
+      sozinha quando entrar arte nova. Uma cobra que toda skin da tabela tem folha montada — sem
+      ela, escolher no seletor cairia calado no procedural.</span></li>
+    <li class="feito"><span class="it-n">Editor abre limpo</span>
+      <span class="it-d">ele desenha o jogador pelo render do jogo, então passou a carregar o
+      <code>criaturas.js</code> também.</span></li>
+  </ul>
+
+  <h3>A receita de folha de animação — <code>assets/COMO_ADICIONAR.md</code> §6</h3>
+  <p>Pedido do dono na sequência: <i>"como eu posso fazer um prompt pro gerador de imagens criar
+  folhas de animações no estilo de arte que as folhas implementadas tem?"</i> — e, logo depois,
+  que a receita servisse para <b>criatura também</b>. Serve: é o mesmo
+  <code>build_criaturas.py</code>, muda a pasta de entrada.</p>
+  <p>O documento tem o contrato de nomes, o <b>ritmo</b> (que é o que "sincronia" quer dizer aqui),
+  o estilo medido nas folhas prontas, o prompt pronto para colar e as armadilhas. Os dois números
+  que governam a animação e não estavam escritos em lugar nenhum:</p>
+  <ul class="itens">
+    <li><span class="it-n">Andar: o ciclo toca UMA vez por tile</span>
+      <span class="it-d">espremido na duração do passo (<code>100000 / velocidade</code>): ~450 ms
+      no nível 1, ~350 ms bem equipado, ×1,5 na diagonal. Por isso o ciclo tem de fechar em si
+      mesmo dentro de um tile — passada de dois passos completos toca inteira em meio segundo e o
+      boneco corre no lugar. Três quadros bastam.</span></li>
+    <li><span class="it-n">Parado: poses, não respiração</span>
+      <span class="it-d">5,2 s na pose 1, 700 ms em cada uma das outras, e volta. Já estava no
+      <code>art.js</code>; agora está onde quem desenha lê.</span></li>
+  </ul>
+  <p><b>Só três direções se desenha</b> — <code>right</code> sai espelhado de <code>left</code>.
+  E <b>não existe ataque</b>: o motor só conhece <code>idle</code>, <code>walk</code> e
+  <code>dead</code>, então a fileira de arco da folha antiga do ranger nunca foi usada.</p>
+
+  <h4>O que a medição corrigiu, duas vezes</h4>
+  <p>Olhando a folha do demônio eu afirmei que as vistas de perfil saíam menores, e que havia
+  franja da cor-chave sobrando no ciclope. <b>As duas leituras estavam erradas</b>: as alturas dão
+  98–100% dentro da linha, e a franja mede 0,003%. O que eu via era a asa enchendo a silhueta de
+  frente e dobrando no perfil — que é justamente por que o demônio tem <code>"escala": "lado"</code>
+  e o ciclope não precisou. Ficou registrado como armadilha na própria receita: geração nova custa
+  mais que um <code>python -c</code>.</p>
+
+  <h4>E as folhas do knight estão incompletas — de propósito, por ora</h4>
+  <p>Relato do dono ao ver a folha: <i>"essa folha está faltando animações"</i>. Está mesmo, e a
+  conta é exata:</p>
+  <div class="band">
+    <table>
+      <thead><tr><th>Pasta</th><th>frente</th><th>oeste</th><th>costas</th><th>leste</th><th>tombado</th></tr></thead>
+      <tbody>
+        <tr><th><code>voc_knight_commom</code></th><td class="now">4 + 4</td><td class="bad">—</td><td class="bad">—</td><td class="bad">—</td><td>1</td></tr>
+        <tr><th><code>voc_knight_veteran</code></th><td class="now">4 + 4</td><td class="bad">—</td><td class="now">4 + 3</td><td class="bad">—</td><td>2</td></tr>
+        <tr><th><code>cyclops</code></th><td>2 + 3</td><td>1 + 2</td><td>1 + 4</td><td>espelhado</td><td>4</td></tr>
+        <tr><th><code>demon</code></th><td>1 + 2</td><td>2 + 3</td><td>1 + 2</td><td>2 + 3</td><td>3</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><b>Nenhum dos dois knights tem vista de lado.</b> Hoje eles andam para leste e oeste
+  <em>olhando para você</em> — feio, não quebrado, porque o <code>build_criaturas.py</code>
+  substitui pela frente em vez de deixar a linha vazia. O que falta gerar é uma folha de perfil por
+  skin; a de costas do comum sai junto. <code>diabrete</code> e <code>minotaur</code> são pastas
+  vazias, sem arte nenhuma.</p>
+
+  <h4>A folha gerada foi auditada, e o prompt estava errado</h4>
+  <p>O dono rodou o prompt, trouxe a folha e disse: <i>"algumas animações estão repetidas"</i>.
+  Estavam. Comparando <b>silhueta alinhada e normalizada</b> — diferença crua não serve, 2 px de
+  deslocamento já mudam todo o contorno —, as 16 células têm <b>7 poses distintas</b>: as linhas de
+  costas e de perfil saíram A-B-A-B (cópias a 2,0% e 3,0% de distância) e a da frente tem três
+  quase-cópias.</p>
+  <p>A auditoria cláusula por cláusula deu <b>5 de 11 instruções ignoradas</b>, e o padrão é limpo:
+  o gerador obedeceu <b>tudo que é geometria visível dentro de uma imagem</b> (célula de 384×256
+  exata, altura 94% consistente, nenhuma peça solta, nada cortado pela borda, cor mediana variando
+  1 a 5 de 255). Ignorou exatamente três categorias:</p>
+  <ul class="itens">
+    <li><span class="it-n">Negação</span><span class="it-d"><code>NO CAST SHADOW ON THE GROUND</code>
+      produziu <b>20.000 px</b> de sombra pintada. Gerador de imagem não tem "não". A saída é
+      reenquadrar: chamar o fundo de <i>chroma key para extração de sprite</i> faz ele tratar aquilo
+      como recurso técnico e não como chão de uma cena — e cena é o que traz sombra junto.</span></li>
+    <li><span class="it-n">Valor numérico exato</span><span class="it-d"><code>#FF00FF</code> virou
+      <code>(247,5,232)</code>, com o canal verde variando de 0 a 188. Não importa: o
+      <code>build_folhas.py</code> lê o fundo das quinas e tolera distância 60.</span></li>
+    <li><span class="it-n">Comparação entre células</span><span class="it-d">"todas diferentes" e
+      "tombado não mais longo que a altura em pé" (saiu 244 px contra 205). Ele desenha uma célula
+      por vez e não confere contra as outras.</span></li>
+  </ul>
+  <p><b>A palavra mais cara do prompt foi "grid"</b>: desenhou 10.783 px de divisória branca dentro
+  da imagem <em>e</em> criou uma cota de 16 células — e cota se cumpre com cópia. A receita agora
+  pede uma fileira de três poses, uma direção por geração, com os quadros existentes anexados como
+  referência.</p>
+  <p><b>E foi a mesma lição que a CLAUDE.md já registrava</b> — <i>"descrição vira desenho literal;
+  para arte, o caminho é imagem de referência mais uma página de amostra, nunca prosa"</i>. O prompt
+  era prosa pura. "Left foot forward" e "feet together passing" leem, para o modelo, como duas
+  descrições de um homem em pé.</p>
+  <p>Um número que virou régua de desenho: <b>no perfil as duas poses distintas ficaram a 24,7% uma
+  da outra; de costas, 7,7%; de frente, ~10%.</b> De frente a perna some atrás do corpo, então quem
+  carrega o passo é o braço e o sobe-e-desce — é o que o ciclope faz, onde muda o porrete e não o
+  pé.</p>
+
+  <h4>Duas lacunas que o dono achou usando a receita</h4>
+  <p><i>"Como eu devo enviar esse prompt pro ChatGPT?"</i> e <i>"se eu quiser gerar uma imagem do
+  zero? você fez o prompt em cima de uma imagem já feita"</i>. As duas eram buracos reais.</p>
+  <p><b>Do zero é fluxo de DUAS etapas.</b> Gerar folha de animação de um bicho que ainda não
+  existe põe duas perguntas brigando pela mesma imagem — <em>quem é este personagem</em> e <em>em
+  que pose ele está</em>. Etapa 1: uma imagem, uma pose, anexando a arte que já está no jogo como
+  referência de <b>estilo</b> (não de personagem), e regerando à vontade porque errar ali é barato.
+  Etapa 2: a imagem aprovada vira a referência, e aí a receita normal roda sem deriva. É o mesmo
+  princípio do mundo autoral — decidido e congelado antes de multiplicar.</p>
+  <p><b>A cor da chave sai do personagem.</b> Ela tem de não existir no bicho, senão o recorte abre
+  buraco no meio dele: bicho verde em magenta, bicho vermelho ou roxo em verde. É por isso que
+  existe uma pasta <code>green_background/</code> e folhas em magenta — e o ranger de capuz verde
+  numa folha verde é o pareamento errado que ninguém tinha nomeado.</p>
+  <p>Ficaram gravadas duas tiras de referência prontas para anexar,
+  <code>assets/skins/voc_knight/_ref_voc_knight_commom.png</code> e a do veterano: três poses em
+  magenta chapado, pés na mesma linha e <b>sem sombra no chão</b>. Elas ensinam pela imagem o que a
+  prosa não conseguiu — o prompt mandou "NO CAST SHADOW" e recebeu 20.000 px de sombra. Nome
+  começando com <code>_</code> de propósito: o <code>build_skins.py</code> pula arquivo assim e o
+  <code>build_criaturas.py</code> só olha diretórios, então a referência mora ao lado da arte sem
+  entrar em nenhum dos dois moinhos.</p>
+
+  <h4>Três leituras a olho, três desmentidas pela régua</h4>
+  <p>Nesta leva eu afirmei, olhando: que o demônio encolhia de perfil, que sobrava franja da
+  cor-chave no ciclope, e que havia vazamento de magenta na armadura do knight. <b>As três estavam
+  erradas</b> — 98–100% de altura, 0,003% de franja, e os dois "furos" grandes do knight são
+  simétricos na altura do quadril, isto é, o vão entre braço e tronco. Anatomia, não defeito.
+  A régua da casa — <em>meça antes de concluir</em> — pagou três vezes numa sessão só; está anotada
+  como armadilha na própria receita, porque geração nova custa mais que um <code>python -c</code>.</p>
+
+  <h4>Sorcerer montado a partir de três folhas geradas — 2026-08-26</h4>
+  <p>O dono trouxe <code>sheet_01</code> (costas), <code>sheet_02</code> (frente) e
+  <code>sheet_03</code> (perfil) e pediu para cortar e montar. Está no jogo como
+  <code>voc_sorcerer_common</code>, terceira entrada de <code>VOC_SKINS</code>. Cada defeito da leva
+  virou régua na receita:</p>
+  <ul class="itens">
+    <li class="feito"><span class="it-n"><code>build_folhas.py</code> não sabia cortar folha RGBA</span>
+      <span class="it-d">ele lê a cor das quinas; numa folha transparente a quina é preta, e o manto
+      quase preto do sorcerer caía na tolerância — <code>sheet_03</code> saía em <b>13 pedaços</b>.
+      Agora, quando existe alfa de verdade, o alfa é a chave. Conferido sem regressão nas folhas de
+      item (<code>weapons_01</code> 20, <code>shields_01</code> 4, <code>loot_01</code> 28).</span></li>
+    <li class="feito"><span class="it-n">Escalas diferentes entre folhas da mesma leva</span>
+      <span class="it-d">corpo de ~590 px de frente e ~727 no perfil: 23% de diferença, o sorcerer
+      encolhia ao virar. <code>{ "escala": "lado" }</code> levou de 81% para 91%. O conserto de
+      verdade é gerar tudo na mesma leva com a mesma referência.</span></li>
+    <li class="feito"><span class="it-n">A emenda do espelho parcial se ACHA, não se chuta</span>
+      <span class="it-d">a 60% da altura a linha passa pelas mãos e pela fivela — o dono viu na hora:
+      <i>"a passada pra frente está quebrada, cortando a cintura"</i>. Varrendo de 55% a 85% e medindo
+      a descontinuidade da junta (silhueta + cor da linha de cima contra a espelhada), 60% dá
+      <b>170</b> e 78% dá <b>29</b>. Técnica válida — só que aqui ela nem era necessária, ver
+      abaixo.</span></li>
+  </ul>
+
+  <div class="aviso">
+    <h4>Passada se mede por COR, não por silhueta — e isso custou três voltas</h4>
+    <p><b>Duas passadas opostas têm quase a mesma silhueta.</b> As duas pernas ocupam o mesmo
+    contorno; o que muda é qual está <em>na frente</em>, e isso é sombreamento, não recorte. Eu
+    medi máscara de alfa e conclui errado três vezes seguidas: que o <code>sheet_01</code> repetia a
+    passada e precisava de espelho, que o perfil só tinha uma passada, e que o terceiro quadro
+    lateral teria de ser regerado.</p>
+    <div class="band">
+      <table>
+        <thead><tr><th>mesmas poses, duas réguas</th><th>silhueta</th><th class="now">cor</th></tr></thead>
+        <tbody>
+          <tr><th>costas, passada A vs B</th><td>6,9%</td><td class="now">48,2%</td></tr>
+          <tr><th>frente, passada A vs B</th><td>10,9%</td><td class="now">59,8%</td></tr>
+          <tr><th>perfil, passada A vs B</th><td>9,5%</td><td class="now">57,6%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><b>As três folhas já vinham com as duas passadas.</b> O dono viu antes de mim, olhando:
+    <i>"sheet_03 já tem as duas passadas, Claude. Qual a dificuldade?"</i> — e nas botas a coisa é
+    evidente: pose 2 com a direita à frente, pose 3 com a esquerda. O espelho que fabriquei mudava
+    <b>5,8%</b> da imagem e foi jogado fora.</p>
+    <p>É a regra da casa cobrando pela quarta vez nesta sessão: <em>meça com a régua do jogo</em>.
+    Aqui a pergunta era "qual perna está na frente" e eu media contorno.</p>
+  </div>
+
+  <h4>E o ciclo tem de FECHAR</h4>
+  <p>A linha de <code>walk</code> toca uma vez por tile e emenda nela mesma no tile seguinte, então
+  <code>passada A → passagem → passada B</code> <b>não fecha</b>: no fim da linha o B encosta direto
+  no A seguinte, duas passadas coladas sem passagem entre elas. Foi isso o relato
+  <i>"parece que as animações se repetem mais de uma vez em uma única movimentação"</i> — não era
+  pose repetida nem o motor tocando duas vezes.</p>
+  <p>O ciclo certo tem <b>quatro quadros</b>, com a passagem entrando duas vezes porque numa
+  caminhada ela acontece duas vezes: <b>passada A → pés juntos → passada B → pés juntos</b>. Dois
+  passos por tile, que é o que um humano faz ao andar um metro. E a passada vem primeiro — pés
+  juntos no começo faz o passo nascer parado e o boneco hesita a cada tile, que é a ordem que o dono
+  já tinha corrigido antes.</p>
+  <p>O teste <code>skinDoDegrau('sorcerer', 4) === null</code> quebrou no dia em que o sorcerer ganhou
+  arte — era o exemplo de "vocação sem skin". Refeito pelo <b>contrato</b> (quem não está na
+  <code>VOC_SKINS</code> não tem skin, seja quem for), que não envelhece. 801 verificações.</p>
+  <p>Estado final: as quatro direções com <b>1 parado + 4 passos</b>, tudo saído da arte autoral —
+  nenhum quadro fabricado sobrou. Falta só a linha de tombado, que não faz falta porque o corpo do
+  jogador usa o boneco procedural.</p>
+  <p>Sobra dessa leva, para quando for regerar: as três folhas precisam sair na mesma escala
+  (<code>escala: lado</code> é remendo, não conserto).</p>
+
+  <h4>As 20 skins descritas, e a escada foi para CINCO degraus</h4>
+  <p>Pedido do dono: <i>"crie 5 descrições de skins pra cada vocação pra eu gerar as imagens"</i>.
+  Estão na <b>§7 do <code>COMO_ADICIONAR.md</code></b>, prontas para colar no bloco
+  <code>CHARACTER</code> dos prompts da §6 — quatro vocações × cinco degraus, cada uma com o bloco
+  em inglês e uma linha de onde ela nasce na lore.</p>
+  <p>Elas não são fantasia genérica, e é isso que as torna caras de refazer: saem da composição das
+  duas terras. O degrau 1 de toda vocação é <b>Varrokgaard, onde não se tem vocação</b> — o knight é
+  um lavrador com uma espada boa demais para ele, o sorcerer é um rapaz com um livro emprestado. O
+  degrau 5 é sempre quem <b>desceu até a racha do selo</b>. No meio entram os conjuntos que já
+  existem no <code>SETS</code>: <code>ns</code> → <code>gg</code> → <code>sa</code> no knight,
+  <code>ai</code> → <code>ch</code> → <code>cs</code> → <code>vz</code> no sorcerer, e assim por
+  diante.</p>
+  <p>Três regras de arte ficaram escritas junto, e a primeira aponta um defeito do que já está no
+  jogo: <b>a pessoa não muda, o kit muda</b>. Hoje o knight <code>commom</code> é imberbe de cabelo
+  preto e o <code>veteran</code> é barbudo louro — são duas pessoas, e o jogador troca de cara ao
+  subir de degrau. As outras duas: <b>a silhueta é que sobe</b> (em 46 px não se lê acabamento) e
+  <b>um traço de identidade atravessa os cinco</b> (o cajado, o arco, o escudo).</p>
+  <p><b><code>SKIN_DEGRAUS</code> passou de 4 para 5.</b> Com lista de cinco e teto quatro, a última
+  skin nunca seria alcançada pela escada automática. E cinco é o número certo por conta própria: o
+  <code>SETS</code> tem quatro degraus de bônus (2, 4, 6 e 8 peças) mais o degrau nu, e no teto
+  antigo os dois últimos dividiam arte. Agora cada um tem o seu.</p>
+  <p>O teste da escada quebrou na mudança — ele afirmava <i>"oito peças não passam do teto 4"</i>.
+  Refeito para <b>derivar da própria tabela</b> (<code>1 + degraus alcançados</code>, teto
+  <code>SKIN_DEGRAUS</code>), mais uma cobrança de que os cinco degraus sejam todos alcançáveis
+  vestindo o conjunto. É a segunda vez nesta leva que um teste envelhece por escrever o número em
+  vez do contrato. 810 verificações.</p>
+
+  <h4>Referência de ESTILO e referência de IDENTIDADE são duas coisas</h4>
+  <p>Relato do dono ao usar a receita: <i>"com o prompt e imagem de referência, o chatgpt está
+  copiando o estilo E O PERSONAGEM"</i>. O prompt da §6 dizia
+  <code>this is a style reference, NOT the character</code> — e isso é uma <b>negação</b>, que a
+  auditoria da própria página já tinha provado que o gerador ignora. Eu escrevi o defeito que
+  documentei.</p>
+  <p>Negação não se conserta escrevendo melhor: conserta-se tirando o que não se quer da imagem.
+  Nasceu <code>assets/skins/_ref_estilo.png</code> — ciclope, demônio, knight comum, sorcerer e
+  knight veterano lado a lado, mesma altura, em magenta chapado. Um olho só, asa, robe, placa,
+  moicano: <b>não existe "o personagem" para copiar</b>, e o que sobra de comum entre os cinco é
+  exatamente o que se quer levar (contorno, bandas de sombra, direção da luz, proporção, paleta).
+  <code>assets/build_ref_estilo.py</code> refaz a tira quando entrar arte nova.</p>
+  <p>A regra que faltava, agora em tabela na §6: <b>a mesma pessoa</b> em outra pose ou degrau anexa
+  os quadros da própria skin — ali copiar identidade é o objetivo; <b>uma pessoa nova</b> anexa a
+  tira de estilo. Trocar as duas é o erro.</p>
+  <p>Mais duas mudanças no prompt do zero: o personagem passou a vir <b>primeiro</b> (o que vem
+  depois pesa menos), e ficou escrito que <b>todo campo em branco o gerador preenche com o que viu
+  na referência</b> — os que mais vazam são cabeça, arma, silhueta dos ombros e paleta, então
+  escreva os quatro mesmo quando parecerem óbvios.</p>
+
+  <h4>As 20 descrições refeitas no padrão de campos</h4>
+  <p>Pedido do dono: <i>"corrija as descrições com o novo padrão do prompt inicial"</i>. Reescritas
+  em <b>campos rotulados</b> — BUILD, AGE &amp; FACE, HAIR, HEAD, SHOULDERS, CLOTHING, PALETTE,
+  HANDS, ONLY HE HAS — e o template da §6 foi alinhado ao mesmo formato. Rótulo não é enfeite: é o
+  que torna <em>visível</em> o campo em branco, e campo em branco é o que o gerador preenche com o
+  que viu na referência. HEAD, SHOULDERS, HANDS e PALETTE aparecem nos vinte, mesmo quando a
+  resposta é "nada" (<code>bare, no hood and no helmet</code> · <code>left hand empty</code>).</p>
+  <p>Cada vocação passou a ter um bloco <b>A PESSOA</b>, fixo nos cinco degraus, e cinco blocos
+  <b>O KIT</b>. Isso mecaniza a regra que já estava escrita e que o knight quebra hoje — a pessoa não
+  muda, o kit muda.</p>
+  <p><b>E o padrão expôs uma contradição minha:</b> o degrau 1 do sorcerer era um <em>aprendiz
+  jovem</em> e os degraus 2 a 5 um velho de barba branca. Duas pessoas, exatamente o defeito que a
+  regra proíbe. Virou <b>O Leitor de Varrok</b> — o mesmo velho, antes de ter qualquer coisa, dono do
+  único livro de uma ilha que não tem mago. Lore melhor e uma pessoa só.</p>
+
+  <h4>"Passada oposta" é comparação, e comparação o gerador ignora</h4>
+  <p>Relato do dono na primeira folha gerada pelo prompt novo: <i>"está gerando a passada alternada
+  errada, está duplicando a primeira passada"</i>. Medido por cor nas pernas: <b>6,8%</b> entre as
+  poses 2 e 3, contra os <b>51,1%</b> de uma passada oposta de verdade. Não há meio-termo — o
+  gerador desenhou o mesmo passo duas vezes.</p>
+  <p><b>A causa está na minha própria auditoria.</b> O prompt dizia
+  <code>Pose 3 — the opposite stride</code>: comparação entre células, que é a terceira categoria
+  que o gerador ignora (ele desenha uma célula por vez e não confere contra as outras). E há um
+  agravante que eu não tinha visto: num PERFIL, "perna esquerda" e "perna direita" não são
+  distinguíveis — as duas se sobrepõem. O que separa as duas passadas ali é <b>qual perna está
+  desenhada por cima</b> e qual sai mais escura por estar atrás.</p>
+  <p>O prompt de perfil foi reescrito em <b>perna PRÓXIMA e perna DISTANTE</b>, com ordem de desenho
+  e sombreamento — relação dentro de uma célula só, que é o que ele consegue executar. E cada pose
+  descrita em absoluto, com um <code>Do not treat any pose as the reverse of another one</code>.</p>
+  <p>A régua de aceitação ficou calibrada com números de folhas reais e olhando <b>só abaixo de 70%
+  da altura</b> (cabelo e capa mexem sozinhos e inflam a conta): passada oposta dá <b>45–55%</b> de
+  mudança de cor nas pernas, passada duplicada dá <b>menos de 10%</b>.</p>
+
+  <h4>O lado da IMAGEM, e um conferidor para parar de julgar a olho</h4>
+  <p>O mesmo defeito voltou na vista de frente: <i>"passada alternada está errada, duplicando a
+  primeira passada"</i>. Eu tinha consertado só o prompt de perfil. Medido: pernas com
+  <b>18,9%</b> de mudança de cor entre as poses 2 e 3, e a evidência direta — <b>a bota que
+  desce mais é a da direita da tela nas duas</b>.</p>
+  <p>A causa é a mesma categoria (comparação entre células), mas com um agravante próprio da
+  vista frontal: <b>o modelo não sabe de que lado fica a esquerda de quem está virado para
+  ele</b>. "Perna esquerda à frente" e "perna direita à frente" descrevem, para ele, a mesma
+  imagem. O prompt passou a dar posição pelo <b>lado da IMAGEM</b> —
+  <code>the boot on the RIGHT SIDE OF THE IMAGE is a full step ahead: it sits LOWER in the frame</code>
+  —, que é onde o pixel vai e ele acerta sempre. No perfil a correção foi outra, porque lá o
+  que muda é qual perna está desenhada por cima.</p>
+  <p><b>E nasceu <code>assets/confere_folha.py</code></b>, porque três vezes seguidas eu concluí
+  errado olhando e o dono viu antes de mim. Ele responde as quatro perguntas que já reprovaram folha
+  aqui: altura entre poses, mancha solta, cor do fundo e se as passadas são opostas ou a mesma duas
+  vezes. Aferido nas três folhas desta leva:</p>
+  <div class="band">
+    <table>
+      <thead><tr><th>folha</th><th>pernas, pose 2 vs 3</th><th>veredito</th></tr></thead>
+      <tbody>
+        <tr><th>perfil do lavrador</th><td class="bad">7,6%</td><td>a mesma passada</td></tr>
+        <tr><th>frente do lavrador</th><td class="bad">18,9%</td><td>a mesma passada</td></tr>
+        <tr><th>perfil do sorcerer</th><td class="now">51,0%</td><td>passadas opostas</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Ele mede <b>cor abaixo de 70% da altura</b>, e não silhueta: duas passadas opostas têm quase o
+  mesmo contorno, e foi medindo alfa que eu errei três vezes. O desempate visual que dispensa régua
+  fica junto: numa vista frontal, <b>a bota à frente é a que desce mais</b> — se for a mesma nas
+  duas passadas, é o mesmo passo.</p>
+
+  <h4>O Cidadão é a skin padrão do jogo — 2026-08-29</h4>
+  <p>Decisão do dono: <i>"a skin que está nessa pasta deve ser a skin padrão de toda vocação. O
+  personagem criado do zero começa com essa skin"</i>. Entrou como <code>SKIN_PADRAO</code> no
+  <code>data.js</code> e é o <b>degrau 1 das quatro vocações</b>.</p>
+  <p>É lore antes de ser economia, e fecha um fio que já estava escrito: <b>em Varrokgaard não se
+  tem vocação</b>. Quem sai do templo é um cidadão, e a vocação vai aparecendo conforme o conjunto
+  vestido sobe de degrau. De quebra o <b>druid deixou de cair no boneco procedural</b> — ele não
+  tinha arte nenhuma até aqui.</p>
+  <p>Quatro folhas geradas, todas aprovadas pelo <code>confere_folha.py</code> de primeira — o
+  prompt corrigido (perna próxima/distante no perfil, lado da IMAGEM na frente) funcionou:</p>
+  <div class="band">
+    <table>
+      <thead><tr><th>folha</th><th>vira</th><th>pernas, passada A vs B</th></tr></thead>
+      <tbody>
+        <tr><th><code>citizen_anim_03</code></th><td>frente</td><td class="now">51,1% e 65,4%</td></tr>
+        <tr><th><code>citizen_anim_02</code></th><td>costas</td><td class="now">54,9% e 54,4%</td></tr>
+        <tr><th><code>citizen_anim_04</code></th><td>perfil esquerdo</td><td class="now">42,3% e 47,2%</td></tr>
+        <tr><th><code>citizen_anim_01</code></th><td>tombado (2 poses)</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Montada com o ciclo fechado (<b>passada A → pés juntos → passada B → pés juntos</b>): 1 parado +
+  4 passos nas quatro direções, o leste espelhado do oeste. As três folhas vieram em escalas
+  diferentes de novo — corpo de ~765 px de frente, ~735 de perfil e ~710 de costas —, e como dentro
+  de cada linha a altura bate, <code>{ "escala": "lado" }</code> levou de 92% para <b>98%</b>.</p>
+  <p><b>Uma linha no <code>build_criaturas.py</code>:</b> a convenção é
+  <code>skins/voc_&lt;vocação&gt;/&lt;skin&gt;/</code>, mas a skin que serve a TODAS não tem vocação
+  dona — ela mora direto em <code>skins/voc_all_citizen/</code>. Os dois níveis passaram a entrar na
+  varredura; pasta sem quadro nenhum já era pulada com aviso.</p>
+  <p>O teste quebrou de novo por número cravado (<code>arte(4)</code>, de quando a escada tinha 4
+  degraus) — <b>terceira vez nesta leva</b>. Refeito para ler <code>SKIN_DEGRAUS</code>, mais duas
+  cobranças novas: toda vocação começa no <code>SKIN_PADRAO</code>, e personagem sem conjunto nenhum
+  nasce com ele. 1174 verificações.</p>
+  <p><b>Fica pendente:</b> as duas poses de tombado do cidadão <em>não são desenhadas</em>. O corpo
+  do jogador é criado com <code>shape: 'biped'</code> (procedural) no <code>playerDeath</code>, então
+  a linha 4 da folha nunca é lida. É uma linha para passar a skin ao <code>spawnCorpse</code>.</p>
+
+  <h4>knight_commom refeito, e o oliva que não era para estar lá</h4>
+  <p>O dono gerou cinco folhas novas e pediu para conectar. Identificadas pelo
+  <code>confere_folha.py</code> e pelo olho: frente, costas, perfil, dois tombados e um retrato
+  avulso. Todas com <b>passadas opostas</b>, montadas no ciclo fechado — 1 parado + 4 passos nas
+  quatro direções, mais 2 tombados. A arte antiga de 10/ago (aço sobre couro) virou
+  <code>_antigo_dead_front_01.png</code>: prefixo <code>_</code> tira do moinho sem apagar.</p>
+  <p><b>O conferidor quase reprovou o perfil por engano</b>, e isso calibrou a régua. Ele deu 30,2%
+  nas pernas, na zona cinzenta — mas essa armadura é quase monocromática, e a métrica de cor depende
+  do contraste interno da paleta. O desempate foi medir <b>qual perna está mais clara</b>: na pose 2
+  a dianteira (41 contra 24), na pose 3 a traseira (30 contra 36). Passadas opostas, confirmado.
+  Num perfil é esse o teste, não a porcentagem.</p>
+  <p><b>Cor:</b> <i>"a armadura parece verde escuro, o correto é preto com dourado"</i>. Medido, o
+  cast vive em <b>matiz 38–75°</b> e está concentrado no perfil: <b>24,6%</b> do tronco contra 4,9%
+  na frente — a folha de perfil saiu de outra geração. <code>assets/corrige_oliva.py</code>
+  neutraliza só essa faixa abaixo de 0,40 de valor, então o debrum dourado (valor ~0,55) passa
+  intacto. Sobrou 3,4% de oliva na folha montada, e o que se lê agora é preto com ouro.</p>
+
+  <h4>O jogador era mais baixo que a cerca da fazenda</h4>
+  <p>Relato do dono: <i>"o boneco parece pequeno em relação às demais estruturas"</i>. A régua certa
+  não é outra criatura, é <b>o que gente construiu</b>:</p>
+  <div class="band">
+    <table>
+      <thead><tr><th></th><th>altura</th></tr></thead>
+      <tbody>
+        <tr><th>cerca (<code>CERCA_H</code> 46px)</th><td>1,44 tile</td></tr>
+        <tr><th>muro (<code>WALL_H</code> 48px)</th><td>1,50 tile</td></tr>
+        <tr><th class="bad">jogador, antes</th><td class="bad">1,37 tile</td></tr>
+        <tr><th>minotauro (sz 1,0)</th><td>1,44 tile</td></tr>
+        <tr><th class="now">jogador, agora (<code>P_SZ</code> 1,25)</th><td class="now">1,74 tile</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Ele não passava do topo da própria cerca e tinha o tamanho de um minotauro. <code>P_SZ</code>
+  entrou no <code>data.js</code> e vale nos <b>três</b> lugares onde o jogador é desenhado — folha,
+  procedural e o corpo do <code>spawnCorpse</code> —, senão trocar de skin ou morrer mudaria a
+  altura dele. Nenhuma criatura foi tocada: o <code>sz</code> delas continua igual, e o minotauro
+  agora é menor que o jogador, o que é uma decisão de conteúdo a rever.</p>
+
+  <h4>A escala do mundo, ancorada no jogador — 2026-08-29</h4>
+  <p>Pedido do dono: <i>"o mundo deve se organizar com base no tamanho do player. Se uma porta é
+  menor que o player, tá errado"</i>, e depois <i>"pegue TIBIA como referência"</i>. Medi tudo com a
+  régua do jogo e a escada saiu assim: <b>0,5 miudeza · 1 mobília · 1,5 gente · 2 o que gente
+  atravessa · 2,5 o que domina gente</b>.</p>
+  <div class="band">
+    <table>
+      <thead><tr><th></th><th>antes</th><th>agora</th></tr></thead>
+      <tbody>
+        <tr><th>porta</th><td class="bad">0 — decalque de chão</td><td class="now">2,00</td></tr>
+        <tr><th>parede, muro, rochedo, caverna</th><td class="bad">1,50</td><td class="now">2,00</td></tr>
+        <tr><th>árvore</th><td class="bad">1,19</td><td class="now">1,72 (média)</td></tr>
+        <tr><th>poste de luz</th><td class="bad">1,22</td><td class="now">1,69</td></tr>
+        <tr><th>jogador</th><td>1,72</td><td class="now">1,47</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Dois defeitos ESTRUTURAIS que a medição destravou</h4>
+  <p><b>Todo objeto solto era espremido em <code>CERCA_H</code></b> (46 px) pelo render — barril,
+  carroça, lampião, fogueira e poste saíam do mesmo tamanho, e um poste <em>não podia</em> ser mais
+  alto que um barril por construção. A altura passou a vir do sprite; com 46 a conta dá o mesmo de
+  antes (46−32 = <code>CERCA_TOP</code>), então nada que já estava certo se mexeu. O objeto de
+  <code>span</code> ganhou a mesma regra, senão mudar a parede deformaria o moinho de tabela.</p>
+  <p><b>A copa da árvore tinha tamanho fixo em pixel.</b> Subir <code>alt</code> só acrescentava
+  canvas vazio: a tinta media 1,19 tile qualquer que fosse a caixa. Medido e corrigido — tronco e
+  copa viraram fração da altura. A largura ficou de fora: o tile tem 32 px e a copa só pode
+  transbordar para cima.</p>
+
+  <h4>A porta, e o que fica por cima</h4>
+  <p>Ela era <code>tileTexture('door')</code> pintado dentro do quadrado: <b>altura zero</b>. Virou
+  sprite de 32×64 com batente de pedra, folha de tábuas, faixas de ferro e argola; aberta, o que
+  muda é a <b>silhueta</b> — a folha sai do vão.</p>
+  <p><b>E ela sai em DUAS metades.</b> A ordem do pintor (objetos da fileira, depois entidades da
+  fileira) resolve quem está na frente e quem está atrás, e eu tinha dado isso por encerrado. O dono
+  mostrou o que faltava: <i>"por que a porta está abaixo do jogador?"</i> — quem está no vão está
+  <b>debaixo da verga</b>, e desenhando a porta inteira antes da fileira o boneco cobria a própria
+  padieira. Agora a soleira sai antes do bicho e a verga <b>depois</b>, por cima da cabeça de quem
+  estiver parado ali.</p>
+  <p><b>E a porta não fecha em cima de ninguém.</b> Fechar com o jogador no vão o deixaria num tile
+  que o <code>isWalkable</code> passa a negar — preso dentro da própria porta, sem erro nenhum no
+  console. <code>desocupaPorta</code> empurra para fora, começando pelo lado para onde a pessoa
+  olha; sem vizinho livre a porta simplesmente não fecha. Vale para criatura também. Coberto por
+  teste que <b>põe</b> a porta em vez de procurá-la no mapa — depender do conteúdo do mundo faz o
+  teste falhar por motivo errado no dia em que a vila mudar.</p>
+  <p><b>Sair do vão é ANDAR, não aparecer do outro lado.</b> A primeira versão escrevia
+  <code>x/px</code> na mão e o boneco teleportava — relato do dono: <i>"está teleportando pra frente
+  ao fechar a porta"</i>. Agora chama o <code>tryStep</code>, que é o passo do jogo: ele já tem
+  <code>fx/fy</code>, <code>stepT</code>, <code>stepD</code>, o som e a recusa quando o destino não
+  serve. Medido: <code>stepD</code> 384 ms, <code>fx/fy</code> ainda na porta e <code>x/y</code> já
+  no destino — o corpo desliza para fora com a animação de caminhada.</p>
+  <p><b>E o vão aberto é TRANSPARENTE.</b> Ele estava pintado de preto, então a porta aberta virava
+  um buraco no mundo — relato do dono: <i>"a porta aberta continua com fundo escuro"</i>. O chão do
+  outro lado já foi desenhado no 1º passe; tapá-lo esconde justamente o que abrir a porta serve para
+  mostrar. Sobrou um degradê curto sob a verga, que dá fundura sem virar tinta.</p>
+  <p><b>E ela tem sprite de PERFIL.</b> Relato do dono: <i>"a porta só possui sprite de frente, de
+  lado não tem"</i> — a porta na parede que corre norte-sul saía com a fachada atravessada no muro.
+  É a mesma questão que a cerca e o escoramento resolvem pelo <code>eixo</code>, com uma diferença:
+  a porta pergunta à <b>parede vizinha</b>, não a outra porta. Parede à esquerda ou à direita quer
+  dizer muro correndo leste-oeste, e aí ela encara a câmera. De perfil o vão corre na horizontal
+  (é por ele que se passa indo para o lado) e a folha é de tábuas <em>deitadas</em> — é o que separa
+  as duas leituras a 32 px.</p>
+
+  <h4>A cerca não fazia quina</h4>
+  <p>Relato do dono: <i>"a cerca não tem junção nas quinas, sempre passa reto"</i>. A causa era o
+  argumento: <code>cercaSprite(horiz)</code>, um booleano, e as duas variantes desenham lances
+  <b>retos de ponta a ponta</b>. Num canto não havia o que desenhar — a cerca passava direto e lia
+  como dois lances que não se encontram.</p>
+  <p>Virou <b>mourão no meio e travessa para cada vizinho</b>, com máscara de 4 bits
+  (1 norte · 2 sul · 4 oeste · 8 leste) vinda do <code>vizinhosIguais</code>. Quina, T, cruz e ponta
+  solta saem todos da mesma composição, e são <b>16 variantes de graça</b> em vez de 2. O mourão sai
+  por último, para as travessas morrerem atrás dele — é ele que faz o canto existir. Conferidas as
+  16 lado a lado.</p>
+  <h4>A parede lia como blocos empilhados</h4>
+  <p>Relato do dono: <i>"é nítido que há vários tiles ocupados por parede um a um, tem separação
+  entre os tiles"</i>, com a foto de um lance <b>horizontal</b> como referência do certo. A pista
+  estava aí: no horizontal já lê bem, no vertical não.</p>
+  <p>A causa é geométrica. A parede é desenhada com <b>64 px a partir de um tile acima do seu</b>,
+  então num lance vertical o tile de baixo pousa a PRÓPRIA chapa iluminada em cima da face do tile
+  anterior — e a chapa reaparece a cada 32 px. No horizontal as chapas ficam lado a lado e formam
+  uma faixa só, que é justamente por que aquela direção nunca pareceu errada. Junto vinham mais duas
+  costuras repetidas: o degradê de pé e a linha escura da base.</p>
+  <p><code>wallSprite</code> passou a receber os vizinhos <b>do mesmo material</b> (bit 1 acima,
+  bit 2 abaixo): sem chapa quando o muro continua para cima, sem degradê nem linha de base quando
+  continua para baixo. Rochedo encostado em parede de tábua continua sendo duas coisas, cada uma com
+  a sua crista. O terceiro parâmetro <code>v &gt;&gt;&gt; 1</code> que a chamada já passava era
+  vestígio — a função tinha dois e ignorava o resto.</p>
+  <h4>E o muro corrido virou chapa lisa — o conserto criou o defeito seguinte</h4>
+  <p>Tirar o degradê de pé emendou o lance, e de quebra deixou a face inteira num tom só: <i>"parece
+  uma chapa em vez de uma parede"</i>. São duas causas somadas, e as duas foram medidas no fonte:</p>
+  <ul class="itens">
+    <li class="feito"><span class="it-n">O degradê era por TILE</span>
+      <span class="it-d">e por isso repetia. Virou <b>profundidade</b>: <code>profParede</code> conta
+      quantos tiles abaixo da crista o pedaço está (teto 4) e a face escurece ao longo do lance
+      INTEIRO. Volume sem listra.</span></li>
+    <li class="feito"><span class="it-n">Todo tile usava o MESMO recorte de textura</span>
+      <span class="it-d"><code>tileTexture</code> devolve 96×96 e o <code>wallSprite</code> lia sempre
+      a célula 0,0 — nove disponíveis, uma usada. Agora o recorte sai de
+      <code>x%3, y%3</code>, como o chão já fazia.</span></li>
+  </ul>
+
+  <h4>Dentro e fora não se distinguiam</h4>
+  <p>Relato do dono: <i>"não dá pra saber o que é dentro e o que é fora"</i>. O motor já sabia —
+  <code>souCoberto</code> responde se há andar por cima e existia desde sempre —, mas <b>ninguém
+  perguntava por tile</b>: o interior de uma casa recebia a mesma luz do céu que a rua.</p>
+  <p>O telhado passou a cortar <b>42%</b> da luz do céu, e entra <b>no buffer de luz, antes dos
+  halos</b>. Não é detalhe: um multiply à parte deixaria a tocha inútil lá dentro, porque dois
+  multiplies se acumulam e nada os desfaz — dentro do buffer, a tocha e o lampião levantam o
+  interior de volta, que é o que faz uma luz dentro de casa valer alguma coisa.</p>
+  <p>E o passe de luz <b>passou a rodar ao meio-dia</b>. Ele era pulado quando o céu não escurecia,
+  por economia; com telhado isso não serve mais, porque é justamente ao meio-dia que a diferença
+  entre dentro e fora precisa aparecer.</p>
+  <p><b>Medido no mesmo quadro</b>, com o relógio deslocado para o meio-dia: tile coberto com brilho
+  <b>23,8</b> contra <b>67,4</b> do descoberto ao lado — razão <b>0,35</b>. O valor de 42% é chute
+  informado e se julga andando; é uma constante (<code>TELHADO</code>) para o dono girar.</p>
+  <h4>E "coberto" era a pergunta errada</h4>
+  <p>O primeiro conserto usou <code>souCoberto</code>, que pergunta se há <b>piso em z−1</b>. O dono
+  mostrou a casa onde ele falha: <i>"num cubo fechado, a luz de fora não pode ter efeito do lado de
+  dentro"</i>. Uma casa de um pavimento não tem nada por cima — <code>souCoberto</code> respondia
+  <b>não</b> para o interior de <em>toda casa da vila</em>, e o chão de dentro saía com a mesma luz
+  do céu que a rua.</p>
+  <p><b>Dentro é o que as paredes fecham.</b> <code>calcDentro</code> faz uma inundação a partir da
+  borda do mapa: o que se alcança sem atravessar parede é rua, o que sobra e não é parede é
+  interior. Três decisões que valem registro:</p>
+  <ul class="itens">
+    <li class="feito"><span class="it-n">4 vizinhos, não 8</span>
+      <span class="it-d">em 8 o preenchimento escapa pela diagonal entre duas paredes que se tocam
+      na quina, e a casa inteira vira rua.</span></li>
+    <li class="feito"><span class="it-n">Porta conta como parede, aberta ou fechada</span>
+      <span class="it-d">abrir a porta não enche a sala de sol, e é o que mantém a conta válida sem
+      refazer a cada clique.</span></li>
+    <li class="feito"><span class="it-n">Uma vez por andar, guardada</span>
+      <span class="it-d">o mapa é autoral e só muda quando o editor recompõe; o
+      <code>reindexObjs</code> joga fora o cache.</span></li>
+  </ul>
+  <p><b>Medido em Varrokgaard:</b> 387 tiles de interior em 36.864. No ponto conferido,
+  <code>souCoberto</code> = <b>não</b> e <code>dentroDeCasa</code> = <b>sim</b> — exatamente o caso
+  que o dono apontou. Com o relógio no meio-dia, brilho <b>61,3</b> dentro contra <b>134,8</b> na rua
+  ao lado: razão <b>0,45</b>.</p>
+  <p><b>A caverna clara da outra foto era o EDITOR</b>, em luz neutra — tecla <b>L</b> alterna para
+  "luz do andar". Ele não escurece nada de propósito, e isso está documentado: em luz neutra ele
+  entrega o máximo de brilho honesto, porque acima disso estaria clareando a arte e mentindo sobre
+  ela. No jogo o subsolo é escuro pela <code>FLOOR_AMBIENCE</code> (<code>amb</code> a partir do
+  terceiro andar), não pelo relógio.</p>
+  <h4>E o próprio passe de abrigo desenhou uma grade no chão</h4>
+  <p>A primeira versão pintava <b>um retângulo por tile já com alfa</b>
+  (<code>rgba(0,0,0,.42)</code>), com um pixel de folga e a posição arredondada — então os
+  retângulos se sobrepunham. <b>Alfa que se sobrepõe SOMA:</b> duas passadas de 42% dão 66% na faixa
+  comum, e o resultado é uma linha escura em toda quina de tile. Uma grade desenhada por cima do
+  chão, que o dono viu na hora.</p>
+  <p>Medido no mecanismo isolado, quatro tiles cobertos sobre fundo branco:</p>
+  <div class="band">
+    <table>
+      <thead><tr><th></th><th>miolo do tile</th><th>na quina</th><th>diferença</th></tr></thead>
+      <tbody>
+        <tr><th class="bad">alfa por tile</th><td>148</td><td class="bad">86</td><td class="bad">62 níveis</td></tr>
+        <tr><th class="now">máscara opaca + alfa uma vez</th><td>148</td><td class="now">148</td><td class="now">0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>O conserto é de ordem: <b>a máscara vem primeiro, o alfa depois</b>. A cobertura é desenhada
+  opaca num canvas à parte — preto sobre preto continua preto, então sobreposição não acumula — e o
+  alfa entra uma única vez, no <code>drawImage</code> que compõe.</p>
+  <p><b>Duas voltas perdidas antes de achar</b>, e as duas por eu procurar longe do que tinha acabado
+  de escrever: primeiro respondi que era a mancha de <code>GORE</code> do patch, depois que era a
+  grade do editor. As texturas de terreno, aliás, foram medidas no caminho e estão limpas — 0,96 a
+  1,00 de borda contra miolo nas gramas. A lição é a de sempre nesta página, aplicada a mim:
+  <b>quando um defeito visual aparece logo depois de uma mudança, o suspeito é a mudança.</b></p>
+
+  <h4>E o telhado escurecia a crista, que aponta para o céu</h4>
+  <p>Da <a href="proposta_luz.html">proposta de luz</a>: <b>nenhuma superfície declarava para onde
+  aponta</b>. O passe multiplicava a crista da parede e o chão pelo MESMO ambiente — a superfície que
+  mais vê o céu levava o tratamento da que menos vê. E pior: a crista de uma parede de casa caía
+  dentro da máscara de abrigo e levava os 42% do telhado, apontando para o céu aberto.</p>
+  <p><b>O chão e a crista são a mesma normal</b>, e o chão já estava certo — quem estava errada era a
+  face. Por isso o topo não ganhou nada e a face perdeu: rebaixar a face preserva o mundo inteiro
+  como está, enquanto levantar o topo recoloriria o mapa todo por causa de uma faixa de 14 px. A
+  decisão em aberto "o chão conta como TOPO?" fica resolvida assim, sem custo.</p>
+  <p>O ramo da parede no <code>drawFloor</code> recolhe duas faixas em pixel de tela
+  (<code>cristas</code> e <code>faces</code>) — só ali se sabe se há crista, porque com parede
+  vizinha em cima o sprite não desenha nenhuma, e o TILE viaja junto com a faixa. O
+  <code>topoNaLuz</code> as pinta numa máscara opaca e compõe com um <code>drawImage</code> só.</p>
+
+  <h4 class="bad">E a primeira versão pôs um retângulo azul chapado dentro de toda casa</h4>
+  <p>A proposta dizia: <i>"o abrigo não deveria escurecer o TOPO das paredes — a crista aponta para
+  o céu mesmo estando na borda do interior"</i>. Implementei isso ao pé da letra: as faixas entravam
+  <b>depois</b> do <code>telhadoNaLuz</code> e opacas, arrancando o telhado de cada crista. O dono
+  mandou o print na hora.</p>
+  <p><b>O raciocínio estava errado, e a geometria do desenho é que explica.</b> A parede é desenhada
+  transbordando <b>um tile para CIMA</b>, então a parede <b>SUL</b> de uma casa desenha a própria
+  crista <em>dentro</em> do interior. Medido no quadro que o dono mostrou: <b>4 das 11 cristas</b>
+  estavam em tile abrigado, e eram exatamente as manchas. E o argumento físico também não fecha:
+  <b>casa tem telhado</b>, e o topo do muro está debaixo dele — quem vê o céu é a crista que cai na
+  RUA.</p>
+  <div class="band">
+    <table>
+      <caption>a crista da parede sul, dentro da casa, de madrugada (RGB do quadro)</caption>
+      <thead><tr><th>versão</th><th>R</th><th>G</th><th>B</th><th></th></tr></thead>
+      <tbody>
+        <tr><th>sem o passe</th><td>12,0</td><td>9,7</td><td>14,7</td><td>o interior</td></tr>
+        <tr><th class="bad">faixas por cima do abrigo</th><td class="bad">18,5</td><td class="bad">15,6</td><td class="bad">23,4</td><td class="bad">+55%, e azul: a mancha</td></tr>
+        <tr><th class="now">faixa abrigada não é anunciada</th><td class="now">11,5</td><td class="now">9,4</td><td class="now">14,5</td><td class="now">volta ao interior</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>O conserto é <b>no recolhimento, não na composição</b>: a faixa só é anunciada se o tile em que
+  ela transborda for rua (<code>!abrigado(x, y−1, z)</code>). Trocar a ordem dos dois passes também
+  resolveria, mas depender de ordem de composição é uma trava que nenhum teste desta suíte consegue
+  medir — o canvas do harness não tem pixel. Filtrando na origem, a régua é direta.</p>
+  <p><b>A régua que faltava</b>, e é a lição: as duas primeiras mediam <em>cor</em> e
+  <em>geometria</em>, e <b>nenhuma perguntava ONDE a faixa cai</b>. A suíte passou verde com o
+  defeito na tela. A terceira posta o jogador dentro de uma casa e cobra que nenhuma faixa caia em
+  tile abrigado; mutação conferida (tirar o filtro derruba só ela).</p>
+  <p>Ela também rendeu uma segunda armadilha: a primeira tentativa reconstruía o tile da faixa a
+  partir de <code>camX</code>/<code>VW</code> exportados ao harness, e esses são <b>cópias por
+  valor</b> — um retrato do momento da exportação, não o valor do quadro. A régua passou verde
+  contra a mutação porque media tiles inventados. Por isso o tile viaja <b>dentro</b> da faixa: no
+  recolhimento ele está na mão de graça, e remontar coordenada de mundo a partir de pixel de tela já
+  mordeu esta base três vezes.</p>
+  <p><b>A face leva DUAS coisas, e é a segunda que importa.</b> Rebaixada sozinha ela vira a mesma
+  cor mais escura, e no poente parede e telhado ficam os dois laranja. Quem separa é <b>lavar a
+  cor</b>: a face vê metade do domo e recebe muito mais luz de volta do chão, então a inclinação de
+  cor do céu chega nela diluída. <code>luzDaFrente</code> é a única função que decide isso — enquanto
+  cada sprite escolhia o próprio alfa a olho, dois objetos feitos em dias diferentes nunca
+  concordavam.</p>
+  <p><b>Medido no jogo rodando</b> depois do conserto, num muro ao ar livre de Varrokgaard, mesmo
+  enquadramento com o passe ligado e desligado. A razão crista/face é o que dá volume; o croma da
+  face é a metade que separa as duas:</p>
+  <div class="band">
+    <table>
+      <thead><tr><th>hora</th><th>razão sem</th><th>razão com</th><th>croma da face</th></tr></thead>
+      <tbody>
+        <tr><th>meio-dia</th><td>1,57</td><td class="now">1,79</td><td class="delta">16,5 → 14,6</td></tr>
+        <tr><th>poente</th><td>1,70</td><td class="now">1,87</td><td class="delta">21,8 → 18,3</td></tr>
+        <tr><th>madrugada</th><td>2,23</td><td class="now">2,36</td><td>7,6 (céu quase sem cor)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>É um ganho modesto de propósito — os números são conservadores e o efeito grande que a primeira
+  medição mostrou <b>era o defeito</b>, não o passe funcionando.</p>
+  <p>Os dois números são <b>chute informado para o dono girar</b>: <code>FRENTE_F</code> = 0,88
+  (quanto do céu uma superfície vertical vê) e <code>FRENTE_LAVA</code> = 0,5 (quanto ela lava a cor
+  dele). O passe agora roda também quando há parede em cena, senão a divergência sumiria ao meio-dia
+  descoberto — e pior, piscaria ao entrar debaixo de um telhado.</p>
+  <p><b>O que ficou de fora:</b> só parede declara faixa. Barril, poço e carroça têm tampa e lateral
+  e continuam levando o mesmo ambiente nas duas — o caminho é o sprite declarar as próprias faixas,
+  não o render conhecer objeto por objeto. O lado ESCURO (face leste mais escura que a oeste) e a
+  saída do clareado assado no <code>wallSprite</code> também continuam em aberto na proposta.</p>
+  <p><b>Três travas de teste</b>, e cada uma nasceu de um defeito diferente: a de <b>cor</b>
+  exercita <code>luzDaFrente</code> em quatro horas do céu e cobra luminância menor <em>e</em> croma
+  menor; a de <b>geometria</b> cobra que a face comece exatamente onde a crista acaba e que as duas
+  somem a parede inteira; a de <b>abrigo</b> cobra que nenhuma faixa caia em tile coberto. As duas
+  últimas postam o jogador de propósito (encostado numa parede, e dentro de uma casa) — no ponto de
+  nascer não há parede no enquadramento e as duas passariam verde sem medir nada. Mutação conferida
+  nas três.</p>
+  <p><b>A ancoragem do Tibia</b>, para quando formos mexer nisso: o cliente prega o canto
+  <em>inferior direito</em> do sprite no canto inferior direito do tile e aplica um deslocamento de
+  8 px para cima e para a esquerda, então o contato fica a ~¾ da altura do tile. Thaira usa
+  <code>CHAO = 0.5</code> (centro do tile) e centro horizontal — o centro horizontal é melhor que o
+  do Tibia, que tem viés à esquerda por efeito colateral da ancoragem no canto; o <b>0,75 vertical</b>
+  é o que vale experimentar. Não aplicado.</p>
+  <p><b>Falta o último degrau: as criaturas.</b> Elas mexem em jogo, não só em desenho —
+  <code>sz</code> alimenta poça de sangue, tremor de tela, tamanho do corpo e a fórmula de chance do
+  <code>game.js:2742</code>. Hoje o minotauro mede 1,38 contra 1,47 do jogador. A decisão pendente é
+  subir o <code>sz</code> (arrasta o balanceamento junto) ou separar um <code>szVis</code>.</p>
+
+  <h3>O que NÃO foi feito</h3>
+  <ul class="itens">
+    <li><span class="it-n">Arma por cima da folha (paperdoll parcial)</span>
+      <span class="it-d">é o único slot que pagaria arte por item, porque 97 armas agrupam em ~5
+      famílias por <code>wt</code>. O preço é cada célula declarar um <b>ponto de mão</b> além de
+      <code>cx</code>/<code>feet</code> — 24 âncoras escolhidas à mão por folha. Só vale depois de
+      haver mais degraus de kit.</span></li>
+    <li><span class="it-n">Arte para ranger, sorcerer e druid</span>
+      <span class="it-d">o ranger tem uma folha só (degrau único, a de sempre); as outras duas não
+      têm nenhuma e seguem no procedural. <code>VOC_SKINS</code> aceita a lista crescer sem tocar em
+      código: quando o knight tiver 4 artes, cada degrau ganha a sua sozinho.</span></li>
+    <li><span class="it-n">Prévia no seletor</span>
+      <span class="it-d">as opções são texto, na linha de rádio que a janela já usa. Painel com
+      moldura própria e boneco girando seria uma segunda gramática de painel por causa de quatro
+      opções.</span></li>
+  </ul>
+</section>
+
+<section>
+  <h2>Árvore de talentos — primeira fatia · 2026-08-29</h2>
+
+  <p>Pedido do dono: <i>"o player escolhe a vocação como normalmente, mas cada vocação tem uma
+  SKILL TREE com habilidades passivas e ativas (…) começando com uma bem básica, pra testarmos e
+  depois expandir aos poucos"</i>, com PoE, Skyrim e semelhantes como referência. Três decisões
+  foram tomadas por ele antes de qualquer código, e são elas que dão forma ao resto.</p>
+
+  <h3>Por que ela cabe aqui — e o que ela conserta</h3>
+  <p>O <b>#37</b> já registrava que <b>do nível 76 ao 320 o jogador só cresce por nível</b>: a
+  Ceifadeira do Vazio é a última peça do jogo, e a saída "entra equipamento novo" foi vetada pelo
+  dono. A árvore é a outra saída, e é mais barata que 200 itens.</p>
+  <p>E resolve uma coisa que nenhum item resolvia: até aqui <b>o jogador não escolhia nada</b>.
+  <code>knownSpells()</code> é <code>voc.includes(P.voc) &amp;&amp; P.level &gt;= s.lvl</code> — as magias
+  chegam sozinhas, na ordem, iguais para todo knight que já existiu. A árvore é o primeiro lugar em
+  que dois personagens da mesma vocação ficam diferentes <em>por decisão</em>.</p>
+
+  <h3>As três decisões do dono</h3>
+  <div class="fases">
+    <div class="fase"><div class="num">01</div><div>
+      <p><b>O nó muda COMO funciona, não quanto bate.</b> Nada de +dano, +vida ou +defesa. O
+      balanceamento está em pausa e a régua do #38 foi fechada medindo (mago contra guerreiro de
+      6,2× para 3,4× no nível 50); somar poder cru aqui a desmediria no primeiro ponto gasto.</p>
+      <p class="why">Consequência que vale registrar: nó de NÚMERO teria sido de graça — entraria
+      sozinho pelo <code>add()</code> do <code>recalc</code>, que já é o funil de equipamento,
+      conjunto e buff. Nó de COMPORTAMENTO é um gancho em cada lugar que ele muda. Custou mais, e
+      a escolha continua certa.</p>
+    </div></div>
+    <div class="fase"><div class="num">02</div><div>
+      <p><b>1 ponto a cada 5 níveis</b> (<code>PONTO_NIVEL</code>), então 63 no nível 320. Não
+      precisou de campo novo: pontos são <code>floor(nível/5)</code> menos gastos.</p>
+      <p class="why">Um por nível daria 320 pontos e a árvore ficaria toda alocada — deixaria de
+      ser escolha e viraria lista de espera.</p>
+    </div></div>
+    <div class="fase"><div class="num">03</div><div>
+      <p><b>Redistribuir pagando ouro no templo</b>, <code>RESPEC_BASE = 500</code> por ponto já
+      gasto. O ouro já tem sumidouro (bênçãos, forja) e o templo já é o lugar de mexer no
+      personagem.</p>
+      <p class="why">Sem volta, ninguém escolhe o nó estranho — e o nó estranho é o que faz a
+      árvore valer a pena.</p>
+    </div></div>
+  </div>
+
+  <h3>O vocabulário é fechado, e essa é a regra que mais importa</h3>
+  <p><code>EF_CHAVES</code> tem <b>sete efeitos</b> e é o sistema inteiro. <code>treeEf()</code>
+  soma os nós comprados e o <code>recalc</code> guarda o resultado em <code>P.ef</code>, ao lado do
+  <code>P.st</code> — mesma volta, mesmo lugar, porque o <code>recalc</code> já roda em todo evento
+  que muda personagem.</p>
+  <div class="band"><table>
+    <caption>Os sete, e onde cada um é lido. Chave que ninguém lê faz o jogador gastar um ponto em
+    nada — sem erro e sem aviso, que é exatamente o defeito do <code>arm</code> que ficou onze
+    bônus sem efeito.</caption>
+    <thead><tr><th>Efeito</th><th>O que faz</th><th>Onde é lido</th></tr></thead>
+    <tbody>
+      <tr><th>mana</th><td>desconto no custo das magias</td><td class="n">custoDe → castSpell</td></tr>
+      <tr><th>alcance</th><td>+tiles na magia de ataque (base 6)</td><td class="n">castSpell</td></tr>
+      <tr><th>raio</th><td>+anéis em área, onda e feixe</td><td class="n">spellTiles</td></tr>
+      <tr><th>dur</th><td>buff dura mais</td><td class="n">castSpell</td></tr>
+      <tr><th>certeza</th><td>o estado do golpe nunca falha o sorteio</td><td class="n">dealDamage</td></tr>
+      <tr><th>limpa</th><td>a cura arranca os estados negativos</td><td class="n">castSpell</td></tr>
+      <tr><th>varinha</th><td>canalizar deixa de gastar mana</td><td class="n">playerAttack</td></tr>
+    </tbody>
+  </table></div>
+  <p><code>certeza</code> e <code>limpa</code> reaproveitam o <b>#32</b> inteiro: o
+  <code>certo</code> já existia em <code>aplicaEstado</code>, e a lista de estados sai do
+  <code>ESTADOS</code>. Nenhuma mecânica nova de estado foi escrita.</p>
+
+  <h3>Quatro armadilhas, e três eram minhas</h3>
+  <div class="fix">
+    <h4>O irmão da bifurcação sumia da janela</h4>
+    <p>O desenho segue a corrente de <code>req</code>, e a primeira versão pegava só o
+    <em>primeiro</em> filho de cada nó. O <code>k_reserva</code>, segundo filho de
+    <code>k_giro</code>, não aparecia em coluna nenhuma — comprável pelo jogo e invisível para o
+    jogador.</p>
+    <p class="causa"><b>Causa:</b> ramo tratado como corrente quando ele é árvore. Agora o segundo
+    filho abre coluna própria e leva o nome do pai na linha do que falta, então a dependência não
+    se perde na quebra. <b>Achado pelo teste</b>, não jogando.</p>
+  </div>
+  <div class="fix">
+    <h4>O teste do custo de mana não guardava nada</h4>
+    <p>Ele media <code>custoDe(sp)</code>, que é função pura. Trocar o gasto dentro do
+    <code>castSpell</code> de volta para <code>sp.mana</code> passava <b>verde nas duas
+    mutações</b>. Refeito para medir a <b>mana que sai da barra</b> ao conjurar.</p>
+    <p class="causa"><b>Causa:</b> a mesma da suíte que varria o fonte atrás da palavra "objs" —
+    <b>teste que chama a peça não prova o encanamento</b>. Só apareceu porque a mutação foi rodada.</p>
+  </div>
+  <div class="fix">
+    <h4>Treinar magic level pelo custo descontado seria punir quem comprou o desconto</h4>
+    <p><code>addMagic(sp.mana)</code> continua no custo <b>nominal</b>. Pelo descontado, o talento
+    de mana pagaria a si mesmo em magic level mais lento — uma punição que ninguém escreveu e que
+    ninguém veria.</p>
+  </div>
+  <div class="fix">
+    <h4>Limpar estado não pode varrer o mapa de buffs inteiro</h4>
+    <p><code>P.buffs</code> guarda <code>haste</code> e <code>regen</code> no mesmo lugar que
+    <code>queimando</code> e <code>envenenado</code>. A limpeza percorre só o que
+    <code>ESTADOS</code> declara; varrer tudo apagaria a pressa que o jogador acabou de conjurar.
+    As duas metades estão travadas por teste.</p>
+  </div>
+
+  <h3>Medido, no jogo rodando</h3>
+  <ul>
+    <li>Knight nível 40, 8 pontos. Cura do Cavaleiro de <b>40 para 35</b> de mana com
+      Fôlego de Ferro 3/3.</li>
+    <li>Exori de <b>8 para 24 tiles</b> com um único ponto em Giro Largo — r=1 vira r=2, e a área
+      <b>triplica</b>. É o nó a olhar primeiro quando o balanceamento voltar; está anotado no
+      <code>spellTiles</code>.</li>
+    <li>Redistribuir: 3 pontos por 1.500 de ouro, saldo de volta a 8 e <code>P.ef</code> zerado
+      no mesmo <code>recalc</code>.</li>
+    <li><b>913 verificações</b> (eram 810). <b>14 mutações, 14 pegas</b> — as duas que escaparam na
+      primeira volta foram as do custo de mana, e o teste é que estava errado.</li>
+  </ul>
+
+  <h3>A morte tira nível, e o talento comprado FICA</h3>
+  <p><code>playerDeath</code> tira experiência sem piso de nível, então quem cai de 40 para 37 tem
+  mais talento comprado do que a conta de agora paga. <code>pontosLivres()</code> fica
+  <b>negativo</b> de propósito: desalocar sozinho seria confiscar em silêncio o que o jogador já
+  pagou. Ele para de ganhar ponto novo até recuperar o nível, e o que tem continua valendo.</p>
+
+  <h3>A janela</h3>
+  <p>Herda a moldura <code>.win</code> — mesma madeira, mesmo cabeçalho das outras sete. <b>Ramo é
+  coluna, degrau é linha</b>, e o fio entre dois nós é uma borda de 1px. Com cinco nós por vocação,
+  câmera com pan/zoom e traçado seriam maquinário para nada — e o editor já provou que zoom em
+  canvas traz a armadilha de pixel de CSS contra pixel de buffer junto. Tecla <b>K</b>, entrada no
+  menu e linha no <code>H</code>.</p>
+  <p><b>Nó não tem ícone</b>, e isso é decisão e não falta: o <code>SPELLS</code> carrega
+  <code>ico</code> em emoji, e uma janela de vinte nós seria a maior superfície de emoji do jogo,
+  contra o §17. Sem ícone, o <b>#14</b> continua fora do caminho.</p>
+  <p>Os três estados não se distinguem só pela cor (§9): o comprado ganha barra de ouro à esquerda
+  <em>e</em> o degrau escrito (2/3); o travado perde contraste <em>e</em> ganha a linha dizendo de
+  qual nó ele depende.</p>
+
+  <h3>O teto conhecido, marcado no código</h3>
+  <p>Com 5 a 6 nós por vocação a árvore inteira custa 8 a 10 pontos — <b>está toda comprada por
+  volta do nível 50</b>, e daí para cima não há escolha, só espera. Aceitável enquanto ela é a
+  primeira fatia e vai crescer. Quando parar de crescer, o conserto <b>não</b> é subir o
+  <code>PONTO_NIVEL</code> (isso só adia): é a árvore custar mais pontos do que o jogo paga, que é
+  o que faz a escolha existir. Marcado com <code>ponytail:</code> no <code>data.js</code>.</p>
+
+  <h3>A interface virou grafo, e os modais mudaram de quadro — 2026-08-29</h3>
+  <p>Pedido do dono, em quatro partes: <i>"o modal deve abrir em tela cheia (faça isso com o
+  modal do MAPA também) e os cards devem ser bolinhas com um ícone ou nome com um tooltip (…)
+  cada habilidade deve ser interligada às demais que se complementam"</i>; depois
+  <i>"todos os modais centralizados NA TELA DO JOGO ao invés da tela toda"</i>; depois
+  <i>"faça os modais arrastáveis como o modal de loot, aplique para todos"</i>; e por fim
+  <i>"modal em tela cheia quando arrastado deve encolher, ou então não ser possível arrastar"</i>.
+  Referências pedidas e consultadas: a árvore passiva do Path of Exile e as constelações do
+  Skyrim.</p>
+
+  <h4>O que as duas referências ensinaram, e o que foi copiado de cada uma</h4>
+  <ul>
+    <li><b>Do Skyrim, o traço que ACENDE.</b> Lá a linha entre dois nós brilha quando as duas
+      pontas estão compradas. Aqui são três estados: apagado, meio-aceso (uma ponta) e aceso
+      (as duas). O meio-aceso é o que mostra <em>por onde dá para continuar</em> — sem ele a
+      árvore só tem "feito" e "longe", e falta o "próximo".</li>
+    <li><b>Do PoE, a porta por VIZINHANÇA.</b> Lá o nó abre com qualquer vizinho alocado, não com
+      um pai único. Foi a mudança de regra desta leva: <code>req</code> virou <b>lista</b> e vale
+      por <em>qualquer um</em>. É o que dá sentido a interligar duas pontas — quem está no alto é
+      alcançável pelos dois caminhos, e a escolha passa a ser <em>por onde chegar</em>.</li>
+    <li><b>Do PoE, a hierarquia por tamanho — e ela NÃO foi copiada</b>, de propósito. Lá o nó
+      grande é "notável" e o pequeno é caminho de ligação. Aqui não existe passiva de encher
+      caminho: os cinco ou seis nós de cada vocação são todos notáveis, então todos têm o mesmo
+      tamanho. Quando nascer nó pequeno de ligação, é essa a distinção que entra.</li>
+    <li><b>Não foi copiada a teia de 1300 nós.</b> A maioria dela é <code>+8 de vida</code> —
+      enchimento para dar sensação de tamanho. É a mesma classe do paperdoll: não é caro, é
+      <em>gerado</em>.</li>
+  </ul>
+
+  <h4>Posição é AUTORAL, e desenho e regra saem da mesma linha</h4>
+  <p>Cada nó declara <code>pos: [x, y]</code> em porcentagem do quadro. Nenhum layout automático:
+  grafo de seis nós posicionado por algoritmo sai sempre com a mesma cara de diagrama, e a forma é
+  o que dá identidade a cada vocação — o knight fecha num losango de dois caminhos que se
+  encontram, o ranger sobe em duas trilhas, o mago abre em leque a partir da varinha, o druida gira
+  em torno da raiz. Mesmo princípio do mundo: decidido e congelado.</p>
+  <p>O traço sai do <b>mesmo <code>req</code></b> que o jogo cobra, então <b>não há como o desenho
+  mentir</b> sobre a regra — nem mostrar ligação que não existe, nem esconder uma que existe.
+  Duas camadas de render, cada uma boa numa coisa: SVG para os fios (linha que acompanha
+  coordenada é trivial ali e horrível em CSS) e <code>&lt;button&gt;</code> para as bolinhas (foco,
+  hover e teclado são triviais em HTML e horríveis em SVG). Um <b>único</b> sistema de coordenadas
+  para as duas — dois seriam duas verdades sobre onde o nó está, e a linha erraria o alvo em telas
+  de proporção diferente.</p>
+  <p>O balão é o <code>tipEm</code> que a mochila já usa: mesma moldura, mesmo clamp de borda,
+  mesmo <code>tipCheck</code> que recolhe balão órfão. Um segundo tooltip seria a segunda gramática
+  de balão do jogo por causa de seis nós. E a linha de efeito dentro dele sai do próprio
+  <code>ef</code> (<code>EF_TEXTO</code>), não de frase escrita à mão — frase envelhece no dia em
+  que alguém mexe no número e esquece dela.</p>
+  <p><b>Bolinha sem ícone</b>, e isso é decisão: o <code>SPELLS</code> carrega <code>ico</code> em
+  emoji, e vinte nós com emoji seriam a maior superfície de emoji do jogo, contra o §17. Dentro da
+  bolinha vai o degrau (2/3), embaixo dela o nome, e o resto no balão.</p>
+
+  <h4>Os modais mudaram de quadro de referência</h4>
+  <p>As dez janelas <code>.win</code> (e o <code>#help</code>) eram filhas do <code>&lt;body&gt;</code>
+  e portanto centralizavam na <b>página</b> — só que o meio da página não é o meio do jogo, porque
+  as barras laterais e o console ocupam o resto. Passaram a morar dentro do <code>#stage</code>,
+  que já era <code>position:relative</code> e virou o único ancestral posicionado. <b>Nenhuma linha
+  de JS de layout</b>: o <code>absolute</code> delas passou a resolver contra o palco sozinho. Tela
+  cheia, pela mesma razão, virou <b>o palco inteiro</b> e não a janela do navegador. As
+  <code>.screen</code> de escolher e criar personagem continuam fixas na página — elas existem
+  antes de haver jogo, e não há palco onde se ancorar.</p>
+
+  <h4>Cinco defeitos, e quatro eram invisíveis no fonte</h4>
+  <div class="fix">
+    <h4><code>inset</code> É top/right/bottom/left, e escrever <code>top:auto</code> depois desfaz metade dele</h4>
+    <p>A regra de tela cheia era <code>inset:6px;top:auto;left:auto</code> — o <code>top:auto</code>
+    estava lá para desfazer o <code>top:50%</code> da janela normal, sem perceber que o
+    <code>inset</code> já tinha feito isso. Resultado: a janela ficava presa só à direita e
+    embaixo, medida pelo conteúdo. O mapa abria com <b>727×503 num palco de 1152×614</b>.</p>
+  </div>
+  <div class="fix">
+    <h4>Especificidade: <code>#map-win</code> (id) ganha de <code>.win.cheia</code> (classe)</h4>
+    <p>Mesmo com o <code>inset</code> certo, a largura de janela normal continuava vencendo. O
+    tamanho de janela normal foi para <code>:not(.cheia)</code> em vez de brigar por peso —
+    seletor que depende de contagem de especificidade é seletor que quebra na próxima regra.</p>
+  </div>
+  <div class="fix">
+    <h4>Arrastar misturava coordenada de TELA com coordenada do PAI</h4>
+    <p><code>arrastaJanela</code> fazia <code>left = clientX - dx</code>. Estava certo enquanto o
+    pai era a página; com as janelas dentro do palco, o <code>left</code> passou a ser medido a
+    partir do palco e o mouse continuou falando em tela — a janela saltava para baixo e para a
+    direita exatamente a distância das barras laterais. A conta saiu para
+    <code>posicaoJanela()</code>, que é pura e tem <b>sete verificações</b>.</p>
+    <p class="causa"><b>Mesma família</b> do pixel de CSS contra pixel de buffer do editor: dois
+    sistemas de coordenadas que coincidem enquanto ninguém mexe no ancestral.</p>
+  </div>
+  <div class="fix">
+    <h4>O mapa elástico trouxe o HiDPI de volta</h4>
+    <p>Enquanto o canvas era 620×620 cravado, pixel de CSS e de buffer coincidiam. Elástico, só
+    coincidem em tela sem HiDPI — e o dono tem <code>devicePixelRatio</code> 2. O arrasto andaria
+    <b>metade</b> do esperado, e só na máquina dele. <code>escalaMapa()</code> e
+    <code>arrastoEmTiles()</code> são puras justamente para poderem ser cobradas: a régua é
+    <em>o mesmo arrasto em pixel de tela anda os mesmos tiles em dpr 1 e em dpr 2</em>.
+    O <code>drawBigMap</code> também deixou de supor canvas quadrado.</p>
+  </div>
+  <div class="fix">
+    <h4>Piso de altura no grafo escondia a fileira de baixo</h4>
+    <p><code>min-height:300px</code> numa caixa menor que isso empurrava os dois nós da base para
+    fora, atrás da rolagem — e nó que não se vê é ponto que não se gasta. Apertado e inteiro ganha
+    de folgado e cortado.</p>
+  </div>
+
+  <h4>Arrastar, e o que a tela cheia faz quando arrastada</h4>
+  <p>O arraste já existia e era do saque <b>por acidente de ordem de construção</b>, não por
+  decisão — uma varredura <code>querySelectorAll('.win').forEach(arrastaJanela)</code> cobre as
+  oito janelas móveis de hoje e as que vierem.</p>
+
+  <h4>Mapa e talentos são SEMPRE de tela cheia, e quem se move é o conteúdo</h4>
+  <p><b>E "tela cheia" passou a ser a JANELA INTEIRA</b>, painéis inclusive, por decisão do dono
+  (<i>"faça os modais em tela cheia cobrirem a tela inteira do jogo"</i>) — mapa e talentos somem
+  com o minimapa, o equipamento, a barra de ação e o console enquanto estão abertos. Isso exigiu
+  <code>position: fixed</code> e não <code>absolute</code>: as janelas moram dentro do
+  <code>#stage</code>, que é o que centraliza as outras oito no jogo, e absoluta ficaria presa
+  nele. O <code>z-index</code> se encaixa <b>entre</b> o jogo (até 20) e o balão (60) — o balão
+  precisa continuar por cima, porque é ele que descreve os nós.</p>
+  <p>Houve uma volta intermediária em que a janela de tela cheia <b>encolhia ao ser arrastada</b>,
+  como faz um gerenciador de janelas, com um botão para voltar ao modo cheio. O dono jogou e
+  mandou tirar: <i>"remova a opção de janela e tela cheia, MAPA e TALENTOS sempre abrem em tela
+  cheia"</i>. Estava certo, e o print que veio junto mostrava por quê — <b>encolhida, a árvore
+  ficava com altura quase zero</b>. A causa é a mesma decisão que tinha consertado o outro extremo:
+  o grafo perdeu o <code>min-height</code> para não esconder a fileira de baixo atrás da rolagem,
+  e sem piso de altura, numa caixa pequena, ele simplesmente não tem onde existir. <b>Dois modos
+  para o mesmo painel eram duas caixas para acertar</b>, e a segunda não tinha dono.</p>
+  <p>O gesto certo num mapa e num grafo não é mover a moldura — é mover <b>o que está dentro</b>.
+  A árvore ganhou câmera no mesmo molde da do mapa: arrastar o fundo move,
+  roda dá zoom (<code>TREE_ZOOM</code>, de 1 a 3,5), o recorte não reseta ao fechar, e nó continua
+  clicando porque o arraste só começa fora de um <code>.tree-no</code>.</p>
+  <p>O limite de deslocamento é <code>treeLimite</code>, e ele existe porque <b>não há botão de
+  voltar ao centro</b>: no zoom 1 o quadro inteiro cabe e o limite é zero — arrastar não faz nada e
+  o clamp recentra sozinho —, e daí para cima dá para andar metade do que sobrou de cada lado. A
+  régua que amarra as duas pontas é o piso de zoom valer 1: baixar o piso para 0,5 achando que
+  "mais zoom para fora é melhor" faria o grafo caber sobrando, o clamp parar de recentrar, e ele
+  sumir do meio da tela sem erro nenhum.</p>
+  <p>Dois detalhes que só aparecem usando: janela já arrastada é <b>reancorada</b> quando o palco
+  encolhe (sem isso o cabeçalho sai do alcance e não há como trazê-la de volta), e janela maior que
+  o palco encosta no canto em vez de sair dele — melhor colada num canto visível que centrada e
+  inalcançável.</p>
+
+  <h4>O balão se soltava do nó no zoom, e a correção não foi escalar</h4>
+  <p>Relato do dono, com print: <i>"faça o tooltip dinâmico conforme o zoom"</i>. A imagem mostrava
+  um nó ocupando meia tela e o balão pequeno, largado à esquerda. Perguntado o que "dinâmico" devia
+  querer dizer, ele escolheu <b>tamanho fixo, colado na bolinha</b> — que é o que PoE e Skyrim
+  fazem: <b>o conteúdo escala, a interface de leitura não</b>. Um balão que crescesse junto teria
+  826px a 3,5×, quase metade da largura da tela.</p>
+  <p>Mas o print mostrava um defeito de verdade, e ele existiria em qualquer das escolhas: o
+  <code>tipEm</code> ancorava na caixa do <b>botão</b>, e o botão tem a largura do rótulo — que
+  <b>cresce com o zoom do grafo</b>, porque o zoom é um <code>transform</code> no quadro inteiro. A
+  âncora passou a ser a <b>bolinha</b>, que é o desenho onde a informação está pendurada.</p>
+  <div class="band"><table>
+    <caption>Distância entre o balão e o círculo que ele descreve, medida no jogo.</caption>
+    <thead><tr><th>Âncora</th><th>zoom 1</th><th>zoom 2,2</th><th>zoom 3,5</th></tr></thead>
+    <tbody>
+      <tr><th>bolinha (agora)</th><td class="now">4 px</td><td class="now">4 px</td><td class="now">4 px</td></tr>
+      <tr><th>caixa do botão (antes)</th><td class="n">~40 px</td><td class="n">~200 px</td><td class="n">337 px</td></tr>
+    </tbody>
+  </table></div>
+  <p>Duas coisas saíram junto. A conta virou <code>tipLugar()</code>, <b>pura</b> — é ela que decide
+  se o balão fica colado ou solto, e precisava valer em qualquer escala. E o balão passou a
+  <b>acompanhar a câmera</b> (<code>tipSegue</code>, chamado pelo <code>aplicaCam</code>): dá para
+  dar zoom ou arrastar sem tirar o cursor do nó, e o alvo andava debaixo de um balão parado.</p>
+  <p class="causa">A régua do teste é o par: com a bolinha a folga <b>não muda com o zoom</b>, e com
+  o botão ela <b>cresce</b> — a segunda metade é o que registra por que a âncora é o círculo, e
+  sozinha a primeira passaria com qualquer âncora que por acaso desse 4px numa escala só.</p>
+
+  <h4>A arte da vocação no fundo do modal</h4>
+  <p>O dono trouxe quatro artes (<code>assets/vocations/&lt;voc&gt;_background.png</code>) e pediu
+  <i>"adicione essas imagens desfocadas ao fundo do modal de cada respectiva vocação. As imagens
+  devem preencher e não podem ser afetadas pelo zoom"</i>.</p>
+  <p><b>Três camadas, e a ordem delas é a regra.</b> A arte é <b>irmã</b> do grafo e não filha —
+  o zoom é um <code>transform</code> no <code>.tree-mapa</code>, e tudo que estiver dentro dele
+  escala junto; foi assim que "não pode ser afetada pelo zoom" virou estrutura em vez de promessa.
+  O véu escuro é uma <b>terceira</b> camada porque <code>filter: blur</code> desce para os filhos:
+  um escurecedor dentro do fundo sairia borrado junto e não seguraria a leitura do grafo.</p>
+  <p>O caminho do arquivo sai do id da vocação em vez de uma tabela de quatro linhas que só
+  repetiria o nome. Arquivo faltando não daria erro — o fundo simplesmente não pintaria —, então há
+  teste conferindo que os quatro existem em disco, mais um que cobra que o fundo <b>não</b> apareça
+  dentro do bloco do grafo no HTML gerado.</p>
+  <h4>Três ajustes que só o dono podia fazer, olhando</h4>
+  <ul>
+    <li><b>Desfoque: 16px → 5px → 2,5px.</b> <i>"quase não consigo ver a imagem"</i>, e depois
+      <i>"ainda está forte"</i>. A 16px a arte virava mancha de cor e deixava de ser reconhecível
+      — o efeito custava a informação que ele queria colocar ali.</li>
+    <li><b>Enquadramento: centro → topo → 35% → uma tabela POR VOCAÇÃO.</b> A arte é retrato de
+      1024×1536 numa caixa larga e baixa, então <code>cover</code> mostra só uma faixa. Um número
+      só nunca ia servir: o dono mandou os quatro recortes que queria e eles caem em alturas
+      diferentes — no druida os chifres e o rosto, no cavaleiro o elmo e a espada, no ranger o arco
+      armado, no mago do rosto às mãos acesas. Virou <code>VOC_FUNDO_Y</code> no ui.js:
+      <b>druida 12%, cavaleiro e ranger 20%, mago 34%</b>. É reuso sendo errado onde o requisito é
+      diferenciar — o caminho do arquivo continua derivado do id, porque ali repetir o nome quatro
+      vezes é que seria a segunda fonte de verdade. A <code>transform-origin</code> acompanha cada
+      número: escalando de outro ponto, a folga do desfoque desloca o enquadramento escolhido.</li>
+    <li><b>Folga embaixo no quadro do grafo.</b> A coordenada do nó é a do <b>círculo</b>, e o
+      rótulo fica pendurado abaixo dele: no druida o "Sussurro" saía cortado pela borda. 26px de
+      respiro, e a medição nas quatro vocações passou de um nó cortado para <b>zero</b>.</li>
+  </ul>
+  <p class="causa">A régua da casa outra vez: <b>arte se julga no tamanho e na luz do jogo</b>. Os
+  três números saíram de olhar a tela, não de escolher um valor que parecia razoável — e o primeiro
+  chute errou por seis vezes o valor final.</p>
+
+  <h4>A opacidade da arte foi MEDIDA, e a medição mostrou que o culpado era outro</h4>
+  <p>Relato do dono: <i>"diminua a opacidade das imagens de fundo de maneira que não atrapalhe a
+  legibilidade e visualização da árvore"</i>. Em vez de escolher um número discreto, a arte foi
+  amostrada <b>atrás de cada rótulo</b> nas quatro vocações — desenhando a imagem num canvas com o
+  mesmo <code>cover</code>, o mesmo enquadramento e o mesmo desfoque —, composta com o véu na
+  posição real de cada nó, e medida em razão de contraste WCAG contra a cor efetiva do rótulo.</p>
+  <div class="band"><table>
+    <caption>Pior rótulo das quatro árvores, por opacidade da arte. O travado tem cor apagada e
+    <code>opacity: .45</code> próprios; o legível usa <code>--txt</code> cheio.</caption>
+    <thead><tr><th>Opacidade da arte</th><th>Pior rótulo LEGÍVEL</th><th>Pior rótulo TRAVADO</th></tr></thead>
+    <tbody>
+      <tr><th>1,00 (antes)</th><td class="n">9,19:1</td><td class="n">1,56:1</td></tr>
+      <tr><th>0,55</th><td class="n">11,29:1</td><td class="n">1,87:1</td></tr>
+      <tr><th>0,38</th><td class="n">12,03:1</td><td class="n">1,96:1</td></tr>
+      <tr><th>0,32 (escolhido)</th><td class="now">12,28:1</td><td class="now">1,99:1</td></tr>
+      <tr><th>0,20</th><td class="n">12,74:1</td><td class="n">2,00:1</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>A medição contrariou o pedido pela metade, e é o achado.</b> O rótulo <em>legível</em> nunca
+  esteve em risco — mede 9,2:1 com a arte cheia, muito acima de qualquer piso. Quem sumia era o
+  <b>travado</b>, e o teto dele é <b>2,00:1</b> — o número que ele alcança com a arte <em>inteiramente
+  removida</em>. Ou seja: <b>o limite é o estilo do travado, não a arte.</b> Baixar a opacidade
+  compra de 1,56 para 1,99 e para ali.</p>
+  <p><code>0,32</code> é o joelho da curva: entrega 1,99 dos 2,00 possíveis e ainda deixa um terço
+  da arte. Abaixo disso joga-se arte fora sem ganhar legibilidade nenhuma; acima, cada passo custa
+  contraste. <b>Aumentar a opacidade do rótulo travado era o outro caminho — e foi recusado pelo
+  dono</b>, então o teto de 2,00:1 fica como decisão dele: travado tem de parecer travado. Fica
+  registrado para quem for mexer: se um dia o travado precisar ler melhor, o botão é a opacidade
+  DELE, não a da arte, que já está no fim do que pode dar.</p>
+
+  <h4>Medido</h4>
+  <ul>
+    <li>Mapa em tela cheia: janela <b>1140×602</b> num palco de <b>1152×614</b>, com a margem de
+      6px. Buffer do canvas batendo com o CSS.</li>
+    <li>Arraste de <b>60,−20</b> pedidos, <b>60,−20</b> entregues; os quatro lados presos ao palco.
+      As <b>oito</b> janelas móveis arrastam pelo cabeçalho; mapa e talentos recusam, por serem
+      sempre de tela cheia.</li>
+    <li>Câmera da árvore: zoom 1 → 1,39 em duas voltas de roda, arraste de <b>60,30</b> exato,
+      volta ao piso de zoom <b>recentrando em 0,0</b>. No zoom 1 um arraste de 900px não move nada;
+      no zoom 3,5 um de 9000px para em <b>387,287</b> com o grafo ainda em quadro. E clicar no nó
+      continua alocando.</li>
+    <li>Rótulos medidos <b>na tela</b>: <b>zero colisões</b> com 87px de rótulo num grafo de 310px
+      — o pior caso, que é o palco mais estreito.</li>
+    <li><b>1179 verificações</b> (eram 913), e <b>nove mutações, nove pegas</b> nos caminhos novos — as duas de coordenada, a escala do mapa, a convergência e o traço repetido.</li>
+  </ul>
+  <p>A largura do rótulo é <b>porcentagem do quadro</b> e não pixel: com caixa fixa, dois nós a 30%
+  um do outro se atropelam assim que o palco encolhe. Em porcentagem, distância e rótulo encolhem
+  juntos — e há teste cobrando que <b>nenhum par de mesma fileira</b> fique mais perto que a
+  largura do rótulo, medindo os dois lados (as posições no data.js e o número no CSS).</p>
+
+
+  <h3>O que NÃO foi feito, e por quê</h3>
+  <ul>
+    <li><b>Habilidade ativa e magia por nó.</b> A fatia é só passiva —
+      <code>knownSpells()</code> ganharia uma cláusula e pronto, mas magia nova é conteúdo de
+      balanceamento e o balanceamento está em pausa.</li>
+    <li><b>Nós de troca (keystone).</b> "Seus estados nunca falham, mas suas magias custam 25% a
+      mais" é o desenho que deixaria a árvore ousada sem mexer no poder total. Fica para quando os
+      sete efeitos tiverem sido jogados.</li>
+    <li><b>Teia navegável estilo PoE.</b> Aquela imagem tem ~1300 nós e a maioria é
+      <code>+8 de vida</code> — enchimento para dar sensação de tamanho. É a mesma classe do
+      paperdoll: não é caro, é <em>gerado</em>. Poucos nós, cada um decidido e nomeado.</li>
+    <li><b>O irmão de bifurcação nasce no topo da coluna nova</b>, e não na altura do pai. Lê como
+      raiz até se ler a linha de dependência. Conserto é trabalho de grade, e só vale a pena se a
+      árvore crescer o bastante para a leitura confundir.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Luz, sombra e clima — auditoria por time · 2026-08-29</h2>
+
+  <p>Pedido do dono: rodar o jogo, auditar tudo que é gráfico e montar um <b>laço de busca,
+  correção e melhoria</b> com papéis separados — um Diretor que manda e julga, um Designer 2D que
+  audita e implementa, um Game Designer que viabiliza, e um Bug Catcher que força o jogo a quebrar.
+  Três rodadas, foco da primeira em <b>luz, sombra e clima</b>. Duas regras de autoridade decididas
+  por ele antes de começar: <b>correção entra direto, mudança de estrutura pergunta</b>, e
+  <b>decisão travada do CLAUDE.md só se reabre com a medição que a derruba na mão</b>.</p>
+
+  <h3>Por que o formato importa mais que os achados</h3>
+  <p>O Designer 2D (só leitura de código) e o Bug Catcher (só jogo rodando, monkey-patch em
+  memória) trabalharam <b>sem se falar</b> e chegaram nos <b>mesmos dois defeitos</b>, por caminhos
+  opostos. Isso é o que dá confiança de que não é palpite: um leu <code>w2s</code> e viu a
+  convenção errada; o outro mediu <code>+32 px</code> de deslocamento na tela com <code>t=64</code>
+  e não sabia por quê. É a regra de <b>isolar o mecanismo</b> aplicada por duas réguas
+  independentes.</p>
+
+  <p>E cobrou o preço dela de mim também: minha primeira medição do telhado deu razão
+  <b>0,912</b> dentro/fora e eu quase anunciei que o telhado não funcionava. Era <b>diferença de
+  material</b> entre o piso da sala e o da rua. Isolando o mecanismo — zerar <code>f.dentro</code>
+  e redesenhar o <em>mesmo</em> tile — a razão é <b>0,583</b>, contra <code>1 − TELHADO</code> =
+  0,58. O telhado estava exato. Depois disso a segunda medição do <code>coberto</code> também saiu
+  contaminada: <b>a tocha do personagem</b> se move junto com ele, e os 31% que eu atribuí à chuva
+  eram o halo. A régua que fechou o caso foi outra: <b>contar pixel que MUDA entre dois quadros</b>
+  com <code>Date.now</code> e <code>G.now</code> congelados — a chuva é a única coisa que se move.</p>
+
+  <h3>O que entrou</h3>
+
+  <div class="grupo">
+    <div class="gtitle">A máscara de telhado estava meio tile fora do chão que ela escurece</div>
+    <p><code>telhadoNaLuz</code> pintava a máscara de abrigo a partir de <code>w2s(x, y)</code>, que
+    devolve o <b>centro</b> do tile. Quem desenha o chão é o <code>drawFloor</code>, a partir do
+    <b>canto</b> (<code>VW/2 − t/2</code>). A máscara inteira saía <code>(+t/2, +t/2)</code>: meia
+    largura de tile do interior ficava <b>acesa</b> colada nas paredes norte e oeste, e 42% de
+    escuro escorria para a <b>rua</b> ao sul e a leste. Medido dos dois lados: a faixa escura
+    começava no pixel 64 (centro da coluna 71) em vez de 48 (a borda dela); o Bug Catcher mediu o
+    mesmo por perfil de luminância — 32 px de interior 43 níveis mais claro que o resto da sala,
+    com <code>60/103 = 0,58 = 1 − TELHADO</code> confirmando que a faixa clara era chão de interior
+    sem o corte. Depois do conserto, erro <b>0 px</b>.</p>
+    <p>É a <b>terceira mordida</b> da mesma armadilha: pixel de CSS × pixel de buffer, coordenada de
+    tela × coordenada do pai, e agora centro de tile × canto de tile. Sempre invisível no fonte,
+    porque as duas medidas têm o mesmo nome e a mesma unidade.</p>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">O clima era um booleano do JOGADOR aplicado à TELA INTEIRA</div>
+    <p><code>const coberto = abrigado()</code> — sem argumentos, o tile do jogador — governava a
+    poça, o clarão do relâmpago e a chuva do quadro todo. Dava os dois erros ao mesmo tempo: parado
+    na rua, <b>chovia dentro das casas visíveis</b>; três passos para dentro de uma cabana, <b>a
+    chuva sumia da rua inteira</b> num quadro. O <code>cloudPass</code> era pior: não perguntava
+    abrigo <em>nenhum</em>, e a sombra de nuvem deslizava pelo piso de uma sala fechada (19,1% dos
+    pixels do interior, contra 49,8% da rua).</p>
+    <p>O motor <b>já sabia</b> abrigo por tile — o <code>telhadoNaLuz</code> pergunta
+    <code>abrigado(x, y, P.z)</code> desde o dia em que o telhado entrou. Três dos quatro
+    consumidores é que continuavam lendo um bit do jogador.</p>
+    <p>Conserto: <code>recorteCeu(t)</code> devolve um <code>Path2D</code> dos tiles a céu aberto e
+    recorta nuvem, relâmpago e chuva; o <code>poolPass</code> ganhou um <code>continue</code> por
+    tile no laço que ele já percorria. Medido contando pixel que muda entre dois quadros:</p>
+    <table>
+      <tr><th></th><th>interior da casa</th><th>pátio a céu aberto</th></tr>
+      <tr><td>jogador FORA</td><td><b>0 px</b></td><td>53 / 69 / 52 px</td></tr>
+      <tr><td>jogador DENTRO</td><td><b>0 px</b></td><td>34 px</td></tr>
+    </table>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">A conta de canto virou <code>cantoDoTile</code>, e a janela virou <code>janelaDeTiles</code></div>
+    <p>A conta estava escrita à mão em <b>três</b> lugares e um deles estava errado. Agora
+    <code>telhadoNaLuz</code>, <code>recorteCeu</code> e <code>poolPass</code> chamam a mesma
+    função: um lugar para errar, e um lugar para o teste medir. <code>drawFloor</code> fica de fora
+    de propósito — ele desloca por andar (<code>dz</code>) e mede a largura pela distância até o
+    vizinho, que é outra conta.</p>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Duas réguas novas em <code>tests/test.js</code> — e a mutação que as valida</div>
+    <p>A primeira conta os retângulos que o <code>recorteCeu</code> <b>de fato produziu</b> (o stub
+    de <code>Path2D</code> passou a guardar os <code>rect</code>), com o jogador encostado num
+    interior para o enquadramento ter as duas metades: nenhum tile abrigado pode receber chuva, e
+    nenhum tile a céu aberto pode deixar de receber. A segunda cobra que
+    <code>cantoDoTile</code> seja <code>w2s − t/2</code>. <b>Nenhuma das duas procura palavra no
+    fonte</b> — a lição do teste do <code>objs</code>, que passou verde numa mutação que trocava os
+    dados e mantinha a palavra.</p>
+    <p>Validadas por mutação, uma de cada vez: trocar o canto pelo centro derruba a segunda; tirar
+    o <code>abrigado</code> do <code>recorteCeu</code> derruba a primeira (121 tiles vazaram).
+    Suíte em <b>1201</b> verificações.</p>
+  </div>
+
+  <h3>Confirmado, medido e AINDA ABERTO</h3>
+  <ul>
+    <li><b>Sombra projetada do SOL dentro de casa e dentro da caverna.</b>
+      <code>dropShadow</code> usa <code>.28 * solF</code>, e <code>solF = clima.luz</code> é a luz
+      do céu do <em>andar</em>, nunca filtrada por abrigo. Numa sala de paredes fechadas o boneco
+      projeta <b>86%</b> da sombra de sol que projeta em campo aberto (876 px contra 886 px). Na
+      caverna, onde <code>CLIMA_PARADO.luz = .6</code> é constante, ele projeta 889 px de silhueta
+      apontando para <b>nordeste</b> — a direção do sol fixo no noroeste, ignorando a tocha, que é a
+      única fonte lá embaixo.</li>
+    <li><b>O temporal tem duas direções.</b> No vento cheio: copa deita para OESTE
+      (<code>balanço</code> +0,0432); traço da chuva aponta para OESTE (6.690 px contra 46); a
+      <b>gota</b> anda para LESTE (<code>x</code> é função de <code>y</code> com
+      <code>+incl</code>, e o <code>lineTo</code> subtrai); a sombra de nuvem anda para LESTE
+      (<code>VENTO = [.010, .004]</code>, sempre positivo). São <b>53°</b> entre o traço e a
+      trajetória da mesma gota. O <code>ventoF</code> unificou a <em>intensidade</em> dos três; a
+      <em>direção</em> continua cravada em três lugares com dois sinais.</li>
+    <li><b><code>gradePass</code> devolve ao interior a cor do céu por inteiro.</b> O gate é "este
+      andar tem céu?", sem pergunta de abrigo. Ao poente o tile de interior leva <b>96%</b> do
+      tinte quente que a rua leva, e em termos relativos leva <em>mais</em> (6,7% contra 5,3%),
+      porque o mesmo laranja cai sobre um chão já 42% escurecido. O telhado corta a LUZ do céu e o
+      passe de lente devolve a COR dele.</li>
+    <li><b>Menores.</b> <code>horaDoJogo</code> devolve "Tarde" às 12:00 em ponto (a fronteira
+      <code>&lt;</code> do <code>FASES</code> joga a fração de virada na fase seguinte). O canvas
+      pisca preto por um quadro ao redimensionar a janela.</li>
+  </ul>
+
+  <h3>Hipóteses DERRUBADAS — para ninguém gastar a volta de novo</h3>
+  <ul>
+    <li><b>"O telhado não escurece ao meio-dia."</b> Falso: razão medida 0,583 ao meio-dia limpo e
+      0,582 na tempestade, contra <code>1 − TELHADO</code> = 0,58. Era diferença de material.</li>
+    <li><b>Pisca do passe de luz no limiar de <code>amb: null</code>.</b> O salto de luminância
+      média no cruzamento é <b>0,4 nível</b>. Invisível.</li>
+    <li><b>O gate <code>if (amb.amb || coberto || faces.length)</code> pular o telhado ao
+      meio-dia.</b> Varredura das 192×192 posições da superfície: <b>zero</b> pontos onde haja sala
+      visível sem parede no laço do render. O laço alcança ±5/±6 tiles, bem mais que os ±2
+      visíveis.</li>
+    <li><b>Banding nos cortes da rampa <code>CEU</code>.</b> 300 amostras: maior salto entre passos
+      consecutivos <b>3,2 níveis</b> (no poente), mediana 0,41.</li>
+    <li><b>Estouro por soma entre relâmpago + lustro de poça + bloom.</b> Clarão máximo sobre chão
+      encharcado: <b>0%</b> de pixels clipados, canal máximo 243.</li>
+    <li><b>Chuva por cima da HUD.</b> Impossível: a chuva vai no canvas, HUD e placas são DOM por
+      cima.</li>
+    <li><b><code>bloomPass</code> saturando num campo de lava.</b> Não reproduzível: Varrokgaard
+      tem <b>0 tiles de lava</b> nos três andares, e os objetos que acendem entram com
+      <code>tocha:1</code>, que é o que os tira do bloom. Falta uma terra com lava para fechar.</li>
+    <li><b>O lustro branco da poça</b> (a dívida anotada em <code>ponytail:</code>). O
+      <code>poolPass</code> roda <em>antes</em> do <code>lightPass</code>, então o multiply do
+      ambiente já tinge o lustro. Só sai branco ao meio-dia limpo, quando branco é a resposta certa.
+      A dívida está superestimada; não vale máscara tingida em cache.</li>
+  </ul>
+
+  <h3>A régua que funcionou, e vale para a próxima</h3>
+  <p>Três truques que fecharam casos e não estavam escritos em lugar nenhum:</p>
+  <ul>
+    <li><b>Congele o mundo e conte o que MUDA.</b> <code>Date.now = () =&gt; ms</code> fixa hora e
+      clima (os dois saem do relógio); <code>G.pausa = 1e9</code> congela <code>G.now</code> e
+      continua desenhando. Com tudo parado, avançar <code>G.now</code> um tico e diferenciar dois
+      quadros isola <em>exatamente</em> a chuva.</li>
+    <li><b>Câmera travada, tile lógico móvel.</b> <code>P.px/P.py</code> fixos e
+      <code>P.x/P.y</code> mudando é o que isola um booleano do jogador sem mexer no
+      enquadramento.</li>
+    <li><b>Ligue e desligue o mecanismo, não a cena.</b> Trocar <code>WORLD.floors[z].dentro</code>
+      por um <code>Uint8Array</code> zerado e redesenhar dá a pegada exata da máscara de telhado.
+      Comparar tile de dentro com tile de fora não dá — são materiais diferentes.</li>
+  </ul>
+  <p><b>E a tocha contamina toda medição de luz.</b> O halo tem 7 tiles de raio e anda junto com o
+  jogador: qualquer A/B que mova o personagem mede o halo, não o efeito. Tire a tocha ou não mova o
+  boneco.</p>
 </section>
 
 <section>
@@ -3136,6 +4889,30 @@
   <div class="grupo">
     <div class="gtitle">Sistemas</div>
     <ul class="itens">
+      <li>
+        <span class="it-n">#52 · Árvore de talentos, segunda fatia <span class="tag wait">primeira feita</span></span>
+        <span class="it-d">A primeira fatia está no jogo (seção própria acima): sete efeitos, cinco a
+        seis nós por vocação, só passiva, desenhada como grafo de bolinhas em tela cheia do palco.
+        O que falta, na ordem em que ficou combinado — <b>jogar e cortar o que não ficou bom</b>,
+        depois <b>magia e habilidade ativa por nó</b> (<code>knownSpells()</code> ganha uma
+        cláusula; a parte cara é magia nova, que é balanceamento), e então <b>nós de troca</b> —
+        "seus estados nunca falham, mas suas magias custam 25% a mais" — que é o desenho que deixa
+        a árvore ousada sem mexer no poder total.</span>
+        <span class="it-d"><b>Duas coisas que a interface deixou preparadas e ainda não usa:</b> o
+        nó pequeno de ligação, que é a hierarquia por tamanho do PoE (hoje todos são "notáveis" e
+        têm o mesmo diâmetro); e o ícone dentro da bolinha, que hoje é o número do degrau — ele só
+        entra junto com o <b>#14</b>, porque emoji ali seria a maior superfície de emoji do jogo.
+        A posição de cada nó é autoral: árvore que cresce pede posição escrita à mão, não
+        layout automático.</span>
+        <span class="it-d"><b>O teto que já se conhece:</b> com 5 a 6 nós a árvore está toda
+        comprada por volta do nível 50. O conserto NÃO é subir o <code>PONTO_NIVEL</code> — isso só
+        adia. É a árvore custar mais pontos do que o jogo paga. Marcado com <code>ponytail:</code>
+        no <code>data.js</code>.</span>
+        <span class="it-d"><b>O nó a vigiar:</b> <code>raio</code> leva o Exori de 8 para 24 tiles
+        com um ponto só. É o único desta fatia que aumenta quanta gente se acerta, e o primeiro a
+        olhar quando o balanceamento sair da pausa.</span>
+        <span class="it-t">esforço médio · depende de jogar a primeira fatia antes</span>
+      </li>
       <li>
         <span class="it-n">#8 · Mochila, slots e peso</span>
         <span class="it-d">Slot de mochila; sem ela o personagem não carrega nada. Containers com slots, peso em quilos crescendo com o nível, abas por mochila aberta e mochila dentro de mochila. Ressalva registrada: 8 slots é apertado demais para o volume de loot do jogo — recomendado peso como restrição real e slots generosos. E precisa de um depot, que não existe: peso sem armazém é punição, não tensão.</span>
@@ -3809,8 +5586,8 @@
 
 <footer>
   Thaira · RPG 2D dark-fantasy em JavaScript sem framework, com launcher Electron ·
-  762 verificações em <code>tests/test.js</code> e 26 em <code>tests/test_tools.js</code> ·
-  24 tarefas pendentes · conferido contra o código em 2026-08-23.
+  1179 verificações em <code>tests/test.js</code> e 39 em <code>tests/test_tools.js</code> ·
+  24 tarefas pendentes · conferido contra o código em 2026-08-29.
 </footer>
 
 </div>

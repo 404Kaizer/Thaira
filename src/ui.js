@@ -344,6 +344,162 @@ function renderForja() {
   }), 'task-card');
 }
 
+/* ------------------------------------------------------------- talentos */
+/* Os ramos saem dos DADOS: raiz é nó sem `req`, e cada uma puxa a própria
+   corrente por `req`. Escrever as colunas à mão seria a segunda fonte de
+   verdade de sempre — bastaria um nó novo no data.js para a árvore desenhada
+   discordar da árvore que o jogo cobra. */
+/* A árvore é desenhada como GRAFO: traço em SVG por baixo, bolinha em <button>
+   por cima. Duas camadas em vez de uma só porque cada uma é boa numa coisa —
+   linha que acompanha coordenada é trivial em SVG e horrível em CSS, e botão
+   com foco, hover e teclado é trivial em HTML e horrível em SVG.
+   O SVG usa viewBox 0..100 nos dois eixos com preserveAspectRatio="none", então
+   ele estica junto com o quadro e as pontas caem exatamente onde as bolinhas
+   estão — que também são posicionadas em porcentagem. Um único sistema de
+   coordenadas para as duas camadas; dois seriam duas verdades sobre onde o nó
+   está, e a linha começaria a errar o alvo em telas de proporção diferente. */
+/* Câmera da árvore, no mesmo molde da do mapa: arrastar move, roda dá zoom, e
+   o recorte não reseta ao fechar — quem estava olhando um canto volta nele.
+   x/y são deslocamento em PIXEL do quadro, não em porcentagem: a porcentagem já
+   é o sistema em que os nós moram, e misturar os dois faria o deslocamento
+   mudar de tamanho junto com o zoom. */
+/* O caminho sai do id da vocação em vez de uma tabela: os quatro arquivos já
+   seguem o padrão, e uma tabela de quatro linhas que só repete o nome é a
+   segunda fonte de verdade de sempre. Arquivo faltando não dá erro — o fundo
+   simplesmente não pinta —, então há teste conferindo que os quatro existem. */
+const vocFundo = voc => `assets/vocations/${voc}_background.png`;
+/* O ENQUADRAMENTO, ao contrário do caminho, é tabela — e tem de ser. As quatro
+   artes são retratos de 1024×1536 e a caixa é larga e baixa, então só uma faixa
+   aparece; e o assunto de cada uma cai numa altura diferente. Um número só
+   serviria a uma e cortaria as outras três: no druida pega os chifres, no
+   cavaleiro o elmo, no ranger o arco, no mago as mãos acesas. Reusar um valor
+   aqui seria reuso onde o requisito é diferenciar.
+   Os quatro saíram de OLHAR no jogo, não de conta — é a régua da casa: arte se
+   julga no tamanho e na luz do jogo. */
+const VOC_FUNDO_Y = { knight: 20, ranger: 20, sorcerer: 34, druid: 12 };
+const vocFundoY = voc => VOC_FUNDO_Y[voc] !== undefined ? VOC_FUNDO_Y[voc] : 30;
+const treeView = { x: 0, y: 0, zoom: 1 };
+const TREE_ZOOM = [1, 3.5];
+/* Quanto se pode deslocar sem perder o grafo de vista: no zoom 1 o quadro
+   inteiro cabe e não há o que arrastar, e daí para cima o limite é a metade do
+   que sobrou de cada lado. Sem isto dá para arrastar a árvore para fora e ficar
+   olhando o vazio, sem botão de voltar. */
+const treeLimite = (tamanho, zoom) => Math.max(0, (tamanho * zoom - tamanho) / 2);
+function aplicaCam() {
+  const m = $('#tree-mapa'); if (!m) return;
+  const r = m.getBoundingClientRect(), z = treeView.zoom;
+  // mede a caixa SEM o transform: com ele, o limite cresceria a cada quadro
+  const lx = treeLimite(r.width / z, z), ly = treeLimite(r.height / z, z);
+  treeView.x = clamp(treeView.x, -lx, lx);
+  treeView.y = clamp(treeView.y, -ly, ly);
+  m.style.transform = `translate(${treeView.x}px,${treeView.y}px) scale(${z})`;
+  // o nó andou debaixo do cursor: o balão acompanha em vez de ficar para trás
+  tipSegue();
+}
+/* Ligado UMA vez, na caixa que não é refeita — o `renderTree` reescreve o
+   `innerHTML` a cada clique, e handler pendurado lá dentro morreria junto. */
+function bindTreeCam(box) {
+  let arrastando = false, ax = 0, ay = 0;
+  box.addEventListener('mousedown', e => {
+    if (e.button || e.target.closest('.tree-no')) return;   // nó tem clique próprio
+    arrastando = true; ax = e.clientX; ay = e.clientY;
+    box.style.cursor = 'grabbing'; e.preventDefault();
+  });
+  addEventListener('mousemove', e => {
+    if (!arrastando) return;
+    if (!e.buttons) { arrastando = false; box.style.cursor = ''; return; }
+    treeView.x += e.clientX - ax; treeView.y += e.clientY - ay;
+    ax = e.clientX; ay = e.clientY;
+    aplicaCam();
+  });
+  addEventListener('mouseup', () => { arrastando = false; box.style.cursor = ''; });
+  box.addEventListener('wheel', e => {
+    e.preventDefault();
+    treeView.zoom = clamp(treeView.zoom * (e.deltaY > 0 ? .85 : 1.18), TREE_ZOOM[0], TREE_ZOOM[1]);
+    // ao voltar ao zoom 1 o limite vira 0 e o clamp recentra sozinho
+    aplicaCam();
+  }, { passive: false });
+}
+function renderTree() {
+  const box = $('#tree-list'); if (!box) return;
+  const livres = pontosLivres(), nos = TREES[P.voc] || [];
+  $('#tree-head').textContent = livres > 0
+    ? `${livres} ponto${livres > 1 ? 's' : ''} para gastar`
+    : `nenhum ponto livre · o próximo no nível ${(pontosTotais() + 1) * PONTO_NIVEL}`;
+
+  /* Traço aceso = os DOIS lados comprados, como no Skyrim. Meio-aceso quando só
+     uma ponta está: é ele que mostra por onde dá para continuar, e sem esse
+     estado do meio a árvore só tem "feito" e "longe", sem "próximo". */
+  const linhas = treeLigacoes(P.voc).map(([a, b]) => {
+    const ta = P.tree[a.id] > 0, tb = P.tree[b.id] > 0;
+    const cls = ta && tb ? 'on' : (ta || tb) ? 'meio' : '';
+    return `<line class="${cls}" x1="${a.pos[0]}" y1="${a.pos[1]}" x2="${b.pos[0]}" y2="${b.pos[1]}"/>`;
+  }).join('');
+
+  const bolas = nos.map(no => {
+    const g = P.tree[no.id] || 0, max = no.max || 1;
+    const erro = podeAlocar(no.id);
+    // cheio não é travado: já foi comprado, e apagá-lo esconderia o que se tem
+    const travado = !!erro && g < max;
+    const estado = g >= max ? 'cheio' : g ? 'tem' : travado ? 'travado' : 'livre';
+    return `<button class="tree-no ${estado}" data-no="${no.id}"
+      style="left:${no.pos[0]}%;top:${no.pos[1]}%">
+      <i class="bola"><b>${g}</b><s>${max}</s></i>
+      <em>${no.n}</em>
+    </button>`;
+  }).join('');
+
+  /* Fundo da vocação: irmão do grafo, NUNCA filho. O zoom é um `transform` no
+     `.tree-mapa`, e tudo que estiver dentro dele escala junto — a arte tem de
+     ficar parada e preenchendo, então mora fora. O véu é uma terceira camada
+     porque `filter: blur` desce para os filhos: um escurecedor dentro do fundo
+     sairia borrado junto e não seguraria a leitura do grafo. */
+  const fy = vocFundoY(P.voc);
+  box.innerHTML = `<div class="tree-fundo" style="background-image:url('${vocFundo(P.voc)}');
+    background-position:center ${fy}%;transform-origin:center ${fy}%"></div>
+  <div class="tree-veu"></div>
+  <div class="tree-mapa" id="tree-mapa">
+    <svg class="tree-fios" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${linhas}</svg>
+    ${bolas}
+  </div>`;
+  aplicaCam();
+
+  /* O balão é o `tipEm` que a mochila já usa — mesma moldura, mesmo clamp de
+     borda de tela, mesmo `tipCheck` que recolhe balão órfão quando a lista se
+     refaz debaixo do mouse. Um segundo tooltip aqui seria a segunda gramática
+     de balão do jogo por causa de seis nós. */
+  box.querySelectorAll('[data-no]').forEach(b => {
+    const no = TREE_NO[b.dataset.no], g = P.tree[no.id] || 0, erro = podeAlocar(no.id);
+    b.onclick = () => { if (alocaNo(b.dataset.no)) renderTree(); };
+    b.onmouseenter = e => tipEm(e, `<b>${no.n}</b>`
+      + `<div class="dim">${g}/${no.max} · ${efeitoDoNo(no)}</div>`
+      + `<div style="margin-top:5px">${no.d}</div>`
+      + (erro && g < no.max ? `<div class="bad tiny">${erro}</div>`
+        : g >= no.max ? '<div class="tiny dim">No máximo.</div>'
+          : '<div class="tiny bon">Clique para gastar 1 ponto.</div>'));
+    b.onmouseleave = hideTip;
+  });
+
+  const gastos = pontosGastos(), perto = shopNear();
+  $('#tree-respec-txt').textContent = !gastos ? 'Nada gasto ainda.'
+    : perto ? `${gastos} ponto${gastos > 1 ? 's' : ''} gasto${gastos > 1 ? 's' : ''} · ${respecPreco()} de ouro`
+      : 'Redistribuir só no templo.';
+  $('#tree-respec').disabled = !gastos || !perto || P.gold < respecPreco();
+}
+/* O que o nó dá, em uma linha e por degrau. Sai do próprio `ef`, então nó novo
+   se descreve sozinho — texto escrito à mão no `d` envelheceria no dia em que
+   alguém mexesse no número e esquecesse da frase. */
+const EF_TEXTO = {
+  mana: v => `−${Math.round(v * 100)}% de mana por degrau`,
+  alcance: v => `+${v} de alcance por degrau`,
+  raio: v => `+${v} anel de área`,
+  dur: v => `+${Math.round(v * 100)}% de duração por degrau`,
+  certeza: () => 'estado sempre aplica',
+  limpa: () => 'cura limpa estados',
+  varinha: () => 'varinha sem custo'
+};
+const efeitoDoNo = no => Object.keys(no.ef).map(k => EF_TEXTO[k](no.ef[k])).join(' · ');
+
 /* ---------------------------------------------------------- mapa expandido */
 let mapFloor = null;
 // x/y: centro da vista em tiles do mundo. zoom: 1 = mapa inteiro no canvas.
@@ -354,13 +510,36 @@ function openMap(z) {
   $('#map-win').style.display = 'flex';
   drawBigMap();
 }
+/* Pixel de CSS e pixel de BUFFER não se misturam — é a armadilha que já custou
+   um "ver tudo" mostrando 46% do mapa no editor, na tela do dono, que tem
+   devicePixelRatio 2. Enquanto o canvas era 620×620 fixo os dois coincidiam e o
+   erro não existia; com o mapa elástico, coincidem só em tela sem HiDPI.
+   Uma função só devolve os dois mundos e o fator entre eles, e desenho e
+   arrasto bebem daqui — duas contas seriam duas chances de divergir. */
+/* A conta fica separada do DOM de propósito: é ela que tem a armadilha, e
+   armadilha que não se consegue exercer por teste é armadilha que volta. */
+function escalaMapa(larguraCSS, alturaCSS, dpr, zoom) {
+  const w = Math.max(1, Math.round(larguraCSS * dpr)), h = Math.max(1, Math.round(alturaCSS * dpr));
+  // o mapa é quadrado (W === H): a menor dimensão é quem decide o "cabe inteiro"
+  return { w, h, dpr, k: (Math.min(w, h) / W) * zoom };
+}
+// quantos TILES um arrasto de `cssPx` percorre. Sobe pelo dpr porque `k` mede
+// pixel de buffer e o mouse anda em pixel de CSS
+const arrastoEmTiles = (cssPx, dpr, k) => cssPx * dpr / k;
+function mapaEscala(cv) {
+  const r = cv.getBoundingClientRect();
+  const dpr = Math.min(devicePixelRatio || 1, 2);          // teto: 4× a área já é gasto puro
+  const e = escalaMapa(r.width, r.height, dpr, mapView.zoom);
+  if (cv.width !== e.w || cv.height !== e.h) { cv.width = e.w; cv.height = e.h; }
+  return e;
+}
 function drawBigMap() {
-  const cv = $('#map-canvas'), ctx = cv.getContext('2d'), S = cv.width;
-  const k = (S / W) * mapView.zoom;
-  const ox = S / 2 - mapView.x * k, oy = S / 2 - mapView.y * k;
+  const cv = $('#map-canvas'), ctx = cv.getContext('2d');
+  const { w: CW, h: CH, k } = mapaEscala(cv);
+  const ox = CW / 2 - mapView.x * k, oy = CH / 2 - mapView.y * k;
   const tx = x => x * k + ox, ty = y => y * k + oy;
   ctx.imageSmoothingEnabled = false;
-  ctx.fillStyle = corFora(mapFloor); ctx.fillRect(0, 0, S, S);
+  ctx.fillStyle = corFora(mapFloor); ctx.fillRect(0, 0, CW, CH);
   ctx.drawImage(miniCanvas[mapFloor], 0, 0, W, H, ox, oy, W * k, H * k);
 
   // hunts do andar: círculo + nome
@@ -420,9 +599,12 @@ function bindBigMap(cv) {
   });
   addEventListener('mousemove', e => {
     if (!dragging) return;
-    const k = (cv.width / W) * mapView.zoom;
-    mapView.x = clamp(mapView.x - (e.clientX - lastX) / k, 0, W);
-    mapView.y = clamp(mapView.y - (e.clientY - lastY) / k, 0, H);
+    /* O mouse anda em pixel de CSS e o `k` mede pixel de BUFFER, então o delta
+       sobe pelo dpr antes de virar tile. Sem o fator, arrastar move METADE do
+       esperado numa tela HiDPI — e só nela, que é o pior tipo de defeito. */
+    const { dpr, k } = mapaEscala(cv);
+    mapView.x = clamp(mapView.x - arrastoEmTiles(e.clientX - lastX, dpr, k), 0, W);
+    mapView.y = clamp(mapView.y - arrastoEmTiles(e.clientY - lastY, dpr, k), 0, H);
     lastX = e.clientX; lastY = e.clientY;
     drawBigMap();
   });
@@ -465,6 +647,14 @@ addEventListener('DOMContentLoaded', () => {
     if (w.style.display === 'flex') renderForja();
   };
   $('#forja-close').onclick = () => $('#forja-win').style.display = 'none';
+  $('#tree-btn').onclick = () => {
+    const w = $('#tree-win');
+    w.style.display = w.style.display === 'flex' ? 'none' : 'flex';
+    if (w.style.display === 'flex') renderTree();
+  };
+  $('#tree-close').onclick = () => $('#tree-win').style.display = 'none';
+  bindTreeCam($('#tree-list'));
+  $('#tree-respec').onclick = () => { respec(); renderTree(); };
   $('#map-btn').onclick = () => openMap();
   $('#map-close').onclick = () => $('#map-win').style.display = 'none';
   $('#minimap').onclick = () => { if (!miniDragMoved) openMap(); };

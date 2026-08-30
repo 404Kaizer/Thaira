@@ -521,11 +521,34 @@ body.arrastando-item{cursor:grabbing}
   border:1px solid var(--line2);border-radius:6px;
   box-shadow:inset 0 1px 0 #ffffff12,0 16px 46px #000d;display:none;z-index:20;
   flex-direction:column;
-  /* centralizada na tela: cada janela só declara tamanho, nunca posição */
-  top:50%;left:50%;transform:translate(-50%,-50%);max-height:88vh}
+  /* Centralizada na TELA DO JOGO: as janelas moram dentro do #stage, que é o
+     único ancestral posicionado. Antes eram filhas do body e centralizavam na
+     página inteira — o meio da página não é o meio do jogo, porque as barras
+     laterais e o console ocupam o resto. Cada janela só declara tamanho. */
+  top:50%;left:50%;transform:translate(-50%,-50%);max-width:100%;max-height:88%}
+/* Tela cheia = o palco inteiro, e não a janela do navegador.
+   Duas coisas que já morderam aqui, e as duas ficam invisíveis no CSS:
+   1. `inset` É o atalho de top/right/bottom/left. Escrever `top:auto` DEPOIS
+      dele desfaz metade do que ele acabou de pôr, e a janela passa a ser
+      medida pelo conteúdo e ancorada no canto — foi o que aconteceu.
+   2. Especificidade: `#map-win{width:...}` é id e ganha de `.win.cheia{width}`,
+      que é classe. Por isso o tamanho de janela normal mora em `:not(.cheia)`
+      em vez de brigar aqui. */
+/* Tela cheia cobre a JANELA INTEIRA, painéis inclusive — decisão do dono. Por
+   isso `position: fixed` e não `absolute`: as janelas moram dentro do #stage
+   (é o que centraliza as outras oito no jogo), e absoluta ficaria presa nele.
+   O z-index se encaixa ENTRE o jogo (até 20) e o balão (60) — o balão tem de
+   continuar por cima, porque é ele que descreve os nós da árvore. */
+.win.cheia{position:fixed;inset:0;z-index:40;transform:none;width:auto;height:auto;
+  max-width:none;max-height:none;border-radius:0;border:0}
 .win h3{margin:0;padding:9px 11px;font:700 12.5px var(--serif);letter-spacing:.05em;color:var(--gold2);
   background:var(--stone);border-bottom:1px solid var(--line);
   display:flex;justify-content:space-between;align-items:center;gap:10px}
+/* O cabeçalho é a alça. As de tela cheia não se movem: são presas pelos quatro
+   lados por decisão, e cursor de mover prometendo o que não acontece é a
+   interface mentindo. */
+.win h3{cursor:move}
+.win.cheia h3{cursor:default}
 /* nome comprido (bicho de nome longo) empurrava o botão pra fora da linha e
    quebrava o cabeçalho em duas fileiras tortas: o título encolhe, o botão não */
 .win h3 > :first-child{min-width:0}
@@ -582,6 +605,111 @@ body.arrastando-item{cursor:grabbing}
    resto era cópia. */
 .task-card,.best-card{border:1px solid var(--line);border-radius:5px;
   background:linear-gradient(var(--surface1),#100e0b);font-size:11.5px}
+/* Talentos. Grafo, no molde do Path of Exile e do Skyrim: bolinha para o nó,
+   traço para a ligação, e o que a coisa faz mora no balão do hover — não no
+   card. O que as duas referências têm em comum e que importa aqui: o traço
+   ACESO conta a história (no Skyrim a linha brilha quando as duas pontas estão
+   compradas), e o nó não explica nada em repouso, só se identifica.
+   Nó desta fatia é sempre "notável" — não há passiva de encher caminho, então
+   todos têm o mesmo tamanho. Quando houver nó pequeno de ligação, a distinção
+   de tamanho do PoE é o que entra aqui. */
+#tree-win{overflow:hidden}
+#tree-win h3{flex:none}
+#tree-head{font-size:11.5px;color:var(--gold2)}
+/* `overflow:hidden` e não `auto`: quem enquadra aqui é a câmera (arrastar e
+   roda), como no mapa. Barra de rolagem por cima de um grafo que já se move
+   seriam dois jeitos de fazer a mesma coisa, e o mais desajeitado dos dois. */
+/* Folga extra embaixo: a coordenada do nó é a do CÍRCULO, e o rótulo fica
+   pendurado abaixo dele — sem a folga, a fileira de baixo tem o nome cortado
+   pela borda, e nome cortado é nó que não se identifica. */
+#tree-list{position:relative;min-height:0;flex:1;overflow:hidden;padding:10px 10px 26px;display:flex;
+  align-items:center;justify-content:center;cursor:grab}
+/* Três camadas, e a ordem delas é a regra:
+   0 · a arte da vocação, desfocada, PREENCHENDO e fora do transform do zoom —
+       ela é irmã do grafo e não filha, senão escalaria junto com ele;
+   1 · o véu, que é camada própria porque `filter: blur` desce para os filhos:
+       escurecedor dentro do fundo sairia borrado e não seguraria a leitura;
+   2 · o grafo, o único que a câmera move.
+
+   O ENQUADRAMENTO vertical vem INLINE, por vocação (`VOC_FUNDO_Y` no ui.js):
+   as quatro artes são retratos e o assunto de cada uma cai numa altura
+   diferente, então um número só no CSS serviria a uma e cortaria três. A origem
+   do transform acompanha o mesmo número — escalando de outro ponto, a folga do
+   desfoque desloca justamente o enquadramento que se acabou de escolher.
+
+   `scale(1.06)` existe porque desfoque come a borda — sem a folga sobra uma
+   franja transparente nos lados. É pouca de propósito: quanto maior a escala,
+   mais da arte sai do quadro.
+
+   Desfoque BAIXO (2,5px) e véu que abre no meio: com 16px e véu fechado a arte
+   virava uma mancha de cor e o dono não a reconhecia. O véu abre onde o grafo
+   mora e fecha na borda — atmosfera no fundo, contraste onde há texto.
+
+   `opacity: .32` saiu de MEDIR contraste, não de escolher um número que parecia
+   discreto: amostrando a arte atrás de cada rótulo nas quatro vocações e
+   compondo com o véu, o pior rótulo travado vai de 1,56:1 (arte cheia) a
+   1,99:1 aqui — e o teto é 2,00:1, que é o do próprio estilo do travado, não da
+   arte. Abaixo de .32 se joga arte fora sem ganhar legibilidade nenhuma; acima,
+   cada passo custa contraste. Rótulo LEGÍVEL nunca foi o problema: ele mede
+   9,2:1 mesmo com a arte cheia. */
+.tree-fundo{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-size:cover;background-repeat:no-repeat;
+  filter:blur(2.5px);transform:scale(1.04);opacity:.32}
+.tree-veu{position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 45%,#0b0a0838 0%,#0b0a0888 62%,#0b0a08cc 100%)}
+.tree-mapa{z-index:2}
+/* A altura manda e a largura segue a PROPORÇÃO: as posições dos nós são
+   porcentagem nos dois eixos, então num quadro largo demais o grafo estica na
+   horizontal e a mesma árvore lê como outra coisa. Com a proporção presa, ela
+   tem a mesma forma em qualquer tela e sobra margem nos lados — que é o certo,
+   porque o desenho é o conteúdo e não o preenchimento. */
+/* Sem `min-height`: um piso de altura maior que a caixa empurra a fileira de
+   baixo para fora e ela some atrás da rolagem — e nó que não se vê é ponto que
+   não se gasta. Apertado e inteiro ganha de folgado e cortado. */
+.tree-mapa{position:relative;height:100%;aspect-ratio:1.35;width:auto;max-width:100%;flex:none;
+  transform-origin:center;will-change:transform}
+.tree-fios{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+/* vector-effect: sem ele o preserveAspectRatio="none" estica a espessura junto
+   e a linha sai grossa num eixo e fina no outro */
+.tree-fios line{stroke:var(--line);stroke-width:2;vector-effect:non-scaling-stroke}
+.tree-fios line.meio{stroke:var(--line2)}
+.tree-fios line.on{stroke:var(--gold);stroke-width:3}
+
+/* Largura em PORCENTAGEM do quadro, não em pixel: com caixa fixa, dois nós
+   vizinhos que ficam a 30% um do outro se atropelam assim que o palco encolhe —
+   e o rótulo é o que identifica o nó. Em porcentagem a distância entre eles e a
+   largura do rótulo encolhem juntas, então a colisão não depende do tamanho da
+   tela. Há teste cobrando que nenhum par de mesma fileira fique mais perto que
+   esta largura. */
+.tree-no{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;
+  align-items:center;gap:5px;background:none;border:0;padding:0;cursor:pointer;font:inherit;
+  width:28%}
+.tree-no .bola{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-style:normal;
+  background:radial-gradient(circle at 38% 32%,#2a251b,#100e0b 78%);
+  border:2px solid var(--line2);box-shadow:inset 0 1px 0 #ffffff10,0 3px 10px #0009}
+.tree-no .bola b{font:600 15px var(--mono,ui-monospace,monospace);color:var(--dim)}
+.tree-no .bola s{display:none}
+.tree-no em{font:600 11px var(--serif);font-style:normal;letter-spacing:.02em;color:var(--dim);
+  text-align:center;line-height:1.25;text-shadow:0 1px 3px #000,0 0 6px #000}
+/* Quatro estados, e nenhum se distingue só pela cor (§9): o comprado tem anel
+   de ouro E o número aceso; o cheio ganha o segundo anel; o disponível fica
+   claro sem ouro; o travado perde contraste E o cursor de clique. */
+.tree-no.livre .bola{border-color:var(--line2);border-style:dashed}
+.tree-no.livre em,.tree-no.livre .bola b{color:var(--txt)}
+.tree-no.tem .bola,.tree-no.cheio .bola{border-color:var(--gold);
+  background:radial-gradient(circle at 38% 32%,#4a3b1c,#1a1409 78%)}
+.tree-no.tem .bola b,.tree-no.cheio .bola b{color:var(--gold2)}
+.tree-no.tem em,.tree-no.cheio em{color:var(--gold2)}
+.tree-no.cheio .bola{box-shadow:inset 0 0 0 2px #0e0c08,inset 0 0 0 4px var(--gold),0 3px 10px #0009}
+.tree-no.travado{cursor:default}
+.tree-no.travado .bola{opacity:.4}
+.tree-no.travado em{opacity:.45}
+.tree-no:hover:not(.travado) .bola{border-color:var(--gold2)}
+.tree-no:hover:not(.travado) em{color:var(--gold2)}
+.tree-no:focus-visible{outline:2px solid var(--gold);outline-offset:4px;border-radius:6px}
+#tree-win .foot{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#tree-respec-txt{font-size:11px;color:var(--dim)}
 .task-card{padding:9px 11px;margin-bottom:8px;display:flex;flex-direction:column;gap:4px}
 .task-card b{font:600 12.5px var(--serif);color:var(--gold2)}
 .task-card i{font-style:normal;font-size:10.5px;color:var(--dim)}
@@ -604,12 +732,19 @@ body.arrastando-item{cursor:grabbing}
 .bd-loot i{font-style:normal;font-size:10.5px}
 button.mini{background:var(--surface2);color:var(--txt);border:1px solid var(--line);border-radius:3px;
   padding:1px 7px;margin-left:6px;cursor:pointer;font:inherit;font-size:10.5px}
+/* O mapa abre em tela cheia (do palco), então o canvas é ELÁSTICO: quem manda
+   no tamanho é a caixa, e o buffer é reajustado no JS. `min-height:0` é o que
+   deixa o canvas encolher dentro do flex — sem ele o item de flex nunca fica
+   menor que o conteúdo e o mapa empurra as abas para fora da janela. */
 #map-win{overflow:hidden}
-#map-canvas{display:block;image-rendering:pixelated;background:#000;border:1px solid var(--line);margin:10px;cursor:grab}
+#map-canvas{display:block;flex:1;min-height:0;width:100%;image-rendering:pixelated;
+  background:#000;border-top:1px solid var(--line);cursor:grab}
 #map-tabs{display:flex;border-top:1px solid var(--line);background:var(--surface0)}
 #map-tabs .tab{flex:1;padding:7px 0;text-align:center;font:600 11px var(--serif);color:var(--dim);
   cursor:pointer;border-bottom:2px solid transparent}
 #map-tabs .tab.on{color:var(--gold);border-bottom-color:var(--gold);background:var(--surface2)}
+/* cabeçalho, abas e rodapé são rígidos; só o canvas estica (flex:1) */
+#map-win h3,#map-tabs,#map-foot{flex:none}
 #map-foot{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;font-size:11px;color:var(--dim)}
 #map-floor{color:var(--gold2);font:700 12px var(--serif)}
 #pick-win{width:340px;overflow:hidden}
@@ -867,7 +1002,10 @@ button.mini{background:var(--surface2);color:var(--txt);border:1px solid var(--l
 #death-screen h1{color:#e0705f}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12px;margin-top:6px}
 .keys b{color:var(--gold2);font:600 12px var(--serif);white-space:nowrap}
-#help{display:none}
+/* O H é modal DE JOGO, então acompanha as janelas e se prende ao palco. As
+   outras `.screen` (escolher e criar personagem) continuam fixas na página —
+   elas existem antes de haver jogo, e não há palco onde se ancorar. */
+#help{display:none;position:absolute}
 @media (max-width:720px){
   .menu-card,.create-card{width:94vw;padding:24px 20px}
   .menu-actions{grid-template-columns:1fr}
@@ -908,12 +1046,125 @@ button.mini{background:var(--surface2);color:var(--txt);border:1px solid var(--l
       <div id="overlay"></div>
       <div id="toast"></div>
       <div id="hunt-label"></div>
+      <!-- Modais. Moram DENTRO do #stage porque `.win` é absoluta e o
+           #stage é o unico ancestral posicionado: sendo filhas do body elas
+           centralizavam na PAGINA, e a pagina inclui as barras laterais e o
+           console. Aqui o quadro de referencia passa a ser a tela do jogo. -->
+<div class="win" id="loot-win">
+  <h3><span id="loot-title">Corpo</span><button id="loot-close">✕</button></h3>
+  <div id="loot-items"></div>
+  <div class="foot" id="loot-foot"><span id="loot-time"></span>
+    <button id="loot-all">Pegar tudo</button></div>
+</div>
+
+<div class="win" id="shop-win">
+  <h3><span><img class="im" src="assets/icons/ui_shop.png" alt=""> Loja do Templo</span><button id="shop-close">✕</button></h3>
+  <div id="shop-bless"></div>
+  <div id="shop-cols">
+    <div><div class="sec">Comprar</div><div id="shop-buy"></div></div>
+    <div><div class="sec">Vender</div><div id="shop-sell"></div></div>
+  </div>
+</div>
+
+<div class="win" id="spell-win">
+  <h3><span>Ficha da Magia</span><button id="spell-close">✕</button></h3>
+  <div id="spell-body"></div>
+  <div id="spell-foot"><button id="spell-cast">Conjurar</button></div>
+</div>
+
+<div class="win" id="best-win">
+  <h3><span><img class="im" src="assets/icons/ui_bestiary.png" alt=""> Bestiário — <span id="best-head"></span></span><button id="best-close">✕</button></h3>
+  <div id="best-cols">
+    <div id="best-list"></div>
+    <div id="best-detail"></div>
+  </div>
+</div>
+
+<div class="win" id="task-win">
+  <h3><span>📜 Contratos de Caça — <span id="task-head"></span></span><button id="task-close">✕</button></h3>
+  <div id="task-list"></div>
+</div>
+
+<div class="win" id="forja-win">
+  <h3><span>🔨 Forja do Templo — <span id="forja-head"></span></span><button id="forja-close">✕</button></h3>
+  <div id="forja-list"></div>
+</div>
+
+<div class="win cheia" id="tree-win">
+  <h3><span>Talentos — <span id="tree-head"></span></span><button id="tree-close">✕</button></h3>
+  <div id="tree-list"></div>
+  <div class="foot"><span id="tree-respec-txt"></span><button id="tree-respec">Redistribuir</button></div>
+</div>
+
+<div class="win cheia" id="map-win">
+  <h3><span><img class="im" src="assets/icons/ui_map.png" alt=""> Mapa — <span id="map-floor"></span></span><button id="map-close">✕</button></h3>
+  <!-- sem width/height aqui: o buffer e reajustado por mapaEscala() a cada
+       desenho, e um numero cravado no HTML seria a segunda verdade sobre o
+       tamanho do canvas. -->
+  <canvas id="map-canvas"></canvas>
+  <div id="map-tabs">
+    <div class="tab" data-z="0">Montanha</div><div class="tab on" data-z="1">Superfície</div>
+    <div class="tab" data-z="2">Caverna</div><div class="tab" data-z="3">Abismo</div>
+    <div class="tab" data-z="4">Fenda</div><div class="tab" data-z="5">Coração</div>
+  </div>
+  <div id="map-foot"><span>Círculos laranja são hunts, losangos dourados são pontos de interesse (apagados = já saqueados). Amarelo sobe de andar, escuro desce.</span>
+    <span>M fecha</span></div>
+</div>
+
+<div class="win" id="pick-win">
+  <h3><span id="pick-title">Slot</span><button id="pick-close">✕</button></h3>
+  <div id="pick-list"></div>
+</div>
+
+<div class="win" id="ui-win">
+  <h3><span><img class="im" src="assets/icons/ui_settings.png" alt=""> Opções</span><button id="ui-close">✕</button></h3>
+  <div id="ui-list"></div>
+  <div class="foot"><button id="ui-reset">Restaurar padrão</button></div>
+</div>
+<div class="screen" id="help">
+  <div class="card" style="width:520px">
+    <h1 style="font-size:20px">Comandos</h1>
+    <div class="keys">
+      <b>WASD / setas</b><span>andar um passo por vez</span>
+      <b>clique esquerdo</b><span>ir até o ponto; no monstro, vira alvo e ataca sozinho</span>
+      <b>clique no corpo</b><span>abre o saque (F ao lado pega tudo); arraste para tirar do caminho</span>
+      <b>F1–F12</b><span>barra de habilidades (clique na tecla no canto do slot pra trocar o atalho); slot vazio abre o seletor, botão direito limpa</span>
+      <b>Ctrl+R</b><span>recarrega a página (F5 virou o slot 5 da barra)</span>
+      <b>🛡️⚖️⚔️</b><span>postura de combate: mais defesa ou mais dano</span>
+      <b>Perseguir</b><span>liga/desliga seguir o alvo automaticamente</span>
+      <b>Enter</b><span>chat — digitar as palavras (exura, exori vis…) conjura</span>
+      <b>Espaço / Tab</b><span>seleciona o mais próximo / troca de alvo</span>
+      <b>X / C</b><span>bebe a melhor poção de vida / de mana</span>
+      <b>G</b><span>pega item largado no chão</span>
+      <b>Q / E · roda</b><span>gira a câmera · zoom</span>
+      <b>M / B / T / R</b><span>mapa expandido / bestiário / contratos de caça / forja</span>
+      <b>K</b><span>talentos da vocação</span>
+      <b>Ctrl + clique</b><span>saquear — e, em pedra, árvore ou água, minerar, cortar lenha ou pescar</span>
+      <b><img class="im" src="assets/icons/ui_settings.png" alt=""> Opções</b><span>tela cheia, volumes e quais painéis aparecem</span>
+      <b>Painéis</b><span>arraste o cabeçalho para mudar de coluna e de ordem; puxe a aba de baixo para a altura;
+        ⇔ ocupa as duas colunas; as setas ‹ › abrem, alargam e fecham cada barra lateral</span>
+      <b>H · Esc</b><span>esta ajuda · fecha janelas</span>
+    </div>
+    <div class="note">Escadas douradas sobem um andar, buracos escuros descem. Quanto mais longe do templo
+      e mais fundo na caverna, mais forte o monstro e melhor o loot. O jogo salva sozinho a cada 15s.</div>
+    <div class="note">Abaixo do Abismo ficam a <b>Fenda</b> e o <b>Coração do Abismo</b> — o endgame, do nível 100 ao 320.
+      Lá a morte cobra caro: derruba nível e deixa a mochila no seu corpo, que fica dez minutos no lugar onde você caiu —
+      sem marca no mapa, volte a pé para buscá-lo. Cada bênção salva um quinto da mochila.
+      Compre as <b>bênçãos do templo</b> antes de descer. Contratos de caça (T) são firmados e pagos no templo.</div>
+    <div class="note">Modelos 3D em domínio público (CC0): cenário do <b>Nature Kit</b> da Kenney
+      e criaturas do <b>Ultimate Monsters</b> do Quaternius. Terreno, efeitos, sons e os monstros sem modelo
+      são gerados por código.</div>
+    <button class="btn" id="help-close">Fechar</button>
+  </div>
+</div>
+
       <div id="toolbar">
         <button id="menu-btn" aria-expanded="false">Menu</button>
         <div id="menu-list" hidden>
           <button id="shop-btn" hidden><img class="im" src="assets/icons/ui_shop.png" alt="">Loja do Templo</button>
           <button id="task-btn"><span class="im gl">📜</span>Contratos <b>T</b></button>
           <button id="forja-btn"><span class="im gl">🔨</span>Forja <b>R</b></button>
+          <button id="tree-btn"><span class="im gl">✦</span>Talentos <b>K</b></button>
           <button id="best-btn"><img class="im" src="assets/icons/ui_bestiary.png" alt="">Bestiário <b>B</b></button>
           <button id="map-btn"><img class="im" src="assets/icons/ui_map.png" alt="">Mapa <b>M</b></button>
           <button id="ui-btn"><img class="im" src="assets/icons/ui_settings.png" alt="">Opções</button>
@@ -984,69 +1235,6 @@ button.mini{background:var(--surface2);color:var(--txt);border:1px solid var(--l
     </section>
     </div></div>
   </aside>
-</div>
-
-<div class="win" id="loot-win">
-  <h3><span id="loot-title">Corpo</span><button id="loot-close">✕</button></h3>
-  <div id="loot-items"></div>
-  <div class="foot" id="loot-foot"><span id="loot-time"></span>
-    <button id="loot-all">Pegar tudo</button></div>
-</div>
-
-<div class="win" id="shop-win">
-  <h3><span><img class="im" src="assets/icons/ui_shop.png" alt=""> Loja do Templo</span><button id="shop-close">✕</button></h3>
-  <div id="shop-bless"></div>
-  <div id="shop-cols">
-    <div><div class="sec">Comprar</div><div id="shop-buy"></div></div>
-    <div><div class="sec">Vender</div><div id="shop-sell"></div></div>
-  </div>
-</div>
-
-<div class="win" id="spell-win">
-  <h3><span>Ficha da Magia</span><button id="spell-close">✕</button></h3>
-  <div id="spell-body"></div>
-  <div id="spell-foot"><button id="spell-cast">Conjurar</button></div>
-</div>
-
-<div class="win" id="best-win">
-  <h3><span><img class="im" src="assets/icons/ui_bestiary.png" alt=""> Bestiário — <span id="best-head"></span></span><button id="best-close">✕</button></h3>
-  <div id="best-cols">
-    <div id="best-list"></div>
-    <div id="best-detail"></div>
-  </div>
-</div>
-
-<div class="win" id="task-win">
-  <h3><span>📜 Contratos de Caça — <span id="task-head"></span></span><button id="task-close">✕</button></h3>
-  <div id="task-list"></div>
-</div>
-
-<div class="win" id="forja-win">
-  <h3><span>🔨 Forja do Templo — <span id="forja-head"></span></span><button id="forja-close">✕</button></h3>
-  <div id="forja-list"></div>
-</div>
-
-<div class="win" id="map-win">
-  <h3><span><img class="im" src="assets/icons/ui_map.png" alt=""> Mapa — <span id="map-floor"></span></span><button id="map-close">✕</button></h3>
-  <canvas id="map-canvas" width="620" height="620"></canvas>
-  <div id="map-tabs">
-    <div class="tab" data-z="0">Montanha</div><div class="tab on" data-z="1">Superfície</div>
-    <div class="tab" data-z="2">Caverna</div><div class="tab" data-z="3">Abismo</div>
-    <div class="tab" data-z="4">Fenda</div><div class="tab" data-z="5">Coração</div>
-  </div>
-  <div id="map-foot"><span>Círculos laranja são hunts, losangos dourados são pontos de interesse (apagados = já saqueados). Amarelo sobe de andar, escuro desce.</span>
-    <span>M fecha</span></div>
-</div>
-
-<div class="win" id="pick-win">
-  <h3><span id="pick-title">Slot</span><button id="pick-close">✕</button></h3>
-  <div id="pick-list"></div>
-</div>
-
-<div class="win" id="ui-win">
-  <h3><span><img class="im" src="assets/icons/ui_settings.png" alt=""> Opções</span><button id="ui-close">✕</button></h3>
-  <div id="ui-list"></div>
-  <div class="foot"><button id="ui-reset">Restaurar padrão</button></div>
 </div>
 
 <div id="tooltip"></div>
@@ -1141,42 +1329,6 @@ button.mini{background:var(--surface2);color:var(--txt);border:1px solid var(--l
     <h2>Morto por <b id="death-src">algo</b>.</h2>
     <div id="death-loss" style="font-size:12px;line-height:1.7;margin:4px 0 8px"></div>
     <button class="btn" id="respawn-btn">Renascer no templo</button>
-  </div>
-</div>
-
-<div class="screen" id="help">
-  <div class="card" style="width:520px">
-    <h1 style="font-size:20px">Comandos</h1>
-    <div class="keys">
-      <b>WASD / setas</b><span>andar um passo por vez</span>
-      <b>clique esquerdo</b><span>ir até o ponto; no monstro, vira alvo e ataca sozinho</span>
-      <b>clique no corpo</b><span>abre o saque (F ao lado pega tudo); arraste para tirar do caminho</span>
-      <b>F1–F12</b><span>barra de habilidades (clique na tecla no canto do slot pra trocar o atalho); slot vazio abre o seletor, botão direito limpa</span>
-      <b>Ctrl+R</b><span>recarrega a página (F5 virou o slot 5 da barra)</span>
-      <b>🛡️⚖️⚔️</b><span>postura de combate: mais defesa ou mais dano</span>
-      <b>Perseguir</b><span>liga/desliga seguir o alvo automaticamente</span>
-      <b>Enter</b><span>chat — digitar as palavras (exura, exori vis…) conjura</span>
-      <b>Espaço / Tab</b><span>seleciona o mais próximo / troca de alvo</span>
-      <b>X / C</b><span>bebe a melhor poção de vida / de mana</span>
-      <b>G</b><span>pega item largado no chão</span>
-      <b>Q / E · roda</b><span>gira a câmera · zoom</span>
-      <b>M / B / T / R</b><span>mapa expandido / bestiário / contratos de caça / forja</span>
-      <b>Ctrl + clique</b><span>saquear — e, em pedra, árvore ou água, minerar, cortar lenha ou pescar</span>
-      <b><img class="im" src="assets/icons/ui_settings.png" alt=""> Opções</b><span>tela cheia, volumes e quais painéis aparecem</span>
-      <b>Painéis</b><span>arraste o cabeçalho para mudar de coluna e de ordem; puxe a aba de baixo para a altura;
-        ⇔ ocupa as duas colunas; as setas ‹ › abrem, alargam e fecham cada barra lateral</span>
-      <b>H · Esc</b><span>esta ajuda · fecha janelas</span>
-    </div>
-    <div class="note">Escadas douradas sobem um andar, buracos escuros descem. Quanto mais longe do templo
-      e mais fundo na caverna, mais forte o monstro e melhor o loot. O jogo salva sozinho a cada 15s.</div>
-    <div class="note">Abaixo do Abismo ficam a <b>Fenda</b> e o <b>Coração do Abismo</b> — o endgame, do nível 100 ao 320.
-      Lá a morte cobra caro: derruba nível e deixa a mochila no seu corpo, que fica dez minutos no lugar onde você caiu —
-      sem marca no mapa, volte a pé para buscá-lo. Cada bênção salva um quinto da mochila.
-      Compre as <b>bênçãos do templo</b> antes de descer. Contratos de caça (T) são firmados e pagos no templo.</div>
-    <div class="note">Modelos 3D em domínio público (CC0): cenário do <b>Nature Kit</b> da Kenney
-      e criaturas do <b>Ultimate Monsters</b> do Quaternius. Terreno, efeitos, sons e os monstros sem modelo
-      são gerados por código.</div>
-    <button class="btn" id="help-close">Fechar</button>
   </div>
 </div>
 

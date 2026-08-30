@@ -40,8 +40,8 @@
     "semantic_hash": ""
   },
   "src/art.js": {
-    "mtime": 1787526509.855507,
-    "ast_hash": "ea345d2d05484e9b4e2b2ca891b41c62",
+    "mtime": 1788036507.5321453,
+    "ast_hash": "00c67609dc92a260617125e262998145",
     "semantic_hash": ""
   },
   "src/audio.js": {
@@ -50,43 +50,43 @@
     "semantic_hash": ""
   },
   "src/data.js": {
-    "mtime": 1787503384.608686,
-    "ast_hash": "88e9e2c24d05c628f24144edb3c143d4",
+    "mtime": 1788033944.3304844,
+    "ast_hash": "6db5b95e1ae80698ad5292f96b3fb3ce",
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1787508988.881657,
-    "ast_hash": "0ab31e60ac426518853fccf5569c748f",
+    "mtime": 1788035424.91327,
+    "ast_hash": "be07907dcb249d9a849eb57c8580bd55",
     "semantic_hash": ""
   },
   "src/hud.js": {
-    "mtime": 1787268706.1734722,
-    "ast_hash": "214131451a943a07c3afabeae612c100",
+    "mtime": 1787712692.8252525,
+    "ast_hash": "062316df0874bc4df89519b04877d618",
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1787526130.5302405,
-    "ast_hash": "59f0f0bad1965e889b3032aab19a3c10",
+    "mtime": 1788047841.4802544,
+    "ast_hash": "a4a42de506a01791f47ff10aedf2b310",
     "semantic_hash": ""
   },
   "src/ui.js": {
-    "mtime": 1787178688.8426065,
-    "ast_hash": "0f0975aec34b6efd4d0c4f0bdad9e35b",
+    "mtime": 1788024679.5101836,
+    "ast_hash": "c1aceeca8bcbb90b34f31265686e8840",
     "semantic_hash": ""
   },
   "src/world.js": {
-    "mtime": 1787523646.0936692,
-    "ast_hash": "af25209fd625e1f36cf04fe51c004de3",
+    "mtime": 1788037110.1048055,
+    "ast_hash": "fb48d0a228904531f9e92f98048fd607",
     "semantic_hash": ""
   },
   "tests/test.js": {
-    "mtime": 1787526217.9273453,
-    "ast_hash": "bb49be869233097b35e02fc511a3594e",
+    "mtime": 1788047630.7905993,
+    "ast_hash": "a09173b4d6d4dbbee5b881054b372410",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1787540332.6839154,
-    "ast_hash": "70b65ea338b8154e70775f9ad87eb014",
+    "mtime": 1788044843.9315424,
+    "ast_hash": "b09569632f520fdb1820ef10b044ed18",
     "semantic_hash": ""
   },
   "assets/CREDITOS.md": {
@@ -95,8 +95,8 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1787359488.716496,
-    "ast_hash": "6ceff0ee63c754527e65109398467a25",
+    "mtime": 1788035789.90015,
+    "ast_hash": "6f326ef4246db377f1838a27f0d01bbf",
     "semantic_hash": ""
   },
   "tools/amostra/kaykit.html": {
@@ -308,136 +308,6 @@
     "mtime": 1786238008.0,
     "ast_hash": "4aa1f5dd829849b1be862e70ac59a01c",
     "semantic_hash": "4aa1f5dd829849b1be862e70ac59a01c"
-  },
-  "assets/skins/voc_knight/voc_knight_commom/dead_front_01.png": {
-    "mtime": 1786340722.0,
-    "ast_hash": "951ac127202acf9d9cb54ebc24799742",
-    "semantic_hash": "951ac127202acf9d9cb54ebc24799742"
-  },
-  "assets/skins/voc_knight/voc_knight_commom/idle_front_01.png": {
-    "mtime": 1786340650.0,
-    "ast_hash": "af19c91574c6af80ba7497b0b6d296e1",
-    "semantic_hash": "af19c91574c6af80ba7497b0b6d296e1"
-  },
-  "assets/skins/voc_knight/voc_knight_commom/idle_front_02.png": {
-    "mtime": 1786340650.0,
-    "ast_hash": "3000e6eebcaabf95b75f8f4592e48bdb",
-    "semantic_hash": "3000e6eebcaabf95b75f8f4592e48bdb"
-  },
-  "assets/skins/voc_knight/voc_knight_commom/idle_front_03.png": {
-    "mtime": 1786340650.0,
-    "ast_hash": "48bcc31a1f1a145716cdb25c2eb338f6",
-    "semantic_hash": "48bcc31a1f1a145716cdb25c2eb338f6"
-  },
-  "assets/skins/voc_knight/voc_knight_commom/idle_front_04.png": {
-    "mtime": 1786340650.0,
-    "ast_hash": "bdd8b3f4a9f74cb74499b551ce68b404",
-    "semantic_hash": "bdd8b3f4a9f74cb74499b551ce68b404"
-  },
-  "assets/skins/voc_knight/voc_knight_commom/walk_front_01.png": {
-    "mtime": 1786340474.0,
-    "ast_hash": "d949d0dab422b78e9b0ec794e916c809",
-    "semantic_hash": "d949d0dab422b78e9b0ec794e916c809"
-  },
-  "assets/skins/voc_knight/voc_knight_commom/walk_front_02.png": {
-    "mtime": 1786340474.0,
-    "ast_hash": "900bda91c443bbbdcd3f393555d38df8",
-    "semantic_hash": "900bda91c443bbbdcd3f393555d38df8"
-  },
-  "assets/skins/voc_knight/voc_knight_commom/walk_front_03.png": {
-    "mtime": 1786340474.0,
-    "ast_hash": "9a5554f439f8ce3f802391bb29f3002a",
-    "semantic_hash": "9a5554f439f8ce3f802391bb29f3002a"
-  },
-  "assets/skins/voc_knight/voc_knight_commom/walk_front_04.png": {
-    "mtime": 1786340474.0,
-    "ast_hash": "fcbe20d6ad63d19ddf48573e5071dc25",
-    "semantic_hash": "fcbe20d6ad63d19ddf48573e5071dc25"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/dead_back_01.png": {
-    "mtime": 1786402884.0,
-    "ast_hash": "b9a6a6e64b3d53facd484f8bfcb7ba34",
-    "semantic_hash": "b9a6a6e64b3d53facd484f8bfcb7ba34"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/dead_front_01.png": {
-    "mtime": 1786400644.0,
-    "ast_hash": "542071a645f39c343ab6f9edff47fbee",
-    "semantic_hash": "542071a645f39c343ab6f9edff47fbee"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/idle_back_01.png": {
-    "mtime": 1786402846.0,
-    "ast_hash": "c95b07dfaee31382fe2c807d8be30e88",
-    "semantic_hash": "c95b07dfaee31382fe2c807d8be30e88"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/idle_back_02.png": {
-    "mtime": 1786402846.0,
-    "ast_hash": "ddf771ef9113582f0f2df43cee1a9a0c",
-    "semantic_hash": "ddf771ef9113582f0f2df43cee1a9a0c"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/idle_back_03.png": {
-    "mtime": 1786402846.0,
-    "ast_hash": "42ff2fe0653fc61bdca08250951e398c",
-    "semantic_hash": "42ff2fe0653fc61bdca08250951e398c"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/idle_back_04.png": {
-    "mtime": 1786402846.0,
-    "ast_hash": "6054483774e74936f3beafe5a7d55148",
-    "semantic_hash": "6054483774e74936f3beafe5a7d55148"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/idle_front_01.png": {
-    "mtime": 1786400592.0,
-    "ast_hash": "e4e99df912ba3311911355b98f7e2132",
-    "semantic_hash": "e4e99df912ba3311911355b98f7e2132"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/idle_front_02.png": {
-    "mtime": 1786400592.0,
-    "ast_hash": "04f9581802ea0b30ae6df7f81c556527",
-    "semantic_hash": "04f9581802ea0b30ae6df7f81c556527"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/idle_front_03.png": {
-    "mtime": 1786400592.0,
-    "ast_hash": "708c00f5ba76ddc9ecfcc1f5a6d11700",
-    "semantic_hash": "708c00f5ba76ddc9ecfcc1f5a6d11700"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/idle_front_04.png": {
-    "mtime": 1786400592.0,
-    "ast_hash": "0f05aebc0858d775f134ddd4b1679e5b",
-    "semantic_hash": "0f05aebc0858d775f134ddd4b1679e5b"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/walk_back_01.png": {
-    "mtime": 1786402778.0,
-    "ast_hash": "0474cd77525c4a35ebcef2a8cd9c94ef",
-    "semantic_hash": "0474cd77525c4a35ebcef2a8cd9c94ef"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/walk_back_02.png": {
-    "mtime": 1786402778.0,
-    "ast_hash": "a4bb440ffe16eae496fd8d96c448c9a8",
-    "semantic_hash": "a4bb440ffe16eae496fd8d96c448c9a8"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/walk_back_03.png": {
-    "mtime": 1786402778.0,
-    "ast_hash": "e56e0ee423f3fd422721d9071689443d",
-    "semantic_hash": "e56e0ee423f3fd422721d9071689443d"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/walk_front_01.png": {
-    "mtime": 1786400498.0,
-    "ast_hash": "ebcaa0d293da6421f8890327e0b3afc0",
-    "semantic_hash": "ebcaa0d293da6421f8890327e0b3afc0"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/walk_front_02.png": {
-    "mtime": 1786400498.0,
-    "ast_hash": "8ac26b1b43c4c71239e62ea8e1a84c67",
-    "semantic_hash": "8ac26b1b43c4c71239e62ea8e1a84c67"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/walk_front_03.png": {
-    "mtime": 1786400498.0,
-    "ast_hash": "b5b90e443252696d71f174197881835a",
-    "semantic_hash": "b5b90e443252696d71f174197881835a"
-  },
-  "assets/skins/voc_knight/voc_knight_veteran/walk_front_04.png": {
-    "mtime": 1786400498.0,
-    "ast_hash": "2a3c6ad2cc6358157c725cd451722737",
-    "semantic_hash": "2a3c6ad2cc6358157c725cd451722737"
   },
   "tools/amostra/black_knight_frames.png": {
     "mtime": 1786255292.0,
@@ -1655,8 +1525,8 @@
     "semantic_hash": ""
   },
   "assets/skins/voc_knight/voc_knight_commom/_conjunto.json": {
-    "mtime": 1786551792.450763,
-    "ast_hash": "65ba450d3994f7e07480498d258a4837",
+    "mtime": 1788028927.2056682,
+    "ast_hash": "484018c77a5931fe6f91f9601045111a",
     "semantic_hash": ""
   },
   "assets/skins/voc_knight/voc_knight_veteran/_conjunto.json": {
@@ -1670,8 +1540,8 @@
     "semantic_hash": ""
   },
   "assets/COMO_ADICIONAR.md": {
-    "mtime": 1786848762.9118664,
-    "ast_hash": "46f3162643a5b33c03615534bbad7d6a",
+    "mtime": 1788027480.54076,
+    "ast_hash": "98e99493f61d56b5b7b1a1cb2c524ebc",
     "semantic_hash": ""
   },
   "assets/icons/ah_amulet.png": {
@@ -2060,8 +1930,8 @@
     "semantic_hash": ""
   },
   "assets/build_folhas.py": {
-    "mtime": 1787087942.4815147,
-    "ast_hash": "c1ba2465da23bf667af3077a009a06d4",
+    "mtime": 1787717983.025905,
+    "ast_hash": "bff3a59e6ddba534a4ca7467d3ab0dee",
     "semantic_hash": ""
   },
   "assets/skins/loot/loot_01.json": {
@@ -2730,8 +2600,8 @@
     "semantic_hash": ""
   },
   "assets/build_criaturas.py": {
-    "mtime": 1787082530.4004629,
-    "ast_hash": "ff76c3114ce01e20ad2d03ec59ab9c0b",
+    "mtime": 1788027115.5274394,
+    "ast_hash": "8afc4d21d801e24d5c6533411362e44d",
     "semantic_hash": ""
   },
   "assets/skins/creatures/demon/_conjunto.json": {
@@ -2740,7 +2610,7 @@
     "semantic_hash": ""
   },
   "assets/creatures/demon.png": {
-    "mtime": 1787082533.3582344,
+    "mtime": 1788029207.087861,
     "ast_hash": "aeca5ef0b2c053c13604ed943a8639d1",
     "semantic_hash": ""
   },
@@ -3080,8 +2950,8 @@
     "semantic_hash": ""
   },
   "tools/serve.py": {
-    "mtime": 1787540069.4589677,
-    "ast_hash": "9533e3d09c8856f63cf6577e8f863e4c",
+    "mtime": 1787625569.6708655,
+    "ast_hash": "2d8f50d140654c3f0885a1f369a2f231",
     "semantic_hash": ""
   },
   "main.js": {
@@ -3170,8 +3040,8 @@
     "semantic_hash": ""
   },
   "tasks.html": {
-    "mtime": 1787540318.6020575,
-    "ast_hash": "db4f026a617212eeca5f09e35b6a9940",
+    "mtime": 1788044760.596008,
+    "ast_hash": "15880b49e7eca0e0fced8270ac49a738",
     "semantic_hash": ""
   },
   "assets/skins/creatures/cyclops/cyclops_brute/cyclops_anim.png": {
@@ -3205,12 +3075,12 @@
     "semantic_hash": ""
   },
   "src/criaturas.js": {
-    "mtime": 1787082533.361283,
-    "ast_hash": "60ed0b32f14dd027348306b8bd891f09",
+    "mtime": 1788029220.048079,
+    "ast_hash": "a23d5e556c9f6b96abc5703c994ac6cb",
     "semantic_hash": ""
   },
   "assets/creatures/cyclops.png": {
-    "mtime": 1787082531.6704428,
+    "mtime": 1788029205.3357472,
     "ast_hash": "71b8d512e2b201d902a5127686559f71",
     "semantic_hash": ""
   },
@@ -5620,18 +5490,18 @@
     "semantic_hash": ""
   },
   "maps/varrokgaard.json": {
-    "mtime": 1787523804.2079203,
-    "ast_hash": "541ea92ea83f7c27a351ea432dda977e",
+    "mtime": 1788038635.763546,
+    "ast_hash": "9d1a3630a293c684718b4e86d8cfa78f",
     "semantic_hash": ""
   },
   "tools/compor.js": {
-    "mtime": 1787510305.0122638,
-    "ast_hash": "6ce207a3c7065c807b908f22672b9cec",
+    "mtime": 1787625652.271418,
+    "ast_hash": "391363ee5af695951cc6e998c043c7e1",
     "semantic_hash": ""
   },
   "tools/mapas/varrokgaard.js": {
-    "mtime": 1787515060.0616045,
-    "ast_hash": "f3c366ec2b025b6e4bc3b564cebb9bc7",
+    "mtime": 1787625736.254484,
+    "ast_hash": "5a9a5db269206ec58d8307d24f03aa61",
     "semantic_hash": ""
   },
   "tools/amostra/construido.html": {
@@ -5660,18 +5530,18 @@
     "semantic_hash": ""
   },
   "tools/editor.html": {
-    "mtime": 1787540069.657047,
-    "ast_hash": "3f96774f4975b6de3c4f6205e797787d",
+    "mtime": 1787712692.8771367,
+    "ast_hash": "2684ccb4d9e75d5411a858f949eec04e",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.json": {
-    "mtime": 1787523803.8573136,
-    "ast_hash": "8965c1f726f793c56114a5647dcc359d",
+    "mtime": 1788038633.6231506,
+    "ast_hash": "5ef92855ae68c0191b3b6f1681d8bfc7",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.bak.json": {
-    "mtime": 1787523803.8573136,
-    "ast_hash": "ab3ebd83bf4a4ea61ea21f4c2dbcbfbe",
+    "mtime": 1788038633.6201339,
+    "ast_hash": "5d05a430676977045ee8bc77b4490871",
     "semantic_hash": ""
   },
   "maps/_bak/varrokgaard.20260823-1330.json": {
@@ -5825,8 +5695,8 @@
     "semantic_hash": ""
   },
   "tests/test_tools.js": {
-    "mtime": 1787540120.5907612,
-    "ast_hash": "5764bf1d237ef8a11d68e2d1c5f4317d",
+    "mtime": 1787625540.958748,
+    "ast_hash": "8df23f0cd2d2bf330e794feb82f306d1",
     "semantic_hash": ""
   },
   "assets/terreno/agua_clara.png": {
@@ -6110,8 +5980,528 @@
     "semantic_hash": ""
   },
   "tools/patch_fmt.js": {
-    "mtime": 1787540069.1110263,
-    "ast_hash": "2ada81791aac6c34d02ef0cac0c382e0",
+    "mtime": 1787625569.9138775,
+    "ast_hash": "5b903d26e8db6ff6a4ff92333a73828f",
+    "semantic_hash": ""
+  },
+  "assets/scenario/blood_01.png": {
+    "mtime": 1787616309.7556942,
+    "ast_hash": "017882accbd1d966f0159d9b23b8829d",
+    "semantic_hash": ""
+  },
+  "assets/scenario/blood_02.png": {
+    "mtime": 1787617019.6290827,
+    "ast_hash": "676e4674cc108b684edc19264bef2af8",
+    "semantic_hash": ""
+  },
+  "assets/creatures/voc_knight_commom.png": {
+    "mtime": 1788029210.7622404,
+    "ast_hash": "b0bbeef36f14628c51ef4c48822a7145",
+    "semantic_hash": ""
+  },
+  "assets/creatures/voc_knight_veteran.png": {
+    "mtime": 1788029212.1529727,
+    "ast_hash": "eda2c1bef756900ff1108ef4a4af9570",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_idle_front_01.png": {
+    "mtime": 1788029203.146882,
+    "ast_hash": "60399530dacf5802c50200d70448c364",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_front_01.png": {
+    "mtime": 1788029203.5018678,
+    "ast_hash": "49c239da136e46864a40df353ac677b4",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_front_02.png": {
+    "mtime": 1788029203.5812507,
+    "ast_hash": "60399530dacf5802c50200d70448c364",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_dead_back_01.png": {
+    "mtime": 1786402884.0,
+    "ast_hash": "b9a6a6e64b3d53facd484f8bfcb7ba34",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_dead_front_01.png": {
+    "mtime": 1786400644.0,
+    "ast_hash": "542071a645f39c343ab6f9edff47fbee",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_idle_back_01.png": {
+    "mtime": 1786402846.0,
+    "ast_hash": "c95b07dfaee31382fe2c807d8be30e88",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_idle_back_02.png": {
+    "mtime": 1786402846.0,
+    "ast_hash": "ddf771ef9113582f0f2df43cee1a9a0c",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_idle_back_03.png": {
+    "mtime": 1786402846.0,
+    "ast_hash": "42ff2fe0653fc61bdca08250951e398c",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_idle_back_04.png": {
+    "mtime": 1786402846.0,
+    "ast_hash": "6054483774e74936f3beafe5a7d55148",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_idle_front_01.png": {
+    "mtime": 1786400592.0,
+    "ast_hash": "e4e99df912ba3311911355b98f7e2132",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_idle_front_02.png": {
+    "mtime": 1786400592.0,
+    "ast_hash": "04f9581802ea0b30ae6df7f81c556527",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_idle_front_03.png": {
+    "mtime": 1786400592.0,
+    "ast_hash": "708c00f5ba76ddc9ecfcc1f5a6d11700",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_idle_front_04.png": {
+    "mtime": 1786400592.0,
+    "ast_hash": "0f05aebc0858d775f134ddd4b1679e5b",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_walk_back_01.png": {
+    "mtime": 1786402778.0,
+    "ast_hash": "0474cd77525c4a35ebcef2a8cd9c94ef",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_walk_back_02.png": {
+    "mtime": 1786402778.0,
+    "ast_hash": "a4bb440ffe16eae496fd8d96c448c9a8",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_walk_back_03.png": {
+    "mtime": 1786402778.0,
+    "ast_hash": "e56e0ee423f3fd422721d9071689443d",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_walk_front_01.png": {
+    "mtime": 1786400498.0,
+    "ast_hash": "ebcaa0d293da6421f8890327e0b3afc0",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_walk_front_02.png": {
+    "mtime": 1786400498.0,
+    "ast_hash": "8ac26b1b43c4c71239e62ea8e1a84c67",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_walk_front_03.png": {
+    "mtime": 1786400498.0,
+    "ast_hash": "b5b90e443252696d71f174197881835a",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_veteran/voc_knight_veteran_walk_front_04.png": {
+    "mtime": 1786400498.0,
+    "ast_hash": "2a3c6ad2cc6358157c725cd451722737",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/_conjunto.json": {
+    "mtime": 1787718070.881305,
+    "ast_hash": "65ba450d3994f7e07480498d258a4837",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/_conjunto.json": {
+    "mtime": 1787718228.161487,
+    "ast_hash": "3ec0b042ba8cc7670e415c90a09f4ebc",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/sheet_01.json": {
+    "mtime": 1787718042.650344,
+    "ast_hash": "7994dadbed935ee2dd1419bfe9943c7c",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/sheet_02.json": {
+    "mtime": 1787718042.672583,
+    "ast_hash": "02ce32cf86c1b5bcdba3aed3fa817786",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/sheet_03.json": {
+    "mtime": 1787718042.6948714,
+    "ast_hash": "77c8397690a7b81f5961671ab483704d",
+    "semantic_hash": ""
+  },
+  "assets/creatures/voc_sorcerer_common.png": {
+    "mtime": 1788029216.428811,
+    "ast_hash": "5fe630481080231eb4457f2267263c08",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/_ref_voc_knight_commom.png": {
+    "mtime": 1787715735.8135035,
+    "ast_hash": "0900061f9d05b7333e22fdd6b40a88fd",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/_ref_voc_knight_veteran.png": {
+    "mtime": 1787715735.8282552,
+    "ast_hash": "85d6fd7930bfa048b1a90c67a26aac12",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/sheet_01.png": {
+    "mtime": 1787717046.3188896,
+    "ast_hash": "aae0b49be9c2ce9c74b3bca4e7d04ef3",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/sheet_02.png": {
+    "mtime": 1787716721.8577764,
+    "ast_hash": "1af8a2f1a2bee064f7ca359519df15f9",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/sheet_03.png": {
+    "mtime": 1787716629.5030568,
+    "ast_hash": "70429f3a38ae6d302c6258ca49594df2",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer.png": {
+    "mtime": 1787716508.2126586,
+    "ast_hash": "1b0de6929a76cb08362f25e51bd65322",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_idle_back_01.png": {
+    "mtime": 1787720110.3803518,
+    "ast_hash": "9bd4ceeba3146d48569d52c523f28889",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_idle_front_01.png": {
+    "mtime": 1787720110.0580988,
+    "ast_hash": "7f5bb49d212fa3456934386cbfbb43c6",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_idle_left_01.png": {
+    "mtime": 1787720110.6330795,
+    "ast_hash": "a265ddedf358cfdfce74813edb87e586",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_back_01.png": {
+    "mtime": 1787720110.4125676,
+    "ast_hash": "b20dd9cc449516cf7128b1a5e52eeb2f",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_back_02.png": {
+    "mtime": 1787720110.4439714,
+    "ast_hash": "9bd4ceeba3146d48569d52c523f28889",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_front_01.png": {
+    "mtime": 1787720110.0847125,
+    "ast_hash": "709de65264e1617414187296be4cc2db",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_front_02.png": {
+    "mtime": 1787720110.1150644,
+    "ast_hash": "7f5bb49d212fa3456934386cbfbb43c6",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_left_01.png": {
+    "mtime": 1787720110.659632,
+    "ast_hash": "acdaf982bdd306f0e1c566b3a1157c41",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_left_02.png": {
+    "mtime": 1787720110.6823363,
+    "ast_hash": "a265ddedf358cfdfce74813edb87e586",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_back_03.png": {
+    "mtime": 1787720110.4767914,
+    "ast_hash": "813b19c81ff4bd037d978393fce9a7de",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_back_04.png": {
+    "mtime": 1787720110.5069158,
+    "ast_hash": "9bd4ceeba3146d48569d52c523f28889",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_front_03.png": {
+    "mtime": 1787720110.144081,
+    "ast_hash": "9847790f8abc42eca0deb2e7ec745499",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_front_04.png": {
+    "mtime": 1787720110.1720872,
+    "ast_hash": "7f5bb49d212fa3456934386cbfbb43c6",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_left_03.png": {
+    "mtime": 1787720110.7089074,
+    "ast_hash": "2b891ea8ddc037fe0e58b50ea5cb4dee",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_sorcerer/voc_sorcerer_common/voc_sorcerer_common_walk_left_04.png": {
+    "mtime": 1787720110.7311816,
+    "ast_hash": "a265ddedf358cfdfce74813edb87e586",
+    "semantic_hash": ""
+  },
+  "assets/build_ref_estilo.py": {
+    "mtime": 1787884082.5666816,
+    "ast_hash": "fdee3f23452cf558775dbb20b17d691e",
+    "semantic_hash": ""
+  },
+  "assets/skins/_ref_estilo.png": {
+    "mtime": 1787884115.8466702,
+    "ast_hash": "4ef6dda91fcf39f67a10aa912c240081",
+    "semantic_hash": ""
+  },
+  "assets/confere_folha.py": {
+    "mtime": 1787887034.610814,
+    "ast_hash": "7cdfc6bb633da3a9741722d019b68dae",
+    "semantic_hash": ""
+  },
+  "assets/vocations/druid_background.png": {
+    "mtime": 1788023386.0730834,
+    "ast_hash": "c445bc498494ab93dbde18ec50824c4c",
+    "semantic_hash": ""
+  },
+  "assets/vocations/knight_background.png": {
+    "mtime": 1788023332.238067,
+    "ast_hash": "f68a347feef17a271006021ecf16ebc7",
+    "semantic_hash": ""
+  },
+  "assets/vocations/ranger_background.png": {
+    "mtime": 1788023276.2851317,
+    "ast_hash": "d3435395e144e08f11196c0e1adfd2b0",
+    "semantic_hash": ""
+  },
+  "assets/vocations/sorcerer_background.png": {
+    "mtime": 1788023209.0243995,
+    "ast_hash": "b58a50cffbec11a1198b2be47edd7f43",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/_conjunto.json": {
+    "mtime": 1788027187.646327,
+    "ast_hash": "ae0024ce4d8bb5697500e7d5ca4ec80f",
+    "semantic_hash": ""
+  },
+  "assets/creatures/voc_all_citizen.png": {
+    "mtime": 1788029220.0429907,
+    "ast_hash": "9d1de74be37a084c4604972557e83fe9",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/citizen.png": {
+    "mtime": 1787884772.201366,
+    "ast_hash": "79cf8295c541d1324e0b74adfba120d4",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/citizen_anim_01.png": {
+    "mtime": 1788025787.0305867,
+    "ast_hash": "562f7d3a4458705ddbb0cfdd9ada83a9",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/citizen_anim_02.png": {
+    "mtime": 1788024969.926964,
+    "ast_hash": "f621e3de063ecdfd34747eb448e8f09f",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/citizen_anim_03.png": {
+    "mtime": 1788024503.9501002,
+    "ast_hash": "214d419f662dfd22cf9d645de3463727",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/citizen_anim_04.png": {
+    "mtime": 1788023712.7068818,
+    "ast_hash": "cea62059551931ea336bea729170f18e",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_dead_01.png": {
+    "mtime": 1788027089.8528314,
+    "ast_hash": "866357d4d5fe482a8b9cb487a509d2d2",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_dead_02.png": {
+    "mtime": 1788027089.8839319,
+    "ast_hash": "e09f641c0938154c19dee29c43f0eaf1",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_idle_back_01.png": {
+    "mtime": 1788027089.3319752,
+    "ast_hash": "258e4c6fccf7bbac68d17d7eadd739de",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_idle_front_01.png": {
+    "mtime": 1788027088.9823506,
+    "ast_hash": "9956014a4719fa1ceffcbfac7ba64aa7",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_idle_left_01.png": {
+    "mtime": 1788027089.5766072,
+    "ast_hash": "57e703e9f6ad0aa929d3e4935cff2cd1",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_back_01.png": {
+    "mtime": 1788027089.361605,
+    "ast_hash": "a7b34f5e41344320e8061107bad25a04",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_back_02.png": {
+    "mtime": 1788027089.3904161,
+    "ast_hash": "258e4c6fccf7bbac68d17d7eadd739de",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_back_03.png": {
+    "mtime": 1788027089.4199817,
+    "ast_hash": "a65d3d8a252782a2648c818947e6e5dd",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_back_04.png": {
+    "mtime": 1788027089.4491124,
+    "ast_hash": "258e4c6fccf7bbac68d17d7eadd739de",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_front_01.png": {
+    "mtime": 1788027089.0169554,
+    "ast_hash": "0763c1330eedfe349a5450164b72c1a7",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_front_02.png": {
+    "mtime": 1788027089.0524268,
+    "ast_hash": "9956014a4719fa1ceffcbfac7ba64aa7",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_front_03.png": {
+    "mtime": 1788027089.0853226,
+    "ast_hash": "a5f727c5af9fe791b26e09baf3a1f690",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_front_04.png": {
+    "mtime": 1788027089.1214974,
+    "ast_hash": "9956014a4719fa1ceffcbfac7ba64aa7",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_left_01.png": {
+    "mtime": 1788027089.5986073,
+    "ast_hash": "13374be09dc0af010dff65c370d62aee",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_left_02.png": {
+    "mtime": 1788027089.6157367,
+    "ast_hash": "57e703e9f6ad0aa929d3e4935cff2cd1",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_left_03.png": {
+    "mtime": 1788027089.6385164,
+    "ast_hash": "abddb3fe532e756f2f3beab1e727b5d1",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_all_citizen/voc_all_citizen_walk_left_04.png": {
+    "mtime": 1788027089.655662,
+    "ast_hash": "57e703e9f6ad0aa929d3e4935cff2cd1",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/ChatGPT Image 29 de ago. de 2026, 15_01_05.png": {
+    "mtime": 1788026489.838092,
+    "ast_hash": "d115a77eb6211270acaed7c498d1f8a5",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/ChatGPT Image 29 de ago. de 2026, 15_01_33.png": {
+    "mtime": 1788026496.1168532,
+    "ast_hash": "ca207f5041d84f7f74ea68b8879b669e",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/ChatGPT Image 29 de ago. de 2026, 15_02_16.png": {
+    "mtime": 1788026538.9790802,
+    "ast_hash": "8f155de5b6c0e42b4e06dbafa3b09bb2",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/ChatGPT Image 29 de ago. de 2026, 15_02_22.png": {
+    "mtime": 1788026545.024166,
+    "ast_hash": "1bbde19a363f86d178b0a890e6cfafbb",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/ChatGPT Image 29 de ago. de 2026, 15_03_09.png": {
+    "mtime": 1788028474.377554,
+    "ast_hash": "6f557920648e4d9513f92cdd1ff2cc47",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_idle_back_01.png": {
+    "mtime": 1788029203.0552778,
+    "ast_hash": "ceb5f090b99c8bec08aeb54dffa1221c",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_back_01.png": {
+    "mtime": 1788029203.2533896,
+    "ast_hash": "2526f6457b3d1af1c5ff47519d6a3510",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_back_02.png": {
+    "mtime": 1788029203.3072536,
+    "ast_hash": "ceb5f090b99c8bec08aeb54dffa1221c",
+    "semantic_hash": ""
+  },
+  "assets/corrige_oliva.py": {
+    "mtime": 1788029179.5383935,
+    "ast_hash": "b04ae93266b52ba16c540c4cdc90e2f5",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/_antigo_dead_front_01.png": {
+    "mtime": 1786340722.0,
+    "ast_hash": "951ac127202acf9d9cb54ebc24799742",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_dead_01.png": {
+    "mtime": 1788029202.9159355,
+    "ast_hash": "8d9a109408b58b524cdd1f13ad4a07d5",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_dead_02.png": {
+    "mtime": 1788029202.9889107,
+    "ast_hash": "a7380aeadf02450fe1bdc79a543632a6",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_idle_left_01.png": {
+    "mtime": 1788029203.1890929,
+    "ast_hash": "2470e6cdf1e59981a898acb51cac8f53",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_back_03.png": {
+    "mtime": 1788029203.3690486,
+    "ast_hash": "2a96a70dd34e2b43102be0bba86fdcad",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_back_04.png": {
+    "mtime": 1788029203.4301138,
+    "ast_hash": "ceb5f090b99c8bec08aeb54dffa1221c",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_front_03.png": {
+    "mtime": 1788029203.643187,
+    "ast_hash": "8b8ca22d05579730a3f653f9f7e1244d",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_front_04.png": {
+    "mtime": 1788029203.7261734,
+    "ast_hash": "60399530dacf5802c50200d70448c364",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_left_01.png": {
+    "mtime": 1788029203.8048544,
+    "ast_hash": "62a6eddb5050633ef838da056fd8912e",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_left_02.png": {
+    "mtime": 1788029203.8432074,
+    "ast_hash": "2470e6cdf1e59981a898acb51cac8f53",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_left_03.png": {
+    "mtime": 1788029203.9159381,
+    "ast_hash": "752b9c675e14e7cd7e970295a9f4ae3f",
+    "semantic_hash": ""
+  },
+  "assets/skins/voc_knight/voc_knight_commom/voc_knight_commom_walk_left_04.png": {
+    "mtime": 1788029203.9587886,
+    "ast_hash": "2470e6cdf1e59981a898acb51cac8f53",
+    "semantic_hash": ""
+  },
+  "proposta_luz.html": {
+    "mtime": 1788044776.2936516,
+    "ast_hash": "8503009f28e2606bbbd0b9b759235d15",
     "semantic_hash": ""
   }
 }

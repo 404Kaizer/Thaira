@@ -1,0 +1,3 @@
+{ "pular": true, "escala": "lado",
+  "_nota": "quadros de animacao do personagem, desenhados no mundo e nao no slot",
+  "_escala": "as tres folhas sairam em geracoes diferentes: corpo de ~765px de frente, ~735 de perfil e ~710 de costas. Dentro de cada linha a altura bate, entao cada lado se ajeita sozinho." }

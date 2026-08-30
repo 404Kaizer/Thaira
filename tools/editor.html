@@ -26,13 +26,42 @@
              font-family: ui-monospace, monospace; }
   button.on b { opacity: .65; }
   input[type=range] { width: 88px; accent-color: var(--ouro); vertical-align: middle; }
+  /* O RÓTULO do grupo, e o vão que empurra o resto para a direita. Sem rótulo,
+     "quadrado" e "1×1" são duas fileiras de botões que o olho não sabe separar;
+     sem o vão, gravar fica encostado em desfazer. */
+  .rot { color: var(--fraco); font-size: 10.5px; letter-spacing: .1em;
+         text-transform: uppercase; margin-right: 1px; }
+  .cresce { flex: 1 1 auto; }
+  /* O grupo quebra INTEIRO. Sem isto o rotulo "VISTA" ficava no fim de uma linha
+     e os botoes dele na seguinte, que e pior que nao ter rotulo nenhum. */
+  .gr { display: flex; gap: 6px; align-items: center; flex: 0 0 auto; }
+  /* As duas que MEXEM NO DISCO se distinguem sem cor gritante: a de gravar por
+     peso, a de descartar por contorno. O §5 do CLAUDE.md quer cor como
+     informação, e aqui a informação é "isto sai da tela e vai para o arquivo". */
+  button.acao { border-color: var(--ouro); color: var(--ouro); font-weight: 600; }
+  button.acao:hover { background: #2c2617; }
+  button.perigo { border-color: #5c3126; color: var(--perigo); }
+  button.perigo:hover { background: #2c1c17; }
   .barra label { color: var(--fraco); font-size: 12px; }
   #densN { color: var(--texto); font-family: ui-monospace, monospace; min-width: 32px;
            display: inline-block; text-align: right; }
 
-  .palco { display: grid; grid-template-columns: 214px 1fr; min-height: 0; }
-  #paleta { border-right: 1px solid var(--linha); overflow-y: auto; padding: 6px 6px 20px;
-            background: var(--painel); }
+  .palco { display: grid; grid-template-columns: 246px 1fr; min-height: 0; }
+  .coluna { display: grid; grid-template-rows: auto 1fr; min-height: 0;
+            border-right: 1px solid var(--linha); background: var(--painel); }
+  /* O filtro fica COLADO no topo da paleta: com 101 entradas em 23 grupos,
+     rolar atras de um nome e o que mais custa tempo, e um filtro que rola junto
+     com a lista some justamente quando se precisa dele. */
+  #filtro { width: calc(100% - 12px); margin: 6px; background: #241f1a; color: var(--texto);
+            border: 1px solid var(--linha); padding: 5px 7px; font: inherit; }
+  #filtro::placeholder { color: #6d6555; }
+  #paleta { overflow-y: auto; padding: 0 6px 20px; background: var(--painel); }
+  /* A PASTA e o GRUPO se distinguem por peso, nao por cor: sao dois niveis de
+     titulo e o §4 do CLAUDE.md quer hierarquia por contraste, nao por enfeite. */
+  .pasta { color: var(--texto); font: 600 11px "Segoe UI", sans-serif; letter-spacing: .16em;
+           text-transform: uppercase; margin: 14px 2px 2px; padding: 3px 5px;
+           background: #2a241c; border-left: 3px solid var(--ouro); }
+  .pasta:first-child { margin-top: 4px; }
   .grupo { color: var(--ouro); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
            margin: 10px 2px 4px; border-bottom: 1px solid var(--linha); padding-bottom: 2px; }
   .grupo:first-child { margin-top: 2px; }
@@ -43,18 +72,37 @@
   .tl.on { border-color: var(--ouro); background: #2a241c; }
   .sw { width: 32px; height: 32px; border: 1px solid #0007; flex: none;
         image-rendering: pixelated; background: #14110d; }
-  .sw.barra { box-shadow: inset 0 0 0 2px #0009; }
+  /* `nao-anda` e nao `barra`: `barra` JA era o nome da barra de ferramentas, e a
+     colisao nao dava erro nenhum — os 20 tiles com walk:false herdavam
+     `display:flex` e `padding:6px 12px` da barra, e numa amostra de 32px isso
+     deixa 8px de largura. Era o "alguns tiles estao estranhos na exibicao":
+     agua, arvore, veio e teia saiam como tirinha vertical. Classe de estado e
+     classe de layout nao podem dividir nome. */
+  .sw.nao-anda { box-shadow: inset 0 0 0 2px #0009; }
+  /* O chefe se distingue na PRÓPRIA amostra e não só pela pasta: filtrando por
+     nome os dois grupos se misturam de novo, e aí a pasta não protege nada. */
+  .sw.chefe { box-shadow: inset 0 0 0 2px var(--perigo); }
   .tl span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
   .visor { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #0a0908; }
   canvas { display: block; image-rendering: pixelated; cursor: crosshair; }
   canvas.pan { cursor: grabbing; }
-  #log { position: absolute; right: 10px; bottom: 10px; width: 46ch; max-height: 44%;
-         overflow: auto; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.45;
-         color: var(--fraco); background: #17140fe8; border: 1px solid var(--linha);
-         padding: 7px 9px; margin: 0; white-space: pre-wrap; }
+  /* O log fica no CANTO e nao no meio, e da para fechar. Ele nasceu como um
+     painel de 46ch com 44% de altura ancorado no rodape, e no visor estreito
+     isso cobre justamente o pedaco de mapa que se acabou de editar — o dono
+     grava para ver o resultado e o resultado fica atras do relatorio.
+     Mais estreito, mais baixo, e com um X: aviso que nao se pode tirar da
+     frente vira estorvo, e estorvo se aprende a ignorar. */
+  #log { position: absolute; right: 8px; bottom: 8px; width: 40ch; max-height: 32%;
+         overflow: auto; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.4;
+         color: var(--fraco); background: #17140ff2; border: 1px solid var(--linha);
+         padding: 7px 22px 7px 9px; margin: 0; white-space: pre-wrap; }
   #log:empty { display: none; }
   #log.ruim { border-color: var(--perigo); color: #e0b3a4; }
+  #fechaLog { position: absolute; right: 10px; bottom: 10px; z-index: 3; display: none;
+              background: none; border: 0; color: var(--fraco); font: 15px/1 inherit;
+              cursor: pointer; padding: 3px 5px; }
+  #fechaLog:hover { color: var(--texto); }
 
   .rodape { display: flex; gap: 16px; align-items: center; padding: 4px 12px;
             border-top: 1px solid var(--linha); background: var(--painel);
@@ -69,42 +117,75 @@
   <span>o script <b>semeia</b>, você <b>corrige</b> — gravar aplica o seu patch e recompõe o mapa que o jogo carrega</span>
 </header>
 
+<!-- DUAS FILEIRAS, e cada uma responde uma pergunta.
+     Era uma fileira só com dezenove controles em ordem de quando foram
+     escritos: o andar no meio das ferramentas, "gravar" encostado em "desfazer",
+     e a densidade entre a forma do pincel e o zoom. Sem hierarquia não se acha
+     nada — é a queixa do dono, "tá tudo muito bagunçado", e o §22 do CLAUDE.md
+     manda decidir a hierarquia ANTES de desenhar a tela.
+     ONDE eu estou (mapa, andar) em cima; COM O QUE eu pinto (ferramenta, forma,
+     tamanho, densidade) embaixo. As duas ações que MEXEM NO DISCO ficam
+     empurradas para a direita, longe do resto: gravar por engano é o erro caro
+     desta ferramenta, e vizinhança é o que produz clique errado. -->
 <div class="barra">
-  <label>Mapa <input id="nome" type="text" value="varrokgaard" style="width:112px"></label>
+  <label>Mapa <input id="nome" type="text" value="varrokgaard" style="width:104px"></label>
   <button id="carregar">carregar</button>
   <span class="sep"></span>
-  <span id="andares"></span>
-  <span class="sep"></span>
-  <button class="fer on" data-f="pincel">pincel<b>B</b></button>
-  <button class="fer" data-f="balde">balde<b>G</b></button>
-  <button class="fer" data-f="retangulo">retângulo<b>R</b></button>
-  <button class="fer" data-f="conta-gotas">conta-gotas<b>I</b></button>
-  <span class="sep"></span>
+  <span class="gr"><span class="rot">andar</span><span id="andares"></span></span>
+  <span class="cresce"></span>
+  <span class="gr">
+    <button id="desfazer">desfazer<b>^Z</b></button>
+    <button id="gravar" class="acao">gravar e recompor<b>^S</b></button>
+    <button id="limpar" class="perigo">descartar</button>
+  </span>
+</div>
+<div class="barra">
+  <span class="gr">
+    <span class="rot">ferramenta</span>
+    <button class="fer on" data-f="pincel">pincel<b>B</b></button>
+    <button class="fer" data-f="balde">balde<b>G</b></button>
+    <button class="fer" data-f="retangulo">retângulo<b>R</b></button>
+    <button class="fer" data-f="conta-gotas">conta-gotas<b>I</b></button>
+  </span>
+  <span class="gr">
+    <span class="rot">forma</span>
+    <button class="fma on" data-m="quadrado">quadrado<b>Q</b></button>
+    <button class="fma" data-m="circulo">círculo<b>C</b></button>
+    <button class="fma" data-m="mancha">mancha<b>M</b></button>
+  </span>
+  <span class="gr">
+  <span class="rot">tamanho</span>
   <button class="tam on" data-r="0">1×1<b>1</b></button>
   <button class="tam" data-r="1">3×3<b>2</b></button>
   <button class="tam" data-r="2">5×5<b>3</b></button>
   <button class="tam" data-r="3">7×7<b>4</b></button>
   <button class="tam" data-r="4">9×9<b>5</b></button>
   <button class="tam" data-r="6">13×13<b>6</b></button>
-  <span class="sep"></span>
-  <button class="fma on" data-m="quadrado">quadrado<b>Q</b></button>
-  <button class="fma" data-m="circulo">círculo<b>C</b></button>
-  <button class="fma" data-m="mancha">mancha<b>M</b></button>
   <label>densidade <input id="dens" type="range" min="5" max="100" step="5" value="100"><span id="densN">100%</span></label>
-  <span class="sep"></span>
-  <button id="verTudo">ver tudo<b>0</b></button>
-  <button id="btGrade">grade: as duas<b>X</b></button>
-  <button id="desfazer">desfazer<b>^Z</b></button>
-  <span class="sep"></span>
-  <button id="gravar">gravar e recompor<b>^S</b></button>
-  <button id="limpar">descartar</button>
+  </span>
+  <span class="cresce"></span>
+  <span class="gr">
+    <span class="rot">vista</span>
+    <button id="verTudo">ver tudo<b>0</b></button>
+    <button id="btGrade">grade: as duas<b>X</b></button>
+  </span>
 </div>
 
 <div class="palco">
-  <div id="paleta"></div>
+  <!-- O FILTRO FICA FORA DA #paleta, e isto e o conserto de um bug meu: ele
+       morava dentro dela, e `paleta()` faz `innerHTML = ''` e reanexa o input.
+       Reanexar MOVE o no no DOM, e mover um elemento focado TIRA O FOCO — daí
+       "so consigo digitar uma letra e o campo desfoca". E com o foco de volta no
+       body, a tecla seguinte virava atalho do editor, que era o outro sintoma.
+       Fora da paleta, o redesenho nao toca nele. -->
+  <div class="coluna">
+    <input id="filtro" type="text" placeholder="filtrar (tile, objeto, material)">
+    <div id="paleta"></div>
+  </div>
   <div class="visor" id="visor">
     <canvas id="cv"></canvas>
     <pre id="log"></pre>
+    <button id="fechaLog" title="fechar o relatório">×</button>
   </div>
 </div>
 
@@ -115,6 +196,7 @@
   <span class="dica">roda = zoom no cursor · botão direito arrasta · gravar recompõe e avisa o jogo aberto</span>
 </div>
 
+<script src="../src/criaturas.js"></script>
 <script src="../src/data.js"></script>
 <script src="../src/art.js"></script>
 <script src="../src/world.js"></script>
@@ -247,6 +329,17 @@ let mexidos = new Map();         // "z:i" -> tile, só o que difere da base
 let baseObj = null;
 let mexidosObj = new Map();      // "z:i" -> [ids], só o que difere de baseObj
 let pincelObj = null;
+/* A TERCEIRA CAMADA: spawn. Mesma forma das outras duas — a unidade de diff é a
+   LISTA de espécies ancoradas num tile, e não o bicho solto. É o que cobre pôr,
+   tirar e vários por tile com uma forma só, e é como a camada de objeto já
+   resolveu o mesmo problema.
+   O script continua POVOANDO: `povoa` distribui em núcleos densos com corredor
+   vazio entre eles, e isso é invariante de desenho travada por teste. O editor
+   CORRIGE — move, apaga, acrescenta um aqui e ali. Colocar 150 à mão perderia a
+   propriedade dos núcleos e ninguém perceberia. */
+let baseSpawn = null;
+let mexidosSpawn = new Map();    // "z:i" -> [espécies]
+let pincelSpawn = null;          // null = não estou pintando bicho; '' = borracha
 let pilha = [];                  // desfazer: cada traço é um lote
 let arrastando = null, panning = null, hover = null;
 
@@ -397,92 +490,220 @@ function amostraObj(id) {
        partido e o objeto só nasce na recomposição seguinte;
      · e os quatorze JÁ estão na paleta de objeto, com o sprite de verdade.
    Duas entradas para a mesma coisa, e a pior das duas aparecia primeiro. */
-const GRUPOS = [
-  ['chão · campo',   ['GRASS', 'DIRT', 'SAND', 'CROP', 'HAY']],
-  ['chão · variante',['GRASS_CLARA', 'GRASS_MATA', 'GRASS_SECA', 'GRASS_RALA', 'DIRT_ESCURA']],
-  ['chão · água',    ['WATER', 'SWAMP', 'LAVA']],
-  ['chão · vila',    ['PAVE', 'FLOOR', 'PIER', 'TEMPLE', 'RUBBLE']],
-  ['chão · subsolo', ['CFLOOR', 'GRAVEL', 'WEBF', 'BONE', 'ASH', 'MOSS', 'SNOW']],
-  ['marcas',         ['GORE', 'RUNE', 'VOID']],
-  ['escadas',        ['UP', 'DOWN']],
-  /* A folha `tiles_01.png`, agrupada por família — 55 entradas numa lista
-     corrida seriam um índice, não uma paleta. */
-  ['folha 01 · grama', ['GRASS_DENSA', 'GRASS_FLORIDA', 'GRASS_PEDRA', 'GRASS_ALTA', 'GRASS_PAPOULA', 'GRASS_MOSTARDA', 'GRASS_MATO_SECO', 'GRASS_ARBUSTO']],
-  ['folha 01 · terra', ['DIRT_UMIDA', 'DIRT_LISA', 'DIRT_PEDRISCO', 'DIRT_RACHADA', 'DIRT_PEDREGOSA', 'DIRT_GRETADA']],
-  ['folha 01 · areia', ['SAND_FINA', 'SAND_GROSSA', 'SAND_PEDRA', 'SAND_MATO', 'SAND_DUNA']],
-  ['folha 01 · calçada', ['PAVE_BLOCO', 'PAVE_SEIXO', 'PAVE_CLARA', 'PAVE_MUSGO', 'PAVE_PARALELO', 'PAVE_LAJE', 'PAVE_MOSAICO']],
-  ['folha 01 · tijolo', ['BRICK', 'BRICK_MUSGO']],
-  ['folha 01 · água', ['WATER_CLARA', 'WATER_FUNDA']],
-  ['folha 01 · pedra', ['ROCK_IRREGULAR', 'ROCK_PEDREGULHO', 'ROCK_BASALTO', 'ROCK_MUSGO']],
-  ['folha 01 · brita', ['GRAVEL_CLARO']],
-  ['folha 01 · tábua', ['FLOOR_DEITADA', 'FLOOR_CLARA', 'FLOOR_ESCURA', 'FLOOR_TRAVESSA', 'FLOOR_LARGA']],
-  ['folha 01 · tapete', ['RUG']],
-  ['folha 01 · osso', ['BONE_CHAO', 'BONE_AREIA']],
-  ['folha 01 · lava', ['LAVA_VIVA']],
-  ['folha 01 · neve', ['SNOW_PEDRA', 'SNOW_MATO', 'SNOW_FUNDA']],
-  ['folha 01 · gelo', ['ICE_AGUA', 'ICE_TRINCADO', 'ICE_LISO']],
-  ['folha 01 · pântano', ['SWAMP_VITORIA', 'SWAMP_JUNCO_SECO', 'SWAMP_JUNCO', 'SWAMP_FOLHA']]
-];
-/* Os objetos, agrupados pela mesma lógica do vocabulário. A borracha entra como
-   entrada da paleta e não como ferramenta: apagar É pintar nenhum objeto, e uma
-   ferramenta a mais seria um modo a mais para o dono lembrar. */
-const GRUPOS_OBJ = [
-  ['objeto · apagar', ['']],
-  ['objeto · parede', ['ptabua', 'pbloco', 'rochedo', 'cparede', 'veio', 'teia', 'moinho']],
-  ['objeto · vila',   ['porta', 'cerca', 'poco', 'carroca', 'barril', 'escora']],
-  ['objeto · mato',   ['arvore', 'moita', 'pedra']]
-];
+/* AS PASTAS, e elas saem dos DADOS e não de uma lista escrita à mão.
+   A lista à mão era o defeito de origem: ela envelhecia a cada tile novo (foi
+   assim que a folha 01 virou "folha 01 · grama", agrupada por ONDE veio em vez
+   de por O QUE é), e tile fora dela sumia da paleta. Agora o grupo é a
+   `familia` que a própria ficha declara, e a pasta é o PAPEL do tile.
+   Quatro pastas, na ordem em que o desenho as empilha:
+     CHÃO    fica embaixo de tudo;
+     PAREDE  barra o passo e a vista, e mora na camada de objeto;
+     OBJETO  barra o passo e não a vista;
+     MARCA   não barra nada — é o que se põe por cima.
+   Tile que ganhar `familia` nova aparece sozinho, sem ninguém editar isto. */
+const ROTULO = {
+  grama: 'grama', terra: 'terra', areia: 'areia', calcada: 'calçada', tijolo: 'tijolo',
+  agua: 'água', pantano: 'pântano', lava: 'lava', neve: 'neve', gelo: 'gelo',
+  pedra: 'pedra', brita: 'brita', caverna: 'caverna', tabua: 'tábua', tapete: 'tapete',
+  osso: 'osso', teia: 'teia', cinza: 'cinza', musgo: 'musgo', templo: 'templo',
+  entulho: 'entulho', lavoura: 'lavoura', palha: 'palha', marca: 'marca',
+  escada: 'escada', vazio: 'vazio'
+};
+/* A ordem das famílias dentro da pasta CHÃO: do que mais se pinta para o que
+   menos se pinta, e não em ordem alfabética — quem edita uma ilha de fazenda
+   pega grama e terra o tempo todo e teia quase nunca. */
+const ORDEM = ['grama', 'terra', 'areia', 'lavoura', 'palha', 'calcada', 'tijolo', 'tabua',
+               'templo', 'entulho', 'tapete', 'agua', 'pantano', 'lava', 'neve', 'gelo',
+               'pedra', 'brita', 'caverna', 'osso', 'teia', 'cinza', 'musgo',
+               'escada', 'marca', 'vazio'];
+
+/* O PAPEL de cada tile e de cada objeto, que é o que decide a pasta. Sai da
+   ficha: `walk` diz se barra o passo e `top` se barra a vista — as mesmas duas
+   perguntas que o motor já faz. */
+function pastaDeTile(nome) {
+  const t = T[nome], d = TILE[t];
+  if (!d) return null;
+  if (d.familia === 'marca') return 'MARCA';
+  if (d.familia === 'escada' || d.familia === 'vazio') return 'CHÃO';
+  return 'CHÃO';                                    // o resto do T é terreno
+}
+/* LÊ a `cat` da ficha em vez de adivinhar por `walk`/`top`. A primeira versão
+   inferia, e errava: `pedra solta` e `moita` estavam as duas em `deco`, então
+   inferir por "não barra" mandava a pedra para a pasta errada — e a pedra
+   passou a barrar justamente por isso. Categoria é DECLARAÇÃO de autor; derivar
+   comportamento dela é certo, adivinhá-la de volta é redundância que diverge. */
+const PASTA_DE_CAT = { parede: 'PAREDE', objeto: 'OBJETO', deco: 'MARCA' };
+function pastaDeObj(id) {
+  const o = OBJ[id];
+  return (o && PASTA_DE_CAT[o.cat]) || 'OBJETO';
+}
+
+/* Monta [pasta, familia, itens] a partir das tabelas. Nada aqui é escrito à
+   mão: o que não tiver família cai em "sem família", que é a mesma rede que o
+   "sem grupo" antigo dava — e ela tem de continuar existindo, porque é ela que
+   impede um tile novo de sumir. */
+function pastas() {
+  const PASTAS = ['CHÃO', 'PAREDE', 'OBJETO', 'MARCA', 'BICHO', 'CHEFE'];   // empilhamento, depois o povoamento
+  const porFam = {};
+  for (const nome of Object.keys(T)) {
+    if (MIGRA[T[nome]]) continue;                   // vocabulário de autor, não é tile
+    const d = TILE[T[nome]]; if (!d) continue;
+    const f = d.familia || 'sem família';
+    (porFam[f] = porFam[f] || []).push(nome);
+  }
+  const blocos = [];
+  for (const f of Object.keys(porFam))
+    blocos.push([pastaDeTile(porFam[f][0]) || 'CHÃO', ROTULO[f] || f, porFam[f], 'tile', f]);
+  const porPasta = {};
+  for (const id of Object.keys(OBJ)) {
+    const pa = pastaDeObj(id);
+    (porPasta[pa] = porPasta[pa] || []).push(id);
+  }
+  for (const pa of PASTAS)
+    if (porPasta[pa]) blocos.push([pa, pa === 'PAREDE' ? 'parede' : pa === 'MARCA' ? 'marca solta' : 'móvel',
+                                   porPasta[pa], 'obj', 'zzz']);
+  blocos.push(['OBJETO', 'apagar', [''], 'obj', 'zzzz']);
+  /* BICHO é pasta própria e vem por último: ela não é desenho, é povoamento.
+     Ordenada por dificuldade e depois por nome, que é como se procura um bicho —
+     ninguém lembra o id, lembra "um lobo, dos fracos". */
+  /* CHEFE SEPARADO da criatura comum, a pedido do dono. Os 16 chefes não são
+     "mais um bicho da lista": cada hunt tem UM, ele nasce no centro dela, com
+     ponto de spawn próprio e respawn de 13 a 22 minutos. Misturado no meio de 83
+     nomes, pôr um sem querer é fácil e o estrago é grande — dois chefes numa
+     hunt não dá erro nenhum, só quebra o desenho do lugar.
+     A marca é o `diff: 'boss'` da própria ficha, não uma lista à mão. */
+  const ordena = (a, b) => ((MONSTERS[a].tier || 0) - (MONSTERS[b].tier || 0))
+                        || MONSTERS[a].n.localeCompare(MONSTERS[b].n);
+  const todos = Object.keys(MONSTERS);
+  const chefes = todos.filter(k => MONSTERS[k].diff === 'boss').sort(ordena);
+  const comuns = todos.filter(k => MONSTERS[k].diff !== 'boss').sort(ordena);
+  blocos.push(['BICHO', 'apagar', [''], 'spawn', 'zy']);
+  blocos.push(['BICHO', 'criatura', comuns, 'spawn', 'zz']);
+  blocos.push(['CHEFE', 'chefe', chefes, 'spawn', 'zz']);
+  /* Ordena por PASTA e, dentro dela, pela ordem de uso das famílias. Sem isto a
+     MARCA caía no meio do CHÃO e a pasta OBJETO aparecia duas vezes — o
+     cabeçalho de pasta só se escreve uma vez se os blocos vierem juntos. */
+  const ip = x => PASTAS.indexOf(x) + 1 || 99;
+  const if_ = x => ORDEM.indexOf(x) + 1 || 90;
+  blocos.sort((a, b) => ip(a[0]) - ip(b[0]) || if_(a[4]) - if_(b[4]) || a[1].localeCompare(b[1]));
+  return blocos;
+}
 /* Selecionar não reconstrói a paleta: só troca a marca. Reconstruir redesenha
    115 sprites de 32×32 — medido em 11,8 ms, o dobro do que custa desenhar o
    mapa inteiro — e isso acontecia a cada clique na paleta. */
 function marcaPaleta() {
   for (const d of document.querySelectorAll('#paleta .tl')) {
     const t = d.dataset.tile, o = d.dataset.obj;
-    const on = o !== undefined ? pincelObj === o
-                               : (pincelObj === null && +t === pincel);
+    const sp = d.dataset.spawn;
+    const on = sp !== undefined ? pincelSpawn === sp
+             : o !== undefined ? (pincelSpawn === null && pincelObj === o)
+                               : (pincelSpawn === null && pincelObj === null && +t === pincel);
     d.classList.toggle('on', on);
   }
 }
 function paleta() {
   const p = $('#paleta');
+  const termo = $('#filtro').value.trim().toLowerCase();
   p.innerHTML = '';
+  const passa = n => !termo || n.toLowerCase().includes(termo);
   const postos = new Set();
   const bloco = (titulo, nomes) => {
     const h = document.createElement('div'); h.className = 'grupo'; h.textContent = titulo;
     const g = document.createElement('div'); g.className = 'linhas';
+    let n = 0;
     for (const nome of nomes) {
       if (T[nome] === undefined) continue;
       postos.add(nome);
+      /* Casa contra o NOME, a textura e a familia. So o nome nao serve: a chave
+         e `SAND_FINA` e a textura e `areia_fina`, entao procurar "areia" — que e
+         como o dono pensa — nao achava a areia. */
+      const d0 = TILE[T[nome]] || {};
+      if (!passa([nome, d0.tex, d0.familia].filter(Boolean).join(' '))) continue;
+      n++;
       const t = T[nome], d = document.createElement('div');
       d.className = 'tl' + (t === pincel && pincelObj === null ? ' on' : '');
       const am = amostraTile(t);
-      if (!TILE[t].walk) am.classList.add('barra');
+      if (!TILE[t].walk) am.classList.add('nao-anda');
       d.appendChild(am);
       const rot = document.createElement('span'); rot.textContent = nome.toLowerCase();
       d.appendChild(rot);
       d.title = nome + ' · ' + (TILE[t].walk ? 'andável' : 'barra o passo') +
-        (TILE[t].span ? ' · ocupa ' + TILE[t].span[0] + '×' + TILE[t].span[1] + ' tiles' : '');
+        (TILE[t].span ? ' · ocupa ' + TILE[t].span[0] + '×' + TILE[t].span[1] + ' tiles' : '') +
+        /* A escada faz DUAS coisas num clique, e ferramenta que faz o que não se
+           vê tem de dizer. */
+        (ehEscada(t, T) ? ' · ESCADA: escreve o PAR nos dois andares, e apagar ' +
+           'uma metade apaga a outra' : '');
       d.dataset.tile = t;
-      d.onclick = () => { pincel = t; pincelObj = null; marcaPaleta(); desenha(); };
+      d.onclick = () => { pincel = t; pincelObj = null; pincelSpawn = null; marcaPaleta(); desenha(); };
       g.appendChild(d);
     }
-    p.appendChild(h); p.appendChild(g);
+    /* Grupo que ficou vazio pelo filtro nao aparece: um cabecalho sozinho e
+       ruido, e com 23 grupos o filtro deixaria uma escada de titulos vazios. */
+    if (n) { p.appendChild(h); p.appendChild(g); }
+  };
+  /* A pasta BICHO. O sprite de criatura pede shape, cor, tamanho e direção, e
+     desenhar 83 deles a cada redesenho da paleta custaria mais que o mapa —
+     então a amostra é a COR da ficha com a inicial, que é o que já distingue
+     bicho no minimapa. Quem precisa ver o bicho abre o bestiário.
+     A borracha entra como entrada, não como ferramenta: apagar É pôr nenhum
+     bicho, mesma decisão da camada de objeto. */
+  const blocoSpawn = (titulo, ids) => {
+    const h = document.createElement('div'); h.className = 'grupo'; h.textContent = titulo;
+    const g = document.createElement('div'); g.className = 'linhas';
+    let n = 0;
+    for (const id of ids) {
+      const mo = MONSTERS[id];
+      const rotulo = id === '' ? 'apagar' : (mo ? mo.n : id);
+      if (!passa(id + ' ' + rotulo)) continue;
+      n++;
+      const d = document.createElement('div');
+      d.className = 'tl' + (pincelSpawn === id ? ' on' : '');
+      const am = document.createElement('canvas');
+      am.width = am.height = AM; am.className = 'sw';
+      const gg = am.getContext('2d');
+      if (id === '') { gg.strokeStyle = '#8a7a5c'; gg.setLineDash([3, 3]);
+                       gg.strokeRect(1.5, 1.5, AM - 3, AM - 3); }
+      else {
+        gg.fillStyle = '#' + ((mo && mo.col) || 0x888888).toString(16).padStart(6, '0');
+        gg.beginPath(); gg.arc(AM / 2, AM / 2, AM * .34, 0, 7); gg.fill();
+        gg.fillStyle = '#0009'; gg.font = 'bold 13px ui-sans-serif';
+        gg.textAlign = 'center'; gg.textBaseline = 'middle';
+        gg.fillText(rotulo[0].toUpperCase(), AM / 2, AM / 2 + 1);
+      }
+      d.appendChild(am);
+      const rot = document.createElement('span'); rot.textContent = rotulo.toLowerCase();
+      d.appendChild(rot);
+      if (mo && mo.diff === 'boss') am.classList.add('chefe');
+      d.title = id === '' ? 'tira todo bicho do tile'
+        : rotulo + (mo ? ' · ' + (mo.diff || '?') + ' · tier ' + (mo.tier != null ? mo.tier : '?') +
+            (mo.diff === 'boss' ? ' · CHEFE: a hunt tem UM, no centro dela' : '') : '');
+      d.dataset.spawn = id;
+      d.onclick = () => { pincelSpawn = id; pincelObj = null; marcaPaleta(); desenha(); };
+      g.appendChild(d);
+    }
+    if (n) { p.appendChild(h); p.appendChild(g); }
   };
   const blocoObj = (titulo, ids) => {
     const h = document.createElement('div'); h.className = 'grupo'; h.textContent = titulo;
     const g = document.createElement('div'); g.className = 'linhas';
+    let n = 0;
     for (const id of ids) {
+      const rotulo = id === '' ? 'apagar' : ((OBJ[id] && OBJ[id].nome) || id);
+      if (!passa(id + ' ' + rotulo)) continue;
+      n++;
       const d = document.createElement('div');
       d.className = 'tl' + (pincelObj === id ? ' on' : '');
       const o = OBJ[id];
       if (id === '') {
         const vazio = document.createElement('span');
         vazio.className = 'sw';
-        vazio.style.cssText = 'border:1px dashed #8a7a5c;background:transparent';
+        /* Vermelho tracejado, e não cinza: a borracha apaga, e ferramenta que
+           apaga não pode parecer igual às que pintam. */
+        vazio.style.cssText = 'border:2px dashed #b4553a;background:transparent';
         d.appendChild(vazio);
       } else {
         const am = amostraObj(id);
-        if (!o.walk) am.classList.add('barra');
+        if (!o.walk) am.classList.add('nao-anda');
         d.appendChild(am);
       }
       const rot = document.createElement('span');
@@ -493,27 +714,30 @@ function paleta() {
           (o.top > 0.5 ? ' e a vista' : '') +
           (o.span ? ' · ocupa ' + o.span[0] + '×' + o.span[1] + ' tiles' : '');
       d.dataset.obj = id;
-      d.onclick = () => { pincelObj = id; marcaPaleta(); desenha(); };
+      d.onclick = () => { pincelObj = id; pincelSpawn = null; marcaPaleta(); desenha(); };
       g.appendChild(d);
     }
-    p.appendChild(h); p.appendChild(g);
+    if (n) { p.appendChild(h); p.appendChild(g); }
   };
-  for (const [titulo, nomes] of GRUPOS) bloco(titulo, nomes);
-  const postosObj = new Set(GRUPOS_OBJ.flatMap(([, ids]) => ids));
-  for (const [titulo, ids] of GRUPOS_OBJ) blocoObj(titulo, ids);
-  /* Objeto que entrar em OBJ e não estiver em GRUPOS_OBJ aparece aqui em vez de
-     SUMIR. O lado do tile já tinha esta rede e o do objeto não — e a lista de
-     grupos é escrita à mão, então ela vai envelhecer. Objeto invisível na
-     paleta é objeto que não existe para quem edita. */
-  const sobraObj = Object.keys(OBJ).filter(k => !postosObj.has(k));
-  if (sobraObj.length) blocoObj('objeto · sem grupo', sobraObj);
-  /* Tile que entrar na tabela e não estiver em GRUPOS aparece aqui em vez de
-     sumir da paleta: a lista de grupos é escrita à mão e vai envelhecer. */
-  /* O que migra para objeto fica FORA da rede de "sem grupo": senão os quatorze
-     voltariam por aqui, que é o mesmo defeito com outro nome. Eles têm entrada
-     própria na paleta de objeto, e é lá que se pega uma árvore. */
-  const sobra = Object.keys(T).filter(k => !postos.has(k) && !MIGRA[T[k]]);
-  if (sobra.length) bloco('sem grupo', sobra);
+  /* Percorre as pastas na ordem em que o desenho as empilha, e escreve o nome da
+     pasta uma vez só — repetir "CHÃO" em vinte cabeçalhos é ruído. */
+  let atual = null;
+  for (const [pasta, rotulo, itens, tipo] of pastas()) {
+    if (pasta !== atual) {
+      const marcador = document.createElement('div');
+      marcador.className = 'pasta'; marcador.textContent = pasta;
+      marcador.dataset.pasta = pasta;
+      p.appendChild(marcador);
+      atual = pasta;
+    }
+    if (tipo === 'tile') bloco(rotulo, itens);
+    else if (tipo === 'spawn') blocoSpawn(rotulo, itens);
+    else blocoObj(rotulo, itens);
+  }
+  /* Cabeçalho de pasta que ficou sem nenhum grupo abaixo (porque o filtro comeu
+     todos) sai: senão filtrar deixa uma escada de nomes de pasta vazios. */
+  for (const m of [...p.querySelectorAll('.pasta')])
+    if (!m.nextElementSibling || m.nextElementSibling.classList.contains('pasta')) m.remove();
 }
 
 /* -------------------------------------------------------------- o desenho */
@@ -645,7 +869,7 @@ function desenha() {
      desligar a marca não esconde que há coisa pendente. */
   if (gradeEdicao()) {
     ctx.strokeStyle = 'rgba(216,194,122,.9)'; ctx.lineWidth = px >= 4 ? 1 : 2;
-    for (const k of [...mexidos.keys(), ...mexidosObj.keys()]) {
+    for (const k of [...mexidos.keys(), ...mexidosObj.keys(), ...mexidosSpawn.keys()]) {
       const [kz, ki] = k.split(':').map(Number);
       if (kz !== z) continue;
       const x = ki % W, y = (ki / W) | 0;
@@ -654,14 +878,48 @@ function desenha() {
     }
   }
 
-  // spawn e hunt: não se editam aqui ainda, mas apagar um tile com bicho em
-  // cima sem ver o bicho seria pior
-  ctx.fillStyle = '#ffd25a';
-  const r = Math.max(2, px * .34);
+  /* O BICHO, desenhado como o jogo o desenha. Era um quadradinho amarelo, e isso
+     bastava enquanto spawn não se editava: agora que se põe e se tira criatura
+     aqui, ver "um quadrado" é o mesmo defeito da paleta que mostrava cor chapada
+     — não dá para saber o que se acabou de pôr, nem se o lugar ficou com lobo ou
+     com rato. Chama o `creatureSprite` do art.js, o MESMO do render.
+     `outlined` porque o bicho parado sobre grama some: no jogo ele se move e a
+     silhueta se lê pelo movimento; numa planta parada, não.
+     Direção SUL e quadro 0, fixos, pelo mesmo motivo que o editor não anima —
+     bicho virando a cabeça enquanto se edita é ruído. E o desenho só sai a
+     partir de 6 px por tile: abaixo disso o sprite é um borrão e o ponto
+     colorido diz mais. */
+  const rSp = Math.max(2, px * .34);
   for (const s of WORLD.spawns) if (s.z === z) {
     const sx = telaX(s.x), sy = telaY(s.y);
-    if (sx < -px || sy < -px || sx > cv.clientWidth || sy > cv.clientHeight) continue;
-    ctx.fillRect(sx + px / 2 - r / 2, sy + px / 2 - r / 2, r, r);
+    if (sx < -px * 2 || sy < -px * 2 || sx > cv.clientWidth || sy > cv.clientHeight) continue;
+    const d = MONSTERS[s.m];
+    if (px >= 6 && d) {
+      /* A FOLHA DE ANIMAÇÃO VEM PRIMEIRO, como no render: criatura com arte
+         própria (hoje ciclope e demônio) tem de aparecer com ela, e não com o
+         boneco procedural. O render faz exatamente esta ordem, e eu tinha
+         pulado o primeiro ramo — o dono viu na hora. Quando o PNG ainda não
+         carregou, `creatureSheet` devolve null e cai no procedural sozinho,
+         que é o mesmo desvio do jogo. */
+      let spr = null;
+      try {
+        if (d.sheet) {
+          const folha = creatureSheet(d.sheet, 0, 0, 1, d.sz);
+          if (folha) spr = folha;
+        }
+        if (!spr) spr = outlined(creatureSprite(d.shape || 'biped', d.col, d.sz, d.o, 0, 0));
+      } catch (e) { }
+      if (spr) {
+        /* Alinhado pelo PÉ e centrado, como o render faz: o sprite é mais alto
+           que o tile e ancorá-lo pelo topo o põe um tile acima de onde o bicho
+           está. */
+        const k = px / 32, w = spr.width * k, h = spr.height * k;
+        ctx.drawImage(spr, sx + px / 2 - w / 2, sy + px - h, w, h);
+        continue;
+      }
+    }
+    ctx.fillStyle = d ? '#' + (d.col >>> 0).toString(16).padStart(6, '0') : '#ffd25a';
+    ctx.fillRect(sx + px / 2 - rSp / 2, sy + px / 2 - rSp / 2, rSp, rSp);
   }
   ctx.strokeStyle = 'rgba(255,90,60,.85)'; ctx.lineWidth = 1.5;
   for (const h of WORLD.hunts) if (h.z === z) {
@@ -713,7 +971,7 @@ function desenha() {
 }
 
 function estado() {
-  const n = mexidos.size + mexidosObj.size;
+  const n = mexidos.size + mexidosObj.size + mexidosSpawn.size;
   $('#estado').innerHTML = n
     ? '<span class="aviso">● ' + n + ' tile' + (n > 1 ? 's' : '') + ' por gravar</span>'
     : '<span class="ok">● nada pendente</span>';
@@ -736,17 +994,63 @@ function desfazObj(k, antes) {
   else mexidosObj.set(k, antes);
 }
 
-function poe(x, y, t, lote) {
+/* [ESCADA] daqui até a marca de fecho: a REGRA DO PAR, pura e sem DOM, para o
+   tests/test_tools.js poder exercitá-la. Não invente uma segunda cópia disto no
+   editor — foi ter a regra em dois lugares que quebrou coisa antes.
+
+   Escada é um PAR em dois andares e nunca um tile solto: `C.escada` do
+   compor.js escreve DOWN em cima e UP embaixo, e `z` CRESCE PARA BAIXO
+   (0 = Sobre o Muro, 1 = Varrokgaard, 2 = A Goela). Meia escada não deixa
+   buraco visível na planta — some calada, e só se descobre andando. Foi
+   exatamente assim que a ponte do muro quebrou: tábua pintada por cima de duas
+   escadas com o pincel de tile comum, e o mapa continuou parecendo certo.
+
+   `parDe` responde, para um tile e um andar, qual é a outra metade e onde ela
+   mora. Devolve null quando não há par (o tile não é escada, ou o andar
+   parceiro não existe — escada para fora do mundo não se cria). */
+function parDe(t, zz, andares, TT) {
+  if (t === TT.DOWN) return zz + 1 < andares ? { t: TT.UP, z: zz + 1 } : null;
+  if (t === TT.UP) return zz - 1 >= 0 ? { t: TT.DOWN, z: zz - 1 } : null;
+  return null;
+}
+const ehEscada = (t, TT) => t === TT.UP || t === TT.DOWN;
+/* [/ESCADA] */
+
+/* `zz` opcional porque a escada escreve no andar VIZINHO. Todo o resto do editor
+   pinta no andar corrente, e é o padrão. */
+/* `semPar` é GUARDA DE REENTRÂNCIA, e ela não é zelo: sem ela isto entra em
+   recursão infinita e estoura a pilha — apagar a metade de cima manda apagar a
+   de baixo, que vê a de cima ainda no lugar e manda apagá-la de volta. Peguei
+   rodando, não lendo. Quem mexe no par é sempre a chamada de FORA. */
+function poe(x, y, t, lote, zz, semPar) {
   if (x < 0 || y < 0 || x >= W || y >= H) return;
-  const i = y * W + x, k = chave(z, i), atual = WORLD.floors[z].t[i];
+  const az = zz === undefined ? z : zz;
+  if (az < 0 || az >= FLOORS) return;
+  const i = y * W + x, k = chave(az, i), atual = WORLD.floors[az].t[i];
   if (atual === t) return;
+
+  /* DESFAZ O PAR ANTIGO antes de escrever por cima. Pintar grama sobre uma
+     escada deixava a outra metade órfã no andar vizinho — uma escada que leva a
+     lugar nenhum, e a conferência de par acusa isso muito depois. */
+  if (!semPar && ehEscada(atual, T) && !ehEscada(t, T)) {
+    const velho = parDe(atual, az, FLOORS, T);
+    if (velho && WORLD.floors[velho.z].t[i] === velho.t) poe(x, y, T.VOID, lote, velho.z, 1);
+  }
+
   lote.push([k, atual]);
-  WORLD.floors[z].t[i] = t;
+  WORLD.floors[az].t[i] = t;
   /* O patch é DIFF contra a base, não histórico: pintar grama sobre grama que
      já era grama tem de sumir do patch, senão ele cresce para sempre com
      correções que não corrigem nada. */
-  if (base[z][i] === t) mexidos.delete(k); else mexidos.set(k, t);
+  if (base[az][i] === t) mexidos.delete(k); else mexidos.set(k, t);
   miniSujo = true;
+
+  /* E ESCREVE A OUTRA METADE. Vai no MESMO lote, então desfazer desfaz as duas —
+     desfazer meia escada seria criar o defeito que isto existe para evitar. */
+  if (!semPar && ehEscada(t, T)) {
+    const par = parDe(t, az, FLOORS, T);
+    if (par && WORLD.floors[par.z].t[i] !== par.t) poe(x, y, par.t, lote, par.z, 1);
+  }
 }
 
 /* A lista de objetos ANCORADOS neste tile, ordenada — a ordem canônica é o que
@@ -772,8 +1076,43 @@ function poeObj(x, y, id, lote) {
   miniSujo = true;
 }
 
+/* As espécies ancoradas num tile, ordenadas — ordem canônica é o que permite
+   comparar com a base sem falso positivo por ordem diferente. */
+const spawnsEm = (x, y, zz) => WORLD.spawns
+  .filter(sp => sp.z === zz && sp.x === x && sp.y === y).map(sp => sp.m).sort();
+
+function desfazSpawn(k, antes) {
+  const [kz, ki] = k.split(':').map(Number);
+  const x = ki % W, y = (ki / W) | 0;
+  WORLD.spawns = WORLD.spawns.filter(sp => !(sp.z === kz && sp.x === x && sp.y === y));
+  for (const e of antes) WORLD.spawns.push({ x, y, z: kz, m: e });
+  const mesmo = baseSpawn[kz][ki] || [];
+  if (mesmo.length === antes.length && mesmo.every((v, n) => v === antes[n])) mexidosSpawn.delete(k);
+  else mexidosSpawn.set(k, antes);
+}
+
+function poeSpawn(x, y, especie, lote) {
+  if (x < 0 || y < 0 || x >= W || y >= H) return;
+  const i = y * W + x, k = chave(z, i);
+  const antes = spawnsEm(x, y, z);
+  let depois;
+  if (especie === '') depois = [];
+  else if (antes.includes(especie)) return;      // idempotente: arrastar não empilha 50 ratos
+  else depois = [...antes, especie].sort();
+  lote.push([k, antes, 'spawn']);
+  WORLD.spawns = WORLD.spawns.filter(sp => !(sp.z === z && sp.x === x && sp.y === y));
+  for (const e of depois) WORLD.spawns.push({ x, y, z, m: e });
+  const mesmo = baseSpawn[z][i] || [];
+  if (mesmo.length === depois.length && mesmo.every((v, n) => v === depois[n])) mexidosSpawn.delete(k);
+  else mexidosSpawn.set(k, depois);
+}
+
 function pintar(x, y, lote) {
   const cel = celulas(x, y, true);
+  if (pincelSpawn !== null) {
+    for (const [cx, cy] of cel) poeSpawn(cx, cy, pincelSpawn, lote);
+    return;
+  }
   if (pincelObj !== null) {
     /* Objeto de mais de um tile pinta só a ÂNCORA: o rastro é do índice, não do
        mapa. É a diferença que a separação de camadas comprou — antes o pincel
@@ -798,6 +1137,9 @@ function pintar(x, y, lote) {
    pinta dezenas; um balde numa região aberta pinta metade do mapa, e a
    diferença não se enxerga antes de clicar. Então ele MEDE e pergunta. */
 const BALDE_AVISA = 400;
+/* Acima disto a borracha pergunta. Oito é o que cabe em volta de quem edita —
+   apagar um canto é normal, apagar meia tela não. */
+const BORRACHA_AVISA = 8;
 function balde(x, y, lote) {
   /* O balde é de TERRENO. Com um objeto escolhido na paleta ele pintava o
      terreno do último pincel de chão — ação silenciosa e errada, e das piores,
@@ -860,6 +1202,25 @@ cv.addEventListener('mousedown', e => {
   if (ferramenta === 'balde') { balde(t[0], t[1], lote); if (lote.length) pilha.push(lote); desenha(); return; }
   
   if (ferramenta === 'retangulo') { arrastando = { x: t[0], y: t[1], lote, ret: 1 }; return; }
+  /* FREIO DA BORRACHA, no mesmo espírito do freio do balde. A borracha é uma
+     entrada da paleta como qualquer outra, e com o pincel em 13×13 e mancha ela
+     limpa até 169 tiles num clique — objeto, parede, cerca, árvore, tudo. Um
+     traço arrastado limpa muito mais.
+     Medido no patch do dono: 129 apagamentos na camada de objeto, 78 deles com
+     dois ou mais vizinhos também apagados — que é assinatura de pincel grande e
+     não de clique escolhido. Não prova que foi sem querer, mas o custo de
+     perguntar é um clique e o de não perguntar é uma região inteira.
+     Só pergunta quando há MUITO o que apagar: borracha em tile vazio, ou num
+     punhado, não incomoda ninguém. */
+  if ((pincelObj === '' || pincelSpawn === '') && raio > 0) {
+    const cel = celulas(t[0], t[1], false);
+    const quantos = cel.filter(([cx, cy]) => (pincelObj === ''
+      ? idsEm(cx, cy, z).length : spawnsEm(cx, cy, z).length)).length;
+    if (quantos > BORRACHA_AVISA && !confirm(
+        'A borracha vai apagar ' + quantos + (pincelObj === '' ? ' tiles com objeto' : ' tiles com bicho') +
+        ' de uma vez.\n\nO pincel está em ' + (raio * 2 + 1) + '×' + (raio * 2 + 1) +
+        ' na forma "' + forma + '". Apagar mesmo assim?')) return;
+  }
   arrastando = { lote };
   pintar(t[0], t[1], lote);
   desenha();
@@ -951,6 +1312,7 @@ function desfazer() {
   for (let i = lote.length - 1; i >= 0; i--) {
     const [k, antes, tipo] = lote[i];
     if (tipo === 'obj') { desfazObj(k, antes); continue; }
+    if (tipo === 'spawn') { desfazSpawn(k, antes); continue; }
     const [kz, ki] = k.split(':').map(Number);
     WORLD.floors[kz].t[ki] = antes;
     if (base[kz][ki] === antes) mexidos.delete(k); else mexidos.set(k, antes);
@@ -1012,7 +1374,15 @@ function carregar(nome, manterVista) {
         for (const k in m) m[k].sort();
         return m;
       });
-      mexidos = new Map(); mexidosObj = new Map(); pilha = [];
+      baseSpawn = WORLD.floors.map((f, iz) => {
+        const mm = {};
+        for (const sp of WORLD.spawns) if (sp.z === iz) {
+          const i = sp.y * W + sp.x; (mm[i] = mm[i] || []).push(sp.m);
+        }
+        for (const k in mm) mm[k].sort();
+        return mm;
+      });
+      mexidos = new Map(); mexidosObj = new Map(); mexidosSpawn = new Map(); pilha = [];
       ajusta();
       if (manterVista && vista.z < FLOORS) {
         z = vista.z; px = vista.px; ecamX = vista.ecamX; ecamY = vista.ecamY;
@@ -1148,12 +1518,13 @@ function gravar() {
   fetch('../maps/' + nome + '.patch.json')
     .then(r => {
       if (r.ok) return r.json();
-      if (r.status === 404) return { tiles: {}, objs: {} };
+      if (r.status === 404) return { tiles: {}, objs: {}, spawns: {} };
       throw new Error('o patch existente respondeu ' + r.status);
     })
     .then(velho => {
       antes = Object.values(velho.tiles || {}).reduce((a, v) => a + v.length, 0);
-      const saida = { nome, tiles: velho.tiles || {}, objs: velho.objs || {} };
+      const saida = { nome, tiles: velho.tiles || {}, objs: velho.objs || {},
+                      spawns: velho.spawns || {} };
       for (const [k, t] of mexidos) {
         const [kz, ki] = k.split(':').map(Number);
         (saida.tiles[kz] = saida.tiles[kz] || []).push([ki % W, (ki / W) | 0, t]);
@@ -1162,11 +1533,20 @@ function gravar() {
         const [kz, ki] = k.split(':').map(Number);
         (saida.objs[kz] = saida.objs[kz] || []).push([ki % W, (ki / W) | 0, ids]);
       }
+      for (const [k, esp] of mexidosSpawn) {
+        const [kz, ki] = k.split(':').map(Number);
+        (saida.spawns[kz] = saida.spawns[kz] || []).push([ki % W, (ki / W) | 0, esp]);
+      }
       // mesma regra da camada de terreno: um tile mexido duas vezes vale a última
       for (const kz in saida.objs) {
         const ultimo = new Map();
         for (const [x, y, ids] of saida.objs[kz]) ultimo.set(y * W + x, ids);
         saida.objs[kz] = [...ultimo].map(([i, ids]) => [i % W, (i / W) | 0, ids]);
+      }
+      for (const kz in saida.spawns) {
+        const ultimo = new Map();
+        for (const [x, y, esp] of saida.spawns[kz]) ultimo.set(y * W + x, esp);
+        saida.spawns[kz] = [...ultimo].map(([i, esp]) => [i % W, (i / W) | 0, esp]);
       }
       // um tile mexido duas vezes vale a última: o patch é estado, não histórico
       for (const kz in saida.tiles) {
@@ -1175,7 +1555,8 @@ function gravar() {
         saida.tiles[kz] = [...ultimo].map(([i, t]) => [i % W, (i / W) | 0, t]);
       }
       const total = Object.values(saida.tiles).reduce((a, v) => a + v.length, 0) +
-        Object.values(saida.objs).reduce((a, v) => a + v.length, 0);
+        Object.values(saida.objs).reduce((a, v) => a + v.length, 0) +
+        Object.values(saida.spawns).reduce((a, v) => a + v.length, 0);
       if (total > 2000 && !confirm(
           'O patch vai ficar com ' + total + ' tiles (' + antes +
           ' já estavam no arquivo, ' + mexidos.size + ' são desta sessão).' +
@@ -1187,9 +1568,25 @@ function gravar() {
     .then(r => r && r.json())
     .then(r => {
       if (!r) { $('#log').textContent = ''; return; }
-      const novos = mexidos.size + mexidosObj.size;
-      mexidos = new Map(); mexidosObj = new Map(); pilha = [];
       const log = $('#log');
+      /* GRAVAÇÃO RECUSADA NÃO LIMPA A SESSÃO. O servidor devolve 409 com
+         `ok:false` quando o patch encolheria — e o editor limpava `mexidos` do
+         mesmo jeito, logo em seguida recarregava o mapa: o trabalho da sessão
+         ia para o lixo por causa de uma gravação que NÃO ACONTECEU. Era o pior
+         caminho possível, porque o freio existe justamente para proteger
+         trabalho.
+         Achado auditando a queixa de "estão sumindo coisas ao gravar". Não era
+         a causa dela — o patch estava intacto e o mapa estável —, mas é um
+         caminho de perda de verdade, e estava armado. */
+      if (r.ok === false) {
+        log.className = 'ruim';
+        log.textContent = (r.log || 'a gravação foi RECUSADA pelo servidor.') +
+          '\n\nO que você fez nesta sessão CONTINUA na tela e não foi perdido.';
+        estado();
+        return;
+      }
+      const novos = mexidos.size + mexidosObj.size + mexidosSpawn.size;
+      mexidos = new Map(); mexidosObj = new Map(); mexidosSpawn = new Map(); pilha = [];
       /* SERVIDOR SEM RECOMPOSIÇÃO. O `serve.py` só ganhou o `recompoe` depois
          que o editor existia, e um servidor que já estava rodando continua com
          o código velho: ele GRAVA o patch e não recompõe, então o mapa do jogo
@@ -1241,6 +1638,25 @@ $('#carregar').onclick = () => carregar($('#nome').value.trim());
 /* Enter na caixa CARREGA. Sem isto o campo aceitava o nome, o dono apertava
    Enter e não acontecia nada — e o guarda de INPUT do keydown engole a tecla,
    então tem de ser tratada aqui. */
+/* O filtro redesenha a paleta a cada tecla. Custa os ~7 ms de reconstrucao, que
+   e aceitavel por tecla digitada — e ESC limpa, que e o gesto que se espera de
+   uma caixa de busca. O guarda de INPUT do keydown global ja impede que "b" e
+   "g" virem ferramenta enquanto se digita aqui. */
+/* O X aparece com o log e some com ele. `MutationObserver` porque o log e
+   escrito de cinco lugares diferentes, e um botao que so aparece quando um
+   deles lembra de mostra-lo some justamente no caso que importa. */
+{
+  const log = $('#log'), x = $('#fechaLog');
+  const sincroniza = () => { x.style.display = log.textContent.trim() ? 'block' : 'none'; };
+  new MutationObserver(sincroniza).observe(log, { childList: true, characterData: true, subtree: true });
+  x.onclick = () => { log.textContent = ''; log.className = ''; sincroniza(); };
+  sincroniza();
+}
+$('#filtro').addEventListener('input', () => paleta());
+$('#filtro').addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.target.value = ''; paleta(); e.target.blur(); }
+  e.stopPropagation();
+});
 $('#nome').addEventListener('keydown', e => {
   if (e.key === 'Enter') { e.preventDefault(); carregar($('#nome').value.trim()); e.target.blur(); }
 });
@@ -1262,7 +1678,7 @@ $('#limpar').onclick = () => {
      mapa E na lista de pendentes, então a gravação seguinte as escrevia mesmo
      depois de o dono ter mandado descartar. E com só objetos mexidos o botão
      não fazia nada, porque a guarda olhava `mexidos.size`. */
-  const n = mexidos.size + mexidosObj.size;
+  const n = mexidos.size + mexidosObj.size + mexidosSpawn.size;
   if (!n || !confirm('Descartar ' + n + ' tile(s) mexido(s) nesta sessão?')) return;
   for (const [k] of mexidos) {
     const [kz, ki] = k.split(':').map(Number);
@@ -1272,7 +1688,11 @@ $('#limpar').onclick = () => {
     const [kz, ki] = k.split(':').map(Number);
     desfazObj(k, (baseObj[kz][ki] || []).slice());
   }
-  mexidos = new Map(); mexidosObj = new Map(); pilha = [];
+  for (const [k] of mexidosSpawn) {
+    const [kz, ki] = k.split(':').map(Number);
+    desfazSpawn(k, (baseSpawn[kz][ki] || []).slice());
+  }
+  mexidos = new Map(); mexidosObj = new Map(); mexidosSpawn = new Map(); pilha = [];
   miniSujo = true; desenha();
 };
 const marca = (sel, b) => document.querySelectorAll(sel).forEach(o => o.classList.toggle('on', o === b));
@@ -1322,7 +1742,7 @@ addEventListener('keydown', e => {
 });
 addEventListener('resize', ajusta);
 /* Sair com coisa não gravada é a perda mais boba que um editor permite. */
-addEventListener('beforeunload', e => { if (mexidos.size + mexidosObj.size) { e.preventDefault(); e.returnValue = ''; } });
+addEventListener('beforeunload', e => { if (mexidos.size + mexidosObj.size + mexidosSpawn.size) { e.preventDefault(); e.returnValue = ''; } });
 
 paleta();
 carregar('varrokgaard');

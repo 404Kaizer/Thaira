@@ -265,6 +265,29 @@ function hudOptions(soAtualiza) {
     else document.documentElement.requestFullscreen().catch(() => {});
   });
 
+  /* Seletor de aparência. "Pelo equipamento" é o padrão e é o que faz a
+     progressão aparecer; as outras entradas travam um visual, para quem já
+     escolheu o seu. Mora no PERSONAGEM (`P.skin`, que o save leva junto com o
+     resto de P) e não no HUD: a lista depende da vocação, e quem tem um knight e
+     um ranger não quer a escolha de um valendo no outro.
+     Reusa a linha de rádio da própria janela — seletor de skin com moldura
+     própria e prévia seria uma segunda gramática de painel por causa de quatro
+     opções. */
+  if (typeof P !== 'undefined' && P) {
+    sec('Aparência do personagem');
+    const c = skinConjunto(P.eq);
+    const atual = P.skin || 'auto';
+    const escolhe = v => { P.skin = v; save(); hudOptions(true); };
+    linha(c.set ? `Pelo equipamento (${SETS[c.set].n} — degrau ${c.degrau}/${SKIN_DEGRAUS})`
+                : 'Pelo equipamento (sem conjunto vestido)',
+      atual === 'auto', () => escolhe('auto'), true);
+    /* O procedural é o único que muda de desenho quando você troca de arma; as
+       folhas trazem a arma dentro. Dizer isso aqui evita a pergunta. */
+    linha('Boneco procedural (mostra a arma equipada)', atual === 'none', () => escolhe('none'), true);
+    for (const sk of VOC_SKINS[P.voc] || [])
+      linha(sk.n, atual === sk.id, () => escolhe(sk.id), true);
+  }
+
   /* Áudio. Mexer no cursor aplica na hora, sem confirmar: som é coisa que se
      acerta ouvindo, e ter de fechar o painel para conferir atrapalha. */
   sec('Áudio', { n: 'padrão', fn: () => { audioVolReset(); hudOptions(true); } });

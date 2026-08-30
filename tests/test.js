@@ -117,7 +117,9 @@ const sandbox = {
   /* Path2D existe em todo navegador e o render usa um para recortar as poças.
      Sem o stub, `new Path2D()` estourava dentro de drawWorld e derrubava a suíte
      inteira no meio — as três cenas de integração e tudo que vinha depois. */
-  Path2D: class { rect() { } moveTo() { } lineTo() { } arc() { } ellipse() { } closePath() { } },
+  /* `rect` GUARDA o que recebeu: é assim que a régua do recorte de céu conta em
+     quais tiles a chuva pode cair sem precisar de canvas de verdade. */
+  Path2D: class { constructor() { this.rects = []; } rect(x, y, w, h) { this.rects.push([x, y, w, h]); } moveTo() { } lineTo() { } arc() { } ellipse() { } closePath() { } },
   /* Sem CSS aqui: `tok()` lê os tokens de cor do :root e cacheia. Devolvendo ''
      ele cai no fallback de cada chamador, que é o caminho certo para o teste —
      o que importa é que a lógica rode, não o tom exato do pixel. Sem este stub a
@@ -127,18 +129,24 @@ const sandbox = {
 };
 sandbox.globalThis = sandbox;
 const ctx = vm.createContext(sandbox);
-for (const f of ['audio.js', 'icones.js', 'data.js', 'art.js', 'world.js', 'render2d.js', 'game.js', 'ui.js', 'hud.js'])
+/* a MESMA lista do index.html, na mesma ordem: harness que carrega outro
+   conjunto testa outro jogo (`criaturas.js` faltava, e com ele a contagem de
+   quadros de toda folha de arte) */
+for (const f of ['audio.js', 'icones.js', 'criaturas.js', 'data.js', 'art.js', 'world.js', 'render2d.js', 'game.js', 'ui.js', 'hud.js'])
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8'), ctx, { filename: f });
 
 // expõe os bindings léxicos (let/const de script) para o runner
 vm.runInContext(`
   Object.assign(globalThis, { genWorld, findPath, WORLD, T, TILE, isWalkable, tileAt, W, H, FLOORS, SURF, distT,
     OBJ, objsAt, objAbrivel, objBloqueia, objTapaVista, reindexObjs, parteCamadas, usaPorta, portaAberta, coletaDe,
+    desocupaPorta, usaPorta, objAbrivel,
     ITEMS, MONSTERS, SPELLS, VOCATIONS, SHOP_STOCK, PREFIXES, SUFFIXES, RARITY, XP_MULT,
     COINS, COIN_V, COIN_MONTE, moedaDe,
     expForLevel, triesFor, manaForML, SKILL_RATE, mkItem, itemStats, newPlayer, dealDamage, weaponInfo,
     damageFormula, skillOf, recalc, G, creatureSprite, TEX_DRAW, tileTexture, decoSprite, buildMinimaps, drawWorld, w2s,
     corDoCeu, ehNoite, ambienteAgora, climaAgora, souCoberto, FLOOR_AMBIENCE, silhouette, edgeShadow, cloudTexture,
+    luzDaFrente, cristas, faces, WALL_CHAPA, WALL_H, abrigado, dentroDeCasa,
+    recorteCeu, cantoDoTile, janelaDeTiles, tpx,
     horaDoJogo, CLIMA_AVISO, poolTexture,
     TERRAIN_PRIO, OBJ_DRAW, PAREDE_DRAW, CERCA_TOP, WALL_TOP, paredeSprite, cercaSprite, escoraSprite, teiaSprite, edgeMask, bordaProf, BORDA_P, BORDA_TETO, _mulberry, RANGER_DIR, SHEET_POS, rangerSprite,
     SANGUE_CLASSE, SANGUE_PADRAO, SANGUE_MAX, bloodSpray, plateAnchor, resizeCam, CAM,
@@ -148,6 +156,7 @@ vm.runInContext(`
     regenMobs, descLoot, save, load, changeFloor, spawnDrop, tryStep, spawnMob, removeMob, restaurarBichos,
     habilidade, impacto, cssColOu: cssCol, ELEM, RES, resistOf,
     ELITES, ELITE_CHANCE, defModificada, mixCol, SETS,
+    VOC_SKINS, SKIN_DEGRAUS, SKIN_PADRAO, skinConjunto, skinDoDegrau, skinAtual, SHAPE_DRAW, DIR_S, DIR_N, DIR_E, CRIA_FOLHA,
     lerpEntity, HUD_PANELS, HUD_DEF, hudApply, hudMove, hudSolta, hudLoad, luzCarregada, SLOT_POS, SLOT_LABEL, equipItem, unequip,
     playerDeath, BENCAOS, blessPrice, bagAdd, DEEP, SPAWN_POOLS,
     taskEstado, taskAceitar, taskReceber, taskProgresso, taskOfertas, nivelDe, shopNear, SKILL_NAMES, fixSave,
@@ -156,6 +165,10 @@ vm.runInContext(`
     magPower, MAG_K, lootEV, lootAlvo, updateFx, virarPara, refreshSpawns, playerAttack, DIRS, DANO_TIPOS, cdDe, ATAQUE_MS,
     distAcao, emZonaSegura, ESTADOS, ESTADO_DE, aplicaEstado, tickEstados, estadoFlash, frame, tingido, FX_PERFIL, estiloEstado, estadoDaMagia, itemStats,
     mapaSerializa, mapaAplica, TILE_CHAR, CHAR_TILE, tileAt, TILE, T, CAMPO_DRAW, campoSprite, INTEL, INTEL_DESVIA, intelOf, CAMPO_DUR, CAMPO_MAX, CAMPO_FORCA, CAMPO_CHANCE, CAMPO_FASES, campoFase, campoDano, criaCampo, campoEm, tickCampos, evitaCampo, passoAte, spellTiles,
+    TREES, TREE_NO, PONTO_NIVEL, RESPEC_BASE, EF_CHAVES, treeEf, pontosTotais, pontosGastos, pontosLivres,
+    podeAlocar, alocaNo, respec, respecPreco, custoDe, renderTree, treeLigacoes, vizinhos, ligado, EF_TEXTO, efeitoDoNo,
+    escalaMapa, arrastoEmTiles, posicaoJanela, arrastaJanela, reancoraJanelas,
+    treeView, treeLimite, TREE_ZOOM, aplicaCam, tipLugar, tipAncora, tipSegue, tipEm, hideTip, $, vocFundo, vocFundoY, VOC_FUNDO_Y,
     getForjaSlot: () => forjaSlot, setForjaSlot: v => forjaSlot = v,
     getHUD: () => HUD, setHUD: v => HUD = v, getP: () => P });
 
@@ -475,6 +488,115 @@ A((() => {
   return r.every(x => Math.abs(x - r[0]) < 0.01);        // mesma posição em CSS nos três
 })(), 'placa fica no mesmo ponto em CSS seja qual for o devicePixelRatio');
 
+/* TOPO x FRENTE. O que dá volume é a crista acompanhar o céu enquanto a face
+   não: rebaixada E com a cor lavada. Só rebaixar deixa parede e telhado os dois
+   laranja no poente, que não separa nada — por isso as duas réguas, e a de croma
+   é a que ninguém veria quebrar. */
+{
+  const croma = c => Math.max(...c) - Math.min(...c);
+  const luma = c => c[0] * .3 + c[1] * .6 + c[2] * .1;
+  for (const td of [0, .26, .5, .78]) {
+    const ceu = S.corDoCeu(td), fr = S.luzDaFrente(...ceu);
+    A(luma(fr) < luma(ceu), `${td}: a face vê menos céu que a crista`);
+    A(croma(fr) <= croma(ceu), `${td}: e recebe a cor do céu diluída (croma ${croma(fr)} <= ${croma(ceu)})`);
+    A(fr.every(v => v >= 0 && v <= 255), `${td}: o multiplicador da face é uma cor válida`);
+  }
+  A(croma(S.luzDaFrente(...S.corDoCeu(.78))) > 0,
+    'no poente a face ainda é quente — lavar não é apagar a cor');
+  A(S.luzDaFrente(255, 255, 255).every(v => v === S.luzDaFrente(255, 255, 255)[0]),
+    'céu sem cor não inventa cor na face');
+}
+/* A crista e a face TÊM de ladrilhar o sprite da parede: sobra vira faixa de
+   parede com luz de chão, e sobreposição de máscara opaca apaga a crista. */
+A((() => {
+  const p = S.getP();
+  /* Posta o jogador ENCOSTADO numa parede: no ponto de nascer não há nenhuma no
+     enquadramento e a régua passaria verde sem medir nada. */
+  const antes = [p.x, p.y, p.px, p.py, p.z];
+  busca: for (let y = 1; y < S.H - 1; y++) for (let x = 1; x < S.W - 1; x++)
+    if (S.objsAt(x, y, S.SURF).some(n => (S.OBJ[n.o] || {}).cat === 'parede')) {
+      p.x = p.px = x; p.y = p.py = y + 2; p.z = S.SURF; break busca;
+    }
+  S.drawWorld();
+  const n = S.cristas.length;
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  A(n > 0, 'a régua da crista tem parede no enquadramento para medir');
+  const S_ = S.CAM.scale;
+  return S.cristas.every(([x, y, w, h]) =>
+    Math.abs(h - S.WALL_CHAPA * S_) < .01 &&
+    S.faces.some(([fx, fy, fw, fh]) =>
+      fx === x && fw === w && Math.abs(fy - (y + h)) < .01 && Math.abs(h + fh - S.WALL_H * S_) < .01));
+})(), 'a face começa exatamente onde a crista acaba, e as duas somam a parede inteira');
+
+/* NENHUMA FAIXA PODE CAIR EM TILE ABRIGADO. A parede transborda um tile para
+   CIMA, então a parede SUL de uma casa desenha a própria crista DENTRO do
+   interior — e as faixas saem opacas e por cima do abrigo, arrancando aquele
+   pedaço do telhado. Deu um retângulo azul chapado em toda casa, e a suíte
+   passou verde: as duas réguas anteriores mediam cor e geometria, e nenhuma
+   perguntava ONDE a faixa cai. */
+A((() => {
+  const p = S.getP();
+  const antes = [p.x, p.y, p.px, p.py, p.z];
+  busca: for (let y = 4; y < S.H - 4; y++) for (let x = 4; x < S.W - 4; x++)
+    if (S.isWalkable(x, y, S.SURF) && S.dentroDeCasa(x, y, S.SURF)) {
+      p.x = p.px = x; p.y = p.py = y; p.z = S.SURF; break busca;
+    }
+  S.drawWorld();
+  const dentro = [...S.cristas, ...S.faces].filter(([, , , , tx, ty]) => S.abrigado(tx, ty, p.z));
+  const n = S.cristas.length;
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  A(n > 0, 'a régua do abrigo tem crista no enquadramento para medir');
+  return dentro.length === 0;
+})(), 'nenhuma faixa de parede cai em tile abrigado — o topo não fura o telhado');
+
+/* --- o clima é POR TILE ------------------------------------------------- */
+/* Nuvem, chuva e relâmpago liam um `abrigado()` só, o do JOGADOR, e aplicavam a
+   resposta à tela inteira: parado na rua chovia dentro das casas visíveis, e um
+   passo para dentro de uma cabana secava a rua inteira num quadro. Quem responde
+   agora é o `recorteCeu`, tile a tile.
+   A régua NÃO procura a palavra "abrigado" no fonte — teste que procura menção
+   passa verde em cima de uma mutação que troca os dados e mantém a palavra. Ela
+   conta os retângulos que o recorte de fato produziu. */
+{
+  const p = S.getP(), t = S.tpx();
+  const antes = [p.x, p.y, p.px, p.py, p.z];
+  /* Jogador ENCOSTADO num interior, não dentro dele: assim o enquadramento tem
+     as duas metades e a régua mede a fronteira, que é onde o defeito morava. */
+  busca: for (let y = 4; y < S.H - 4; y++) for (let x = 4; x < S.W - 4; x++)
+    if (S.dentroDeCasa(x, y, S.SURF) && S.isWalkable(x + 3, y, S.SURF) && !S.dentroDeCasa(x + 3, y, S.SURF)) {
+      p.x = p.px = x + 3; p.y = p.py = y; p.z = S.SURF; break busca;
+    }
+  S.drawWorld();                                    // fixa camX/camY na posição nova
+  const rects = S.recorteCeu(t).rects;
+  const chave = ([x, y]) => x + ',' + y;
+  const tem = new Set(rects.map(chave));
+  const [cols, rows] = S.janelaDeTiles(t);
+  const cx = Math.floor(p.px), cy = Math.floor(p.py);   // drawWorld fixou camX/camY nisto
+  let abrigadosNaJanela = 0, abertosNaJanela = 0, vazam = 0, faltam = 0;
+  for (let y = cy - rows; y <= cy + rows; y++) for (let x = cx - cols; x <= cx + cols; x++) {
+    const dentro = S.abrigado(x, y, p.z), canto = chave(S.cantoDoTile(x, y, t));
+    if (dentro) { abrigadosNaJanela++; if (tem.has(canto)) vazam++; }
+    else { abertosNaJanela++; if (!tem.has(canto)) faltam++; }
+  }
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  A(abrigadosNaJanela > 0 && abertosNaJanela > 0,
+    `a régua do clima por tile tem as duas metades no enquadramento (${abrigadosNaJanela} abrigados, ${abertosNaJanela} a céu aberto)`);
+  A(vazam === 0, `a chuva não entra em tile abrigado (${vazam} vazaram)`);
+  A(faltam === 0, `e não deixa de cair em tile a céu aberto (${faltam} secaram)`);
+}
+/* O CANTO É O CANTO. `w2s` devolve o CENTRO do tile, e a máscara de telhado
+   usava ele direto: 42% de escuro meio tile a sudeste do chão que devia
+   escurecer. Não dá erro, não muda cor média nenhuma — só desloca a fronteira
+   entre dentro e fora para dentro da parede. */
+A((() => {
+  const t = S.tpx();
+  for (const [x, y] of [[0, 0], [7, 3], [-4, 9], [130, 88]]) {
+    const [sx, sy] = S.cantoDoTile(x, y, t), [wx, wy] = S.w2s(x, y);
+    if (sx !== Math.round(wx - t / 2) || sy !== Math.round(wy - t / 2)) return false;
+  }
+  return true;
+})(), 'cantoDoTile é o canto noroeste: meio tile acima e à esquerda do que w2s devolve');
+
 /* sangue: toda criatura tem cor definida, e o esqueleto não pode escorrer */
 A(Object.values(S.MONSTERS).every(m => m.sangue && m.sangue.cor >= 0),
   'todo monstro tem sangue: ' + Object.entries(S.MONSTERS).filter(([, m]) => !m.sangue).map(([k]) => k));
@@ -528,6 +650,150 @@ A([0, 1, 2, 3, 4, 5, 6, 7].every(m => S.edgeMask(m).width === 32), 'as 8 máscar
 A(Object.values(S.RANGER_DIR).every(f => f.length === 3 && f.every(k => S.SHEET_POS[k])),
   'todo quadro do mapa do ranger existe na folha (3 por direção)');
 A(S.rangerSprite(0, 0) === null, 'sem o PNG carregado o ranger cai no sprite procedural');
+
+
+/* --- progressão visual: degrau do conjunto -> arte, e o seletor por cima ---
+   A régua toda é silenciosa se quebrar: skin errada não dá erro, só veste o
+   personagem de outra coisa, e um degrau que nunca sobe passa por "ainda não
+   juntei peça bastante". */
+{
+  const NS_TODAS = ['ns_helmet', 'ns_armor', 'ns_legs', 'ns_boots', 'ns_shield', 'ns_amulet', 'ns_ring', 'ns_sword'];
+  /* `eq` de mentira com as N primeiras peças do Escudeiro Nobre. A chave do slot
+     não importa para a contagem — o que conta é o `set` do item. */
+  const veste = n => Object.fromEntries(NS_TODAS.slice(0, n).map((id, i) => ['s' + i, { id }]));
+  const grau = n => S.skinConjunto(veste(n)).degrau;
+  /* A escada NÃO se escreve à mão aqui: ela é 1 + quantos degraus do próprio
+     conjunto foram alcançados, com teto em SKIN_DEGRAUS. Escrever "4 peças = 3"
+     amarra o teste aos números do ns, e ele já quebrou uma vez assim. */
+  const tiers = S.SETS.ns.tiers.map(([q]) => q);
+  const esperado = n => Math.min(S.SKIN_DEGRAUS, 1 + tiers.filter(q => n >= q).length);
+  for (let n = 0; n <= 8; n++)
+    A(grau(n) === esperado(n), n + ' peça(s) do conjunto dão o degrau ' + esperado(n));
+  A(grau(0) === 1, 'sem conjunto vestido o degrau é o primeiro');
+  A(grau(8) === S.SKIN_DEGRAUS, 'o conjunto completo alcança o último degrau');
+  A(new Set([0,1,2,3,4,5,6,7,8].map(grau)).size === S.SKIN_DEGRAUS,
+    'os ' + S.SKIN_DEGRAUS + ' degraus são todos alcançáveis vestindo o conjunto');
+  A(S.skinConjunto(veste(8)).set === 'ns', 'o conjunto que manda no visual é nomeado, não adivinhado');
+  /* Dois conjuntos meio vestidos: quem manda é quem tem mais peça, senão a
+     ordem das chaves do objeto decidiria a aparência do personagem. */
+  const misto = { a: { id: 'ns_helmet' }, b: { id: 'ns_armor' }, c: { id: 'gg_armor' } };
+  A(!S.ITEMS.gg_armor || S.skinConjunto(misto).set === 'ns', 'com dois conjuntos vestidos ganha o mais completo');
+
+  /* Degrau -> arte. Com duas artes e quatro degraus a divisão é 1-2 / 3-4; o
+     teste é da REGRA, então ele se refaz sozinho quando entrar arte nova. */
+  const n = S.VOC_SKINS.knight.length;
+  const arte = d => S.skinDoDegrau('knight', d);
+  A([1, 2, 3, 4].every(d => S.VOC_SKINS.knight.some(k => k.id === arte(d))),
+    'todo degrau aponta para uma arte que existe na lista da vocação');
+  A(arte(1) === S.VOC_SKINS.knight[0].id && arte(S.SKIN_DEGRAUS) === S.VOC_SKINS.knight[n - 1].id,
+    'o primeiro degrau usa a primeira arte e o último usa a última');
+  A([1, 2, 3, 4].every((d, i, a) => !i || arte(a[i - 1]) === arte(d)
+      || S.VOC_SKINS.knight.findIndex(k => k.id === arte(d))
+       > S.VOC_SKINS.knight.findIndex(k => k.id === arte(a[i - 1]))),
+    'a arte nunca REGRIDE ao subir de degrau');
+  /* Vocação sem arte cai no procedural. Nomear uma vocação aqui envelhece — este
+     teste já quebrou no dia em que o sorcerer ganhou folha. A régua é o contrato:
+     quem não está na tabela não tem skin, seja lá quem for. */
+  A(S.skinDoDegrau('ninguem', 4) === null, 'vocação fora da tabela continua no procedural');
+  for (const v in S.VOCATIONS)
+    A(!!S.VOC_SKINS[v] === (S.skinDoDegrau(v, 1) !== null),
+      'a vocação ' + v + ' tem skin exatamente quando está na VOC_SKINS');
+
+  /* O seletor por cima do automático. `null` quer dizer procedural. */
+  const knight = eq => ({ voc: 'knight', eq });
+  A(S.skinAtual({ ...knight(veste(8)), skin: 'none' }) === null, 'escolher procedural desliga a folha');
+  A(S.skinAtual({ ...knight(veste(0)), skin: 'voc_knight_veteran' }) === 'voc_knight_veteran',
+    'skin fixa vale mesmo sem conjunto vestido nenhum');
+  /* `arte(4)` estava cravado aqui e quebrou no dia em que a escada foi para 5.
+     O teto é SKIN_DEGRAUS, não um número escrito à mão — terceira vez nesta
+     leva que uma constante repetida no teste envelhece. */
+  A(S.skinAtual(knight(veste(0))) === arte(1)
+    && S.skinAtual(knight(veste(8))) === arte(S.SKIN_DEGRAUS),
+    'sem escolha (ou com "auto") quem manda é o equipamento');
+  /* O primeiro degrau é o mesmo para TODAS as vocações: em Varrokgaard não se
+     tem vocação, e quem sai do templo é um cidadão. */
+  for (const v in S.VOCATIONS)
+    A(S.skinDoDegrau(v, 1) === S.SKIN_PADRAO.id,
+      'a vocação ' + v + ' começa no cidadão, a skin padrão do jogo');
+  A(S.skinAtual({ voc: 'druid', eq: {} }) === S.SKIN_PADRAO.id,
+    'personagem novo, sem conjunto nenhum, nasce com a skin padrão');
+
+/* --- a porta não fecha em cima de ninguém ---
+   Fechar com o jogador no vão o deixaria num tile que o `isWalkable` passa a
+   negar: preso dentro da própria porta, sem erro nenhum no console.
+   A porta é POSTA aqui em vez de procurada no mapa — depender do conteúdo do
+   mundo faz o teste falhar por motivo errado no dia em que a vila mudar. */
+{
+  /* o P vivo, e não o da linha 268: a suíte chama newPlayer de novo depois, e a
+     referência antiga aponta para um personagem que o jogo já trocou */
+  const P = S.getP(), z = P.z, f = S.WORLD.floors[z];
+  /* um lugar com os quatro vizinhos andáveis, para o empurrão ter para onde ir */
+  let px = -1, py = -1;
+  for (let y = 2; y < S.H - 2 && px < 0; y++) for (let x = 2; x < S.W - 2; x++)
+    if ([[0,0],[1,0],[-1,0],[0,1],[0,-1]].every(([a,b]) => S.isWalkable(x+a, y+b, z))
+        && !S.objsAt(x, y, z).length) { px = x; py = y; break; }
+  A(px >= 0, 'achei um tile livre com os quatro vizinhos andáveis');
+  if (px >= 0) {
+    const porta = { o: 'porta', x: px, y: py, aberta: true };
+    f.objs.push(porta); S.reindexObjs(z);
+    const guarda = [P.x, P.y];
+    P.x = P.px = px; P.y = P.py = py; P.lastDir = [0, 1];
+    A(S.desocupaPorta(px, py, z) === true, 'com vizinho livre, quem está no vão é empurrado');
+    A(P.x !== px || P.y !== py, 'e ele saiu mesmo do tile da porta');
+    A(S.isWalkable(P.x, P.y, z), 'e foi parar num tile onde se pode ficar');
+    /* Vazio: não há ninguém para tirar, então fechar é sempre permitido. */
+    A(S.desocupaPorta(px, py, z) === true, 'vão vazio libera o fecho sem mexer em nada');
+    f.objs.splice(f.objs.indexOf(porta), 1); S.reindexObjs(z);
+    P.x = P.px = guarda[0]; P.y = P.py = guarda[1];
+  }
+}
+  A(S.skinAtual({ ...knight(veste(8)), skin: 'auto' }) === S.skinAtual(knight(veste(8))),
+    '"auto" e a ausência de escolha são a mesma coisa');
+  /* Toda arte da tabela tem de ter folha montada, senão o jogador escolhe uma
+     skin no seletor e o boneco cai calado no procedural. O 'ranger' é a folha
+     de recorte próprio e não passa pelo build_criaturas. */
+  for (const voc in S.VOC_SKINS)
+    for (const k of S.VOC_SKINS[voc])
+      A(k.id === 'ranger' || !!S.CRIA_FOLHA[k.id],
+        'a skin ' + k.id + ' tem folha montada em assets/creatures/');
+}
+
+/* --- arma e escudo não somem de costas ---
+   Eram pulados no norte: a espada piscava fora de existência a cada passo para
+   cima. De costas eles trocam de LADO (a mão direita do boneco cai na esquerda
+   da tela), então a régua é onde o desenho aterrissa, não quantos traços saem. */
+{
+  /* gravador: só o x de cada retângulo e o de cada elipse interessam */
+  const grava = (dir, o) => {
+    const rects = [], elips = [];
+    const g = new Proxy({}, { get: (t, k) => (...a) => {
+      if (k === 'roundRect') rects.push(a[0] + a[2] / 2);      // meio do retângulo
+      else if (k === 'ellipse') elips.push(a[0]);
+      return t;
+    } });
+    S.SHAPE_DRAW.biped(g, 0x808080, o, dir, 0);
+    return { rects, elips };
+  };
+  const MEIO = 16;
+  const semArma = grava(S.DIR_N, {}), comArma = grava(S.DIR_N, { weapon: 0xcc2222, shield: 0x2222cc });
+  A(comArma.rects.length === semArma.rects.length + 2,
+    'de costas a arma desenha os mesmos dois traços que desenha de frente');
+  A(comArma.elips.length === semArma.elips.length + 1, 'e o escudo desenha o dele');
+  /* O lado: de frente a arma sai à direita do meio e o escudo à esquerda; de
+     costas os dois trocam. Sem espelhar, a espada nasceria atravessando o corpo. */
+  const frente = grava(S.DIR_S, { weapon: 1, shield: 1 });
+  const armaFrente = Math.max(...frente.rects), armaCostas = Math.min(...comArma.rects);
+  A(armaFrente > MEIO && armaCostas < MEIO, 'a arma troca de lado quando o boneco vira de costas');
+  A(Math.abs((armaFrente - MEIO) - (MEIO - armaCostas)) < .01,
+    'e cai à mesma distância do meio — é espelho, não deslocamento a olho');
+  const escFrente = Math.min(...frente.elips.filter(x => x !== MEIO));
+  const escCostas = Math.max(...comArma.elips.filter(x => x !== MEIO));
+  A(escFrente < MEIO && escCostas > MEIO, 'o escudo troca de lado junto, para o oposto da arma');
+  /* No perfil o escudo fica do lado escondido do corpo: isso é verdade do mundo
+     e não quadro faltando, então continua de fora. */
+  A(grava(S.DIR_E, { shield: 1 }).elips.length === grava(S.DIR_E, {}).elips.length,
+    'no perfil o escudo segue escondido atrás do corpo');
+}
 /* a costura das texturas depende disto: 9 passadas com a mesma semente têm de
    desenhar exatamente a mesma coisa, senão viram 9 texturas empilhadas */
 A((() => {
@@ -2516,6 +2782,32 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
        contra o recurso infinito de 46.899 tiles voltar por uma porta nova. */
     A(S.COLETA.mining.objs.includes('veio') && !S.COLETA.mining.objs.includes('cparede'),
       'o veio é minerável e a parede de caverna não');
+
+    /* --- os objetos que ACENDEM ------------------------------------------ */
+    /* O motor tinha o balde de luzes desde sempre e nenhuma ficha de OBJETO
+       declarava emissão: não havia como o autor pôr uma tocha na parede da
+       Goela. Agora quatro declaram `luz`, que é o RAIO EM TILES — a mesma
+       unidade da tocha da mão e do vaga-lume. Se a unidade divergir, o poste
+       vira holofote ou vela, e nada acusa. */
+    const acendem = Object.keys(S.OBJ).filter(k => S.OBJ[k].luz);
+    A(acendem.length >= 4, `há objeto de mapa que acende (${acendem.length})`);
+    for (const k of acendem) {
+      const o = S.OBJ[k];
+      A(o.luz > 0 && o.luz <= 6,
+        `${k} acende num raio de jogo (${o.luz} tiles; a tocha da mão é 6)`);
+      A(!!S.OBJ_DRAW[o.draw], `${k} tem desenho (${o.draw})`);
+    }
+    /* Quem tem CHAMA NUA treme e quem tem vidro não. É a diferença que separa
+       fogueira de lampião a olho nu, e ela mora na ficha e não no render —
+       senão o render volta a conhecer objeto por nome. */
+    A(S.OBJ.tocha.tremula && S.OBJ.fogueira.tremula
+      && !S.OBJ.lampiao.tremula && !S.OBJ.poste.tremula,
+      'chama nua treme, luz atrás de vidro não');
+    /* A tocha mora na PAREDE e não ocupa o chão; as outras três estão plantadas
+       nele. Uma tocha que barra o passo é parede invisível no corredor. */
+    A(S.OBJ.tocha.walk, 'a tocha de parede não barra o passo');
+    A(!S.OBJ.poste.walk && !S.OBJ.fogueira.walk && !S.OBJ.lampiao.walk,
+      'poste, fogueira e lampião barram o passo');
   }
 
   /* --- #38a: o relógio único de dano, medido ALTERNANDO magias ------------ */
@@ -3476,6 +3768,513 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
       `o gerador reafirma o tamanho DELE depois de um mapa menor (${r.w}x${r.h}x${r.f}, e não 12x10x2)`);
   }
   console.log(`  mapa de ${a.w}x${a.h2}x${a.f} congelado em ${S.tamanhoKB} KB`);
+}
+
+
+/* ------------------------------------------------------- árvore de talentos */
+/* A régua aqui é a de sempre: cobrar o CONTRATO e não o resultado. Nada de
+   "knight tem 6 nós" — número escrito à mão envelhece na primeira leva de
+   conteúdo e passa a reprovar trabalho bom. */
+{
+  const p = S.getP(), vocAntes = p.voc, nivelAntes = p.level, ouroAntes = p.gold;
+  const fonteJogo = fs.readFileSync(path.join(__dirname, '../src/game.js'), 'utf8');
+
+  /* 1. O vocabulário fecha dos DOIS lados. Chave de nó que ninguém lê faz o
+     jogador gastar um ponto em nada — sem erro, sem aviso. É o mesmo defeito do
+     `arm` que ficou onze bônus sem efeito, e a metade de trás (chave declarada
+     que o código não lê) é a que passaria despercebida. */
+  for (const v in S.TREES) for (const n of S.TREES[v])
+    for (const k in n.ef)
+      A(S.EF_CHAVES.includes(k), `${n.id}: a chave "${k}" existe no vocabulário de efeitos`);
+  for (const k of S.EF_CHAVES)
+    A(fonteJogo.includes('P.ef.' + k), `o efeito "${k}" é LIDO no game.js — chave que ninguém lê é ponto gasto à toa`);
+  for (const k of S.EF_CHAVES)
+    A(Object.values(S.TREES).some(t => t.some(n => n.ef[k] !== undefined)),
+      `o efeito "${k}" é dado por algum nó — efeito sem dono é código morto`);
+
+  /* 2. Topologia de GRAFO: uma raiz, tudo alcançável a partir dela, ligação
+     sempre dentro da mesma vocação, e nada de nó apontando para si mesmo. */
+  for (const v in S.TREES) {
+    const ids = new Set(S.TREES[v].map(n => n.id));
+    for (const n of S.TREES[v]) {
+      for (const r of (n.req || [])) {
+        A(ids.has(r), `${n.id}: a ligação ${r} existe e é da mesma vocação`);
+        A(r !== n.id, `${n.id}: nó não se liga a si mesmo`);
+      }
+    }
+    const raizes = S.TREES[v].filter(n => !n.req || !n.req.length);
+    A(raizes.length >= 1, `${v}: a árvore tem raiz`);
+    /* Alcançabilidade pela regra REAL do jogo: parte das raízes e só avança para
+       quem tem um vizinho já alcançado. Nó fora deste conjunto é ponto que o
+       jogador nunca consegue gastar — e não daria erro nenhum, só ficaria
+       apagado para sempre. */
+    const alcanca = new Set(raizes.map(n => n.id));
+    for (let mudou = true; mudou;) {
+      mudou = false;
+      for (const n of S.TREES[v])
+        if (!alcanca.has(n.id) && (n.req || []).some(r => alcanca.has(r))) {
+          alcanca.add(n.id); mudou = true;
+        }
+    }
+    A(alcanca.size === S.TREES[v].length,
+      `${v}: todos os ${S.TREES[v].length} nós são alcançáveis pela regra de vizinhança (${alcanca.size})`);
+
+    /* Desenho: posição declarada, dentro do quadro, e sem duas bolinhas em cima
+       uma da outra. A bolinha tem 46px num quadro de umas 600 — 9% de distância
+       é o menor vão que ainda deixa ver duas. */
+    for (const n of S.TREES[v]) {
+      A(Array.isArray(n.pos) && n.pos.length === 2, `${n.id}: declara posição no desenho`);
+      A(n.pos[0] >= 8 && n.pos[0] <= 92 && n.pos[1] >= 8 && n.pos[1] <= 92,
+        `${n.id}: a posição [${n.pos}] cabe no quadro sem encostar na borda`);
+    }
+    for (const a of S.TREES[v]) for (const b of S.TREES[v]) {
+      if (a.id >= b.id) continue;
+      const d = Math.hypot(a.pos[0] - b.pos[0], a.pos[1] - b.pos[1]);
+      A(d >= 9, `${a.id} e ${b.id} não se sobrepõem no desenho (${d.toFixed(1)}%)`);
+    }
+    /* Grafo e desenho são a MESMA declaração: o traço sai do `req`, então não há
+       como o desenho mostrar uma ligação que o jogo não cobra — nem esconder
+       uma que ele cobra. Sem par repetido, senão a linha dobra sobre si mesma. */
+    const fios = S.treeLigacoes(v);
+    const pares = new Set(fios.map(([a, b]) => [a.id, b.id].sort().join('|')));
+    A(pares.size === fios.length, `${v}: nenhuma ligação é desenhada duas vezes`);
+    A(fios.length === S.TREES[v].reduce((s, n) => s + (n.req || []).length, 0),
+      `${v}: todo req vira um traço — desenho e regra saem da mesma linha`);
+  }
+
+  /* 3. Orçamento: o que a árvore custa cabe no que o jogo paga. */
+  for (const v in S.TREES) {
+    const custo = S.TREES[v].reduce((s, n) => s + (n.max || 1), 0);
+    A(custo * S.PONTO_NIVEL <= 320, `${v}: a árvore inteira (${custo} pontos) cabe antes do nível 320`);
+  }
+
+  /* 4. Alocação: o pai barra o filho, o ponto some da conta, e o teto trava. */
+  p.voc = 'knight'; p.level = 100; p.tree = {}; S.recalc();
+  A(S.pontosTotais() === Math.floor(100 / S.PONTO_NIVEL), 'os pontos saem do nível pela régua declarada');
+  A(S.podeAlocar('k_sangue'), 'filho sem o pai comprado é recusado');
+  A(!S.podeAlocar('k_folego'), 'raiz com ponto livre é permitida');
+  S.alocaNo('k_folego');
+  A(p.tree.k_folego === 1 && S.pontosGastos() === 1, 'alocar gasta exatamente um ponto');
+  A(!S.podeAlocar('k_sangue'), 'UM degrau do pai já abre o ramo — não exige o pai cheio');
+  S.alocaNo('k_folego'); S.alocaNo('k_folego');
+  A(p.tree.k_folego === 3 && S.podeAlocar('k_folego'), 'o teto do nó (max) trava o quarto degrau');
+  A(!S.alocaNo('s_canal'), 'nó de outra vocação não se compra');
+
+  /* 5. Sem pontos, não se compra — e a mensagem diz em que nível vem o próximo. */
+  p.level = 5; S.recalc();
+  A(String(S.podeAlocar('k_giro')).includes('10'), 'sem ponto livre, o aviso nomeia o nível do próximo');
+  /* A morte tira nível SEM PISO, então o saldo pode ficar negativo. O talento
+     comprado continua valendo: desalocar sozinho seria confiscar em silêncio o
+     que o jogador já tinha pago. */
+  A(S.pontosLivres() < 0 && p.tree.k_folego === 3,
+    'perder nível deixa o saldo negativo mas NÃO desaloca o que já foi comprado');
+  A(S.treeEf().mana > 0, 'e o efeito do que já foi comprado continua valendo');
+  p.level = 100; S.recalc();
+
+  /* 6. Cada um dos sete efeitos MUDA alguma coisa observável. É a metade que
+     pega a volta: sem isto, apagar o gancho no game.js deixaria a suíte verde. */
+  const spCura = S.SPELLS.find(x => x.id === 'exura_ico');
+  p.tree = {}; S.recalc();
+  /* Medido pela MANA QUE SAI DA BARRA, e não pelo retorno de custoDe: com a
+     função pura sozinha, trocar o gasto do castSpell de volta para sp.mana
+     passava verde nas duas mutações. É o mesmo defeito do teste que varria o
+     fonte atrás da palavra 'objs'. */
+  const gastoDe = () => {
+    p.mana = p.st.maxmana; p.cd = {}; p.hp = 1;
+    const antes = p.mana; S.castSpell(spCura); return antes - p.mana;
+  };
+  const gastoCheio = gastoDe();
+  A(gastoCheio > 0, 'conjurar gasta mana — o controle da medição');
+  p.tree = { k_folego: 3 }; S.recalc();
+  const gastoCom = gastoDe();
+  A(gastoCom < gastoCheio, `mana: o desconto sai da barra de verdade (${gastoCheio} -> ${gastoCom})`);
+  A(S.custoDe({ mana: 1 }) >= 1, 'e o custo nunca desce abaixo de 1 — magia de graça não é desconto');
+
+  const spArea = S.SPELLS.find(x => x.id === 'exori');
+  p.tree = {}; S.recalc();
+  const areaCrua = S.spellTiles(spArea).length;
+  p.tree = { k_giro: 1 }; S.recalc();
+  A(S.spellTiles(spArea).length > areaCrua,
+    `raio: a área cresce (${areaCrua} -> ${S.spellTiles(spArea).length} tiles)`);
+
+  const spBuff = S.SPELLS.find(x => x.type === 'buff' && x.voc.includes('knight'));
+  p.tree = {}; S.recalc(); p.mana = p.st.maxmana; p.cd = {};
+  S.castSpell(spBuff);
+  const durCrua = p.buffs[spBuff.buff].end - S.G.now;
+  p.tree = { k_folego: 1, k_sangue: 1, k_juramento: 2 }; S.recalc();
+  p.mana = p.st.maxmana; p.cd = {}; delete p.buffs[spBuff.buff];
+  S.castSpell(spBuff);
+  A(p.buffs[spBuff.buff].end - S.G.now > durCrua,
+    `dur: o buff dura mais (${durCrua}ms -> ${p.buffs[spBuff.buff].end - S.G.now}ms)`);
+
+  /* limpa: a cura arranca o estado. E a outra metade, que é a que erraria
+     calado — haste e regen moram no MESMO mapa `P.buffs`, e uma limpeza que
+     varresse tudo apagaria o que o jogador acabou de conjurar. */
+  p.tree = { k_folego: 1, k_sangue: 1 }; S.recalc();
+  p.mana = p.st.maxmana; p.cd = {}; p.hp = 1;
+  p.buffs.queimando = { end: S.G.now + 9000, dano: 5, estado: 'queimando' };
+  p.buffs.haste = { val: 40, end: S.G.now + 9000 };
+  S.castSpell(spCura);
+  A(!p.buffs.queimando, 'limpa: a cura tira o estado negativo');
+  A(p.buffs.haste, 'e NÃO tira a pressa que o jogador conjurou — o mapa de buffs é o mesmo');
+  delete p.buffs.haste; S.recalc();
+
+  /* certeza: o estado passa a não depender do sorteio. Vinte golpes seguidos:
+     com chance de 25%, vinte acertos sem falha nenhuma não acontece por sorte. */
+  const alvoNovo = () => ({ uid: 1, id: 'rat', def: S.MONSTERS.rat, n: 'Rato', hp: 1e6, maxhp: 1e6,
+    x: p.x + 1, y: p.y, z: p.z, px: p.x + 1, py: p.y, sp: {} });
+  p.tree = { k_giro: 1, k_peso: 1 }; S.recalc();
+  let todas = true;
+  for (let i = 0; i < 20; i++) {
+    const m = alvoNovo(); S.dealDamage(m, 40, 'fire', '#f00', 'queimando');
+    if (!m.estados || !m.estados.queimando) todas = false;
+  }
+  A(todas, 'certeza: vinte golpes, vinte estados aplicados — o sorteio deixou de valer');
+  p.tree = {}; S.recalc();
+  let falhou = 0;
+  for (let i = 0; i < 60; i++) {
+    const m = alvoNovo(); S.dealDamage(m, 40, 'fire', '#f00', 'queimando');
+    if (!m.estados || !m.estados.queimando) falhou++;
+  }
+  A(falhou > 0, 'e sem o talento o estado volta a falhar às vezes — mede a diferença, não o absoluto');
+
+  /* alcance e varinha são do mago: a vocação troca e volta. */
+  p.voc = 'sorcerer'; p.tree = {}; S.recalc();
+  const alcanceCru = 6 + p.ef.alcance;
+  p.tree = { s_canal: 1, s_verbo: 1, s_alcance: 2 }; S.recalc();
+  A(6 + p.ef.alcance > alcanceCru, `alcance: a magia de ataque chega mais longe (${alcanceCru} -> ${6 + p.ef.alcance} tiles)`);
+  A(fonteJogo.includes('6 + P.ef.alcance'), 'e o número entra no limite de alvo do castSpell, não só na ficha');
+
+  {
+    const eqp = vm.runInContext('equipItem', ctx);
+    eqp(S.mkItem('wand_of_vortex', 0), true);
+    const m = alvoNovo(); S.G.mobs.push(m); S.G.target = m;
+    p.level = 100; p.tree = {}; S.recalc(); p.mana = p.st.maxmana; p.nextAtk = 0;
+    const manaAntes = p.mana; S.playerAttack();
+    A(p.mana < manaAntes, 'a varinha cobra mana por padrão');
+    p.tree = { s_canal: 1 }; S.recalc(); p.mana = p.st.maxmana; p.nextAtk = 0;
+    const manaAntes2 = p.mana; S.playerAttack();
+    A(p.mana === manaAntes2, 'varinha: com o talento, canalizar deixa de gastar mana');
+    S.G.mobs.splice(S.G.mobs.indexOf(m), 1); S.G.target = null;
+  }
+
+  /* 7. Efeito é da VOCAÇÃO dona do nó. Um save que traga nó de outra árvore
+     (troca de personagem, edição à mão) não pode pagar bônus. */
+  p.voc = 'knight'; p.tree = { s_verbo: 3 }; S.recalc();
+  A(p.ef.mana === 0, 'nó de outra vocação não rende efeito nenhum');
+
+  /* 8. Save: id extinto sai, degrau acima do teto é aparado — e em nenhum dos
+     dois casos o ponto se perde, porque `pontosGastos` conta o que sobrou. */
+  {
+    // save de verdade: fixSave mexe em skill, equipamento e corpo também, e um
+    // stub de duas chaves estoura antes de chegar na parte que se quer medir
+    const cru = JSON.parse(JSON.stringify({ p, corpses: [] }));
+    cru.p.tree = { k_folego: 99, naoExiste: 2, s_verbo: 1 };
+    const d = S.fixSave(cru);
+    A(d.p.tree.k_folego === S.TREE_NO.k_folego.max, 'save: degrau acima do teto é aparado');
+    A(!('naoExiste' in d.p.tree), 'save: nó que não existe mais é descartado');
+    A(!('s_verbo' in d.p.tree), 'save: nó de outra vocação é descartado');
+  }
+
+  /* 9. Redistribuir: cobra ouro, devolve tudo, e sem ouro não mexe em nada. */
+  p.tree = { k_folego: 2 }; S.recalc(); p.gold = 0;
+  S.respec();
+  A(p.tree.k_folego === 2, 'sem ouro, redistribuir não faz nada');
+  p.gold = S.respecPreco();
+  S.respec();
+  A(S.pontosGastos() === 0 && p.gold === 0, 'redistribuir devolve todos os pontos e cobra o ouro');
+  A(p.ef.mana === 0, 'e o efeito some junto — recalc roda no fim');
+
+
+  /* 10. A convergência funciona pelos DOIS lados. É o motivo de existir grafo em
+     vez de corrente: o nó do alto é alcançável por qualquer um dos caminhos, e
+     testar só um lado deixaria passar uma regra que na verdade exige os dois. */
+  for (const v in S.TREES) {
+    const conv = S.TREES[v].filter(n => (n.req || []).length > 1);
+    A(conv.length >= 1, `${v}: a árvore tem pelo menos um nó de convergência`);
+    for (const n of conv) for (const porOnde of n.req) {
+      p.voc = v; p.level = 300; p.tree = {}; S.recalc();
+      /* abre o caminho até `porOnde` andando pela regra do jogo, e SÓ por ele —
+         se o outro ramo vazasse para dentro do caminho, o teste não provaria
+         nada sobre este lado */
+      const trilha = [], visto = new Set();
+      (function subir(id) {
+        if (visto.has(id)) return;
+        visto.add(id);
+        const reqs = S.TREE_NO[id].req || [];
+        if (reqs.length) subir(reqs[0]);
+        trilha.push(id);
+      })(porOnde);
+      for (const id of trilha) A(S.alocaNo(id) === true, `${v}: consegue subir por ${id}`);
+      A(!S.podeAlocar(n.id), `${n.id}: alcançável chegando por ${porOnde} — a outra metade não é exigida`);
+    }
+  }
+  p.voc = 'knight'; p.level = 100; p.tree = {}; S.recalc();
+
+  /* 11. O mapa em tela cheia: pixel de CSS contra pixel de BUFFER. Foi este erro
+     que mostrou 46% do mapa no editor, e só na tela do dono (dpr 2). */
+  {
+    const a = S.escalaMapa(800, 600, 1, 1), b = S.escalaMapa(800, 600, 2, 1);
+    A(b.w === a.w * 2 && b.h === a.h * 2, 'o buffer do mapa acompanha o devicePixelRatio');
+    A(b.k === a.k * 2, 'e o fator de escala dobra junto');
+    /* A régua que importa: o MESMO arrasto em pixel de tela tem de andar a mesma
+       distância no mundo nas duas telas. Sem o fator de dpr, a de HiDPI andaria
+       metade — e passaria despercebido em qualquer máquina sem HiDPI. */
+    const ta = S.arrastoEmTiles(100, a.dpr, a.k), tb = S.arrastoEmTiles(100, b.dpr, b.k);
+    A(Math.abs(ta - tb) < 1e-9,
+      `100px de arrasto andam os mesmos tiles em dpr 1 e 2 (${ta.toFixed(2)} vs ${tb.toFixed(2)})`);
+    A(Math.abs(S.escalaMapa(900, 400, 1, 1).k - S.escalaMapa(400, 400, 1, 1).k) < 1e-9,
+      'num quadro retangular quem decide a escala é a MENOR dimensão — o mapa cabe inteiro');
+    const z = S.escalaMapa(800, 600, 1, 3);
+    A(z.k === a.k * 3, 'o zoom multiplica a escala e nada mais');
+  }
+
+  /* 12. O balão descreve o nó a partir do próprio `ef`. Frase escrita à mão
+     envelheceria no dia em que alguém mexesse no número e esquecesse dela. */
+  for (const k of S.EF_CHAVES) A(typeof S.EF_TEXTO[k] === 'function', `o efeito "${k}" sabe se descrever no balão`);
+  for (const v in S.TREES) for (const n of S.TREES[v])
+    A(S.efeitoDoNo(n).length > 3, `${n.id}: o balão tem o que dizer sobre o efeito`);
+
+
+  /* 13. Arrastar janela: coordenada de VIEWPORT contra coordenada do PAI. As
+     janelas moram dentro do #stage, então `left` é medido a partir do palco e o
+     mouse fala em tela — sem descontar a origem do palco, a janela salta para
+     baixo e para a direita exatamente a distância das barras laterais. */
+  {
+    const pai = { left: 200, top: 100, width: 1000, height: 600 };
+    const win = { left: 0, top: 0, width: 300, height: 200 };
+    const solto = S.posicaoJanela(500, 400, 0, 0, win, pai);
+    A(solto.left === 300 && solto.top === 300,
+      `a janela pousa em coordenada do PAI (${solto.left},${solto.top}) e não da tela (500,400)`);
+    /* O agarre (dx,dy) é onde dentro do cabeçalho o mouse pegou: sem ele a
+       janela pula para ficar com o canto embaixo do cursor. */
+    const comAgarre = S.posicaoJanela(500, 400, 40, 10, win, pai);
+    A(comAgarre.left === 260 && comAgarre.top === 290, 'o ponto onde se agarrou o cabeçalho é preservado');
+    // os quatro lados presos dentro do pai
+    A(S.posicaoJanela(0, 0, 0, 0, win, pai).left === 0, 'não sai pela esquerda');
+    A(S.posicaoJanela(0, 0, 0, 0, win, pai).top === 0, 'não sai por cima');
+    A(S.posicaoJanela(9999, 9999, 0, 0, win, pai).left === pai.width - win.width, 'não sai pela direita');
+    A(S.posicaoJanela(9999, 9999, 0, 0, win, pai).top === pai.height - win.height, 'não sai por baixo');
+    /* Janela MAIOR que o palco: o teto do clamp fica negativo e um clamp ingênuo
+       devolveria número negativo, jogando o cabeçalho para fora — que é
+       justamente o estado de onde não se volta. */
+    const grande = { left: 0, top: 0, width: 2000, height: 900 };
+    const g = S.posicaoJanela(500, 400, 0, 0, grande, pai);
+    A(g.left === 0 && g.top === 0, 'janela maior que o palco encosta no canto em vez de sair dele');
+  }
+
+
+  /* 14. Os rótulos não se atropelam. A caixa do nó tem 28% da largura do quadro
+     (CSS `.tree-no{width:28%}`), então dois nós na MESMA fileira precisam estar
+     mais longe que isso — senão o nome de um cobre o do outro, e é o nome que
+     identifica o nó. Vale em qualquer tela porque as duas medidas são
+     porcentagem do mesmo quadro. Nós de fileiras diferentes podem se cruzar na
+     horizontal: o que separa ali é a altura. */
+  {
+    const LARGURA_ROTULO = 28, MESMA_FILEIRA = 12;
+    for (const v in S.TREES) for (const a of S.TREES[v]) for (const b of S.TREES[v]) {
+      if (a.id >= b.id) continue;
+      if (Math.abs(a.pos[1] - b.pos[1]) > MESMA_FILEIRA) continue;
+      const dx = Math.abs(a.pos[0] - b.pos[0]);
+      A(dx >= LARGURA_ROTULO,
+        `${a.id} e ${b.id} estão na mesma fileira e os rótulos não se cobrem (${dx.toFixed(0)}% de ${LARGURA_ROTULO}%)`);
+    }
+    const css = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+    A(/\.tree-no\{[^}]*width:28%/.test(css.replace(/\s+/g, '')),
+      'e o CSS ainda declara a mesma largura que este teste cobra');
+  }
+
+
+  /* 15. Ligação MÚTUA vira UM traço, não dois. Os dados de hoje não produzem o
+     caso — por isso ele se constrói aqui —, mas o modelo convida: ao ligar dois
+     nós que se complementam, escrever `a.req:[b]` e `b.req:[a]` é o gesto
+     natural, e os dois continuam alcançáveis se um terceiro os enraíza. Sem a
+     deduplicação, a linha é desenhada duas vezes uma sobre a outra: não dá
+     erro, só engrossa a tinta e some a diferença entre traço aceso e apagado. */
+  {
+    const antes = S.TREES.teste;
+    S.TREES.teste = [
+      { id: 't_raiz', n: 'Raiz', pos: [50, 80], ef: { mana: .05 }, d: 'x' },
+      { id: 't_a', n: 'A', pos: [20, 40], req: ['t_raiz', 't_b'], ef: { mana: .05 }, d: 'x' },
+      { id: 't_b', n: 'B', pos: [80, 40], req: ['t_raiz', 't_a'], ef: { mana: .05 }, d: 'x' }
+    ];
+    for (const n of S.TREES.teste) S.TREE_NO[n.id] = { ...n, voc: 'teste', max: n.max || 1 };
+    const fios = S.treeLigacoes('teste');
+    const pares = new Set(fios.map(([a, b]) => [a.id, b.id].sort().join('|')));
+    A(fios.length === 3 && pares.size === 3,
+      `ligação mútua A↔B vira UM traço, não dois (${fios.length} traços para ${pares.size} pares)`);
+    for (const n of S.TREES.teste) delete S.TREE_NO[n.id];
+    if (antes) S.TREES.teste = antes; else delete S.TREES.teste;
+  }
+
+
+  /* 16. Câmera da árvore. O grafo é sempre de tela cheia, então quem enquadra é
+     ela — e o limite existe para o grafo não poder ser arrastado para fora e
+     sumir, porque não há botão de "voltar ao centro". */
+  {
+    A(S.treeLimite(600, 1) === 0,
+      'no zoom 1 o quadro inteiro cabe e não há o que arrastar — o limite é zero');
+    A(S.treeLimite(600, 2) === 300,
+      'no zoom 2 dá para andar metade do que sobrou de cada lado');
+    A(S.treeLimite(600, 3) > S.treeLimite(600, 2),
+      'quanto mais zoom, mais chão para andar');
+    A(S.treeLimite(600, .5) === 0,
+      'zoom menor que 1 não gera limite negativo — arrastar para fora do vazio');
+    const [zmin, zmax] = S.TREE_ZOOM;
+    A(zmin === 1 && zmax > zmin, `o zoom vai de ${zmin} a ${zmax} e não desce abaixo de caber inteiro`);
+    /* Régua que amarra as duas pontas: com o piso de zoom em 1, o limite no piso
+       é sempre 0. Se alguém baixar o piso para 0,5 achando que "mais zoom para
+       fora é melhor", o grafo passa a caber sobrando e o clamp deixa de
+       recentrar — some do meio da tela sem erro nenhum. */
+    A(S.treeLimite(600, zmin) === 0, 'no piso de zoom o grafo fica centrado por construção');
+  }
+
+  /* 17. Mapa e talentos são SEMPRE de tela cheia — não há mais modo janela, e
+     por isso o cabeçalho deles não arrasta. A régua olha os dois lados: a marca
+     no HTML e a recusa no código. */
+  {
+    const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+    for (const id of ['tree-win', 'map-win'])
+      A(new RegExp('class="win cheia" id="' + id + '"').test(html),
+        `${id} nasce em tela cheia no HTML`);
+    A(!html.includes('max-btn'), 'não sobrou botão de alternar janela/tela cheia');
+    A(!fonteJogo.includes('modoCheio'), 'nem a função que alternava os dois modos');
+    A(/cheia'\)\) return;/.test(fonteJogo.replace(/\s+/g, ' ')) ||
+      fonteJogo.includes("win.classList.contains('cheia')) return"),
+      'e o arraste pelo cabeçalho é recusado em tela cheia');
+  }
+
+
+  /* 18. O balão fica COLADO no que descreve, em qualquer zoom. O grafo escala
+     por transform, então a caixa do botão cresce junto — a 3,5× ela tem a
+     largura do rótulo vezes 3,5, e ancorar nela jogava o balão a centenas de
+     pixels do círculo. O balão não escala (interface de leitura não escala, como
+     no PoE e no Skyrim); o que acompanha o zoom é a POSIÇÃO. */
+  {
+    const W_TIP = 236, H_TIP = 120, TELA_W = 1830, TELA_H = 985;
+    // mesmo nó em dois zooms: a bolinha tem 46px e o botão tem 87px de rótulo
+    const cx = 1150, cy = 500;
+    const bola = z => ({ left: cx - 23 * z, right: cx + 23 * z, top: cy - 23 * z });
+    const botao = z => ({ left: cx - 43.5 * z, right: cx + 43.5 * z, top: cy - 32 * z });
+    const folga = (r, z) => r.left - (S.tipLugar(r, W_TIP, H_TIP, TELA_W, TELA_H).left + W_TIP);
+    A(folga(bola(1), 1) === 4 && folga(bola(3.5), 3.5) === 4,
+      'ancorado na bolinha, a folga entre balão e alvo é a mesma no zoom 1 e no 3,5');
+    /* A outra metade, que é a que mostra POR QUE a âncora é a bolinha: presa ao
+       botão, a distância até o círculo cresce com o zoom. É a medição do defeito
+       que apareceu no print. */
+    const ateOCirculo = z => bola(z).left - (S.tipLugar(botao(z), W_TIP, H_TIP, TELA_W, TELA_H).left + W_TIP);
+    A(ateOCirculo(3.5) > ateOCirculo(1) + 50,
+      `preso ao botão, o balão se afasta do círculo com o zoom (${ateOCirculo(1).toFixed(0)}px -> ${ateOCirculo(3.5).toFixed(0)}px)`);
+
+    // sem espaço à esquerda, vira para o outro lado em vez de sair da tela
+    const grudado = { left: 30, right: 120, top: 300 };
+    A(S.tipLugar(grudado, W_TIP, H_TIP, TELA_W, TELA_H).left === grudado.right + 4,
+      'sem espaço à esquerda o balão vira para a direita');
+    // e os quatro lados presos dentro da tela
+    const fora = { left: TELA_W + 500, right: TELA_W + 600, top: TELA_H + 400 };
+    const p = S.tipLugar(fora, W_TIP, H_TIP, TELA_W, TELA_H);
+    A(p.left + W_TIP <= TELA_W && p.top + H_TIP <= TELA_H, 'o balão nunca passa da borda da tela');
+
+    // a âncora do nó é a bolinha; quem não tem bolinha continua sendo ele mesmo
+    const comBola = { querySelector: q => q === '.bola' ? 'A_BOLINHA' : null };
+    A(S.tipAncora(comBola) === 'A_BOLINHA', 'num nó de talento a âncora é a bolinha');
+    const semBola = { querySelector: () => null };
+    A(S.tipAncora(semBola) === semBola, 'quem não tem bolinha (slot da mochila) segue sendo a âncora');
+
+    /* E a fiação, exercendo o `tipEm` de verdade. Sem isto, trocar a âncora de
+       volta para a caixa do botão passa VERDE: os testes acima são das peças
+       puras, e a escolha da âncora mora no chamador. É o mesmo buraco do teste
+       que media `custoDe` sem exercer o `castSpell`. */
+    {
+      const tip = S.$('#tooltip');
+      // o stub de elemento não tem largura própria: sem ela a conta vira NaN e
+      // o teste passaria a medir nada
+      tip.offsetWidth = 236; tip.offsetHeight = 124;
+      const rect = (l, r, t) => () => ({ left: l, right: r, top: t, width: r - l, height: 40 });
+      const bolinha = { getBoundingClientRect: rect(1000, 1046, 300) };
+      const botao = {
+        getBoundingClientRect: rect(700, 1346, 280),      // caixa larga do rótulo
+        querySelector: q => q === '.bola' ? bolinha : null
+      };
+      S.tipEm({ currentTarget: botao }, '<b>x</b>');
+      const esq = parseFloat(tip.style.left);
+      A(Math.round(1000 - esq - tip.offsetWidth) === 4,
+        `tipEm cola o balão na BOLINHA (esquerda em ${Math.round(esq)}, folga 4)`);
+      A(Math.round(700 - esq - tip.offsetWidth) !== 4,
+        'e não na caixa do botão, que é o que soltava o balão no zoom');
+      /* Mover a câmera sem tirar o cursor do nó: o balão acompanha em vez de
+         ficar para trás. A bolinha anda 300px e o balão tem de andar junto. */
+      // dentro da tela falsa (1200px): fora dela o clamp de borda entra e o
+      // teste passaria a medir a borda em vez do seguimento
+      bolinha.getBoundingClientRect = rect(1100, 1146, 300);
+      // pelo aplicaCam, que é quem a câmera chama de verdade: chamar tipSegue
+      // direto deixaria passar a fiação sendo cortada lá dentro
+      S.aplicaCam();
+      A(Math.round(1100 - parseFloat(tip.style.left) - tip.offsetWidth) === 4,
+        'e o balão SEGUE o nó quando a câmera mexe, sem novo mouseenter');
+      S.hideTip();
+      S.tipSegue();
+      A(tip.style.display === 'none', 'balão escondido não volta sozinho no tipSegue');
+    }
+
+  }
+
+
+  /* 19. O fundo da vocação: existe em disco, preenche, e o ZOOM NÃO O ALCANÇA.
+     A terceira é a que importa e é estrutural: o zoom é um transform no
+     `.tree-mapa`, e tudo que estiver DENTRO dele escala junto. O fundo ser irmão
+     anterior é o que o mantém parado — não há como isso ser verdade "por
+     acaso", e mover a camada para dentro do grafo seria invisível no CSS. */
+  {
+    for (const v in S.VOCATIONS) {
+      const rel = S.vocFundo(v);
+      A(rel === `assets/vocations/${v}_background.png`, `${v}: o caminho do fundo sai do id da vocação`);
+      A(fs.existsSync(path.join(__dirname, '..', rel)),
+        `${v}: a arte de fundo existe em disco — arquivo faltando não daria erro, só não pintaria`);
+    }
+    for (const v of ['knight', 'ranger', 'sorcerer', 'druid']) {
+      p.voc = v; p.level = 60; p.tree = {}; S.recalc();
+      S.renderTree();
+      const html = S.$('#tree-list').innerHTML;
+      const iFundo = html.indexOf('tree-fundo'), iVeu = html.indexOf('tree-veu'), iMapa = html.indexOf('tree-mapa');
+      A(iFundo >= 0 && iVeu > iFundo && iMapa > iVeu,
+        `${v}: fundo, véu e grafo nessa ordem — o véu por cima da arte e o grafo por cima dos dois`);
+      A(html.slice(iMapa).indexOf('tree-fundo') === -1,
+        `${v}: o fundo NÃO está dentro do grafo, então o transform do zoom não o alcança`);
+      A(html.includes(S.vocFundo(v)), `${v}: o modal usa a arte da própria vocação`);
+    }
+    const css = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8').replace(/\s+/g, '');
+    A(/\.tree-fundo\{[^}]*background-size:cover/.test(css), 'a arte PREENCHE o quadro (cover), sem sobrar borda');
+    A(/\.tree-fundo\{[^}]*filter:blur\(/.test(css), 'e entra desfocada');
+    /* O desfoque come a borda: sem a folga de escala sobra franja transparente
+       nos quatro lados, que é o defeito clássico de fundo borrado. */
+    A(/\.tree-fundo\{[^}]*transform:scale\(1\.0[3-9]/.test(css),
+      'com folga de escala, senão o desfoque deixa franja transparente na borda');
+    /* Enquadrada pelo TOPO, e a origem do transform vai junto: escalando pelo
+       centro, a folga do desfoque puxa para fora justamente a cabeça, que é o
+       que o enquadramento pelo topo foi buscar. As duas metades juntas. */
+    /* O enquadramento é POR VOCAÇÃO e vem inline: as quatro artes são retratos e
+       o assunto de cada uma cai numa altura diferente, então um número só no CSS
+       serviria a uma e cortaria três. */
+    for (const v in S.VOCATIONS) {
+      const y = S.vocFundoY(v);
+      A(y > 0 && y < 50,
+        `${v}: a arte é enquadrada ACIMA do centro (${y}%), que é onde o personagem está numa arte de retrato`);
+      p.voc = v; S.renderTree();
+      const h = S.$('#tree-list').innerHTML;
+      A(h.includes(`background-position:center ${y}%`), `${v}: o enquadramento chega ao elemento`);
+      /* A origem da escala tem de ser o MESMO ponto: escalando de outro, a folga
+         do desfoque desloca justamente o enquadramento que se acabou de
+         escolher — e o defeito só apareceria comparando as duas artes. */
+      A(h.includes(`transform-origin:center ${y}%`),
+        `${v}: e a folga de escala cresce do mesmo ponto do enquadramento`);
+    }
+    A(new Set(Object.values(S.VOC_FUNDO_Y)).size > 1,
+      'as vocações NÃO compartilham um enquadramento só — cada arte enquadra onde o seu assunto está');
+  }
+  p.voc = 'knight'; p.level = 100; p.tree = {}; S.recalc();
+
+  p.voc = vocAntes; p.level = nivelAntes; p.gold = ouroAntes; p.tree = {}; S.recalc();
 }
 
 console.log(`  espada ${T2.sk.sword.l} · escudo ${T2.sk.shielding.l} após 2 min de treino`);

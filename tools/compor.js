@@ -304,13 +304,52 @@ function limpaIlhotas(m, z, minimo, vazio) {
    Sobra aqui só o que a composição SORTEIA e o terreno não diz: pedra e moita
    no chão batido, com a mesma chance do gerador. O `k` muda com a profundidade
    porque moita não existe no subsolo. */
+/* A pedra solta BARRA o passo desde 2026-08-24 (decisão do dono: "pedra deve ter
+   colisão, moita não"), e com isso ela deixou de poder cair em qualquer lugar.
+   Três coisas ela não pode fazer, e as três foram medidas depois da mudança:
+     · cair em cima de um SPAWN — dois apareceram em Varrokgaard, e o bicho
+       nasce dentro de pedra;
+     · cair no centro de um POI — o centro é o tesouro, e a coisa fica
+       inalcançável;
+     · SELAR um vizinho — apareceu um tile com água nos três lados e a pedra no
+       quarto, virando um bolsão de 1 tile.
+   A terceira é a que parecia cara e não é: basta perguntar se algum vizinho
+   andável ficaria SEM NENHUM vizinho andável, que é O(8) por colocação. Não pega
+   bolsão de dois tiles ou mais, e está certo que não pegue — bolsão maior é
+   forma de lugar, não acidente.
+   A moita não passa por nada disto, porque não barra nada. */
+function decoBloqueia(k) {
+  const o = OBJ[k === 1 ? 'pedra' : 'moita'];
+  return !!o && !o.walk;
+}
+function selaVizinho(m, z, x, y) {
+  for (const [dx, dy] of DIRS8) {
+    const vx = x + dx, vy = y + dy;
+    if (!dentro(m, vx, vy) || !andavel(m, z, vx, vy)) continue;
+    let saidas = 0;
+    for (const [ex, ey] of DIRS8) {
+      const sx = vx + ex, sy = vy + ey;
+      if (sx === x && sy === y) continue;                 // a pedra que se quer pôr
+      if (dentro(m, sx, sy) && andavel(m, z, sx, sy)) saidas++;
+    }
+    if (!saidas) return true;
+  }
+  return false;
+}
+const DIRS8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 function espalhaDeco(m, semente = 555) {
   return m._t.map((t, z) => {
     const r = mulberry32(semente + z), out = [];
     for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
       const tt = t[y * m.w + x];
-      if ((tt === T.CFLOOR || tt === T.DIRT) && r() < 0.02)
-        out.push({ x, y, k: z === m.sup ? 1 : 2 });
+      if (!((tt === T.CFLOOR || tt === T.DIRT) && r() < 0.02)) continue;
+      const k = z === m.sup ? 1 : 2;
+      if (decoBloqueia(k)) {
+        if (m.spawns.some(sp => sp.z === z && sp.x === x && sp.y === y)) continue;
+        if (m.pois.some(p => (p.z === undefined ? m.sup : p.z) === z && p.x === x && p.y === y)) continue;
+        if (selaVizinho(m, z, x, y)) continue;
+      }
+      out.push({ x, y, k });
     }
     return out;
   });
@@ -370,8 +409,31 @@ function aplicaPatch(m, nome, camada) {
       for (const id of ids || []) if (OBJ[id]) { m.objs[iz].push({ x, y, o: id }); nObj++; }
     }
   }
+
+  /* A CAMADA DE SPAWN, terceira. Entra por último porque ela se apoia no que as
+     outras duas deixaram: mover um bicho para cima de uma parede recém-pintada
+     tem de ser visto pela conferência, e ela roda depois disto.
+     A unidade de diff é a LISTA de espécies ancoradas num tile, igual à camada
+     de objeto — cobre pôr, tirar e vários por tile com uma forma só, e lista
+     VAZIA é "não há bicho aqui", que é como uma remoção viaja.
+     Espécie que não existe mais é CONTADA e não aplicada, como o tile órfão: o
+     patch é escrito contra uma versão do jogo, e se uma criatura sair da tabela
+     a correção perde o endereço — isso tem de aparecer no relatório em vez de
+     sumir. */
+  let nSp = 0, foraSp = 0;
+  for (const z in (camada === 'tiles' ? {} : o.spawns || {})) {
+    const iz = +z;
+    if (iz < 0 || iz >= m.andares) { foraSp += o.spawns[z].length; continue; }
+    for (const [x, y, especies] of o.spawns[z]) {
+      if (!dentro(m, x, y)) { foraSp++; continue; }
+      const desconhecida = (especies || []).filter(e => !MONSTERS[e]);
+      foraSp += desconhecida.length;
+      m.spawns = m.spawns.filter(sp => !(sp.z === iz && sp.x === x && sp.y === y));
+      for (const e of especies || []) if (MONSTERS[e]) { m.spawns.push({ x, y, z: iz, m: e }); nSp++; }
+    }
+  }
   m._oi = null;
-  return { tiles: n, fora, objs: nObj, foraObj };
+  return { tiles: n, fora, objs: nObj, foraObj, spawns: nSp, foraSp };
 }
 
 /* O MAPA ESTÁ ATRASADO EM RELAÇÃO AO PATCH?

@@ -122,8 +122,13 @@ for (const f of ['quadrado', 'circulo', 'mancha'])
 {
   const fmt = require(path.join(RAIZ, 'tools/patch_fmt.js'));
   const dados = {
-    tiles: { 1: [[10, 20, 3], [11, 20, 3]] },
-    objs:  { 1: [[10, 20, ['arvore']], [12, 21, ['barril', 'cerca']], [13, 21, []]] },
+    tiles:  { 1: [[10, 20, 3], [11, 20, 3]] },
+    objs:   { 1: [[10, 20, ['arvore']], [12, 21, ['barril', 'cerca']], [13, 21, []]] },
+    /* A camada de SPAWN, terceira. Mesma forma das outras duas — a unidade de
+       diff é a LISTA ancorada num tile, não o spawn solto — pelo mesmo motivo:
+       cobre pôr, tirar e vários por tile com uma forma só, e quem gravou viu o
+       tile inteiro e decidiu por ele. */
+    spawns: { 1: [[30, 40, ['rat']], [31, 41, ['wolf', 'rat']], [32, 42, []]] },
   };
   const txt = fmt.serializa('zz_prova', dados);
   let j = null;
@@ -142,8 +147,25 @@ for (const f of ['quadrado', 'circulo', 'mancha'])
   eh('uma entrada por linha, para o diff se ler', txt.split(String.fromCharCode(10)).length >= 12);
   /* O freio de encolhimento conta as DUAS camadas: contando só tiles, uma
      sessão inteira de objeto passava como "não encolheu". */
-  eh('a contagem do patch soma as duas camadas', fmt.soma(dados) === 5,
+  eh('o patch carrega a camada de SPAWN', j && Object.values(j.spawns || {}).flat().length === 3,
+     'sem ela, mover um bicho no editor não sobrevive ao gravar');
+  eh('a lista de spawns chega intacta',
+     j && JSON.stringify(j.spawns[1][1]) === JSON.stringify([31, 41, ['wolf', 'rat']]));
+  eh('o tile SEM spawn (lista vazia) sobrevive',
+     j && Array.isArray(j.spawns[1][2][2]) && j.spawns[1][2][2].length === 0);
+  eh('a contagem do patch soma as TRÊS camadas', fmt.soma(dados) === 8,
      'medido ' + fmt.soma(dados));
+  /* A lista de camadas é a fonte única: os dois serializadores leem dela, e o
+     `aplicaPatch` percorre as mesmas chaves. Divergir aqui é o defeito que a
+     camada de objeto teve por semanas. */
+  eh('as camadas estão declaradas em ordem de aplicação',
+     JSON.stringify(fmt.CAMADAS) === JSON.stringify(['tiles', 'objs', 'spawns']),
+     'medido ' + JSON.stringify(fmt.CAMADAS));
+  /* Patch VELHO, sem a chave nova, tem de continuar lendo: o do dono tem 2.183
+     endereços e nenhum `spawns`. */
+  const velho = fmt.serializa('zz_velho', { tiles: { 1: [[1, 2, 3]] } });
+  let jv = null; try { jv = JSON.parse(velho); } catch (e) { /* pega abaixo */ }
+  eh('patch sem a camada nova continua válido', !!jv && fmt.soma(jv) === 1);
 
   /* OS DOIS ESCRITORES TÊM DE CONCORDAR. São dois porque um é do launcher e o
      outro do serve.py (Python) — e se divergirem, o arquivo passa a depender de
@@ -151,11 +173,23 @@ for (const f of ['quadrado', 'circulo', 'mancha'])
   const { execFileSync } = require('child_process');
   let py = null;
   try {
-    py = execFileSync('python', ['-c',
-      "import importlib.util,sys;" +
-      "sp=importlib.util.spec_from_file_location('sv',sys.argv[1]);" +
-      "sv=importlib.util.module_from_spec(sp);sp.loader.exec_module(sv);" +
-      "sys.stdout.write(sv.serializa_patch(sys.argv[2], __import__('json').loads(sys.argv[3])))",
+    /* `exec` do FONTE, e não `import`: o importlib valida o `.pyc` por (mtime,
+       tamanho), e isso torna este teste capaz de NÃO PEGAR. Medido — trocar
+       `['tiles','objs','spawns']` por `['tiles','spawns','objs']` tem o mesmo
+       tamanho em bytes, e com as duas escritas dentro do mesmo segundo o Python
+       reusou o bytecode velho e a mutação passou verde. Rodando sozinha, a
+       mesma mutação era pega.
+       Teste que às vezes não pega é pior que teste nenhum, e a causa aqui nem
+       era o teste: era o cache no meio do caminho. Lendo o fonte não há cache,
+       e de quebra nenhum `__pycache__` nasce em `tools/`. */
+    py = execFileSync('python', ['-B', '-c',
+      "import sys,json;" +
+      /* `__file__` porque o serve.py deriva a RAIZ dele, e `exec` não o define
+         sozinho. `__name__` diferente de `__main__` para a guarda não subir o
+         servidor e pendurar o teste — que já aconteceu uma vez. */
+      "g={'__name__':'nao_main','__file__':sys.argv[1]};" +
+      "exec(open(sys.argv[1],encoding='utf-8').read(),g);" +
+      "sys.stdout.write(g['serializa_patch'](sys.argv[2], json.loads(sys.argv[3])))",
       path.join(RAIZ, 'tools/serve.py'), 'zz_prova', JSON.stringify(dados)],
       { encoding: 'utf8', timeout: 30000 });
     /* O stdout do Python no Windows traduz a quebra de linha, e isso e do
@@ -177,6 +211,72 @@ for (const f of ['quadrado', 'circulo', 'mancha'])
      `maps/`, e teste que escreve perto do trabalho do dono é o risco que este
      projeto já pagou uma vez. A consequência de perder é churn de diff no git,
      não perda de dado. */
+}
+
+/* ------------------------------------------- a ESCADA é um par, nunca meia ---
+   Foi meia escada que quebrou a ponte sobre o muro: tábua pintada por cima de
+   duas `DOWN` com o pincel de tile comum, e o mapa continuou parecendo certo —
+   escada que some não deixa buraco visível na planta.
+   O bloco é recortado do editor.html por marca, como o do pincel: a regra tem
+   de ser exercida onde ela mora, não copiada. */
+{
+  const a = html.indexOf('[ESCADA]'), b2 = html.indexOf('[/ESCADA]');
+  if (a < 0 || b2 < 0 || b2 < a) {
+    console.error('as marcas [ESCADA] sumiram do tools/editor.html');
+    process.exit(1);
+  }
+  const src = html.slice(html.indexOf(FECHA, a) + 2, b2) + FECHA;
+  const { parDe, ehEscada } = new Function(src + '\nreturn { parDe, ehEscada };')();
+  const TT = { VOID: 0, UP: 11, DOWN: 10 };
+  const N = 3;                                   // Sobre o Muro, Varrokgaard, A Goela
+
+  /* `z` CRESCE PARA BAIXO. DOWN em cima pede UP no andar seguinte, e é assim que
+     o `C.escada` do compor.js escreve — se estes dois discordarem, o editor cria
+     escada que o script considera quebrada. */
+  eh('DOWN pede UP no andar de BAIXO',
+     JSON.stringify(parDe(TT.DOWN, 0, N, TT)) === JSON.stringify({ t: TT.UP, z: 1 }));
+  eh('UP pede DOWN no andar de CIMA',
+     JSON.stringify(parDe(TT.UP, 1, N, TT)) === JSON.stringify({ t: TT.DOWN, z: 0 }));
+
+  /* Escada para fora do mundo não se cria: no andar mais fundo não há para onde
+     descer, e no mais alto não há de onde vir. */
+  eh('DOWN no andar mais fundo não tem par', parDe(TT.DOWN, N - 1, N, TT) === null);
+  eh('UP no andar mais alto não tem par', parDe(TT.UP, 0, N, TT) === null);
+
+  /* Ida e volta: a metade de baixo aponta de volta para a de cima, exatamente.
+     Sem isto o par poderia sair torto por um andar e ninguém veria. */
+  for (let zz = 0; zz + 1 < N; zz++) {
+    const desce = parDe(TT.DOWN, zz, N, TT);
+    const volta = parDe(desce.t, desce.z, N, TT);
+    eh(`o par fecha nos dois sentidos no andar ${zz}`,
+       volta && volta.z === zz && volta.t === TT.DOWN);
+  }
+
+  eh('só UP e DOWN são escada',
+     ehEscada(TT.UP, TT) && ehEscada(TT.DOWN, TT) && !ehEscada(1, TT) && !ehEscada(TT.VOID, TT));
+}
+
+/* ------------------- classe de ESTADO não pode ter nome de classe de LAYOUT ---
+   `.barra` era a barra de ferramentas E a marca de "barra o passo" nas amostras
+   da paleta. A colisão não dava erro nenhum: os 20 tiles com `walk:false`
+   herdavam `display:flex` e `padding:6px 12px` da barra, e num quadradinho de
+   32 px isso deixa 8 px de largura — água, árvore, veio e teia saíam como
+   tirinha vertical. Foi o dono que viu, mandando print.
+   O teste é estrutural e não decorado: lê o `<style>`, junta as classes que
+   mexem em CAIXA (display, padding, margin, position, flex) e cobra que nenhuma
+   delas seja pendurada por `classList.add` — que é como marca de estado entra. */
+{
+  const ed = fs.readFileSync(path.join(RAIZ, 'tools/editor.html'), 'utf8');
+  const estilo = (ed.match(/<style>([\s\S]*?)<\/style>/) || [, ''])[1];
+  const caixa = new Set();
+  for (const m of estilo.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (!/\b(display|padding|margin|position|flex)\s*:/.test(m[2])) continue;
+    for (const cls of m[1].matchAll(/\.([a-zA-Z][\w-]*)/g)) caixa.add(cls[1]);
+  }
+  const penduradas = [...ed.matchAll(/classList\.add\('([\w-]+)'\)/g)].map(m => m[1]);
+  const colidem = [...new Set(penduradas)].filter(c => caixa.has(c));
+  eh('nenhuma marca de estado usa nome de classe que mexe na caixa',
+     !colidem.length, colidem.length ? 'colidem: ' + colidem.join(', ') : '');
 }
 
 /* --------------------------------------- o editor grava o mapa CARREGADO ---

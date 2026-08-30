@@ -1100,26 +1100,177 @@ function foamSprite(m) {
 /* No Tibia a parede é vista de frente e transborda para cima, invadindo o tile
    de trás. Topo claro + face escura + bisel = volume sem 3D. */
 const WALL_CACHE = {};
-const WALL_TOP = 16, WALL_H = 32 + WALL_TOP;
-function wallSprite(kind, hex) {
-  const key = kind + hex;
+/* Dois tiles, que é a altura do Tibia e a única que faz sentido contra o
+   jogador: com 1,5 tile ele era MAIS ALTO que toda parede do jogo e via por cima
+   do muro. `WALL_CHAPA` é a superfície vista de cima e continua fina — ela é a
+   quina do bloco, não metade dele. */
+const WALL_TOP = 32, WALL_H = 32 + WALL_TOP, WALL_CHAPA = 14;
+// até onde a face continua escurecendo lance abaixo; passando disto vira breu
+const WALL_FUNDO = 4;
+/* `m` diz quem é vizinho DO MESMO material: bit 1 acima, bit 2 abaixo. É o que
+   faz um lance de muro ler como muro corrido em vez de blocos empilhados.
+   A razão é geométrica: a parede é desenhada com 64 px a partir de um tile acima
+   do seu, então num lance vertical o tile de baixo pousa a PRÓPRIA CHAPA
+   iluminada em cima da face do tile anterior — e a chapa reaparece a cada 32 px,
+   que é exatamente a "separação entre os tiles" que se vê. Com vizinho em cima a
+   chapa não sai e a face sobe direto; com vizinho embaixo somem o degradê de pé
+   e a linha escura da base, que são as outras duas costuras que se repetiam. */
+/* `prof` é a quantos tiles abaixo da CRISTA este pedaço está, e `q` é qual das
+   nove células da textura ele usa.
+   Os dois consertam a mesma queixa por caminhos diferentes: sem o `prof` a face
+   inteira sai no mesmo tom e o muro lê como chapa lisa (o degradê de pé, que
+   dava o volume, teve de sair porque repetia a cada tile); sem o `q` todo tile
+   usa o MESMO recorte de textura e a repetição salta aos olhos, que é a outra
+   metade da sensação de chapa. Com os dois, a sombra desce ao longo do lance
+   inteiro e a superfície muda de tile para tile, como parede de verdade. */
+function wallSprite(kind, hex, m, prof, q) {
+  m = m | 0; prof = Math.min(prof | 0, WALL_FUNDO); q = q | 0;
+  const key = kind + hex + ':' + m + ':' + prof + ':' + q;
   if (WALL_CACHE[key]) return WALL_CACHE[key];
+  const emCima = m & 1, emBaixo = m & 2;
+  const qx = (q % 3) * 32, qy = ((q / 3) | 0) * 32;
   const tex = tileTexture(kind, hex), c = _canvas2(32, WALL_H), g = c.getContext('2d');
   /* O que faz ler como parede é a diferença de valor entre topo e face, não a
      textura: com .16 de claro contra .2 de escuro as duas ficavam quase no mesmo
      tom e o bloco virava laje. Agora o topo é chapa iluminada e a face é sombra
      funda, com a quina viva entre as duas. */
-  g.drawImage(tex, 0, 0, 32, WALL_TOP, 0, 0, 32, WALL_TOP);            // topo
-  g.fillStyle = 'rgba(255,246,225,.30)'; g.fillRect(0, 0, 32, WALL_TOP);
-  g.drawImage(tex, 0, 32, 32, 32, 0, WALL_TOP, 32, 32);                 // face
-  g.fillStyle = 'rgba(0,0,0,.46)'; g.fillRect(0, WALL_TOP, 32, 32);
-  // a face escurece para baixo: o pé da parede é o que menos vê o céu
-  const fundo = g.createLinearGradient(0, WALL_TOP, 0, WALL_H);
-  fundo.addColorStop(0, 'rgba(0,0,0,0)'); fundo.addColorStop(1, 'rgba(0,0,0,.3)');
-  g.fillStyle = fundo; g.fillRect(0, WALL_TOP, 32, 32);
-  g.fillStyle = 'rgba(255,250,235,.42)'; g.fillRect(0, WALL_TOP, 32, 1);   // quina
-  g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, WALL_H - 2, 32, 2);
+  const TOPO = emCima ? 0 : WALL_CHAPA, FACE = WALL_H - TOPO;
+  if (!emCima) {                                                        // topo, só na crista
+    g.drawImage(tex, qx, qy, 32, WALL_CHAPA, 0, 0, 32, WALL_CHAPA);
+    g.fillStyle = 'rgba(255,246,225,.30)'; g.fillRect(0, 0, 32, WALL_CHAPA);
+  }
+  g.drawImage(tex, qx, qy, 32, 32, 0, TOPO, 32, FACE);                  // face
+  /* A face escurece com a PROFUNDIDADE, não dentro do próprio tile: o pé de um
+     muro alto é o que menos vê o céu, e a conta feita por tile devolvia a
+     listra que este conserto tinha acabado de tirar. */
+  g.fillStyle = 'rgba(0,0,0,' + (.40 + prof * .055).toFixed(3) + ')';
+  g.fillRect(0, TOPO, 32, FACE);
+  if (!emBaixo) {
+    // e no último tile o rodapé, que é onde a sombra do chão encosta
+    const fundo = g.createLinearGradient(0, WALL_H - 20, 0, WALL_H);
+    fundo.addColorStop(0, 'rgba(0,0,0,0)'); fundo.addColorStop(1, 'rgba(0,0,0,.28)');
+    g.fillStyle = fundo; g.fillRect(0, Math.max(TOPO, WALL_H - 20), 32, 20);
+    g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, WALL_H - 2, 32, 2);
+  }
+  if (!emCima) { g.fillStyle = 'rgba(255,250,235,.42)'; g.fillRect(0, WALL_CHAPA, 32, 1); }  // quina
   return WALL_CACHE[key] = c;
+}
+
+/* PORTA: dois tiles de altura, e é o número do Tibia.
+   Ela era um DECALQUE DE CHÃO — `tileTexture('door')` pintado dentro do
+   quadrado —, então tinha altura zero: o jogador não atravessava porta nenhuma,
+   pisava numa pintura. Medido contra o resto do jogo, era o pior caso da escala:
+   a coisa que mais obviamente tem de ser mais alta que uma pessoa era a única
+   sem volume.
+   Como a parede, ela transborda para cima e invade o tile de trás — só que o
+   dobro, porque parede se vê por cima e porta se atravessa.
+   Aberta não é "outra textura": é a FOLHA saindo do vão. O que muda é a
+   silhueta, que é o que se lê a 32 px. */
+const PORTA_TOP = 32, PORTA_H = 32 + PORTA_TOP;
+const PORTA_PED = 0x6b6560, PORTA_MAD = 0x7a5330, PORTA_FER = 0x46454c;
+const PORTA_CACHE = {};
+/* DE LADO É OUTRO DESENHO. A porta na parede que corre leste-oeste é vista de
+   frente; na que corre norte-sul ela está de perfil, e usar o mesmo sprite põe
+   uma fachada de porta atravessada na parede. É a mesma questão que a cerca e o
+   escoramento já resolvem pelo `eixo` — a diferença é que a porta pergunta à
+   PAREDE vizinha, não a outra porta.
+   De lado o vão corre na horizontal (é por ele que se passa indo para o lado) e
+   a folha é de tábuas deitadas, que é o que separa as duas leituras a 32 px. */
+function portaSprite(aberta, lado) {
+  const key = (aberta ? 'a' : 'f') + (lado ? 'l' : 'f');
+  if (PORTA_CACHE[key]) return PORTA_CACHE[key];
+  if (lado) return PORTA_CACHE[key] = portaLadoSprite(aberta);
+  const c = _canvas2(32, PORTA_H), g = c.getContext('2d');
+  const pe = _tons(PORTA_PED, 4, .62, 1.3), md = _tons(PORTA_MAD, 4, .55, 1.25),
+        fe = _tons(PORTA_FER, 3, .7, 1.3);
+  const VAO_X = 5, VAO_W = 22, TOPO = 9, BASE = PORTA_H - 2;
+
+  // batente de pedra: verga em cima, ombreiras dos lados. O topo pega luz.
+  g.fillStyle = _rgb(pe[1]); g.fillRect(0, TOPO - 7, 32, 7);              // verga
+  g.fillStyle = _rgb(pe[3]); g.fillRect(0, TOPO - 7, 32, 2);              // quina iluminada
+  g.fillStyle = _rgb(pe[1]); g.fillRect(0, TOPO, VAO_X, BASE - TOPO);     // ombreira esq
+  g.fillRect(VAO_X + VAO_W, TOPO, 32 - VAO_X - VAO_W, BASE - TOPO);       // ombreira dir
+  g.fillStyle = _rgb(pe[2]); g.fillRect(0, TOPO, 2, BASE - TOPO);         // luz na esquerda
+  g.fillStyle = _rgb(pe[0]); g.fillRect(30, TOPO, 2, BASE - TOPO);        // sombra na direita
+
+  if (aberta) {
+    /* ABERTA O VÃO É TRANSPARENTE. Pintar o vão de preto faz a porta aberta
+       virar um buraco no mundo: o chão do outro lado já foi desenhado no 1º
+       passe, e tapá-lo é esconder justamente o que abrir a porta serve para
+       mostrar. O que sobra é a sombra de quem está debaixo da verga — um
+       degradê curto a partir do alto, que dá fundura sem virar tinta. */
+    const sombra = g.createLinearGradient(0, TOPO, 0, TOPO + 16);
+    sombra.addColorStop(0, 'rgba(6,5,4,.72)'); sombra.addColorStop(1, 'rgba(6,5,4,0)');
+    g.fillStyle = sombra; g.fillRect(VAO_X, TOPO, VAO_W, 16);
+    // a folha encostada na ombreira, vista de canto: uma tira estreita
+    g.fillStyle = _rgb(md[1]); g.fillRect(VAO_X, TOPO, 5, BASE - TOPO);
+    g.fillStyle = _rgb(md[3]); g.fillRect(VAO_X, TOPO, 1, BASE - TOPO);
+    g.fillStyle = 'rgba(10,8,6,.55)'; g.fillRect(VAO_X + 5, TOPO, 2, BASE - TOPO);  // a fresta
+  } else {
+    // fechada, o vão é a própria folha: o escuro atrás dela nunca aparece
+    g.fillStyle = _rgb(0x120f0c); g.fillRect(VAO_X, TOPO, VAO_W, BASE - TOPO);
+    // tábuas verticais, faixas de ferro e a argola
+    for (let i = 0; i < 4; i++) {
+      g.fillStyle = _rgb(md[1 + (i % 2)]);
+      g.fillRect(VAO_X + i * 5.5, TOPO, 5.5, BASE - TOPO);
+      g.fillStyle = _rgb(0x2a1d10);
+      g.fillRect(VAO_X + i * 5.5, TOPO, 1, BASE - TOPO);                  // junta entre tábuas
+    }
+    g.fillStyle = _rgb(md[3]); g.fillRect(VAO_X, TOPO, VAO_W, 2);         // topo da folha, na luz
+    for (const y of [TOPO + 7, BASE - 12]) {                              // as duas faixas
+      g.fillStyle = _rgb(fe[1]); g.fillRect(VAO_X, y, VAO_W, 4);
+      g.fillStyle = _rgb(fe[2]); g.fillRect(VAO_X, y, VAO_W, 1);
+    }
+    _el(g, 21, BASE - 20, 3, 3.4, _rgb(fe[1]));                           // argola
+    _el(g, 21, BASE - 20, 1.7, 2, _rgb(0x120f0c));
+  }
+  g.fillStyle = 'rgba(0,0,0,.5)';                                          // pé, no chão
+  g.fillRect(0, BASE, aberta ? VAO_X : 32, PORTA_H - BASE);
+  g.fillRect(VAO_X + VAO_W, BASE, 32 - VAO_X - VAO_W, PORTA_H - BASE);
+  return PORTA_CACHE[key] = c;
+}
+
+/* A porta vista de PERFIL, na parede que corre norte-sul. O bloco da parede
+   continua em cima e embaixo; o que muda é o rasgo no meio, por onde se passa
+   andando para o lado. */
+function portaLadoSprite(aberta) {
+  const c = _canvas2(32, PORTA_H), g = c.getContext('2d');
+  const pe = _tons(PORTA_PED, 4, .62, 1.3), md = _tons(PORTA_MAD, 4, .55, 1.25),
+        fe = _tons(PORTA_FER, 3, .7, 1.3);
+  const VAO_Y = PORTA_H - 30, VAO_H = 22;          // o rasgo, no pé do bloco
+  // a parede acima do vão, com a chapa iluminada em cima como a do wallSprite
+  g.fillStyle = _rgb(pe[1]); g.fillRect(0, 0, 32, VAO_Y);
+  g.fillStyle = _rgb(pe[3]); g.fillRect(0, 0, 32, WALL_CHAPA);
+  g.fillStyle = 'rgba(0,0,0,.30)'; g.fillRect(0, WALL_CHAPA, 32, VAO_Y - WALL_CHAPA);
+  g.fillStyle = _rgb(pe[0]); g.fillRect(0, VAO_Y - 2, 32, 2);            // a verga
+  // e o pedaço de parede abaixo do vão: a soleira
+  g.fillStyle = _rgb(pe[1]); g.fillRect(0, VAO_Y + VAO_H, 32, PORTA_H - VAO_Y - VAO_H);
+  g.fillStyle = _rgb(pe[2]); g.fillRect(0, VAO_Y + VAO_H, 32, 1);
+
+  if (aberta) {
+    /* Aberto o rasgo é transparente, pela mesma razão da porta de frente: o
+       chão do outro lado já está desenhado. A folha encosta numa das quinas. */
+    const som = g.createLinearGradient(0, VAO_Y, 0, VAO_Y + 10);
+    som.addColorStop(0, 'rgba(6,5,4,.7)'); som.addColorStop(1, 'rgba(6,5,4,0)');
+    g.fillStyle = som; g.fillRect(0, VAO_Y, 32, 10);
+    g.fillStyle = _rgb(md[1]); g.fillRect(0, VAO_Y, 5, VAO_H);
+    g.fillStyle = _rgb(md[3]); g.fillRect(0, VAO_Y, 5, 1);
+  } else {
+    g.fillStyle = _rgb(0x120f0c); g.fillRect(0, VAO_Y, 32, VAO_H);
+    for (let i = 0; i < 4; i++) {                                        // tábuas DEITADAS
+      g.fillStyle = _rgb(md[1 + (i % 2)]);
+      g.fillRect(0, VAO_Y + i * 5.5, 32, 5.5);
+      g.fillStyle = _rgb(0x2a1d10); g.fillRect(0, VAO_Y + i * 5.5, 32, 1);
+    }
+    g.fillStyle = _rgb(md[3]); g.fillRect(0, VAO_Y, 2, VAO_H);           // quina na luz
+    for (const x of [7, 22]) {                                           // as faixas
+      g.fillStyle = _rgb(fe[1]); g.fillRect(x, VAO_Y, 4, VAO_H);
+      g.fillStyle = _rgb(fe[2]); g.fillRect(x, VAO_Y, 1, VAO_H);
+    }
+    _el(g, 27, VAO_Y + VAO_H / 2, 3, 3.4, _rgb(fe[1]));                  // argola
+    _el(g, 27, VAO_Y + VAO_H / 2, 1.7, 2, _rgb(0x120f0c));
+  }
+  return c;
 }
 
 /* Cerca: mourão e travessa, com vão entre os dois. Não é parede baixa — a
@@ -1131,8 +1282,17 @@ function wallSprite(kind, hex) {
 const CERCA_TOP = 14, CERCA_H = 32 + CERCA_TOP, CERCA_MAD = 0x6b4a2a;
 const ESCORA_MAD = 0x6a4c2c;
 const CERCA_CACHE = {};
-function cercaSprite(horiz) {
-  const key = horiz ? 'h' : 'v';
+/* MOURÃO NO MEIO E TRAVESSA PARA CADA VIZINHO, e não duas variantes.
+   Enquanto o argumento era "corre na horizontal?", a quina não existia: as duas
+   variantes desenham lances RETOS de ponta a ponta, então num canto a cerca
+   passava direto e lia como dois lances que não se encontram. Com a máscara dos
+   quatro vizinhos, quina, T e ponta solta saem todos da mesma composição —
+   o mourão é o que faz o canto existir, e ele sai por último para as travessas
+   morrerem atrás dele.
+   `m`: 1 norte · 2 sul · 4 oeste · 8 leste. */
+function cercaSprite(m) {
+  m = m | 0;
+  const key = 'c' + m;
   if (CERCA_CACHE[key]) return CERCA_CACHE[key];
   const c = _canvas2(32, CERCA_H), g = c.getContext('2d');
   const pe = CERCA_TOP + 20;                                   // onde o mourão encosta no chão
@@ -1143,15 +1303,15 @@ function cercaSprite(horiz) {
   };
   g.fillStyle = 'rgba(0,0,0,.28)';                             // sombra no pé, que prega no chão
   g.fillRect(0, pe - 2, 32, 3);
-  if (horiz) {
-    g.fillStyle = _rgb(CERCA_MAD, 1.05);                       // travessas de ponta a ponta
-    g.fillRect(0, CERCA_TOP + 3, 32, 3); g.fillRect(0, CERCA_TOP + 11, 32, 3);
-    mourao(4, 0, 4, pe); mourao(24, 0, 4, pe);
-  } else {
-    g.fillStyle = _rgb(CERCA_MAD, 1.05);                       // a cerca some para o fundo
-    g.fillRect(13, 0, 3, pe); g.fillRect(19, 0, 3, pe);
-    mourao(12, CERCA_TOP - 4, 5, 24); mourao(12, pe - 6, 5, 6);
-  }
+  const A = CERCA_TOP + 3, B = CERCA_TOP + 11;                 // as duas travessas
+  g.fillStyle = _rgb(CERCA_MAD, 1.05);
+  if (m & 4) { g.fillRect(0, A, 18, 3); g.fillRect(0, B, 18, 3); }        // oeste
+  if (m & 8) { g.fillRect(14, A, 18, 3); g.fillRect(14, B, 18, 3); }      // leste
+  /* Norte e sul correm para o fundo: viram duas linhas verticais em vez de
+     travessas, que é como a cerca se afasta da câmera. */
+  if (m & 1) { g.fillRect(12, 0, 3, A + 6); g.fillRect(18, 0, 3, A + 6); }
+  if (m & 2) { g.fillRect(12, A, 3, pe - A); g.fillRect(18, A, 3, pe - A); }
+  mourao(13, CERCA_TOP - 4, 5, pe - CERCA_TOP + 4);
   return CERCA_CACHE[key] = c;
 }
 
@@ -1423,8 +1583,96 @@ const paredeSprite = (def, v) => (def.parede ? PAREDE_DRAW[def.parede] : wallSpr
 
 /* Tile que carrega objeto em cima do chão: o `obj` da ficha do tile diz qual.
    Dois hoje, e é o suficiente para o render não precisar conhecer nome de tile. */
+/* ------------------------------------------------------- o que dá luz
+   Quatro objetos que ACENDEM. O motor já tinha o balde de luzes — a lava, a
+   tocha largada, o vaga-lume e o campo elemental empurram nele desde sempre —,
+   e o que faltava era OBJETO DE MAPA que emitisse: nenhuma ficha de `OBJ`
+   declarava `luz`. O autor não tinha como pôr uma tocha na parede da Goela.
+   O desenho segue a receita do #49, que é a mesma dos móveis: objeto discreto,
+   paleta curta de `_tons`, sombra de um lado e luz do outro. A CHAMA não é
+   desenhada aqui — quem acende é o passe de luz do render, e assar um brilho no
+   sprite o faria escurecer junto com o objeto à noite, que é exatamente o
+   defeito que a régua "sombra é do motor" registra pelo outro lado. O que o
+   sprite tem é o corpo e um NÚCLEO claro; o halo é do motor. */
+const FERRO_ESC = 0x3a3630, LATAO = 0x8a6a2c, VIDRO_LUZ = 0xffd98a, MAD_POSTE = 0x5a4028;
+
+function tochaSprite() {
+  if (VILA_CACHE.tocha) return VILA_CACHE.tocha;
+  const c = _canvas2(32, CERCA_H), g = c.getContext('2d');
+  const pe = CERCA_TOP + 26, t = _tons(FERRO_ESC, 3, .8, 1.4);
+  /* Suporte de ferro pregado na parede: haste curta e inclinada, e a taça em
+     cima. Fica na METADE de cima do tile — tocha de parede não nasce do chão. */
+  g.strokeStyle = _rgb(t[1]); g.lineWidth = 2.2; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(16, pe - 10); g.lineTo(16, pe - 20); g.stroke();
+  g.strokeStyle = _rgb(t[0]); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(16.8, pe - 11); g.lineTo(16.8, pe - 19); g.stroke();
+  _el(g, 16, pe - 21, 4.2, 2.4, _rgb(t[2]));              // a taça
+  _el(g, 16, pe - 21.6, 3, 1.6, _rgb(FERRO_ESC, .6));
+  _el(g, 16, pe - 23, 2.4, 2.8, _rgb(VIDRO_LUZ));         // o núcleo aceso
+  _el(g, 16, pe - 23.4, 1.3, 1.7, '#fff8e0');
+  return VILA_CACHE.tocha = c;
+}
+
+function lampiaoSprite() {
+  if (VILA_CACHE.lampiao) return VILA_CACHE.lampiao;
+  const c = _canvas2(32, CERCA_H), g = c.getContext('2d');
+  const pe = CERCA_TOP + 26, t = _tons(LATAO, 3, .75, 1.35);
+  g.fillStyle = _rgb(t[0]); g.fillRect(12, pe - 4, 8, 3);              // a base
+  g.fillStyle = _rgb(VIDRO_LUZ, .95); g.fillRect(12.5, pe - 15, 7, 11); // o vidro
+  g.fillStyle = '#fff6dc'; g.fillRect(14, pe - 12, 4, 6);              // o núcleo
+  g.fillStyle = _rgb(t[2]);
+  g.fillRect(11, pe - 17, 10, 2.4);                                    // o chapéu
+  g.fillRect(11.6, pe - 5.4, 8.8, 1.6);
+  g.fillStyle = _rgb(t[1]);
+  g.fillRect(12, pe - 15, 1.2, 11); g.fillRect(19, pe - 15, 1.2, 11);  // os montantes
+  g.strokeStyle = _rgb(t[2]); g.lineWidth = 1.2;
+  g.beginPath(); g.arc(16, pe - 18, 3, Math.PI, 0); g.stroke();        // a alça
+  return VILA_CACHE.lampiao = c;
+}
+
+/* Poste de luz: DOIS tiles. Ele media 1,22 — mais baixo que o jogador —, e um
+   poste que não passa da cabeça de quem anda não ilumina rua nenhuma. Antes ele
+   não tinha como crescer: o render espremia todo objeto solto em `CERCA_H`. */
+const POSTE_H = 64;
+function posteSprite() {
+  if (VILA_CACHE.poste) return VILA_CACHE.poste;
+  const c = _canvas2(32, POSTE_H), g = c.getContext('2d');
+  const pe = POSTE_H - 2, m = _tons(MAD_POSTE, 3, .75, 1.3), f = _tons(FERRO_ESC, 3, .8, 1.4);
+  const MASTRO = 50;                                    // do pé até a luminária
+  _el(g, 16, pe - 1, 5, 2.2, _rgb(m[0]));                               // o pé
+  g.fillStyle = _rgb(m[1]); g.fillRect(14.4, pe - MASTRO, 3.2, MASTRO); // o mastro
+  g.fillStyle = _rgb(MAD_POSTE, 1.35); g.fillRect(14.4, pe - MASTRO, 1, MASTRO);
+  const lum = pe - MASTRO;                              // a luminária no topo
+  g.fillStyle = _rgb(f[1]);
+  g.fillRect(11.5, lum, 9, 2);
+  g.fillRect(12.2, lum + 2, 7.6, 5);
+  g.fillStyle = _rgb(VIDRO_LUZ, .95); g.fillRect(13, lum + 2.6, 6, 4);
+  g.fillStyle = '#fff6dc'; g.fillRect(14.2, lum + 3.4, 3.6, 2.4);
+  g.fillStyle = _rgb(f[2]); g.fillRect(11.5, lum - 1.6, 9, 1.6);        // o chapéu
+  return VILA_CACHE.poste = c;
+}
+
+function fogueiraSprite() {
+  if (VILA_CACHE.fogueira) return VILA_CACHE.fogueira;
+  const c = _canvas2(32, CERCA_H), g = c.getContext('2d');
+  const pe = CERCA_TOP + 26, p = _tons(0x6b6560, 4, .7, 1.3), l = _tons(0x6e4a26, 3, .7, 1.3);
+  /* Roda de pedras e a lenha cruzada — a mesma leitura da marca de acampamento
+     do POI, que já provou que se lê num tile. */
+  for (let i = 0; i < 8; i++) {
+    const a = i / 8 * Math.PI * 2;
+    _el(g, 16 + Math.cos(a) * 10, pe - 4 + Math.sin(a) * 5.2, 3, 2.2, _rgb(p[(i % 3) + 1]));
+  }
+  g.strokeStyle = _rgb(l[1]); g.lineWidth = 2.6; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(10, pe - 3); g.lineTo(21, pe - 9); g.stroke();
+  g.beginPath(); g.moveTo(11, pe - 9); g.lineTo(22, pe - 3); g.stroke();
+  _el(g, 16, pe - 7, 4.4, 3, _rgb(0xff7a20, 1));                        // a brasa
+  _el(g, 16, pe - 7.6, 2.6, 1.8, _rgb(VIDRO_LUZ));
+  return VILA_CACHE.fogueira = c;
+}
+
 const OBJ_DRAW = { cerca: cercaSprite, escora: escoraSprite,
-  poco: pocoSprite, carroca: carrocaSprite, barril: barrilSprite };
+  poco: pocoSprite, carroca: carrocaSprite, barril: barrilSprite,
+  tocha: tochaSprite, lampiao: lampiaoSprite, poste: posteSprite, fogueira: fogueiraSprite };
 
 /* -------------------------------------------------------- sprites 2D (Tibia) */
 /* 4 direções × 3 quadros de passo, desenhados uma vez e guardados em cache.
@@ -1481,11 +1729,20 @@ const SHAPE_DRAW = {
       _poly(g, [[11.5, 6.5], [13.5, 2], [14.5, 7]], hc);
       _poly(g, [[20.5, 6.5], [18.5, 2], [17.5, 7]], hc);
     }
-    if (o.weapon && !costas) {                         // arma na mão direita
-      _rc(g, 16 + cw / 2 + 1.4, 11, 2.6, 14, _rgb(o.weapon), 1);
-      _rc(g, 16 + cw / 2 + .2, 24.5, 5, 2, _rgb(0x5a4630), 1);
+    /* Arma e escudo TAMBÉM de costas. Antes os dois eram pulados no norte e a
+       espada piscava fora de existência toda vez que o jogador subia — quem está
+       de costas não largou o que estava segurando. O que muda é o lado: virado,
+       a mão direita dele cai na esquerda da tela, então o desenho espelha em
+       torno do meio do sprite (`_rc` mede pela borda esquerda, daí a largura
+       entrar na conta; `_el` mede pelo centro e não precisa). */
+    const esp = (x, w) => costas ? SPR_W - x - (w || 0) : x;
+    if (o.weapon) {                                    // arma na mão direita
+      _rc(g, esp(16 + cw / 2 + 1.4, 2.6), 11, 2.6, 14, _rgb(o.weapon), 1);
+      _rc(g, esp(16 + cw / 2 + .2, 5), 24.5, 5, 2, _rgb(0x5a4630), 1);
     }
-    if (o.shield && !costas && !perfil) _el(g, 16 - cw / 2 - 3, 21, 3.2, 5.6, _rgb(o.shield));
+    /* No perfil o escudo fica do lado escondido do corpo, e isso é verdade do
+       mundo, não quadro faltando. */
+    if (o.shield && !perfil) _el(g, esp(16 - cw / 2 - 3), 21, 3.2, 5.6, _rgb(o.shield));
   },
 
   quadruped(g, color, o, dir, sw) {
@@ -1654,23 +1911,30 @@ function decoSprite(k, v) {
   _rnd = _mulberry(_hash('deco' + k + '_' + v));
   const r = (a, b) => a + _rnd() * (b - a);
   const conifera = k === 0 && _rnd() < .42;
-  const alt = Math.round(k === 0 ? r(46, 62) : k === 1 ? r(20, 30) : r(15, 22));
+  /* Árvore em 2 tiles: media 1,19 e era mais baixa que o jogador, isto é, um
+     arbusto grande. Pedra e moita continuam onde estavam — as duas já batiam. */
+  const alt = Math.round(k === 0 ? r(58, 74) : k === 1 ? r(20, 30) : r(15, 22));
   const c = _canvas2(32, alt), g = c.getContext('2d');
   if (k === 0) {
-    const tronco = r(13, 20), leve = r(-1.6, 1.6);
+    /* Tronco e copa em FRAÇÃO da altura, não em pixel fixo. Enquanto eram
+       números crus, subir `alt` só acrescentava canvas vazio em cima: a tinta
+       media 1,2 tile qualquer que fosse a caixa, e a árvore continuava mais
+       baixa que o jogador. A largura fica de fora da conta — o tile tem 32 px e
+       a copa não pode transbordar de lado, só para cima. */
+    const tronco = alt * r(.30, .40), leve = r(-1.6, 1.6);
     _rc(g, 16 - 2.2 + leve, alt - tronco, 4.4, tronco, _rgb(shade(0x4a3520, r(.85, 1.2))), 1);
     const cor = shade(conifera ? 0x27562a : 0x2f6b28, r(.78, 1.3));
     if (conifera) {                                                      // pinheiro: saias que afinam
       const base = alt - tronco + 3;
       for (let i = 0; i < 3; i++) {
-        const w = 12 - i * 3, yy = base - i * r(8, 10);
-        _poly(g, [[16 - w, yy], [16, yy - r(11, 15)], [16 + w, yy]], _rgb(cor, 1 - i * .13));
+        const w = 12 - i * 3, yy = base - i * alt * r(.15, .19);
+        _poly(g, [[16 - w, yy], [16, yy - alt * r(.21, .28)], [16 + w, yy]], _rgb(cor, 1 - i * .13));
       }
     } else {                                                             // copa em bolhas
-      const cy = alt - tronco - r(7, 11), raio = r(9, 12);
-      _el(g, 16, cy + 3, raio, raio * .88, _rgb(cor, .8));
+      const cy = alt - tronco - alt * r(.12, .19), raio = r(10, 13);
+      _el(g, 16, cy + 3, raio, raio * r(1.0, 1.3), _rgb(cor, .8));
       for (let i = 0; i < 3; i++)
-        _el(g, 16 + r(-5, 5), cy - r(0, 7), raio * r(.5, .75), raio * r(.45, .7), _rgb(cor, r(.95, 1.35)));
+        _el(g, 16 + r(-5, 5), cy - alt * r(0, .12), raio * r(.5, .75), raio * r(.5, .8), _rgb(cor, r(.95, 1.35)));
     }
   } else if (k === 1) {
     const cor = shade(0x6a6560, r(.75, 1.2)), pico = r(.7, 1), lado = r(-3, 3);
@@ -1753,7 +2017,13 @@ const criaImg = {}, CRIA_CACHE = {};
 
 function creatureSheet(nome, dir, frame, esc, size) {
   let im = criaImg[nome];
-  if (!im) { im = criaImg[nome] = new Image(); im.src = `assets/creatures/${nome}.png`; }
+  /* `_RAIZ` e nao caminho relativo cru: o jogo abre em `/` e o editor em
+     `/tools/`, entao `assets/creatures/...` vira `/tools/assets/...` la e da 404.
+     O sintoma nao e erro nenhum — `creatureSheet` devolve null, o chamador cai no
+     procedural, e o dono ve o boneco desenhado por codigo onde ha arte pronta:
+     "ciclope e demonio tem imagem, por que esta mostrando o procedural?".
+     A textura de chao ja tinha aprendido isso; a folha de criatura nao. */
+  if (!im) { im = criaImg[nome] = new Image(); im.src = (_RAIZ || '') + `assets/creatures/${nome}.png`; }
   if (!im.complete || !im.naturalWidth) return null;          // ainda carregando
   esc = esc || 1;
   const key = [nome, dir, frame, esc, size].join(':');
@@ -1814,7 +2084,7 @@ const ICON_CACHE = {};
 function itemIcon(nome) {
   if (!nome) return null;
   let im = ICON_CACHE[nome];
-  if (!im) { im = ICON_CACHE[nome] = new Image(); im.src = `assets/icons/${nome}.png`; }
+  if (!im) { im = ICON_CACHE[nome] = new Image(); im.src = (_RAIZ || '') + `assets/icons/${nome}.png`; }
   return im.complete && im.naturalWidth ? im : null;
 }
 

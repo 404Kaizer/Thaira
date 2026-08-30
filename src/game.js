@@ -259,7 +259,7 @@ function newPlayer(name, voc) {
     ml: { l: 0, t: 0 },
     eq: { helmet: null, amulet: null, armor: null, legs: null, boots: null, weapon: null, shield: null, ring: null, light: null },
     bag: [], gold: 200, buffs: {}, cd: {}, nextStep: 0, nextAtk: 0, stance: 'bal', follow: true,
-    best: {}, charm: 0, charms: {}, seen: {}, bless: 0
+    best: {}, charm: 0, charms: {}, seen: {}, bless: 0, tree: {}
   };
   P = p;
   /* Todo nível 1 sai do templo vestido igual: couro fechado e escudo de madeira.
@@ -274,6 +274,80 @@ function newPlayer(name, voc) {
   bagAdd(mkItem('mana_potion', 0, 5));
   recalc(); p.hp = p.st.maxhp; p.mana = p.st.maxmana;
   return p;
+}
+
+/* ------------------------------------------------------------- talentos */
+/* O vocabulário INTEIRO dos nós. Cada chave daqui é lida em algum ponto do
+   código; chave que ninguém lê faz o jogador gastar um ponto em nada, sem erro
+   nenhum — há teste cobrando os dois lados (toda chave de nó existe aqui, e
+   toda chave daqui aparece no fonte). */
+const EF_CHAVES = ['mana', 'alcance', 'raio', 'dur', 'certeza', 'limpa', 'varinha'];
+function treeEf() {
+  const ef = {};
+  for (const k of EF_CHAVES) ef[k] = 0;
+  for (const id in (P.tree || {})) {
+    const no = TREE_NO[id];
+    if (!no || no.voc !== P.voc) continue;             // save de outra vocação não vale
+    const g = Math.min(P.tree[id], no.max);
+    for (const k in no.ef) ef[k] += no.ef[k] * g;
+  }
+  return ef;
+}
+const pontosTotais = () => Math.floor(P.level / PONTO_NIVEL);
+const pontosGastos = () => Object.values(P.tree || {}).reduce((s, n) => s + n, 0);
+/* Pode dar NEGATIVO, e é de propósito: a morte tira nível sem piso, então um
+   personagem que cai de 40 para 37 tem mais talento comprado do que a conta de
+   agora paga. Desalocar sozinho seria roubar em silêncio o que ele já tinha; o
+   que acontece é ele parar de ganhar ponto novo até recuperar o nível. */
+const pontosLivres = () => pontosTotais() - pontosGastos();
+const custoDe = sp => Math.max(1, Math.round(sp.mana * (1 - Math.min(.6, P.ef.mana))));
+/* A porta é por VIZINHANÇA, não por pai único: basta UM dos ligados estar
+   comprado. É o modelo do Path of Exile, e é o que dá sentido a ligar duas
+   pontas — quem está no alto da árvore é alcançável pelos dois caminhos, e a
+   escolha passa a ser por onde chegar em vez de qual corrente seguir.
+   Um DEGRAU do vizinho já abre: exigir o vizinho cheio transformaria um nó de
+   três degraus num pedágio de três pontos. */
+const vizinhos = id => (TREE_NO[id] && TREE_NO[id].req) || [];
+const ligado = id => vizinhos(id).some(r => P.tree[r] > 0);
+function podeAlocar(id) {
+  const no = TREE_NO[id];
+  if (!no || no.voc !== P.voc) return 'Este talento não é da sua vocação.';
+  if ((P.tree[id] || 0) >= no.max) return 'Este talento já está no máximo.';
+  if (vizinhos(id).length && !ligado(id))
+    return 'Precisa de ' + vizinhos(id).map(r => TREE_NO[r].n).join(' ou ') + '.';
+  if (pontosLivres() < 1) return `Sem pontos. O próximo vem no nível ${(pontosTotais() + 1) * PONTO_NIVEL}.`;
+  return null;
+}
+/* As ligações, sem repetir o par: o traço A→B e o traço B→A são o mesmo traço,
+   e desenhar os dois deixa a linha com o dobro da tinta em cima de si mesma. */
+function treeLigacoes(voc) {
+  const out = [], visto = new Set();
+  for (const n of (TREES[voc] || [])) for (const r of (n.req || [])) {
+    const chave = [n.id, r].sort().join('|');
+    if (visto.has(chave)) continue;
+    visto.add(chave);
+    out.push([TREE_NO[r], TREE_NO[n.id]]);
+  }
+  return out;
+}
+function alocaNo(id) {
+  const erro = podeAlocar(id);
+  if (erro) return log(erro, 'bad'), false;
+  P.tree[id] = (P.tree[id] || 0) + 1;
+  recalc(); renderBars(); sfx('levelup');
+  log(`Talento: ${TREE_NO[id].n} ${P.tree[id]}/${TREE_NO[id].max}.`, 'good');
+  return true;
+}
+const respecPreco = () => pontosGastos() * RESPEC_BASE;
+function respec() {
+  const gastos = pontosGastos();
+  if (!gastos) return log('Você não gastou nenhum ponto ainda.', 'bad');
+  const preco = respecPreco();
+  if (P.gold < preco) return log(`Redistribuir custa ${preco} de ouro.`, 'bad');
+  P.gold -= preco; P.tree = {};
+  recalc(); renderBars();
+  log(`Você devolveu ${gastos} ponto${gastos > 1 ? 's' : ''} de talento por ${preco} de ouro.`, 'good');
+  sfx('coin');
 }
 
 function recalc() {
@@ -330,6 +404,10 @@ function recalc() {
     ...Object.keys(ESTADOS).map(k => (P.buffs[k] && ESTADOS[k].lento) || 0));
   if (lentidao) st.speed = Math.max(40, Math.round(st.speed * (1 - lentidao)));
   P.st = st;
+  /* Talento entra aqui e não numa consulta por chamada: `recalc` já roda em todo
+     evento que muda personagem (equipar, buff, nível, carregar), e é o mesmo
+     lugar de onde `P.st` sai. Dois mapas derivados, uma volta só. */
+  P.ef = treeEf();
   P.hp = Math.min(P.hp, st.maxhp); P.mana = Math.min(P.mana, st.maxmana);
 }
 const skillOf = k => (k === 'magic' ? P.ml.l : P.sk[k].l) + P.st.sk[k];
@@ -356,6 +434,9 @@ function addExp(n) {
     P.level++; recalc(); P.hp = P.st.maxhp; P.mana = P.st.maxmana;
     log(`Você avançou para o nível ${P.level}!`, 'good');
     notify('⭐', 'Nível ' + P.level, `${P.st.maxhp} de vida · ${P.st.maxmana} de mana`);
+    // sem este aviso o ponto de talento fica esperando numa janela que o jogador
+    // não tem motivo para abrir — a tecla vai junto porque é onde ele se gasta
+    if (P.level % PONTO_NIVEL === 0) log('Você ganhou um ponto de talento (K).', 'good');
     fxBurst(P.x, P.y, 0xffd166, 1.6);
     sfx('levelup');
     renderHotbar(); renderSpells();
@@ -758,6 +839,24 @@ function removeMob(m, killed) {
   if (killed) m.sp.el = undefined;             // morreu: o próximo sorteia elite de novo
   if (G.target === m) G.target = null;
   const pl = G.plates.get('m' + m.uid); if (pl) { pl.remove(); G.plates.delete('m' + m.uid); }
+}
+/* Tira do vão quem estiver nele, para a porta poder fechar. Devolve false
+   quando não há vizinho livre — aí quem chama desiste de fechar.
+   A ordem de tentativa começa pelo lado para onde a pessoa OLHA: empurrar para
+   trás faria a porta cuspir o jogador de volta de onde ele veio, que é o
+   contrário do que ele estava tentando fazer. */
+function desocupaPorta(x, y, z) {
+  const quem = (P.x === x && P.y === y && P.z === z) ? P
+    : G.mobs.find(m => m.hp > 0 && m.z === z && m.x === x && m.y === y);
+  if (!quem) return true;
+  const d = (quem === P && P.lastDir) || [0, 1];
+  /* `tryStep`, e não mexer em x/px na mão: escrever a posição direto TELEPORTA o
+     boneco para fora do vão. Sair de uma porta é andar, e o passo animado —
+     com `fx/fy`, `stepT`, `stepD` e o som — já mora ali, inclusive a recusa
+     quando o destino não serve. */
+  for (const [ax, ay] of [[d[0], d[1]], [-d[0], -d[1]], [d[1], d[0]], [-d[1], -d[0]]])
+    if (tryStep(quem, x + ax, y + ay)) return true;
+  return false;
 }
 function occupied(x, y, z, self) {
   if (P.x === x && P.y === y && P.z === z && self !== P) return true;
@@ -1200,7 +1299,9 @@ function dealDamage(m, raw, el, color, estK) {
   fxBurst(m.x, m.y, color || 0xff5555, 0.7, el);
   if (P.st.lifesteal) curar(dmg * P.st.lifesteal, 'roubo de vida');
   // o estado entra com o golpe que ainda não matou: queimar um corpo é enfeite
-  if (m.hp > 0 && estK) aplicaEstado(m, estK, dmg);
+  // `certeza` pula o sorteio de chance do estado; o `certo` já existia em
+  // aplicaEstado e a resistência do bicho continua valendo por cima
+  if (m.hp > 0 && estK) aplicaEstado(m, estK, dmg, P.ef.certeza);
   if (m.hp <= 0) killMob(m);
   renderBattle();
 }
@@ -1261,7 +1362,7 @@ function playerAttack() {
      Sem mana ele não atira: é o que faz poção de mana ser suprimento de verdade
      para quem conjura, do mesmo jeito que poção de vida é para quem apanha. */
   if (w.wt === 'wand') {
-    const custo = Math.max(2, Math.round(P.level * .25));
+    const custo = P.ef.varinha ? 0 : Math.max(2, Math.round(P.level * .25));
     if (P.mana < custo) {
       P.nextAtk = G.now + 400;                       // tenta de novo já, sem travar a mira
       if (G.now > (G.avisoMana || 0)) {              // avisa no máximo a cada 3 s: roda todo quadro
@@ -1271,7 +1372,7 @@ function playerAttack() {
       }
       return;
     }
-    P.mana -= custo; renderBars();
+    if (custo) { P.mana -= custo; renderBars(); }
   }
   P.nextAtk = G.now + ATAQUE_MS; P.atkT = G.now;
   P.dir = Math.atan2(m.x - P.x, m.y - P.y);
@@ -1449,7 +1550,7 @@ function playerDeath(src) {
   if (caidos.length) {
     const cor = it => it ? _num(itemStats(it).color) : null;
     spawnCorpse(P.x, P.y, P.z, P.name, caidos,
-      { shape: 'biped', color: _num(VOCATIONS[P.voc].color), size: 1,
+      { shape: 'biped', color: _num(VOCATIONS[P.voc].color), size: P_SZ,
         o: { skin: 0xe8c39e, weapon: cor(P.eq.weapon), shield: cor(P.eq.shield) } },
       { player: 1, ttl: 600000 });
     corpo = 'Seu corpo guarda o que caiu por 10 minutos. Nada marca o lugar.';
@@ -1495,13 +1596,14 @@ function castSpell(sp) {
      guerreiro. O GCD segue curto de propósito — cura e utilidade não competem
      por dano e travá-las em 2 s tiraria a defesa de quem conjura. */
   if (DANO_TIPOS.includes(sp.type) && G.now < (P.cd.dano || 0)) return;
-  if (P.mana < sp.mana) return log('Mana insuficiente.', 'bad');
+  const custo = custoDe(sp);
+  if (P.mana < custo) return log('Mana insuficiente.', 'bad');
   if (sp.type === 'attack' || sp.type === 'melee') {
-    const m = G.target, alc = sp.type === 'melee' ? weaponInfo().range : 6;
+    const m = G.target, alc = sp.type === 'melee' ? weaponInfo().range : 6 + P.ef.alcance;
     if (!m || m.hp <= 0 || m.z !== P.z || distT(P.x, P.y, m.x, m.y) > alc) return log('Sem alvo válido.', 'bad');
   }
   if (sp.type === 'conjure' && P.bag.length >= BAG_SLOTS) return log('Mochila cheia.', 'bad');
-  P.mana -= sp.mana; P.cd[sp.id] = G.now + cdDe(sp); P.cd.gcd = G.now + 900;
+  P.mana -= custo; P.cd[sp.id] = G.now + cdDe(sp); P.cd.gcd = G.now + 900;
   /* O relógio do GRUPO é ATAQUE_MS fixo, não o cooldown cheio da magia: o
      cooldown longo é da própria magia (P.cd[sp.id]) e já a segura. Travar o
      grupo pelo tempo da magia fazia uma AoE de 6 s calar TODAS as magias por
@@ -1511,6 +1613,8 @@ function castSpell(sp) {
      por cima. */
   if (DANO_TIPOS.includes(sp.type)) P.cd.dano = G.now + ATAQUE_MS;
   say(P, sp.w);
+  // treina pelo custo NOMINAL: pelo descontado, o talento de mana pagaria a si
+  // mesmo em magic level mais lento, que é uma punição que ninguém escreveu
   addMagic(sp.mana);
   // magia soa no lugar de quem conjura; o nome carrega o elemento, então dá para
   // ter gelo diferente de fogo sem tocar em nenhuma tabela de magia
@@ -1520,8 +1624,19 @@ function castSpell(sp) {
 
   if (sp.type === 'heal') {
     curar(power(sp.base) * rnd(0.9, 1.1), sp.n); fxBurst(P.x, P.y, 0x55dd55, 1.2);
+    /* Talento `limpa`: a cura arranca os estados junto. Varre só o que ESTADOS
+       declara — `P.buffs` guarda haste e regen no mesmo mapa, e limpar tudo
+       apagaria o que o jogador acabou de conjurar. */
+    if (P.ef.limpa) {
+      const fora = Object.keys(ESTADOS).filter(k => P.buffs[k]);
+      if (fora.length) {
+        fora.forEach(k => delete P.buffs[k]);
+        log(`${sp.n} lavou: ${fora.map(k => ESTADOS[k].n.toLowerCase()).join(', ')}.`, 'good');
+        recalc();                                    // congelado mexe em velocidade
+      }
+    }
   } else if (sp.type === 'buff') {
-    P.buffs[sp.buff] = { val: sp.val || 0, end: G.now + sp.dur };
+    P.buffs[sp.buff] = { val: sp.val || 0, end: G.now + Math.round(sp.dur * (1 + P.ef.dur)) };
     if (sp.buff === 'haste') delete P.buffs.lento;   // magia de velocidade cura a lentidão na hora
     fxBurst(P.x, P.y, sp.buff === 'haste' ? 0x88ffcc : 0x88aaff, 1.2);
     log(`${sp.n} ativada.`);
@@ -1562,7 +1677,9 @@ function castSpell(sp) {
   renderBars(); renderHotbar();
 }
 function spellTiles(sp) {
-  const out = [], r = sp.r || 1;
+  // `raio` é o único talento desta fatia que aumenta quanta gente você acerta —
+  // anotado de propósito, para quem for medir saber onde olhar primeiro
+  const out = [], r = (sp.r || 1) + P.ef.raio;
   if (sp.type === 'aoe' || sp.type === 'melee_aoe') {
     for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++)
       if (dx || dy) out.push([P.x + dx, P.y + dy]);
@@ -1574,9 +1691,9 @@ function spellTiles(sp) {
   else if (P.lastDir) { dx = P.lastDir[0]; dy = P.lastDir[1]; }
   if (!dx && !dy) dy = 1;
   if (sp.type === 'beam') {
-    for (let i = 1; i <= 6; i++) out.push([P.x + dx * i, P.y + dy * i]);
+    for (let i = 1; i <= 6 + P.ef.raio; i++) out.push([P.x + dx * i, P.y + dy * i]);
   } else { // wave: cone de 3 de largura
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 5 + P.ef.raio; i++) {
       const w = i <= 2 ? 1 : 2;
       for (let s = -w; s <= w; s++) out.push([P.x + dx * i - dy * s, P.y + dy * i + dx * s]);
     }
@@ -1669,27 +1786,63 @@ function renderLoot() {
   // slots vazios até fechar a fileira: o corpo lê como recipiente, igual à mochila
   syncCells(box, cells.concat(cellsVazias(box, Math.max(10, Math.ceil(cells.length / 5) * 5) - cells.length)));
 }
+/* Onde a janela vai parar, em coordenada DO PAI. Função à parte porque é aqui
+   que mora a armadilha: o mouse fala em coordenada de viewport
+   (`clientX`) e o `left` da janela fala em coordenada do pai posicionado — que
+   deixou de ser a página no dia em que as janelas passaram a morar dentro do
+   #stage. Sem descontar a origem do palco, a janela salta para a direita e para
+   baixo exatamente a distância das barras laterais e do topo.
+   O clamp segura a janela dentro do pai: arrastada para fora, não tem como
+   voltar. Janela maior que o palco encosta no canto e fica — melhor colada num
+   canto visível do que centrada e com o cabeçalho fora do alcance. */
+function posicaoJanela(clientX, clientY, dx, dy, win, pai) {
+  return {
+    left: clamp(clientX - dx - pai.left, 0, Math.max(0, pai.width - win.width)),
+    top: clamp(clientY - dy - pai.top, 0, Math.max(0, pai.height - win.height))
+  };
+}
 /* Arrastar a janela pelo cabeçalho. Ela nasce centrada por `transform`, então o
    primeiro movimento troca isso por left/top absolutos — mantendo o transform, a
-   janela andaria meia largura fora do ponteiro. O clamp segura o cabeçalho
-   dentro da tela: janela arrastada pra fora não tem como voltar. */
+   janela andaria meia largura fora do ponteiro. */
 function arrastaJanela(win) {
   const h = win.querySelector('h3');
-  h.style.cursor = 'move';
+  if (!h) return;
   h.addEventListener('mousedown', e => {
     if (e.button || e.target.closest('button')) return;   // ✕ e ações têm clique próprio
-    const r = win.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    /* Mapa e talentos são SEMPRE de tela cheia, por decisão do dono: eles não se
+       movem nem encolhem. Quem se move ali dentro é o conteúdo — os dois têm
+       zoom e arraste próprios, que é o gesto que faz sentido num mapa e num
+       grafo. O cursor do cabeçalho já diz isso pelo CSS. */
+    if (win.classList.contains('cheia')) return;
+    const r = win.getBoundingClientRect();
+    const dx = e.clientX - r.left, dy = e.clientY - r.top;
+    const pai = (win.offsetParent || document.body).getBoundingClientRect();
     const move = ev => {
       // botão solto fora da janela não gera mouseup: sem isto ela fica no cursor
       if (!ev.buttons) return solta();
+      const p = posicaoJanela(ev.clientX, ev.clientY, dx, dy, r, pai);
       win.style.transform = 'none';
-      win.style.left = clamp(ev.clientX - dx, 0, innerWidth - r.width) + 'px';
-      win.style.top = clamp(ev.clientY - dy, 0, innerHeight - r.height) + 'px';
+      win.style.left = p.left + 'px';
+      win.style.top = p.top + 'px';
     };
     const solta = () => { removeEventListener('mousemove', move); removeEventListener('mouseup', solta); };
     addEventListener('mousemove', move); addEventListener('mouseup', solta);
     e.preventDefault();
   });
+}
+/* O palco encolhe quando a barra lateral abre ou a janela do navegador muda de
+   tamanho, e uma janela já arrastada para a direita fica com o cabeçalho fora
+   do alcance — sem cabeçalho não há como trazê-la de volta. Só mexe em quem já
+   foi arrastada (tem `left` próprio): as centradas se viram pelo transform. */
+function reancoraJanelas() {
+  const pal = $('#stage'); if (!pal) return;
+  const pai = pal.getBoundingClientRect();
+  for (const win of document.querySelectorAll('.win')) {
+    if (!win.style.left || win.classList.contains('cheia')) continue;
+    const r = win.getBoundingClientRect();
+    const p = posicaoJanela(r.left, r.top, 0, 0, r, pai);
+    win.style.left = p.left + 'px'; win.style.top = p.top + 'px';
+  }
 }
 function lootAll() {
   const c = G.lootOpen; if (!c) return;
@@ -2326,22 +2479,52 @@ function showTip(e, it) {
   tipEm(e, html);
 }
 /* abrir o balão em cima de um elemento qualquer — o de item é só um caso dele */
+/* Onde o balão pousa, dada a caixa do que ele descreve. Pura, e separada por
+   isso: é a conta que decide se o balão fica colado no alvo ou solto no meio da
+   tela, e ela precisa valer em qualquer escala.
+   Nasce à esquerda do alvo, que é onde não cobre o slot. Sem espaço lá, vira
+   para o outro lado; o clamp final segura os quatro lados dentro da tela. */
+function tipLugar(r, w, h, telaW, telaH, m = 8) {
+  const x = r.left - w - 4 < m ? r.right + 4 : r.left - w - 4;
+  return {
+    left: Math.max(m, Math.min(telaW - w - m, x)),
+    top: Math.max(m, Math.min(telaH - h - m, r.top))
+  };
+}
+/* A quem o balão se cola. Num nó de talento, à BOLINHA e não ao botão: o botão
+   tem a largura do rótulo e cresce com o zoom do grafo, então a 3,5× o balão ia
+   parar a uns 250px do círculo que ele descreve — solto no meio do nada. A
+   bolinha é o desenho, e é nela que a informação está pendurada. */
+const tipAncora = el => (el && el.querySelector && el.querySelector('.bola')) || el;
+/* Guardado para o balão poder ser REPOSICIONADO sem novo `mouseenter`: com o
+   grafo, dá zoom ou arrasta sem tirar o cursor do nó, e o alvo anda debaixo de
+   um balão que ficaria parado. */
+let tipAlvo = null;
 function tipEm(e, html) {
   const t = $('#tooltip');
   t.innerHTML = html;
   t.style.display = 'block';
   tipDono = e.currentTarget;
-  /* O balão nasce à esquerda do elemento, que é onde ele não cobre o slot. Perto
-     da borda esquerda não há espaço lá, então ele vira para o outro lado; o clamp
-     final segura os quatro lados dentro da tela. Mede o próprio balão em vez dos
-     240/250 cravados: a largura vive no CSS, e os números aqui ficavam para trás. */
-  const r = e.currentTarget.getBoundingClientRect(), m = 8;
-  const w = t.offsetWidth, h = t.offsetHeight;
-  const x = r.left - w - 4 < m ? r.right + 4 : r.left - w - 4;
-  t.style.left = Math.max(m, Math.min(innerWidth - w - m, x)) + 'px';
-  t.style.top = Math.max(m, Math.min(innerHeight - h - m, r.top)) + 'px';
+  tipAlvo = tipAncora(e.currentTarget);
+  tipPoe(t);
 }
-const hideTip = () => { tipDono = null; $('#tooltip').style.display = 'none'; };
+function tipPoe(t) {
+  if (!tipAlvo) return;
+  // mede o próprio balão em vez dos 240/250 cravados: a largura vive no CSS, e
+  // os números aqui ficavam para trás
+  const p = tipLugar(tipAlvo.getBoundingClientRect(), t.offsetWidth, t.offsetHeight,
+    innerWidth, innerHeight);
+  t.style.left = p.left + 'px';
+  t.style.top = p.top + 'px';
+}
+/* O balão NÃO escala com o zoom, por decisão: o conteúdo do grafo escala, a
+   interface de leitura não — é assim no PoE e no Skyrim. O que acompanha o zoom
+   é a posição, e é este `tipSegue` que a câmera chama. */
+function tipSegue() {
+  const t = $('#tooltip');
+  if (t && t.style.display === 'block') tipPoe(t);
+}
+const hideTip = () => { tipDono = null; tipAlvo = null; $('#tooltip').style.display = 'none'; };
 /* O tooltip vive preso ao mouseleave da célula. Quando a célula some sem o mouse
    sair dela — pegar o item do corpo, fechar a janela de saque, qualquer lista que
    se reconstrói — o evento nunca chega e o balão fica órfão na tela.
@@ -2726,7 +2909,14 @@ function bindInput(canvas) {
          que abriu, e a porta deixa de ter serventia contra o que vem atrás.
          Vem antes do corpo/saque porque uma porta e um corpo não disputam o
          mesmo tile: a porta é o próprio tile, o corpo está EM CIMA de um. */
-      if (objAbrivel(t[0], t[1], P.z) && distT(t[0], t[1], P.x, P.y) <= 1) {
+      const pt = objAbrivel(t[0], t[1], P.z);
+      if (pt && distT(t[0], t[1], P.x, P.y) <= 1) {
+        /* Fechar com alguém no vão deixaria o corpo DENTRO da folha, e num tile
+           que o `isWalkable` passa a negar — o jogador ficaria preso dentro da
+           própria porta. Empurra para fora; se não houver para onde, ela não
+           fecha, que é o que uma porta faz quando tem coisa na frente. */
+        if (pt.aberta && !desocupaPorta(t[0], t[1], P.z))
+          return log('Há alguém no vão — a porta não fecha.');
         const aberta = usaPorta(t[0], t[1], P.z);
         sfx('stairs');
         return log(aberta ? 'Você abre a porta.' : 'Você fecha a porta.');
@@ -2830,6 +3020,7 @@ function bindInput(canvas) {
     else if (k === 'b') $('#best-btn').onclick();
     else if (k === 't') $('#task-btn').onclick();
     else if (k === 'r') $('#forja-btn').onclick();
+    else if (k === 'k') $('#tree-btn').onclick();
     else if (k === 'h') $('#help').style.display = $('#help').style.display === 'flex' ? 'none' : 'flex';
     else if (k === 'escape') fecharJanelas();
     else if (k === 'enter') { $('#chat').focus(); e.preventDefault(); }
@@ -3068,6 +3259,17 @@ function fixSave(d) {
       || IMBUEMENTS.find(x => x.n === a.n)).filter(Boolean);
     return it;
   };
+  /* Talento salvo é `{id: degrau}` e o id pode ter sumido do TREES entre uma
+     versão e outra. Descartar é o certo — e não custa nada ao jogador, porque
+     `pontosGastos` conta o que sobrou: o ponto do nó extinto volta a ficar
+     livre sozinho, sem devolução escrita à mão. O degrau também é aparado, para
+     um `max` que encolheu não deixar talento acima do teto de hoje. */
+  const tree = {};
+  for (const id in (d.p.tree || {})) {
+    const no = TREE_NO[id];
+    if (no && no.voc === d.p.voc && d.p.tree[id] > 0) tree[id] = Math.min(d.p.tree[id], no.max || 1);
+  }
+  d.p.tree = tree;
   for (const k in (d.p.eq || {})) fixAf(d.p.eq[k]);
   (d.p.bag || []).forEach(fixAf);
   d.corpses = (d.corpses || []).filter(c => c && c.items);
@@ -3626,7 +3828,11 @@ function cycleVoc(delta) {
 
 addEventListener('DOMContentLoaded', () => {
   $('#loot-all').onclick = lootAll;
-  arrastaJanela($('#loot-win'));
+  /* Todas, e não só a do saque: o arraste era do loot por acidente de ordem de
+     construção, não por decisão. Uma varredura cobre as que existem hoje e as
+     que vierem depois — janela nova nasce arrastável sem ninguém lembrar. */
+  document.querySelectorAll('.win').forEach(arrastaJanela);
+  addEventListener('resize', reancoraJanelas);
   $('#loot-close').onclick = fecharLoot;
   $('#respawn-btn').onclick = respawn;
   $('#shop-btn').onclick = () => { $('#shop-win').style.display = 'flex'; renderShop(); };

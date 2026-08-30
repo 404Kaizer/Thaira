@@ -38,6 +38,15 @@ import numpy as np
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 ENTRADA = os.path.join(AQUI, 'skins', 'creatures')
+# As skins de VOCAÇÃO são a mesma folha com outro nome: quadros soltos, célula
+# fixa, lida por creatureSheet(). Moram em skins/voc_<voca>/<skin>/ porque não
+# são criatura, mas passam pelo mesmo moinho.
+# O segundo nivel e a convencao (skins/voc_<voca>/<skin>/), mas a skin que serve
+# a TODAS as vocacoes nao tem vocacao dona: ela mora direto em skins/voc_all_*.
+# Os dois niveis entram, e pasta sem quadro nenhum ja e pulada com aviso.
+RAIZES = [os.path.join(ENTRADA, '*'),
+          os.path.join(AQUI, 'skins', 'voc_*', '*'),
+          os.path.join(AQUI, 'skins', 'voc_*')]
 SAIDA = os.path.join(AQUI, 'creatures')
 TABELA = os.path.join(os.path.dirname(AQUI), 'src', 'criaturas.js')
 
@@ -110,6 +119,12 @@ def linha(pasta, nome, lado):
     q, espelhar = quadros(pasta, nome, lado), False
     if not q:
         q, espelhar = quadros(pasta, nome, ESPELHO.get(lado, '')), True
+    if not q:
+        # Sem o lado nem o oposto: usa a FRENTE. Linha vazia vira célula
+        # transparente na folha, e o jogo desenha nada — boneco invisível ao
+        # virar. Substituir já é a política do script (sem walk repete o parado);
+        # o knight comum só foi desenhado de frente.
+        q, espelhar = quadros(pasta, nome, 'front'), False
     if not q:
         return None
     parado, anda = q
@@ -241,7 +256,11 @@ def folha(pasta):
 
 
 def confere(im):
-    """Nada pode vazar da célula nem flutuar acima da linha dos pés."""
+    """Nada pode vazar da célula, nada flutua acima da linha dos pés, e as
+    quatro direções têm desenho — linha vazia é boneco invisível, e isso não
+    dá erro nenhum na hora de jogar."""
+    for r in range(min(4, im.height // CH)):
+        assert im.crop((0, r * CH, CW, r * CH + CH)).split()[3].getbbox(),             'linha %d (%s) saiu vazia' % (r, LADOS[r])
     for r in range(im.height // CH):
         for c in range(im.width // CW):
             b = im.crop((c * CW, r * CH, c * CW + CW, r * CH + CH)).split()[3].getbbox()
@@ -250,9 +269,9 @@ def confere(im):
 
 def main():
     aplicar = '--aplicar' in sys.argv
-    pastas = [p for p in sorted(glob.glob(os.path.join(ENTRADA, '*'))) if os.path.isdir(p)]
+    pastas = [p for r in RAIZES for p in sorted(glob.glob(r)) if os.path.isdir(p)]
     if not pastas:
-        print('nada em %s' % ENTRADA)
+        print('nada em %s' % ' nem '.join(RAIZES))
         return
     conta = {}
     for pasta in pastas:

@@ -27,20 +27,33 @@ function camada(chave, dados) {
   ).concat(['  }']);
 }
 
-/* Quantos endereços o patch carrega, somando AS DUAS CAMADAS. Contando só
+/* AS CAMADAS, em lista e em ORDEM DE APLICAÇÃO. Eram duas escritas à mão em
+   quatro lugares que tinham de concordar — os dois serializadores, o `soma` e o
+   `aplicaPatch` — e foi assim que a camada de objeto ficou semanas sendo
+   descartada na gravação sem ninguém ver. Com a lista, acrescentar uma camada é
+   uma palavra aqui e a mesma palavra no `serve.py`, e o teste compara as duas
+   saídas byte a byte.
+   A ordem é a de aplicação, e ela não é arbitrária: terreno primeiro, objeto
+   depois (o objeto só existe depois do `parte`), e spawn por último, porque ele
+   se apoia no chão e nos objetos que os dois anteriores deixaram. */
+const CAMADAS = ['tiles', 'objs', 'spawns'];
+
+/* Quantos endereços o patch carrega, somando TODAS as camadas. Contando só
    `tiles`, uma sessão inteira de objeto passava pelo freio de encolhimento como
    "não encolheu" — e o freio existe justamente para não deixar trabalho sumir. */
 function soma(o) {
-  return Object.values((o && o.tiles) || {}).reduce((a, t) => a + t.length, 0)
-       + Object.values((o && o.objs) || {}).reduce((a, t) => a + t.length, 0);
+  return CAMADAS.reduce((n, chave) =>
+    n + Object.values((o && o[chave]) || {}).reduce((a, t) => a + t.length, 0), 0);
 }
 
 function serializa(nome, dados) {
-  const tiles = (dados && dados.tiles) || {}, objs = (dados && dados.objs) || {};
-  const bloco = camada('tiles', tiles);
-  bloco[bloco.length - 1] += ',';
-  return ['{', '  "nome": ' + JSON.stringify(nome) + ',']
-    .concat(bloco).concat(camada('objs', objs)).concat(['}']).join('\n') + '\n';
+  const linhas = ['{', '  "nome": ' + JSON.stringify(nome) + ','];
+  CAMADAS.forEach((chave, i) => {
+    const bloco = camada(chave, (dados && dados[chave]) || {});
+    if (i + 1 < CAMADAS.length) bloco[bloco.length - 1] += ',';
+    linhas.push(...bloco);
+  });
+  return linhas.concat(['}']).join('\n') + '\n';
 }
 
-module.exports = { serializa, soma };
+module.exports = { serializa, soma, CAMADAS };

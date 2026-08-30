@@ -1,0 +1,3 @@
+{ "pular": true, "escala": "lado",
+  "_nota": "quadros de animacao do personagem, desenhados no mundo e nao no slot",
+  "_escala": "sheet_03 (perfil) veio 23% maior que sheet_01/02: corpo 727px contra 590. Sem isto o sorcerer encolhe ao virar de frente. Conserto de verdade e regerar o perfil no mesmo tamanho." }

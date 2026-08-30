@@ -77,23 +77,33 @@ const T = { VOID: 0, GRASS: 1, DIRT: 2, SAND: 3, WATER: 4, ROCK: 5, TREE: 6, CFL
      planta discordar do que o jogo desenha no primeiro retoque da arte. */
   GRASS_CLARA: 39, GRASS_MATA: 40, GRASS_SECA: 41, GRASS_RALA: 42, DIRT_ESCURA: 43 };
 const TILE = {
-  [T.VOID]:   { c: 0x000000, top: 0,    walk: false, hide: true },
-  [T.GRASS]:  { c: 0x55913a, top: 0,    walk: true,  tex: 'grass', familia: 'grama' },
+  [T.VOID]:   { c: 0x000000, top: 0,    walk: false, hide: true, familia: 'vazio' },
+  /* A COR DE MAPA DESTES TRÊS SAI DA MÉDIA DO PNG, e mudou por isso. `grass`,
+     `pave` e `gravel` passaram a ser desenhados por PNG e ficaram com o
+     hexadecimal escolhido à mão de antes: o minimapa e a planta mostravam uma
+     cor e o jogo desenhava outra. Medido — grama 85,145,58 no mapa contra
+     82,98,11 na tela, distância 97, quando a régua exige 60 só para dois
+     terrenos vizinhos serem DISTINGUÍVEIS entre si. É a regra que o CLAUDE.md já
+     escreve para os tiles novos ("cravar à mão faria a planta discordar do que o
+     jogo desenha"), aplicada com atraso aos dez primeiros.
+     Quem migra para objeto fica de fora disto de propósito: a cor deles é a do
+     MATERIAL (copa, pedra, tábua) e não a do chão sob eles. */
+  [T.GRASS]:  { c: 0x52620b, top: 0,    walk: true,  tex: 'grass', familia: 'grama' },
   [T.DIRT]:   { c: 0x7a5c30, top: 0,    walk: true,  tex: 'dirt', familia: 'terra' },
-  [T.SAND]:   { c: 0xd8bd6e, top: 0,    walk: true,  tex: 'sand' },
-  [T.WATER]:  { c: 0x1f5f9e, top: -0.28, walk: false, tex: 'water' },
+  [T.SAND]:   { c: 0xd8bd6e, top: 0,    walk: true,  tex: 'sand', familia: 'areia' },
+  [T.WATER]:  { c: 0x1f5f9e, top: -0.28, walk: false, tex: 'water', familia: 'agua' },
   [T.ROCK]:   { c: 0x5a6674, top: 1.1,  walk: false, tex: 'rock' },
   [T.TREE]:   { c: 0x27512f, top: 0,    walk: false, tex: 'grass' },
-  [T.CFLOOR]: { c: 0x63543f, top: 0,    walk: true,  tex: 'cave' },
+  [T.CFLOOR]: { c: 0x63543f, top: 0,    walk: true,  tex: 'cave', familia: 'caverna' },
   [T.CWALL]:  { c: 0x2c2822, top: 1.1,  walk: false, tex: 'rock' },
-  [T.LAVA]:   { c: 0xe64a18, top: -0.1, walk: false, tex: 'lava' },
-  [T.DOWN]:   { c: 0x2f2a22, top: 0,    walk: true,  tex: 'cave' },
-  [T.UP]:     { c: 0xa89778, top: 0,    walk: true,  tex: 'stone' },
-  [T.TEMPLE]: { c: 0xc9b892, top: 0,    walk: true,  tex: 'stone' },
-  [T.SNOW]:   { c: 0xdcecf7, top: 0,    walk: true,  tex: 'snow' },
-  [T.SWAMP]:  { c: 0x5f682a, top: -0.06, walk: true, tex: 'swamp' },
+  [T.LAVA]:   { c: 0xe64a18, top: -0.1, walk: false, tex: 'lava', familia: 'lava' },
+  [T.DOWN]:   { c: 0x2f2a22, top: 0,    walk: true,  tex: 'cave', familia: 'escada' },
+  [T.UP]:     { c: 0xa89778, top: 0,    walk: true,  tex: 'stone', familia: 'escada' },
+  [T.TEMPLE]: { c: 0xc9b892, top: 0,    walk: true,  tex: 'stone', familia: 'templo' },
+  [T.SNOW]:   { c: 0xdcecf7, top: 0,    walk: true,  tex: 'snow', familia: 'neve' },
+  [T.SWAMP]:  { c: 0x5f682a, top: -0.06, walk: true, tex: 'swamp', familia: 'pantano' },
   [T.WALL]:   { c: 0x6b3a1e, top: 1.1,  walk: false, tex: 'wall' },
-  [T.FLOOR]:  { c: 0xa07444, top: 0,    walk: true,  tex: 'plank' },
+  [T.FLOOR]:  { c: 0xa07444, top: 0,    walk: true,  tex: 'plank', familia: 'tabua' },
   /* Porta CLARA de propósito: ela vive dentro de uma parede escura, e uma
      porta mais escura que a parede vira buraco. O que a lê é o contraste
      com o que a cerca, não a cor dela sozinha. */
@@ -103,34 +113,34 @@ const TILE = {
      pé e não os olhos, que é exatamente o que uma cerca faz — a guarda da
      Cerca Nova vê o que vem do outro lado. O chão sob ela é terra pisada. */
   [T.FENCE]:  { c: 0x66512e, top: 0.4,  walk: false, tex: 'dirt', obj: 'cerca' },
-  [T.CROP]:   { c: 0x93a83f, top: 0,    walk: true,  tex: 'crop' },
+  [T.CROP]:   { c: 0x93a83f, top: 0,    walk: true,  tex: 'crop', familia: 'lavoura' },
   /* Trapiche: tábua SOBRE a água. É por isso que existe — sem ele, o Trapiche e
      o Embarcadouro de Varrokgaard teriam de ser aterrados de areia. */
-  [T.PIER]:   { c: 0x8a6a3c, top: 0,    walk: true,  tex: 'pier' },
-  [T.HAY]:    { c: 0x9c8340, top: 0,    walk: true,  tex: 'hay' },
+  [T.PIER]:   { c: 0x8a6a3c, top: 0,    walk: true,  tex: 'pier', familia: 'tabua' },
+  [T.HAY]:    { c: 0x9c8340, top: 0,    walk: true,  tex: 'hay', familia: 'palha' },
   /* Escoramento barra o pé e não a vista: é um pórtico de viga, e olhar
      galeria abaixo por entre as escoras é metade do que faz a Mina parecer
      mina. Mesmo caminho da cerca — `c` e `tex` são o CHÃO sob o objeto, e a
      madeira dele é constante do art.js, porque objeto não é terreno. */
   [T.PROP]:   { c: 0x6a5c48, top: 0.45, walk: false, tex: 'gravel', obj: 'escora' },
   [T.SWALL]:  { c: 0x6d7590, top: 1.1,  walk: false, tex: 'block' },
-  [T.PAVE]:   { c: 0x968a70, top: 0,    walk: true,  tex: 'pave' },
-  [T.RUBBLE]: { c: 0x827668, top: 0,    walk: true,  tex: 'rubble' },
+  [T.PAVE]:   { c: 0x6a5c4f, top: 0,    walk: true,  tex: 'pave', familia: 'calcada' },
+  [T.RUBBLE]: { c: 0x827668, top: 0,    walk: true,  tex: 'rubble', familia: 'entulho' },
   /* Veio: é rocha, e a cor é perto da rocha DE PROPÓSITO — quem acha o veio é o
      metal desenhado na textura, não um tile de outra cor. Fosse ele azul, o
      jogador acharia minério de longe e a procura deixaria de existir. */
   [T.ORE]:    { c: 0x333f4c, top: 1.1,  walk: false, tex: 'ore' },
-  [T.GRAVEL]: { c: 0x82705c, top: 0,    walk: true,  tex: 'gravel' },
+  [T.GRAVEL]: { c: 0x68543e, top: 0,    walk: true,  tex: 'gravel', familia: 'brita' },
   /* A teia é parede e tem sprite PRÓPRIO: o wallSprite corta topo claro e
      face escura, que é física de pedra, e aplicado a teia dava chapa
      ondulada. Ver `parede` e PAREDE_DRAW no art.js. */
   [T.WEB]:    { c: 0xb0bad2, top: 1.1,  walk: false, tex: 'web', parede: 'teia' },
-  [T.WEBF]:   { c: 0x7d88a8, top: 0,    walk: true,  tex: 'webf' },
-  [T.BONE]:   { c: 0xd6d2b4, top: 0,    walk: true,  tex: 'bone' },
-  [T.ASH]:    { c: 0x574a44, top: 0,    walk: true,  tex: 'ash' },
-  [T.MOSS]:   { c: 0x4c6b3a, top: 0,    walk: true,  tex: 'moss' },
-  [T.GORE]:   { c: 0x7a2b30, top: 0,    walk: true,  tex: 'gore' },
-  [T.RUNE]:   { c: 0x6f5f9c, top: 0,    walk: true,  tex: 'rune' },
+  [T.WEBF]:   { c: 0x7d88a8, top: 0,    walk: true,  tex: 'webf', familia: 'teia' },
+  [T.BONE]:   { c: 0xd6d2b4, top: 0,    walk: true,  tex: 'bone', familia: 'osso' },
+  [T.ASH]:    { c: 0x574a44, top: 0,    walk: true,  tex: 'ash', familia: 'cinza' },
+  [T.MOSS]:   { c: 0x4c6b3a, top: 0,    walk: true,  tex: 'moss', familia: 'musgo' },
+  [T.GORE]:   { c: 0x7a2b30, top: 0,    walk: true,  tex: 'gore', familia: 'marca' },
+  [T.RUNE]:   { c: 0x6f5f9c, top: 0,    walk: true,  tex: 'rune', familia: 'marca' },
   /* Os móveis da vila. `c` e `tex` são o CHÃO sob o objeto — a madeira e a
      pedra de cada um são constantes do art.js, porque objeto não é terreno.
      É a mesma regra que a cerca e o escoramento já seguem, e é o corolário do
@@ -253,7 +263,11 @@ const OBJ = {
      `deco` ao mesmo tempo. Eram 1.887 tiles gerando 1.942 entradas: a mesma
      árvore contada duas vezes, em duas estruturas. */
   arvore:   { nome: 'Árvore',             cat: 'objeto', top: 0, deco: 0, c: 0x27512f },
-  pedra:    { nome: 'Pedra solta',        cat: 'deco',   deco: 1, c: 0x6b6f76 },
+  /* PEDRA BARRA, MOITA NÃO — e as duas estavam em `deco`, que é walk:true.
+     Decisão do dono, e ela é de leitura: uma pedra que se atravessa não é
+     pedra, e uma moita que barra é parede invisível. `deco` é a categoria de
+     quem NÃO barra nada; quem barra o pé e não a vista é `objeto`. */
+  pedra:    { nome: 'Pedra solta',        cat: 'objeto', deco: 1, c: 0x6b6f76 },
   moita:    { nome: 'Moita',              cat: 'deco',   deco: 2, c: 0x3f6b30 },
   /* construído */
   ptabua:   { nome: 'Parede de tábua',    cat: 'parede', tex: 'wall',  c: 0x6b3a1e },
@@ -270,7 +284,20 @@ const OBJ = {
   escora:   { nome: 'Escoramento',        cat: 'objeto', draw: 'escora', eixo: 1, c: 0x9c7c48 },
   poco:     { nome: 'Poço',               cat: 'objeto', span: [2, 2], draw: 'poco', sombra: 1, c: 0x5f5a50 },
   carroca:  { nome: 'Carroça',            cat: 'objeto', draw: 'carroca', sombra: 1, c: 0x8f5a24 },
-  barril:   { nome: 'Barril',             cat: 'objeto', draw: 'barril',  sombra: 1, c: 0xa66f2c }
+  barril:   { nome: 'Barril',             cat: 'objeto', draw: 'barril',  sombra: 1, c: 0xa66f2c },
+  /* O QUE ACENDE. `luz` é o raio em TILES, a mesma unidade que a tocha da mão e
+     o vaga-lume já usam. O motor tinha o balde de luzes desde sempre — lava,
+     tocha largada, campo elemental — e NENHUMA ficha de objeto declarava
+     emissão: não havia como o autor pôr uma tocha na parede da Goela.
+     `luzCor` é opcional; sem ela vale a cor de chama, que é o caso dos quatro.
+     `tremula` diz se a luz pulsa como fogo: tocha e fogueira têm chama nua,
+     lampião e poste têm vidro e queimam parelho.
+     A tocha é `deco` porque mora na PAREDE e não ocupa o chão; as outras três
+     barram o passo, porque estão plantadas nele. */
+  tocha:    { nome: 'Tocha de parede',    cat: 'deco',   draw: 'tocha',    c: 0xd8923a, luz: 2.4, tremula: 1 },
+  lampiao:  { nome: 'Lampião',            cat: 'objeto', draw: 'lampiao',  sombra: 1, c: 0xc9a13f, luz: 2.8 },
+  poste:    { nome: 'Poste de luz',       cat: 'objeto', draw: 'poste',    sombra: 1, c: 0x7a5c34, luz: 3.6 },
+  fogueira: { nome: 'Fogueira',           cat: 'objeto', draw: 'fogueira', sombra: 1, c: 0xd2622a, luz: 3.2, tremula: 1 }
 };
 /* `walk` e `top` saem da categoria, com override na ficha. Cinco objetos
    declaravam 0.40, 0.42 e 0.45 como se a diferença significasse alguma coisa —
@@ -345,6 +372,7 @@ function tileAt(x, y, z) { return inBounds(x, y) ? WORLD.floors[z].t[idx(x, y)] 
 const SEM_OBJ = [];
 function reindexObjs(z) {
   const f = WORLD.floors[z], m = new Map();
+  f.dentro = null;                      // parede mudou: quem está dentro mudou junto
   for (const o of f.objs) {
     const sp = (OBJ[o.o] || {}).span || [1, 1];
     for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) {
@@ -612,8 +640,20 @@ function genWorld(seed) {
          saiu — ela era pintada como tile E derivada como entrada de `deco`, a
          mesma árvore em duas estruturas, e agora nasce uma vez só no
          `parteCamadas` logo abaixo. */
-      if ((tt === T.CFLOOR || tt === T.DIRT) && r3() < 0.02)
-        espalhado.push({ x, y, k: z === 0 || z >= 2 ? 1 : 2 });
+      if ((tt === T.CFLOOR || tt === T.DIRT) && r3() < 0.02) {
+        const k = z === 0 || z >= 2 ? 1 : 2;
+        /* A pedra solta BARRA o passo desde que saiu de `deco` para `objeto`, e
+           com isso ela deixou de poder cair em qualquer lugar: o centro de um
+           POI é o tesouro, e uma pedra em cima dele torna o POI inalcançável.
+           Foi o teste do centro andável que pegou, no mesmo minuto — a moita
+           continua caindo onde quiser, porque não barra nada.
+           Só o CENTRO é protegido: pedra na borda de um POI é justamente o tipo
+           de obstáculo que faz o lugar ter forma. */
+        const bloqueia = !OBJ_CAT[OBJ[k === 1 ? 'pedra' : 'moita'].cat].walk;
+        const centro = poiAt(x, y, z);
+        if (!bloqueia || !centro || centro.x !== x || centro.y !== y)
+          espalhado.push({ x, y, k });
+      }
       if (!TILE[tt].walk || tt === T.DOWN || tt === T.UP) continue;
       const d = distT(x, y, tx, ty);
       if (z === SURF && d < 14) continue;                   // zona segura do templo
@@ -849,6 +889,55 @@ const ehNoite = (td = horaDoDia()) => {
    se ela é ouvida. As três TÊM de sair daqui: se divergirem, chove dentro da
    caverna ou o teto some debaixo de um céu que continua limpo. */
 const souCoberto = (x = P.x, y = P.y, z = P.z) => z - 1 >= 0 && tileAt(x, y, z - 1) !== T.VOID;
+
+/* DENTRO É O QUE AS PAREDES FECHAM, e isso NÃO se sabe pelo andar de cima.
+   `souCoberto` pergunta se há piso em z-1; uma casa de um pavimento não tem nada
+   por cima, então ela respondia "não" para o interior de toda casa da vila — e o
+   chão de dentro saía com a mesma luz do céu que a rua. Num cubo fechado a luz
+   de fora não entra, e era isso que faltava dizer ao motor.
+   A conta é uma INUNDAÇÃO a partir da borda do mapa: tudo que se alcança sem
+   atravessar parede é rua; o que sobra, e não é parede, é interior. Em 4
+   vizinhos de propósito — em 8 o preenchimento escapa pela diagonal entre duas
+   paredes que se tocam na quina, e a casa inteira vira rua.
+   PORTA CONTA COMO PAREDE, aberta ou fechada: abrir a porta não enche a sala de
+   sol, e é o que mantém a conta válida sem refazer a cada clique. Roda uma vez
+   por andar e fica guardada; o mapa é autoral e só muda quando o editor
+   recompõe, e aí o `reindexObjs` joga fora. */
+function calcDentro(z) {
+  const f = WORLD.floors[z], n = W * H, fecha = new Uint8Array(n), vis = new Uint8Array(n);
+  for (let i = 0; i < n; i++) if (TILE[f.t[i]].top > 0.5) fecha[i] = 1;
+  for (const o of f.objs) if ((OBJ[o.o] || { top: 0 }).top > 0.5) {
+    const sp = OBJ[o.o].span || [1, 1];
+    for (let dy = 0; dy < sp[1]; dy++) for (let dx = 0; dx < sp[0]; dx++) {
+      const x = o.x + dx, y = o.y + dy;
+      if (x >= 0 && y >= 0 && x < W && y < H) fecha[y * W + x] = 1;
+    }
+  }
+  const fila = [];
+  const põe = i => { if (!vis[i] && !fecha[i]) { vis[i] = 1; fila.push(i); } };
+  for (let x = 0; x < W; x++) { põe(x); põe((H - 1) * W + x); }
+  for (let y = 0; y < H; y++) { põe(y * W); põe(y * W + W - 1); }
+  for (let k = 0; k < fila.length; k++) {
+    const i = fila[k], x = i % W, y = (i / W) | 0;
+    if (x > 0) põe(i - 1);
+    if (x < W - 1) põe(i + 1);
+    if (y > 0) põe(i - W);
+    if (y < H - 1) põe(i + W);
+  }
+  const dentro = new Uint8Array(n);
+  for (let i = 0; i < n; i++) if (!vis[i] && !fecha[i]) dentro[i] = 1;
+  return dentro;
+}
+const dentroDeCasa = (x, y, z) => {
+  if (x < 0 || y < 0 || x >= W || y >= H) return false;
+  const f = WORLD.floors[z];
+  if (!f) return false;
+  if (!f.dentro) f.dentro = calcDentro(z);
+  return !!f.dentro[y * W + x];
+};
+/* Abrigado da luz do céu: ou tem andar por cima, ou as paredes fecham em volta.
+   É esta a pergunta que o passe de luz e a chuva fazem — não a do andar. */
+const abrigado = (x = P.x, y = P.y, z = P.z) => souCoberto(x, y, z) || dentroDeCasa(x, y, z);
 
 /* Clima. Mesma ideia do relógio do dia: sai do Date.now(), então continua entre
    recargas, não precisa de tick nem de estado salvo e é igual em qualquer aba.

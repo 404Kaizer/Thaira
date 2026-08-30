@@ -32,6 +32,12 @@ MAPAS = os.path.join(RAIZ, 'maps')
 NOME_OK = re.compile(r'^[a-z0-9_-]{1,40}$')
 
 
+# AS CAMADAS, na mesma ordem e com os mesmos nomes do tools/patch_fmt.js. Se as
+# duas listas divergirem, gravar pelo navegador e gravar pelo launcher produzem
+# arquivos diferentes -- e ha teste comparando as duas saidas byte a byte.
+CAMADAS = ['tiles', 'objs', 'spawns']
+
+
 def serializa_patch(nome, dados):
     """O FORMATO DO PATCH. Gemeo do tools/patch_fmt.js, e o teste compara as duas
     saidas byte a byte -- dois escritores que discordam significa que gravar
@@ -54,17 +60,19 @@ def serializa_patch(nome, dados):
         out.append('  }')
         return out
     linhas = ['{', '  "nome": %s,' % json.dumps(nome)]
-    bloco = camada('tiles', dados.get('tiles', {}))
-    bloco[-1] += ','
-    linhas += bloco + camada('objs', dados.get('objs', {})) + ['}']
+    for i, chave in enumerate(CAMADAS):
+        bloco = camada(chave, dados.get(chave, {}))
+        if i + 1 < len(CAMADAS):
+            bloco[-1] += ','
+        linhas += bloco
+    linhas.append('}')
     return chr(10).join(linhas) + chr(10)
 
 
 def soma_patch(o):
-    """As DUAS camadas: contando so `tiles`, uma sessao inteira de objeto
+    """TODAS as camadas: contando so `tiles`, uma sessao inteira de objeto
     passava pelo freio de encolhimento como "nao encolheu"."""
-    return (sum(len(v) for v in o.get('tiles', {}).values())
-            + sum(len(v) for v in o.get('objs', {}).values()))
+    return sum(sum(len(v) for v in o.get(chave, {}).values()) for chave in CAMADAS)
 
 
 class NoCache(http.server.SimpleHTTPRequestHandler):

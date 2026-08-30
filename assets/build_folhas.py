@@ -101,11 +101,18 @@ def separa(caminho):
     a = np.array(im)
     rgb = a[:, :, :3].astype(np.int16)
 
-    # fundo = mediana das quinas (magenta nestas folhas, mas não fica preso a isso)
-    quinas = np.array([rgb[0, 0], rgb[0, -1], rgb[-1, 0], rgb[-1, -1]])
-    fundo = np.median(quinas, axis=0)
-    dist = np.abs(rgb - fundo).max(axis=2)
-    tinta = ((dist > TOL) & (a[:, :, 3] > 40)).astype(np.uint8)
+    # Folha que JÁ vem recortada tem o alfa como chave, e não pode usar cor: a
+    # quina transparente lê como preto, e aí todo desenho escuro cai dentro da
+    # tolerância e some. O manto quase preto do sorcerer virava 13 pedaços.
+    alfa = a[:, :, 3]
+    if alfa.min() < 40:
+        fundo, tinta = None, (alfa > 40).astype(np.uint8)
+    else:
+        # fundo = mediana das quinas (magenta nestas folhas, mas não fica preso a isso)
+        quinas = np.array([rgb[0, 0], rgb[0, -1], rgb[-1, 0], rgb[-1, -1]])
+        fundo = np.median(quinas, axis=0)
+        dist = np.abs(rgb - fundo).max(axis=2)
+        tinta = ((dist > TOL) & (alfa > 40)).astype(np.uint8)
 
     # fecha vãos finos (a corda do arco, a teia) para o desenho não virar 5 pedaços
     tinta = cv2.morphologyEx(tinta, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
@@ -118,7 +125,9 @@ def separa(caminho):
             continue
         x0, y0 = max(0, x - FOLGA), max(0, y - FOLGA)
         x1, y1 = min(a.shape[1], x + w + FOLGA), min(a.shape[0], y + h + FOLGA)
-        achados.append([x, y, w, h, Image.fromarray(chaveia(a[y0:y1, x0:x1], fundo))])
+        corte = a[y0:y1, x0:x1]
+        achados.append([x, y, w, h, Image.fromarray(corte if fundo is None
+                                                    else chaveia(corte, fundo))])
 
     # ordem de leitura: agrupa por faixa horizontal, depois ordena por x
     achados.sort(key=lambda r: r[1])

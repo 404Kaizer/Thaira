@@ -901,6 +901,83 @@ const SETS = {
   }
 };
 
+/* ------------------------------------------------ progressão visual (skins)
+   O personagem VESTE o que conquistou, mas por KIT e não por peça: paperdoll de
+   verdade seria 238 itens equipáveis × 24 quadros de arte registrados um sobre
+   o outro, e isso não se desenha. O que sobe de degrau é a arte inteira.
+   Quem manda no degrau é o CONJUNTO vestido, com a régua que o SETS já usa —
+   cada degrau de bônus alcançado (2, 4, 6/7, 8 peças) sobe um degrau de
+   aparência. São 5 degraus: o degrau nu mais os quatro do SETS, então cada
+   degrau de bônus ganha a sua arte. Quem tem mais conjunto vestido é quem
+   decide, se houver dois.
+   O boneco procedural continua sendo o fundo do poço, e ele é o único que lê o
+   equipamento peça a peça (cor de arma, escudo, armadura). Folha de arte traz
+   a arma desenhada dentro: quem escolhe uma skin troca detalhe por acabamento. */
+const SKIN_DEGRAUS = 5;
+/* Uma entrada por degrau, do básico para o melhor. `id` é a folha em
+   assets/creatures/<id>.png, montada por assets/build_criaturas.py a partir de
+   assets/skins/voc_<vocação>/<id>/. O 'ranger' é a exceção: é a folha antiga,
+   de recorte próprio, que o art.js lê pelo `rangerSprite`.
+   Vocação sem arte nenhuma não é erro — ela usa o procedural, como sempre. */
+/* O primeiro degrau é o mesmo para TODAS as vocações, e isso é lore antes de ser
+   economia: em Varrokgaard não se tem vocação. Quem sai do templo é um cidadão, e
+   a vocação vai aparecendo conforme o conjunto vestido sobe de degrau. Uma arte
+   só serve as quatro, então ela é declarada uma vez. */
+/* O jogador NÃO tem o tamanho de uma criatura de `sz` 1. Medido contra as coisas
+   que gente construiu: a cerca sobe 1,44 tile e o muro 1,50, e o boneco saía com
+   1,37 — mais baixo que a própria cerca da fazenda, e do mesmo tamanho que um
+   minotauro. Em 1,08 ele fica com 1,50 tile, e é ele a UNIDADE da escada: meio
+   tile é miudeza, 1 é mobília, 1,5 é gente, 2 é o que gente atravessa (porta,
+   parede, árvore, poste) e 2,5 é o que domina gente.
+   Vale para os DOIS caminhos de desenho (folha e procedural), senão trocar de
+   skin mudaria a altura do personagem. */
+const P_SZ = 1.08;
+const SKIN_PADRAO = { id: 'voc_all_citizen', n: 'Cidadão' };
+const VOC_SKINS = {
+  knight: [SKIN_PADRAO, { id: 'voc_knight_commom', n: 'Knight comum' },
+           { id: 'voc_knight_veteran', n: 'Knight veterano' }],
+  ranger: [SKIN_PADRAO, { id: 'ranger', n: 'Ranger encapuzado' }],
+  sorcerer: [SKIN_PADRAO, { id: 'voc_sorcerer_common', n: 'Sorcerer comum' }],
+  druid: [SKIN_PADRAO]
+};
+
+/* O conjunto mais vestido e o degrau que ele alcança. Recebe o `eq` em vez de
+   ler o P: o data.js é tabela e fórmula pura, e o editor de mapas carrega este
+   arquivo sem carregar o jogo. */
+function skinConjunto(eq) {
+  const conta = {};
+  for (const k in eq) {
+    const c = eq[k] && ITEMS[eq[k].id] && ITEMS[eq[k].id].set;
+    if (c) conta[c] = (conta[c] || 0) + 1;
+  }
+  let melhor = { set: null, pecas: 0, degrau: 1 };
+  for (const c in conta) {
+    const d = Math.min(SKIN_DEGRAUS, 1 + SETS[c].tiers.filter(([q]) => conta[c] >= q).length);
+    if (d > melhor.degrau || (d === melhor.degrau && conta[c] > melhor.pecas))
+      melhor = { set: c, pecas: conta[c], degrau: d };
+  }
+  return melhor;
+}
+
+/* Degrau → arte, proporcional ao tamanho da lista: com 2 artes e 4 degraus o
+   comum cobre 1–2 e o veterano 3–4. Proporcional e não fixo para a lista poder
+   crescer sem que ninguém tenha de retocar a régua — no dia em que o knight
+   tiver 4 artes, cada degrau ganha a sua sozinho. */
+const skinDoDegrau = (voc, d) => {
+  const l = VOC_SKINS[voc];
+  return l && l.length ? l[Math.min(l.length - 1, Math.floor((d - 1) * l.length / SKIN_DEGRAUS))].id : null;
+};
+
+/* A arte que o boneco do jogador usa AGORA. `p.skin`: ausente ou 'auto' segue o
+   equipamento, 'none' força o procedural, e qualquer outro valor é id de folha
+   escolhido no seletor de Opções. Devolver null quer dizer procedural. */
+function skinAtual(p) {
+  if (!p) return null;
+  if (p.skin === 'none') return null;
+  if (p.skin && p.skin !== 'auto') return p.skin;
+  return skinDoDegrau(p.voc, skinConjunto(p.eq || {}).degrau);
+}
+
 /* ---- runas: usam magia engarrafada, com cargas, e qualquer vocação usa ----
    `rune.type`: attack (alvo), aoe (área no alvo), heal (em você).
    Dano/cura escala com nível e magic level, como no Tibia. */
@@ -2391,3 +2468,103 @@ for (const id in MONSTERS) {
   if (g) { g[2] = Math.max(1, Math.round(med * 0.5)); g[3] = Math.max(g[2], Math.round(med * 1.5)); }
   else if (faltam >= 1) m.loot.unshift(['gold', ch, Math.max(1, Math.round(med * 0.5)), Math.round(med * 1.5)]);
 }
+
+/* ------------------------------------------------------------- talentos */
+/* Árvore de talentos. Primeira fatia, e ela decide UMA coisa por decisão do
+   dono: os nós mudam COMO a magia funciona (custo, alcance, área, duração,
+   estado), não quanto ela bate. Nenhum nó dá +dano, +vida ou +defesa — o
+   balanceamento está em pausa e a régua do #38 foi fechada medindo; somar poder
+   cru aqui a desmediria no primeiro ponto gasto.
+
+   `ef` é o vocabulário INTEIRO do sistema, e cada chave é lida em algum lugar
+   do game.js. Chave que ninguém lê não dá erro: o jogador gasta o ponto e não
+   acontece nada — é o mesmo defeito do `arm` que ficou onze bônus sem fazer
+   efeito, e é por isso que há teste cobrando os dois lados.
+
+     mana     multiplicador de custo das magias (0.06 = 6% mais barato)
+     alcance  +tiles no alcance da magia de ataque (base 6)
+     raio     +anéis na área de aoe/onda/feixe
+     dur      fração a mais na duração dos buffs
+     certeza  o estado do golpe nunca falha o sorteio de chance
+     limpa    a cura tira os estados negativos junto
+     varinha  a varinha canaliza sem gastar mana
+
+   Numérica escala com o degrau (`max`); as três de liga/desliga são de degrau
+   único. Ramo é `req`: nó só abre com o pai já comprado. */
+const PONTO_NIVEL = 5;                       // 1 ponto a cada 5 níveis: 63 no 320
+const RESPEC_BASE = 500;                     // ouro por ponto já gasto, no templo
+/* ponytail: com 5 a 6 nós por vocação a árvore inteira custa 8 a 10 pontos, ou
+   seja está toda comprada por volta do nível 50 — daí para cima não há mais
+   escolha, só espera. É aceitável enquanto ela é a primeira fatia e vai
+   crescer; quando parar de crescer, o conserto NÃO é subir PONTO_NIVEL (isso só
+   adia), é a árvore custar mais pontos do que o jogo paga, que é o que faz a
+   escolha existir. */
+
+/* `pos` é [x, y] em porcentagem do quadro, e é AUTORAL — nenhum layout
+   automático. Grafo de seis nós desenhado por algoritmo sai sempre com a mesma
+   cara de diagrama, e é a forma que dá identidade a cada vocação: o knight
+   fecha num losango (dois caminhos que se encontram), o ranger sobe em duas
+   trilhas paralelas, o mago abre em leque a partir da varinha e o druida gira
+   em torno da raiz. Mesmo princípio do mundo — decidido e congelado.
+
+   `req` é uma LISTA e vale por VIZINHANÇA, como no Path of Exile: o nó abre com
+   QUALQUER vizinho comprado, não com todos. É isso que dá sentido a interligar
+   duas pontas — o nó de cima é alcançável pelos dois lados, e o jogador escolhe
+   por onde chega. Lista vazia (ou ausente) é raiz. A ligação também é o que o
+   traço desenha, então grafo e desenho são a MESMA declaração: não há como o
+   desenho mentir sobre o que o jogo cobra. */
+const TREES = {
+  knight: [
+    { id: 'k_folego',  n: 'Fôlego de Ferro',   pos: [30, 82], max: 3, ef: { mana: .06 },
+      d: 'A mana do cavaleiro é curta. Cada degrau tira 6% do custo de todas as suas magias.' },
+    { id: 'k_giro',    n: 'Giro Largo',        pos: [70, 82], req: ['k_folego'], ef: { raio: 1 },
+      d: 'Exori e seus irmãos varrem um anel a mais. É o único nó desta árvore que aumenta quanta gente você acerta.' },
+    { id: 'k_sangue',  n: 'Sangue Limpo',      pos: [16, 52], req: ['k_folego'], ef: { limpa: 1 },
+      d: 'Sua cura arranca o veneno e apaga o fogo junto. Curar deixa de ser só encher a barra.' },
+    { id: 'k_peso',    n: 'Peso do Golpe',     pos: [56, 52], req: ['k_giro'], ef: { certeza: 1 },
+      d: 'O estado que sua arma carrega nunca falha o sorteio — se a lâmina queima, ela queima sempre.' },
+    { id: 'k_reserva', n: 'Reserva de Guerra', pos: [86, 52], req: ['k_giro'], max: 2, ef: { mana: .05 },
+      d: 'Quem gira gasta. Mais 5% de desconto por degrau, do outro lado da árvore.' },
+    { id: 'k_juramento', n: 'Juramento Longo', pos: [36, 20], req: ['k_sangue', 'k_peso'], max: 2, ef: { dur: .25 },
+      d: 'Utamo Vita e Utani Hur duram 25% a mais por degrau. Chega-se aqui pela cura ou pelo golpe — os dois caminhos servem.' }
+  ],
+  ranger: [
+    { id: 'r_mira',    n: 'Mira Longa',        pos: [50, 84], max: 3, ef: { alcance: 1 },
+      d: 'Sua magia de ataque alcança um tile a mais por degrau. Atirar e recuar depende disto, não de bater mais forte.' },
+    { id: 'r_sopro',   n: 'Sopro Contido',     pos: [24, 56], req: ['r_mira'], max: 3, ef: { mana: .06 },
+      d: 'Cada degrau tira 6% do custo das suas magias.' },
+    { id: 'r_luz',     n: 'Luz que Lava',      pos: [76, 56], req: ['r_mira'], ef: { limpa: 1 },
+      d: 'Exura San queima o que te consome: curar remove veneno, fogo e o resto.' },
+    { id: 'r_marcha',  n: 'Marcha do Batedor', pos: [24, 26], req: ['r_sopro'], max: 2, ef: { dur: .3 },
+      d: 'Utani Gran Hur e as outras duram 30% a mais por degrau — a velocidade acompanha a caçada inteira.' },
+    { id: 'r_chuva',   n: 'Chuva Divina',      pos: [76, 26], req: ['r_luz', 'r_marcha'], ef: { raio: 1 },
+      d: 'Exevo Mas San abre um anel a mais. Fecha as duas trilhas: dá para chegar pela luz ou pela marcha.' }
+  ],
+  sorcerer: [
+    { id: 's_canal',   n: 'Canal Aberto',      pos: [50, 86], ef: { varinha: 1 },
+      d: 'A varinha para de cobrar mana para canalizar. O tiro de encher tempo entre magias volta a ser de graça.' },
+    { id: 's_verbo',   n: 'Verbo Curto',       pos: [22, 58], req: ['s_canal'], max: 3, ef: { mana: .07 },
+      d: 'Cada degrau tira 7% do custo das suas magias — a maior economia das quatro vocações, porque é ele quem mais gasta.' },
+    { id: 's_brasa',   n: 'Brasa Teimosa',     pos: [78, 58], req: ['s_canal'], ef: { certeza: 1 },
+      d: 'Fogo, gelo e energia que você lança sempre pegam: o estado deixa de depender de sorte.' },
+    { id: 's_alcance', n: 'Braço de Fogo',     pos: [22, 26], req: ['s_verbo'], max: 2, ef: { alcance: 1 },
+      d: 'Um tile a mais de alcance por degrau nas magias de ataque. Casca de vidro precisa acertar de longe.' },
+    { id: 's_estouro', n: 'Estouro',           pos: [60, 22], req: ['s_brasa', 's_alcance'], ef: { raio: 1 },
+      d: 'Suas ondas, feixes e áreas abrem um anel a mais. Alcançável pela brasa ou pelo braço.' }
+  ],
+  druid: [
+    { id: 'd_sussurro', n: 'Sussurro',         pos: [50, 82], max: 3, ef: { mana: .06 },
+      d: 'Cada degrau tira 6% do custo das suas magias.' },
+    { id: 'd_raiz',    n: 'Raiz Funda',        pos: [20, 54], req: ['d_sussurro'], ef: { certeza: 1 },
+      d: 'Veneno, gelo e fogo que você lança nunca falham. É o nó de quem prende antes de matar.' },
+    { id: 'd_inverno', n: 'Inverno Largo',     pos: [80, 54], req: ['d_sussurro'], ef: { raio: 1 },
+      d: 'Exevo Gran Mas Frigo e Exevo Frigo Hur abrem um anel a mais.' },
+    { id: 'd_seiva',   n: 'Seiva',             pos: [34, 24], req: ['d_raiz'], ef: { limpa: 1 },
+      d: 'Exura Vita arranca os estados negativos junto com a cura.' },
+    { id: 'd_ciclo',   n: 'Ciclo Lento',       pos: [70, 22], req: ['d_seiva', 'd_inverno'], max: 2, ef: { dur: .3 },
+      d: 'Seus buffs duram 30% a mais por degrau. O anel se fecha: seiva de um lado, inverno do outro.' }
+  ]
+};
+/* Índice por id, para o pai não ser procurado num filter a cada clique. */
+const TREE_NO = {};
+for (const v in TREES) for (const n of TREES[v]) TREE_NO[n.id] = { ...n, voc: v, max: n.max || 1 };

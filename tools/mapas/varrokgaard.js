@@ -571,9 +571,11 @@ const kb = (require('fs').statSync(alvo).size / 1024).toFixed(0);
 console.log(`maps/${m.nome}.json  ${kb} KB  ·  ${m.w}x${m.h} x ${m.andares} andares`);
 console.log(`ilhotas apagadas: ${limpou.apagados}, ${limpou.tiles} tiles  ·  ` +
   `bolsões de mata fechados: ${matou.apagados}, ${matou.tiles} tiles`);
-console.log(`patch do editor: ${patch.tiles} tiles · ${patchObj.objs} objetos aplicados` +
-  (patch.fora + patchObj.foraObj
-    ? `  ·  ${patch.fora + patchObj.foraObj} SEM ENDEREÇO (o mapa mudou embaixo deles)` : '') +
+console.log(`patch do editor: ${patch.tiles} tiles · ${patchObj.objs} objetos · ` +
+  `${patchObj.spawns} spawns aplicados` +
+  (patch.fora + patchObj.foraObj + patchObj.foraSp
+    ? `  ·  ${patch.fora + patchObj.foraObj + patchObj.foraSp} SEM ENDEREÇO ` +
+      `(o mapa mudou embaixo deles)` : '') +
   `  ·  objetos no mapa: ${partiu.join(' / ')}` + '\n');
 console.log(`cerca nova: ${cercaTiles} tiles de estacaria  ·  poças limpas: ${pocasLimpas}+${pocasFim}` +
   `  ·  ${tabuas} tiles de ponte sobre o rio\n`);
@@ -600,8 +602,14 @@ const RECINTOS = [
      passagem entre as duas metades da ilha — andável por definição, e se um dia
      deixar de ser, o mapa está mesmo quebrado. */
   ['a ilha',           PORTAO_X, CERCA_Y],
-  ['a vila murada',    m.templo.x, m.templo.y + 2],         // o ponto onde o personagem nasce
-  ['o pátio de palha', 76, 17]                              // a eira do moinho: fechada de propósito
+  ['a vila murada',    m.templo.x, m.templo.y + 2]          // o ponto onde o personagem nasce
+  /* O PÁTIO DE PALHA SAIU DA LISTA em 2026-08-24: o dono abriu a eira do moinho
+     no editor, e ela emendou com a ilha. Enquanto ele estava aqui, a conferência
+     cobrava um recinto que não existe mais e acusava "falta: o pátio de palha"
+     a cada gravação — alarme que grita sempre é alarme nenhum.
+     Vale registrar que a régua funcionou nos dois sentidos: quando ele era
+     fechado de propósito, ela cobrava que estivesse declarado; aberto, ela
+     cobrou que saísse da lista. É a diferença entre nomear e contar. */
 ];
 const compS = [];
 for (let z = 0; z < m.andares; z++) {

@@ -1,0 +1,369 @@
+<meta charset="utf-8">
+<title>Luz e sombra — o que o motor sabe e o que precisa saber</title>
+<style>
+  :root{
+    --ink:#0b0c0f; --surface:#15151a; --surface2:#1e1c18; --raise:#26241f;
+    --line:#3a352b; --line-soft:#2a261f;
+    --txt:#ddd5c2; --dim:#8f8874; --mute:#6b6558;
+    --gold:#d9a441; --gold2:#f0cd7a;
+    --done:#7fd08a; --wait:#e0a05a; --warn:#e0705f;
+    --serif:"Cinzel","Trajan Pro",Georgia,"Times New Roman",serif;
+    --sans:"Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:ui-monospace,"Cascadia Code",Consolas,"DejaVu Sans Mono",monospace;
+    --measure:74ch;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+      --line:#bdb6a6; --line-soft:#cdc7b9;
+      --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+      --gold:#7d5a15; --gold2:#5e430f;
+      --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+    }
+  }
+  :root[data-theme="light"]{
+    --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+    --line:#bdb6a6; --line-soft:#cdc7b9;
+    --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+    --gold:#7d5a15; --gold2:#5e430f;
+    --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--txt);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px 96px}
+  .col{max-width:var(--measure)}
+  h1,h2,h3,h4{text-wrap:balance;margin:0}
+  a{color:var(--gold2)}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+  header{padding:64px 0 36px;border-bottom:1px solid var(--line)}
+  .eyebrow{font:600 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin-bottom:18px}
+  h1{font:400 clamp(32px,5.5vw,50px)/1.08 var(--serif);letter-spacing:.03em;color:var(--gold2)}
+  .lede{margin-top:20px;color:var(--dim);font-size:17px}
+  .lede b{color:var(--txt);font-weight:600}
+
+  section{padding:48px 0;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:0}
+  h2{font:600 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+     margin-bottom:22px;display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  h3{font:600 17px/1.4 var(--sans);color:var(--txt);margin:26px 0 8px}
+  h3:first-child{margin-top:0}
+  h4{font:600 14px var(--sans);color:var(--gold2);margin:18px 0 6px}
+  p{margin:0 0 14px;max-width:var(--measure)}
+  p:last-child{margin-bottom:0}
+  strong{color:var(--gold2);font-weight:600}
+  code{font:0.87em var(--mono);background:var(--surface2);border:1px solid var(--line-soft);
+       border-radius:3px;padding:1px 5px;color:var(--txt);white-space:nowrap}
+  ul,ol{max-width:var(--measure);margin:0 0 14px;padding-left:20px}
+  li{margin-bottom:6px}
+
+  .band{overflow-x:auto;margin:0 -4px 8px}
+  table{border-collapse:collapse;width:100%;min-width:540px;font-variant-numeric:tabular-nums}
+  caption{text-align:left;color:var(--mute);font-size:13px;padding-bottom:10px}
+  th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  thead th{font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);
+           border-bottom:1px solid var(--line)}
+  tbody th{font:400 14px var(--sans);color:var(--txt);font-weight:500}
+  td{font-size:14px;color:var(--dim)}
+  td.n{font-family:var(--mono);font-size:13.5px}
+  td.now{color:var(--gold2);font-family:var(--mono);font-size:13.5px}
+  td.delta{color:var(--done);font-size:13px}
+
+  .fases{display:grid;gap:2px;background:var(--line-soft);border:1px solid var(--line-soft);margin-bottom:8px}
+  .fase{background:var(--surface);padding:20px 22px;display:grid;grid-template-columns:auto 1fr;gap:18px}
+  .num{font:400 13px var(--mono);color:var(--gold);padding:3px 18px 0 0;border-right:1px solid var(--line-soft)}
+  .fase p,.fase li{color:var(--dim);font-size:14.5px}
+  .why{margin-top:10px;padding-left:14px;border-left:2px solid var(--line);color:var(--mute);
+       font-size:13.5px;font-style:italic}
+
+  .fix{background:var(--surface);border:1px solid var(--line-soft);border-left:2px solid var(--done);
+       padding:16px 20px;margin-bottom:2px}
+  .fix h4{margin-top:0}
+  .fix p{font-size:14px;color:var(--dim);margin-bottom:8px}
+  .causa{font-size:13.5px;color:var(--mute)}
+  .causa b{color:var(--warn);font-weight:600}
+
+  .grupo{margin-bottom:28px}
+  .gtitle{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+  ul.itens{list-style:none;margin:0;padding:0;display:grid;gap:2px;max-width:none}
+  ul.itens li{background:var(--surface);border-left:2px solid var(--wait);padding:13px 18px;
+              display:grid;gap:4px;margin:0}
+  ul.itens li.debt{border-left-color:var(--mute)}
+  .it-n{font:600 15px var(--sans);color:var(--txt)}
+  .it-d{font-size:13.5px;color:var(--dim)}
+  .it-t{font-size:12.5px;color:var(--mute);font-family:var(--mono)}
+
+  /* Selo de estado. Retangular e sem preenchimento: é rótulo, não botão. */
+  .tag{font:600 10px var(--sans);letter-spacing:.09em;text-transform:uppercase;
+       padding:2px 6px;border:1px solid var(--line);border-radius:2px;
+       white-space:nowrap;margin-left:6px}
+  .tag.warn{color:var(--warn);border-color:var(--warn)}
+  .tag.wait{color:var(--wait);border-color:var(--wait)}
+  .tag.done{color:var(--done);border-color:var(--done)}
+  ul.itens li.feito{border-left-color:var(--done)}
+  /* Na lista de invariantes (ul simples, com marcador), o que entrou nesta leva
+     ganha o marcador em verde — some no meio das 30 antigas sem isso. */
+  li.feito::marker{color:var(--done)}
+
+  .aviso{background:var(--surface2);border:1px solid var(--line);border-left:3px solid var(--warn);
+         padding:18px 20px;margin-bottom:14px;max-width:var(--measure)}
+  .aviso h4{color:var(--warn);margin-top:0}
+  .aviso p{font-size:14px;color:var(--dim)}
+
+  footer{padding:36px 0 0;color:var(--mute);font-size:13px;border-top:1px solid var(--line)}
+
+  @media (max-width:640px){
+    .fase{grid-template-columns:1fr;gap:10px}
+    .num{border-right:0;border-bottom:1px solid var(--line-soft);padding:0 0 8px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Thaira · proposta · luz e sombra</div>
+  <h1>O motor não sabe o que é em cima</h1>
+  <p class="lede">Medi o que o jogo faz hoje com luz, sombra e superfície. A conclusão é uma
+  frase: <b>nenhuma superfície do jogo declara para onde aponta</b>. O sombreado existe, mas está
+  <b>assado dentro de cada sprite</b> como número fixo — então ele não gira com o sol, não pega a cor
+  do céu e não se compara entre dois objetos feitos em dias diferentes. Este documento traz as
+  medições, o modelo que jogos 2D usam, e o que mudar, acrescentar e tirar.</p>
+</header>
+
+<section>
+  <h2>O que eu medi</h2>
+
+  <div class="aviso">
+    <h4>Antes de tudo: um alarme falso meu</h4>
+    <p>Passei uma hora convencido de que a parede estava sendo desenhada errada — a crista media 15
+    na tela contra 120 no sprite. <b>Era a minha régua.</b> O <code>w2s()</code> devolve o ponto do
+    tile deslocado <b>meio tile</b> em relação ao <code>telaY()</code> que o <code>drawFloor</code>
+    usa (<code>meioY = VH/2 − t/2</code>). Todas as amostras estavam 16 px fora, caindo no tile de
+    cima. Com a régua certa a parede está correta. Fica registrado porque é a segunda vez que dois
+    sistemas de coordenada com o mesmo nome me enganam nesta base.</p>
+  </div>
+
+  <h3>O sprite da parede, isolado, sem luz nenhuma</h3>
+  <div class="band">
+    <table>
+      <caption>luminância 0–255 do canvas de <code>wallSprite('wall', ptabua)</code></caption>
+      <thead><tr><th>faixa</th><th>o que é</th><th>luminância</th></tr></thead>
+      <tbody>
+        <tr><th>y 0–14</th><td>crista — a face que aponta para o céu</td><td class="now">120,4</td></tr>
+        <tr><th>y 14–50</th><td>face — a que encara a câmera</td><td class="n">42,6</td></tr>
+        <tr><th>y 50–64</th><td>pé — onde a sombra do chão encosta</td><td class="n">34,9</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>A crista é <strong>3,0×</strong> a face. Isso está certo e é o desenho fazendo o trabalho.</p>
+
+  <h3>O mesmo pedaço de parede na tela, às 3h39</h3>
+  <div class="band">
+    <table>
+      <thead><tr><th>superfície</th><th>luminância</th><th>razão contra a face</th></tr></thead>
+      <tbody>
+        <tr><th>crista da parede</th><td class="now">42,7</td><td class="delta">2,2×</td></tr>
+        <tr><th>face da parede</th><td class="n">19,5</td><td>1,0×</td></tr>
+        <tr><th>pé da parede</th><td class="n">19,8</td><td>1,0×</td></tr>
+        <tr><th>chão DENTRO da casa</th><td class="n">30,7</td><td>1,6×</td></tr>
+        <tr><th>chão da RUA</th><td class="n">28,0</td><td>1,4×</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><b>A crista não está escura — ela é a superfície mais clara da parede.</b> O que a faz
+  <em>parecer</em> escura é outra coisa, e é o assunto da seção seguinte.</p>
+
+  <h3>As texturas de chão, todas as 65</h3>
+  <p>Medi borda contra miolo em cada PNG de <code>assets/terreno/</code>, procurando contorno assado
+  — o que a CLAUDE.md já proíbe. <b>As gramas estão limpas</b> (0,96 a 1,00). Três destoam e valem
+  uma olhada quando sobrar tempo:</p>
+  <ul>
+    <li><code>agua_funda.png</code> — 0,86</li>
+    <li><code>pantano_vitoria.png</code> — 0,93</li>
+    <li><code>rocha_basalto.png</code> — 0,93</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Por que o topo parece escuro</h2>
+  <p>Numericamente ele não está. O que acontece são <strong>três coisas somadas</strong>, e nenhuma
+  delas é um erro de desenho:</p>
+
+  <div class="fases">
+    <div class="fase"><div class="num">1</div><div>
+      <h4>O multiply do ambiente é UNIFORME na tela inteira</h4>
+      <p>Às 3h39 o ambiente é <code>rgb(62,70,104)</code> — azul de madrugada — e ele multiplica
+      <em>tudo</em> pelo mesmo fator. A crista, que deveria ser a superfície que mais recebe o céu,
+      recebe o mesmo tratamento do chão de dentro de casa.</p>
+      <p class="why">Uma crista que aponta para o céu tinha de ficar AZUL de madrugada e DOURADA ao
+      entardecer, mais que qualquer outra superfície. Hoje ela só escurece junto com o resto.</p>
+    </div></div>
+
+    <div class="fase"><div class="num">2</div><div>
+      <h4>A crista é fria e a face é quente</h4>
+      <p>A crista leva <code>rgba(255,246,225,.30)</code> — um branco levemente quente — sobre a
+      textura, e a face leva preto. Sob o azul da madrugada a crista vira cinza-azulado e a face
+      continua marrom. <b>Cinza-azulado lê como mais escuro que marrom mesmo sendo 2,2× mais
+      claro</b>, porque o olho julga o marrom como "cor" e o cinza como "ausência de luz".</p>
+    </div></div>
+
+    <div class="fase"><div class="num">3</div><div>
+      <h4>O interior ficou mais claro que a rua</h4>
+      <p>30,7 dentro contra 28,0 na rua, de madrugada — porque o interior tem a tocha do jogador e
+      a rua não tem nada. É correto, e é o que faz a crista parecer escura por comparação: ela
+      está ao lado de um chão iluminado por fogo.</p>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2>O modelo que jogos 2D usam</h2>
+  <p>Em jogo 2D de vista superior oblíqua existem <strong>três orientações de superfície</strong> e
+  não mais que isso. Toda a iluminação decente desse gênero se resume a saber qual é qual:</p>
+
+  <div class="band">
+    <table>
+      <thead><tr><th>normal</th><th>o que é em Thaira</th><th>recebe</th></tr></thead>
+      <tbody>
+        <tr><th>TOPO</th><td>a crista da parede, o topo do barril, a copa da árvore, o chão</td>
+            <td>a luz do céu inteira, e a <b>cor</b> do céu</td></tr>
+        <tr><th>FRENTE</th><td>a face da parede, o corpo do boneco, a lateral do barril</td>
+            <td>parte do céu mais a componente horizontal do sol</td></tr>
+        <tr><th>LADO</th><td>a ombreira da porta, a quina de um bloco</td>
+            <td>só a componente horizontal, com sinal: iluminada a noroeste, escura a sudeste</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>O que muda entre um jogo que "tem luz" e um que "parece adesivo colado" é quase sempre isto:
+  <strong>o topo acompanha o céu e a frente não</strong>. Ao entardecer o telhado fica laranja
+  enquanto a parede escurece; de madrugada o telhado fica azul enquanto a parede fica preta. É essa
+  divergência que dá volume, não a quantidade de sombra.</p>
+
+  <h3>E uma direção de luz só</h3>
+  <p>Thaira já escolheu a dela e está escrita em três lugares do código: <b>sol fixo no
+  noroeste</b>. O <code>edgeShadow</code> escurece a borda norte e a oeste do vizinho, o
+  <code>dropShadow</code> projeta para o sudeste, e o comentário do <code>wallSprite</code> fala em
+  "topo claro e face escura". <b>A direção existe; o que falta é as superfícies a consultarem.</b></p>
+</section>
+
+<section>
+  <h2>O que Thaira tem hoje</h2>
+  <p>O caminho da luz, na ordem em que roda:</p>
+  <ol>
+    <li><code>amb.bg</code> — a cor de fundo do andar preenche a tela.</li>
+    <li><code>drawFloor</code> — chão, sombras de contato, objetos e bichos, na ordem do pintor.</li>
+    <li><code>telhadoNaLuz</code> — máscara de abrigo, −42% onde há telhado ou paredes fechando.</li>
+    <li><code>lightPass</code> — o ambiente do céu multiplica a cena; os halos de tocha somam antes.</li>
+    <li><code>bloomPass</code> — os mesmos halos somados por cima, mais largos e fracos.</li>
+    <li><code>gradePass</code> — gradação de cor e vinheta.</li>
+  </ol>
+
+  <h3>As constantes que governam sombra hoje</h3>
+  <div class="band">
+    <table>
+      <thead><tr><th>constante</th><th>valor</th><th>o que faz</th></tr></thead>
+      <tbody>
+        <tr><th><code>WALL_CHAPA</code></th><td class="n">14</td><td>altura da crista, em px</td></tr>
+        <tr><th>clareado da crista</th><td class="n">rgba(255,246,225,.30)</td><td>assado no sprite</td></tr>
+        <tr><th>escurecido da face</th><td class="n">rgba(0,0,0,.40 + prof×.055)</td><td>assado no sprite</td></tr>
+        <tr><th><code>WALL_FUNDO</code></th><td class="n">4</td><td>até onde a face escurece lance abaixo</td></tr>
+        <tr><th><code>TELHADO</code></th><td class="n">0,42</td><td>quanto o abrigo corta da luz do céu</td></tr>
+        <tr><th><code>edgeShadow</code></th><td class="n">rgba(0,0,0,.45) → 0 em 14px</td><td>oclusão de contato, só N e O</td></tr>
+        <tr><th><code>CHAO</code></th><td class="n">0,5</td><td>linha de contato dentro do tile</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Todos são <strong>números fixos escolhidos a olho</strong>, um por sprite. Nenhum consulta a
+  hora, a direção do sol ou a cor do céu.</p>
+</section>
+
+<section>
+  <h2>O que mudar, acrescentar e tirar</h2>
+
+  <div class="grupo">
+    <div class="gtitle">Acrescentar — o mínimo que resolve 80%</div>
+    <ul class="itens">
+      <li class="feito"><span class="it-n">Uma máscara de TOPO, irmã da máscara de abrigo<span class="tag done">feito</span></span>
+        <span class="it-d">O motor já sabe onde os topos estão: a faixa <code>WALL_CHAPA</code> de
+        cada parede, o chão inteiro, a tampa do barril. Desenhe essas faixas numa máscara opaca — a
+        mesma técnica do <code>telhadoNaLuz</code>, inclusive a lição do alfa que soma — e no passe
+        de luz multiplique o TOPO pela <b>cor do céu</b> e o resto pelo ambiente já rebaixado.
+        Custo: um canvas e um <code>drawImage</code> por quadro.</span>
+        <span class="it-t">é isto que faz o telhado ficar laranja enquanto a parede escurece</span></li>
+      <li><span class="it-n">Cada sprite declara a normal das suas faixas</span>
+        <span class="it-d">Não um mapa de normais por pixel — uma tabela de três entradas.
+        <code>wallSprite</code> já separa crista e face; barril, poço e carroça teriam de dizer
+        onde acaba a tampa e começa a lateral. É trabalho de anotação, não de arte.</span></li>
+      <li class="feito"><span class="it-n">A luz por normal sai de UMA função<span class="tag done">feito</span></span>
+        <span class="it-d"><code>luzDaFace(normal, hora)</code> devolvendo fator e tinta.
+        Enquanto cada sprite tem o seu alfa escolhido a olho, dois objetos feitos em dias
+        diferentes nunca vão concordar — e é exatamente o que aconteceu com a crista da parede
+        contra a tampa do barril.</span></li>
+    </ul>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Mudar</div>
+    <ul class="itens">
+      <li><span class="it-n">O abrigo não deveria escurecer o TOPO das paredes<span class="tag warn">errado</span></span>
+        <span class="it-d">Este item estava errado e foi <b>revertido no jogo</b>. Implementado ao pé
+        da letra, pôs um retângulo azul chapado dentro de toda casa. Dois motivos: a parede é
+        desenhada transbordando <b>um tile para cima</b>, então a parede SUL desenha a própria crista
+        DENTRO do interior (4 das 11 cristas do quadro estavam em tile abrigado); e <b>casa tem
+        telhado</b> — o topo do muro está debaixo dele. Quem vê o céu é a crista que cai na RUA, e é
+        só ela que o passe anuncia.</span></li>
+      <li><span class="it-n">A tinta da crista devia vir do céu, não do sprite</span>
+        <span class="it-d">O <code>rgba(255,246,225,.30)</code> é um branco quente cravado. Com a
+        máscara de topo ele vira redundante — e pior, dobra a conta.</span></li>
+      <li><span class="it-n">A força do <code>edgeShadow</code> devia seguir o sol</span>
+        <span class="it-d">Ele é fixo em <code>.45</code>. O <code>climaAgora</code> já calcula
+        <code>luz</code>, a força da fonte que projeta sombra, e o <code>dropShadow</code> já a
+        usa. A oclusão de contato ficou de fora e por isso não some ao meio-dia nublado nem se
+        aprofunda no fim da tarde.</span></li>
+    </ul>
+  </div>
+
+  <div class="grupo">
+    <div class="gtitle">Tirar</div>
+    <ul class="itens">
+      <li class="debt"><span class="it-n">O degradê de pé do <code>wallSprite</code></span>
+        <span class="it-d">Vira responsabilidade do <code>edgeShadow</code> do vizinho, que já
+        desenha oclusão de contato e conhece o lado.</span></li>
+      <li class="debt"><span class="it-n">Contorno assado nas três texturas</span>
+        <span class="it-d"><code>agua_funda</code>, <code>pantano_vitoria</code> e
+        <code>rocha_basalto</code>: a borda desenha a grade que o <code>borderSprite</code> existe
+        para esconder.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Decisões em aberto</h2>
+  <ul class="itens">
+    <li class="feito"><span class="it-n">A crista pega a cor do céu inteira ou só metade?<span class="tag done">resolvida</span></span>
+      <span class="it-d">Inteira, e ela não muda de brilho — quem se mexe é a face. Dar menos que o
+      céu à crista seria escurecer o mundo duas vezes pelo mesmo motivo. Medido ao ar livre, a razão
+      crista/face vai de 1,57 a 1,79 ao meio-dia e de 1,70 a 1,87 no poente, com o croma da face
+      caindo de 21,8 para 18,3. Ganho modesto de propósito: o efeito grande da primeira medição
+      <b>era o defeito do retângulo azul</b>, não o passe.</span></li>
+    <li class="feito"><span class="it-n">O chão conta como TOPO?<span class="tag done">resolvida</span></span>
+      <span class="it-d">Conta — e por isso ele não precisou mudar. Chão e crista são a mesma normal
+      e o chão já recebia o céu inteiro; quem estava errada era a FACE. Rebaixar a face preserva o
+      mundo como está, enquanto levantar o topo recoloriria o mapa todo por causa de uma faixa de
+      14 px. Os dois números novos são <code>FRENTE_F</code> (.88) e <code>FRENTE_LAVA</code>
+      (.5).</span></li>
+    <li><span class="it-n">Vale um lado ESCURO?</span>
+      <span class="it-d">Com o sol no noroeste, a face leste de um bloco deveria ser mais escura
+      que a oeste. Hoje as duas são iguais. É a diferença entre "tem sombra" e "tem volume", mas
+      custa uma faixa a mais por sprite.</span></li>
+  </ul>
+</section>
+
+<footer>
+  Medições feitas no jogo rodando, em Varrokgaard, com o relógio deslocado para o meio-dia e para a
+  madrugada. As luminâncias são do quadro já renderizado, amostradas do canvas.
+</footer>
+</div>
+
