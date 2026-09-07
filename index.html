@@ -418,26 +418,6 @@ b{color:#fff}
 #mini-clock i{font:600 8px/1 var(--serif);font-style:normal;letter-spacing:.04em;
   text-transform:uppercase;color:var(--dim)}
 .sec{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:2px 0 5px}
-/* estatísticas de combate: mesma barra da de status, encostada nos botões de
-   postura. Só ícone e número — o nome e o que faz vivem no tooltip. */
-#combat-stats{display:flex;gap:3px;margin-top:8px;padding:3px;border:1px solid #000;border-radius:4px;
-  background:var(--well);box-shadow:inset 0 2px 6px #000c,inset 0 0 0 1px #6b5a3340}
-.cst{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0;
-  cursor:help;border-radius:3px;background:var(--stone);border:1px solid var(--line)}
-.cst:hover{border-color:var(--gold);box-shadow:0 0 9px #d9a44166}
-.cst .ii{width:16px;height:16px;filter:drop-shadow(0 1px 2px #000)}
-/* Faixa de resistência: quadradinho na cor do elemento com o corte em % dentro.
-   Fora do quadro de estatísticas de propósito — aquele tem quatro linhas fixas,
-   esta tem de zero a sete conforme o equipamento, e misturar as duas fazia o
-   painel inteiro empurrar tudo para baixo a cada peça trocada.
-   Os sete elementos cabem numa linha: 7×22 + 6×2 de intervalo = 166, dentro dos
-   169 úteis do painel. O intervalo é 2 e não 3 por causa desses 3px.
-   Sem :empty a faixa vazia ainda comeria a margem. */
-#res-strip{display:flex;gap:2px;margin-top:4px;flex-wrap:nowrap}
-#res-strip:empty{display:none}
-#res-strip b{flex:0 0 22px;height:22px;border-radius:3px;display:flex;align-items:center;justify-content:center;
-  font:700 10px var(--serif);cursor:help;border:1px solid #0008;box-shadow:inset 0 1px 0 #ffffff40}
-.cst b{font:700 12px var(--serif);color:var(--gold2);line-height:1}
 #eq-slots{position:relative;width:178px;height:239px;margin:auto}
 #eq-slots .cell.eq{position:absolute;width:56px;height:56px}
 /* auto-fill em vez de 5 colunas fixas: alargar o painel dá MAIS slots por linha,
@@ -1261,15 +1241,6 @@ button.mini{background:var(--surface2);color:var(--txt);border:1px solid var(--l
       <div class="pb">
         <div id="status-icons"></div>
         <div id="eq-slots"></div>
-        <div id="combat-stats">
-          <div class="cst" data-n="Ataque" data-d="Teto do dano de um golpe seu. Vem da arma e da habilidade dela — o golpe sorteia de 0 até esse número, então na média sai bem menos.">
-            <img class="ii" src="assets/icons/sword.png" alt=""><b id="stat-atk">0</b></div>
-          <div class="cst" data-n="Defesa" data-d="Corta uma fração de todo golpe que te acerta. Soma de tudo que você veste — armadura, elmo, perneira, bota, escudo e a defesa da arma — e cresce com a habilidade de Escudo e com a postura defensiva.">
-            <img class="ii" src="assets/icons/shield.png" alt=""><b id="stat-def">0</b></div>
-          <div class="cst" data-n="Velocidade" data-d="Rapidez dos seus passos. Sobe por nível conforme a vocação, e as botas ajudam.">
-            <img class="ii" src="assets/icons/boots.png" alt=""><b id="stat-spd">0</b></div>
-        </div>
-        <div id="res-strip"></div>
         <div id="stance-row">
           <div id="stance">
             <button data-s="def" title="Defesa: quase não machuca, mas aguenta"><img class="im" src="assets/icons/stance_defense.png" alt=""></button>
@@ -1391,6 +1362,7 @@ button.mini{background:var(--surface2);color:var(--txt);border:1px solid var(--l
 <script src="src/audio.js"></script>
 <script src="src/icones.js"></script>
 <script src="src/criaturas.js"></script>
+<script src="src/objetos.js"></script>
 <script src="src/data.js"></script>
 <script src="src/art.js"></script>
 <script src="src/world.js"></script>

@@ -254,11 +254,24 @@
   <ol>
     <li><code>amb.bg</code> — a cor de fundo do andar preenche a tela.</li>
     <li><code>drawFloor</code> — chão, sombras de contato, objetos e bichos, na ordem do pintor.</li>
+    <li><code>cloudPass</code> — sombra de nuvem, recortada pelo <code>recorteCeu</code>.</li>
     <li><code>telhadoNaLuz</code> — máscara de abrigo, −42% onde há telhado ou paredes fechando.</li>
-    <li><code>lightPass</code> — o ambiente do céu multiplica a cena; os halos de tocha somam antes.</li>
+    <li><code>topoNaLuz</code> — a máscara de TOPO: crista de parede e chão recebem o céu inteiro,
+      a FRENTE é rebaixada.</li>
+    <li><code>lightPass</code> — o ambiente do céu multiplica a cena; os halos de tocha somam antes,
+      cada um recortado pelo que ele <b>alcança</b> (inundação a partir do tile da luz, barrada pelo
+      <code>tapaVista</code>).</li>
     <li><code>bloomPass</code> — os mesmos halos somados por cima, mais largos e fracos.</li>
-    <li><code>gradePass</code> — gradação de cor e vinheta.</li>
+    <li><code>nevoaPass</code> — névoa de amanhecer, densidade por distância até a água,
+      dentro do <code>recorteCeu</code>.</li>
+    <li>clarão do relâmpago e <code>rainPass</code> — os dois dentro do <code>recorteCeu</code>.</li>
+    <li><code>gradePass</code> — gradação de cor (curva em GL quando há WebGL) e vinheta.</li>
   </ol>
+
+  <div class="aviso"><h4>Atualizado em 2026-08-30</h4><p> Quando este documento foi escrito o passe tinha
+  seis etapas e nenhuma delas perguntava nada por tile. Hoje são dez, e as perguntas por tile
+  (<code>abrigado</code>, <code>recorteCeu</code>, alcance da luz, distância até a água) são a maior
+  parte do que mudou.</p></div>
 
   <h3>As constantes que governam sombra hoje</h3>
   <div class="band">
@@ -292,10 +305,21 @@
         de luz multiplique o TOPO pela <b>cor do céu</b> e o resto pelo ambiente já rebaixado.
         Custo: um canvas e um <code>drawImage</code> por quadro.</span>
         <span class="it-t">é isto que faz o telhado ficar laranja enquanto a parede escurece</span></li>
-      <li><span class="it-n">Cada sprite declara a normal das suas faixas</span>
-        <span class="it-d">Não um mapa de normais por pixel — uma tabela de três entradas.
-        <code>wallSprite</code> já separa crista e face; barril, poço e carroça teriam de dizer
-        onde acaba a tampa e começa a lateral. É trabalho de anotação, não de arte.</span></li>
+      <li><span class="it-n">Cada sprite declara a normal das suas faixas<span class="tag warn">caiu, medido</span></span>
+        <span class="it-d">A ideia era: não um mapa de normais por pixel, uma tabela de três
+        entradas. <code>wallSprite</code> já separa crista e face; barril, poço e carroça teriam de
+        dizer onde acaba a tampa e começa a lateral.</span>
+        <span class="it-d"><b>Foi medido em 2026-08-29 e caiu.</b> A faixa é um retângulo da largura
+        do tile, e isso funciona na parede porque ela é uma chapa que enche o tile. Cobertura opaca
+        da faixa de topo de cada sprite: <b>poço 70%, barril 49–54%, carroça 18%</b>, contra
+        <b>100% por construção</b> na parede. Numa carroça 82% da faixa é pixel transparente — e a
+        faixa entra no buffer de luz, então pintar céu ali <b>acende o chão que aparece atrás do
+        objeto</b>, entre as rodas e sob o varal.</span>
+        <span class="it-d">O mecanismo certo seria máscara pelo <b>alfa do próprio sprite</b>, o que
+        exige um ou dois buffers de tela cheia — o mesmo custo pelo qual a versão com buffer do
+        recorte de halo foi derrubada, por bem menos retorno. Quando incomodar, o caminho é o sprite
+        declarar as próprias faixas, e <b>faixa quer dizer máscara, não retângulo</b>. O
+        <code>ponytail:</code> está escrito no <code>topoNaLuz</code>.</span></li>
       <li class="feito"><span class="it-n">A luz por normal sai de UMA função<span class="tag done">feito</span></span>
         <span class="it-d"><code>luzDaFace(normal, hora)</code> devolvendo fator e tinta.
         Enquanto cada sprite tem o seu alfa escolhido a olho, dois objetos feitos em dias
@@ -317,11 +341,18 @@
       <li><span class="it-n">A tinta da crista devia vir do céu, não do sprite</span>
         <span class="it-d">O <code>rgba(255,246,225,.30)</code> é um branco quente cravado. Com a
         máscara de topo ele vira redundante — e pior, dobra a conta.</span></li>
-      <li><span class="it-n">A força do <code>edgeShadow</code> devia seguir o sol</span>
-        <span class="it-d">Ele é fixo em <code>.45</code>. O <code>climaAgora</code> já calcula
-        <code>luz</code>, a força da fonte que projeta sombra, e o <code>dropShadow</code> já a
-        usa. A oclusão de contato ficou de fora e por isso não some ao meio-dia nublado nem se
-        aprofunda no fim da tarde.</span></li>
+      <li><span class="it-n">A força do <code>edgeShadow</code> devia seguir o sol<span class="tag done">decidido: só o COMPRIMENTO</span></span>
+        <span class="it-d">Resolvido em 2026-08-29, e <b>metade da proposta foi recusada de
+        propósito</b> — está aqui para ninguém reabrir. A divisão que ficou: a <b>altura do sol</b>
+        (<code>alturaSol</code>, no <code>world.js</code>) manda no <b>comprimento</b>, que é
+        geometria; o <code>solF</code> manda no <b>alfa</b>, que é atmosfera. O
+        <code>edgeShadow</code> recebe <code>bordaF</code> e cresce ao entardecer, com teto medido
+        em ~24 px (0,75 tile) — passar disso vira xadrez.</span>
+        <span class="it-d">A <b>força</b> continua fixa em <code>.45</code>, e tem de continuar:
+        acoplada ao sol, <b>toda parede interna perderia a sombra e a casa ficaria de papel</b> —
+        oclusão de contato existe com qualquer luz. É a mesma razão pela qual a mancha de contato do
+        <code>dropShadow</code> não passa pelo <code>solNoTile</code>. A rampa da borda nunca desce
+        abaixo da base.</span></li>
     </ul>
   </div>
 
@@ -364,6 +395,10 @@
 <footer>
   Medições feitas no jogo rodando, em Varrokgaard, com o relógio deslocado para o meio-dia e para a
   madrugada. As luminâncias são do quadro já renderizado, amostradas do canvas.
+  <br><br>
+  <b>Conferido contra o código em 2026-08-30.</b> As quatro rodadas de auditoria de luz, sombra e
+  clima estão registradas na seção <i>&quot;Luz, sombra e clima&quot;</i> do <code>tasks.html</code>,
+  que é o registro longo; este documento é o modelo e as decisões.
 </footer>
 </div>
 

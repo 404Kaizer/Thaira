@@ -50,12 +50,9 @@ MAPA = {
     'shoot':        (['oga80/**/blade_0%d.ogg' % i for i in (2, 3)], 0.4),
 
     # --- magia por elemento
-    'spell_fire':   (['oga80/**/spell_fire_0%d.ogg' % i for i in (1, 2, 3, 4)], 0.5),
-    'spell_ice':    (['impact-sounds/**/impactGlass_light_00%d.ogg' % i for i in range(3)], 0.5),
-    'spell_energy': (['oga80/**/spell_0%d.ogg' % i for i in (1, 2)], 0.5),
-    'spell_earth':  (['oga80/**/stones_0%d.ogg' % i for i in (1, 2, 3, 4)], 0.5),
-    'spell_holy':   (['cure/**/Cure%d.wav' % i for i in (1, 2, 3)], 0.4),
-    'spell_death':  (['oga80/**/creature_monster_0%d.ogg' % i for i in (1, 2)], 0.5),
+    # spell_* NAO sai mais de pacote: build_magias.py sintetiza os sete
+    # elementos, os gestos (cast_*) e as habilidades de criatura (hab_*), e roda
+    # no fim deste script.
     'fire':         (['oga80/**/spell_fire_0%d.ogg' % i for i in (5, 6, 7)], 0.5),
     'ice':          (['impact-sounds/**/impactGlass_medium_00%d.ogg' % i for i in range(3)], 0.5),
     'energy':       (['oga80/**/spell_0%d.ogg' % i for i in (1, 2)], 0.5),
@@ -100,15 +97,6 @@ MAPA = {
     # arquivo em menu é o que faz interface soar máquina de escrever.
     'ui_click': (['freesound/ui_click-%d.mp3' % i for i in (1, 2, 3)], 0.3),
     'ui_close': (['freesound/ui_close-1.mp3'], 0.35),
-
-    # --- passos por terreno. Água e lava não entram: TILE marca as duas como
-    # não caminháveis, então o som nunca dispararia.
-    'step_grass': (['impact-sounds/**/footstep_grass_00%d.ogg' % i for i in range(5)], 0.35),
-    'step_dirt':  (['rpg-audio/**/footstep0%d.ogg' % i for i in range(5)], 0.35),
-    'step_sand':  (['impact-sounds/**/footstep_snow_00%d.ogg' % i for i in range(5)], 0.35),
-    'step_stone': (['impact-sounds/**/footstep_concrete_00%d.ogg' % i for i in range(5)], 0.3),
-    'step_rock':  (['impact-sounds/**/footstep_concrete_00%d.ogg' % i for i in range(5)], 0.3),
-    'step_cave':  (['impact-sounds/**/footstep_concrete_00%d.ogg' % i for i in range(5)], 0.3),
 }
 
 
@@ -193,6 +181,11 @@ def main():
     manifesto['rev'] = str(int(time.time()))
     (destino / 'manifest.json').write_text(
         json.dumps(manifesto, indent=2, ensure_ascii=False) + '\n', encoding='utf8')
+
+    # o gerador de magias escreve por cima deste manifesto: ele e quem sabe os
+    # nomes que o fonte pede, e conferir isso e a ultima coisa a acontecer.
+    import build_magias
+    build_magias.main()
 
     total = sum(f.stat().st_size for f in destino.iterdir() if f.is_file())
     print('sons montados : %d' % len([k for k in manifesto if k not in ('ext', 'rev')]))

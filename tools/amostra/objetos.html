@@ -1,0 +1,394 @@
+<meta charset="utf-8">
+<title>Objetos recortados — bancada</title>
+<style>
+  body{margin:0;background:#15151a;color:#ddd5c2;font:14px/1.5 "Segoe UI",system-ui,sans-serif;padding:24px}
+  h1{font:400 26px/1.1 Cinzel,Georgia,serif;color:#f0cd7a;letter-spacing:.03em;margin:0 0 6px}
+  p.lede{color:#8f8874;margin:0 0 14px;max-width:88ch}
+  p.lede b{color:#ddd5c2}
+  p.lede code{color:#d9a441}
+  p.aviso{color:#c8934a;max-width:88ch}
+  .ctrl{margin:0 0 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+        background:#1e1c18;border:1px solid #3a352b;padding:12px 14px}
+  label{font-size:13px;color:#8f8874;display:flex;gap:7px;align-items:center}
+  select,input{background:#26241f;color:#ddd5c2;border:1px solid #3a352b;padding:4px 8px;font:13px inherit}
+  input[type=range]{padding:0;width:120px}
+  .val{color:#d9a441;font:12px ui-monospace,Consolas,monospace;min-width:4.2em;text-align:right}
+  #grade{display:flex;flex-wrap:wrap;gap:10px}
+  .pc{background:#1e1c18;border:1px solid #3a352b;padding:7px 7px 5px;text-align:center}
+  .pc canvas{display:block;image-rendering:pixelated;margin:0 auto}
+  .pc b{display:block;font:10.5px ui-monospace,Consolas,monospace;color:#ddd5c2;margin-top:5px}
+  .pc i{display:block;font:10px ui-monospace,Consolas,monospace;color:#8f8874;font-style:normal}
+  .pc.grande{border-color:#8a6a2a}
+  .pc.sombra{border-color:#9b3226}
+  #resumo{background:#12110e;border:1px solid #3a352b;padding:12px 14px;margin:16px 0;
+          font:12.5px/1.7 ui-monospace,Consolas,monospace;color:#9fd08a;white-space:pre;overflow-x:auto}
+</style>
+
+<h1>Os objetos recortados, no tamanho e na luz do jogo</h1>
+<p class="lede">O <code>build_objetos.py</code> recortou as folhas de <code>assets/scenario/</code>
+em PNG com alfa, âncora e <code>span</code>. Isto é a etapa em que <b>você julga antes de qualquer
+coisa entrar na tabela <code>OBJ</code></b>: cada peça aparece plantada num chão de verdade, com a
+cor do céu da hora escolhida, na escala do jogo.</p>
+<p class="lede"><b>Julgue no zoom 1.</b> Aprovar no 4× deixa passar o que não lê no tamanho em que
+se joga — é a regra da casa. O 4× serve para conferir o RECORTE (franja, silhueta roída), não para
+aprovar a peça.</p>
+<p class="lede">O que dá <b>volume</b> aqui não é o PNG: é o motor. Cada peça sai com o
+<code>outlined</code> (o contorno escuro que separa a silhueta do chão) e com o
+<code>dropShadow</code> — mancha de contato <b>mais</b> silhueta projetada, com o alfa seguindo o
+sol da hora. Os dois são chamados do <code>render2d.js</code> do jogo, não reimplementados aqui:
+bancada que desenha por conta própria diverge no primeiro objeto novo e mente sobre o resultado.
+Sem isso a peça leria como adesivo colado no chão, que é exatamente o que a regra
+&quot;sombra é do MOTOR, não assada no sprite&quot; existe para impedir.</p>
+<p class="lede aviso"><b>A ESCALA sai da LARGURA, e ela é por peça.</b> Duas voltas erradas antes
+desta. A primeira ancorou tudo numa constante tirada da <b>árvore</b> da folha contra a árvore do
+jogo — comparar boneco com boneco, o erro que o CLAUDE.md já nomeia: as duas podiam estar erradas
+juntas, e estavam, por 1,88×. A segunda declarou a <b>altura</b> real de cada peça e a aplicou sobre
+a extensão vertical do sprite — só que em perspectiva essa extensão é altura <b>mais profundidade
+projetada</b>, e na cama, deitada, quase tudo é profundidade: ela saiu 0,58 × 0,85 tile, mais
+estreita <i>e</i> mais baixa que a pessoa que dorme nela.</p>
+<p class="lede aviso">A <b>largura</b> não sofre projeção: largura na tela é largura no mundo. Por
+isso a ficha declara <code>w</code> em tiles e a altura sai proporcional. Julgue contra a
+<b>silhueta do jogador</b> ao lado — ele ocupa <b>0,90 de largura</b> e <b>1,50 de altura</b>, e é a
+unidade da escada de tamanho. A régua deslizante só vale para peça <i>sem</i> <code>w</code> na
+ficha, que é como varrer uma folha nova antes de anotar peça por peça.</p>
+<p class="lede aviso">A moldura <b>vermelha</b> marca quem tem mais de 25% de pixel escuro e sem
+croma na base — candidato a <b>sombra assada</b>, que o CLAUDE.md proíbe porque ela entra no passe de
+luz junto com o objeto. Contar não separa sombra de material escuro; só olhar separa.
+<b>Na folha 01 isso já foi auditado, contra fundo claro, e a resposta foi: nenhuma.</b> Todas as 50
+candidatas que podem entrar acusam por MATERIAL — granito de lápide e coluna, ferro de grade e
+caldeirão, madeira escura de barril e toco, ou o vão escuro de um objeto oco. A moldura fica de pé
+para as folhas que ainda vão ser cortadas. A <b>dourada</b> marca quem passa de 2 tiles de altura —
+o degrau "o que gente atravessa" da escada de tamanho.</p>
+
+<div class="ctrl">
+  <label>Zoom <select id="zoom"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>×</label>
+  <label>Escala <input type="range" id="px" min="32" max="110" step="1" value="48"><span class="val" id="pxv">48</span> px/tile</label>
+  <label><input type="checkbox" id="ref" checked> jogador ao lado</label>
+  <label>Hora <select id="hora">
+    <option value="0.27">amanhecer 6h</option>
+    <option value="0.5" selected>meio-dia</option>
+    <option value="0.76">poente 18h</option>
+    <option value="0.92">noite 22h</option></select></label>
+  <label>Chão <select id="chao"></select></label>
+  <label>Filtrar <input id="filtro" placeholder="nome ou id" size="16"></label>
+  <label>Veredito <select id="ver">
+    <option value="">todos</option><option value="entra">entra</option>
+    <option value="substitui">substitui</option><option value="linha">corre em linha</option>
+    <option value="fora">fora</option></select></label>
+  <label><input type="checkbox" id="sombra" checked> sombra do motor</label>
+  <label><input type="checkbox" id="contorno" checked> contorno</label>
+  <label><input type="checkbox" id="soSus"> só os marcados</label>
+</div>
+
+<div id="resumo"></div>
+<div id="grade"></div>
+
+<script src="../../src/objetos.js"></script>
+<script src="../../src/data.js"></script>
+<script src="../../src/art.js"></script>
+<script src="../../src/world.js"></script>
+<script src="../../src/render2d.js"></script>
+<script>
+/* Mesma armadilha que o editor, a bancada de sombras e a de névoa já
+   documentam: por `file://` o navegador não carrega os fontes do jogo, e a
+   página abre vazia sem dizer por quê. */
+if (typeof OBJ === 'undefined') {
+  document.body.innerHTML =
+    '<h1>Abra pelo servidor, não por duplo clique</h1>' +
+    '<p class="lede">Esta bancada desenha com as rotinas do jogo, e o navegador não carrega ' +
+    '<code>src/</code> a partir de <code>file://</code> — por isso a página veio vazia. ' +
+    'Nada está quebrado.</p>' +
+    '<p class="lede">Com o <b>Server.bat</b> ou o <b>Editor.bat</b> já abertos, vá em:<br>' +
+    '<code style="color:#f0cd7a;font-size:16px">http://localhost:8765/tools/amostra/objetos.html</code></p>';
+  throw new Error('objetos.html: abra pelo servidor');
+}
+</script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+/* `TS`, `CHAO`, `CAM`, `tpx`, `resizeCam`, `outlined` e `dropShadow` vêm do
+   `render2d.js` que esta página carrega — redeclarar `TS` aqui estourava a
+   página inteira com "Identifier 'TS' has already been declared". É o preço, e
+   o certo, de a bancada desenhar chamando o render do jogo. */
+const RAIZ = '../../';
+
+/* Os chãos oferecidos. Objeto se julga CONTRA o chão em que ele vai se apoiar —
+   é a regra do CLAUDE.md sobre cor de material ("o poço tinha pedra a distância
+   13 do PAVE sob ele e sumia dentro da calçada"). Um objeto que lê bem na grama
+   e some na calçada é um objeto que ainda não está pronto. */
+const CHAOS = ['grass', 'dirt', 'pave', 'sand', 'grama_mata', 'palha', 'rock'];
+
+let MANIFESTO = null, IMGS = {}, CAT = {};
+
+/* A PROPOSTA de nome, categoria e veredito, do `catalogo.json`. Ela é o que o
+   dono corrige — nomear 105 peças do zero é o trabalho caro; riscar e renomear
+   uma lista pronta é o barato. Nada aqui entra no jogo: é papel, e o passo
+   seguinte é transcrever o que sobreviver para o `OBJ` do world.js. */
+const VER_COR = { entra: '#5f8f4a', substitui: '#8a6a2a', linha: '#4a6a8f', fora: '#6a4040' };
+
+function chaoDe(nome) {
+  /* usa o `tileTexture` do JOGO, não uma cópia: segunda arte diverge no
+     primeiro tile novo, e uma bancada que mente é pior que planta chapada */
+  const t = TILE[T.GRASS];
+  for (const k in T) { const d = TILE[T[k]]; if (d && d.tex === nome) return d; }
+  return t;
+}
+
+/* A LUZ DA HORA. Não é o passe de luz inteiro — é o que dele importa para
+   julgar um objeto: a cena multiplicada pela cor do céu daquela hora. Sem isto
+   a peça seria aprovada ao meio-dia e entraria clara demais para a caverna. */
+function luzDaHora(g, td, w, h) {
+  const [r, gg, b] = corDoCeu(td);
+  g.globalCompositeOperation = 'multiply';
+  g.fillStyle = `rgb(${r},${gg},${b})`;
+  g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'source-over';
+}
+
+/* O SPRITE, embrulhado UMA vez num canvas com `cx` e `feet`.
+   O `outlined` e o `silhouette` do jogo montam a partir de `spr.width/height` e
+   guardam em cache com o sprite por CHAVE — um `Image` cru serviria para
+   `drawImage` e não carregaria a âncora, e a âncora é metade do contrato: é ela
+   que diz onde o pé encosta. `k = 1` porque o recorte já sai em pixel de tile
+   (32 px = um tile), então quem escala é o `CAM.scale`, como em todo sprite. */
+const SPR = {};
+function spriteDe(nome, info, f) {
+  /* `f` é a escala PEDIDA contra a escala em que o PNG foi cortado. Ela
+     reamostra o que já foi reamostrado uma vez, então borra — está avisado no
+     cabeçalho. Serve para julgar TAMANHO, que é a pergunta em aberto; a
+     nitidez se julga no corte, com `--px-tile`. */
+  const ch = nome + '@' + f.toFixed(3);
+  if (SPR[ch]) return SPR[ch];
+  const im = IMGS[nome];
+  if (!im || !im.complete || !im.naturalWidth) return null;
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(info.w * f));
+  c.height = Math.max(1, Math.round(info.h * f));
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.drawImage(im, 0, 0, c.width, c.height);
+  c.cx = c.width / 2; c.feet = c.height; c.k = 1;
+  return SPR[ch] = c;
+}
+
+/* A FORÇA DO SOL DA HORA, pela conta do próprio `climaAgora`: é ela que o
+   `dropShadow` recebe como `sol`, e ela é o que faz a projetada sumir de noite
+   e endurecer ao meio-dia. Copiar um número à mão aqui daria uma sombra que não
+   é a do jogo em hora nenhuma. */
+const solDaHora = td => {
+  const [r, g, b] = corDoCeu(td);
+  return Math.min(1, (r * .3 + g * .6 + b * .1) / 200);
+};
+
+/* E A ALTURA DO SOL, que é quem decide o COMPRIMENTO da projetada. `altSolF`
+   nasce em 0 no render2d.js e só o `drawWorld` a atualiza — esta bancada não
+   roda o quadro do jogo, então ela ficava em 0 e `comp` saía no teto de 1,71
+   em TODA hora. O efeito era a peça parecendo boiar sobre uma sombra de poente
+   mesmo com o seletor no meio-dia: relato do dono, e o defeito era da bancada,
+   não do motor. `alturaSol` é a mesma função que o `drawWorld` chama. */
+const poeAlturaSol = td => { altSolF = alturaSol(td); };
+
+/* A ESCALA DE UMA PEÇA, e ela sai do que a coisa É — não de uma régua global.
+   `t` é a altura real em tiles que a ficha declara, medida contra o jogador
+   (1,50 tile, o `P_SZ`); a folha desenhou tudo no mesmo tamanho de célula, então
+   o px por tile que ela pede vai de 33 na coluna a 219 na garrafa. Uma régua só
+   sempre erraria uma das pontas: em 48 o poço fica certo e a garrafa sai com um
+   metro e meio; em 89 a garrafa fica certa e o jogador não passa pela porta.
+   Sem `t` na ficha, cai na régua global do controle — que é o que serve para
+   varrer a folha nova antes de anotar peça por peça. */
+function escalaDe(info, ct, cfg) {
+  /* Peça com ficha JÁ SAIU do recortador no tamanho dela: o `build_objetos.py`
+     lê o mesmo `catalogo.json` e corta cada uma pelo `w` (ou pelo `h`, para
+     quem ladrilha). Reamostrar aqui em cima disso só borraria — e pior, com o
+     SNAP de span do recortador os dois números divergem de propósito em até 9%,
+     e a bancada passaria a mostrar um tamanho que o jogo não vai desenhar.
+     Escala 1 é o que faz esta página mostrar o arquivo que o motor vai carregar.
+     A régua deslizante fica para folha ainda SEM ficha, que é como varrer uma
+     folha nova antes de anotar peça por peça. */
+  if (ct && (ct.w || ct.h)) return 1;
+  return (info.pxTile || 89) / cfg.px;
+}
+
+/* A LARGURA DO DESENHO, não a da lona. O recortador CENTRALIZA a peça numa lona
+   de `span * 32` (é o contrato que o render assume), então `info.w` mede a lona
+   e dá o mesmo número para peças de larguras bem diferentes — medindo por ele,
+   metade do catálogo acusava 96 px. O desenho é o bloco de alfa não-zero. */
+const LARG = new Map();
+function larguraReal(info) {
+  const k = info.png;
+  if (LARG.has(k)) return LARG.get(k);
+  const im = IMGS[k];
+  if (!im || !im.naturalWidth) return info.w;
+  const c = document.createElement('canvas');
+  c.width = info.w; c.height = info.h;
+  const g = c.getContext('2d');
+  g.drawImage(im, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height).data;
+  let x0 = c.width, x1 = -1;
+  for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++)
+    if (d[(y * c.width + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
+  const w = x1 >= x0 ? x1 - x0 + 1 : info.w;
+  LARG.set(k, w);
+  return w;
+}
+
+/* A SILHUETA DO JOGADOR, pelo `creatureSprite` do jogo com o `P_SZ` do jogo.
+   Escala não se julga contra outra peça da mesma folha — as duas podem estar
+   erradas juntas, e foi assim que a âncora da árvore passou. Quem diz quanto
+   mede uma pessoa é a porta, e quem diz quanto mede a porta é o boneco. */
+let REF = null;
+function refJogador() {
+  if (!REF) REF = creatureSprite('biped', 0x8a6a4a, P_SZ,
+    { skin: 0xe8c39e, weapon: null, shield: null }, 0, 0);
+  return REF;
+}
+
+function peca(c, nome, info, ct, cfg) {
+  /* `resizeCam` é quem liga o canvas ao render: ele acerta `VW`/`VH`,
+     `CAM.scale` e o `g2` interno que o `dropShadow` desenha. Sem isso a sombra
+     sairia no canvas do quadro anterior — ou em nenhum. Ele lê o tamanho em CSS,
+     então o canvas precisa estar no documento e com `style` posto ANTES. */
+  const S = cfg.zoom;
+  const f = escalaDe(info, ct, cfg);
+  const aw = info.w * f, ah = info.h * f;
+  const span = Math.max(1, Math.round(aw / TS));
+  const cols = Math.max(span + (cfg.ref ? 3 : 2), 4);
+  const linhas = Math.max(Math.ceil(ah / TS) + 2, 3);
+  c.style.width = (cols * TS * S) + 'px';
+  c.style.height = (linhas * TS * S) + 'px';
+  CAM.zoom = S;
+  resizeCam(c);
+  poeAlturaSol(cfg.hora);
+  const g = c.getContext('2d');
+  const t = tpx();                       // já com o devicePixelRatio dentro
+  g.imageSmoothingEnabled = false;
+
+  const def = chaoDe(cfg.chao);
+  const tex = tileTexture(def.tex, def.c);
+  for (let y = 0; y < linhas; y++) for (let x = 0; x < cols; x++) {
+    const cx = ((x % 3) + 3) % 3 * TEX_S / 3, cy = ((y % 3) + 3) % 3 * TEX_S / 3;
+    g.drawImage(tex, cx, cy, TS, TS, x * t, y * t, t, t);
+  }
+
+  /* O JOGADOR PRIMEIRO, e no mesmo chão: é ele a unidade da escada de tamanho,
+     e a peça se julga contra ele. Fica à esquerda, uma coluna antes da âncora. */
+  const gyRef = (linhas - 2) * t + t * CHAO;
+  if (cfg.ref) {
+    const r = cfg.contorno ? outlined(refJogador()) : refJogador();
+    const rx = t / 2, E0 = CAM.scale;
+    if (cfg.sombra) dropShadow(r, rx, gyRef, solDaHora(cfg.hora));
+    g.drawImage(r, rx - r.cx * E0, gyRef - r.feet * E0, r.width * E0, r.height * E0);
+  }
+
+  let spr = spriteDe(nome, info, f);
+  if (spr) {
+    if (cfg.contorno) spr = outlined(spr);
+    /* A ÂNCORA é (meio do span, a linha de contato dentro do tile) — a mesma
+       conta do `drawFloor`. Desenhar a partir do topo do tile faria toda peça
+       alta boiar, e boiando ela lê como pequena. */
+    const col = cfg.ref ? 1 : Math.floor((cols - span) / 2);
+    const gx = col * t + span * t / 2;
+    const gy = gyRef;
+    /* SOMBRA ANTES DO SPRITE, e as duas do MOTOR: a mancha de contato é o que
+       prega a coisa no chão, e a silhueta projetada é o que dá direção. Só a
+       projetada faz o objeto boiar; só a de contato faz decalque. */
+    if (cfg.sombra) dropShadow(spr, gx, gy, solDaHora(cfg.hora));
+    const E = CAM.scale;
+    g.drawImage(spr, gx - spr.cx * E, gy - spr.feet * E, spr.width * E, spr.height * E);
+  }
+  luzDaHora(g, cfg.hora, c.width, c.height);
+}
+
+function monta() {
+  const cfg = { zoom: +$('#zoom').value, hora: +$('#hora').value, chao: $('#chao').value,
+                filtro: $('#filtro').value.trim().toLowerCase(), soSus: $('#soSus').checked,
+                sombra: $('#sombra').checked, contorno: $('#contorno').checked,
+                px: +$('#px').value, ref: $('#ref').checked, ver: $('#ver').value };
+  $('#pxv').textContent = cfg.px;
+  const alvo = $('#grade');
+  alvo.innerHTML = '';
+  const nomes = Object.keys(MANIFESTO).sort();
+  let sombra = 0, grande = 0, larguras = {};
+  for (const nome of nomes) {
+    const info = MANIFESTO[nome];
+    const ct = CAT[nome] || {};
+    /* `px` da ficha ganha da régua global: é o degrau por peça que a folha
+       obriga, porque ela comprime a faixa de tamanho — em 48 o balde sai com
+       um metro de altura. Onde a ficha não fala, vale a régua. */
+    const f = escalaDe(info, ct, cfg);
+    const aw = info.w * f, ah = info.h * f;
+    const span = Math.max(1, Math.round(aw / TS));
+    const ehSombra = info.escuroNaBase > .25, ehGrande = ah > TS * 2;
+    if (ehSombra) sombra++;
+    if (ehGrande) grande++;
+    larguras[span] = (larguras[span] || 0) + 1;
+    const alvoFiltro = (nome + ' ' + (ct.id || '') + ' ' + (ct.n || '')).toLowerCase();
+    if (cfg.filtro && !alvoFiltro.includes(cfg.filtro)) continue;
+    if (cfg.ver && ct.v !== cfg.ver) continue;
+    if (cfg.soSus && !ehSombra && !ehGrande) continue;
+    const d = document.createElement('div');
+    d.className = 'pc' + (ehSombra ? ' sombra' : ehGrande ? ' grande' : '');
+    if (ct.v) d.style.borderLeft = '4px solid ' + VER_COR[ct.v];
+    /* A LEGENDA VAI EM ELEMENTO PRÓPRIO, e nunca por `innerHTML +=` depois de
+       anexar o canvas: `+=` reserializa e reparseia os filhos, e o canvas volta
+       como um elemento NOVO e em branco. O bitmap some sem erro nenhum — a
+       página desenha certo e mostra retângulo preto. */
+    const cv = document.createElement('canvas');
+    d.appendChild(cv);
+    alvo.appendChild(d);
+    peca(cv, nome, info, ct, cfg);
+    const leg = document.createElement('div');
+    leg.innerHTML = '<b>' + (ct.n || nome.replace(/^objects_/, '')) + '</b>'
+      + (ct.v ? '<i style="color:' + VER_COR[ct.v] + '">' + ct.v
+                + (ct.alvo ? ' → ' + ct.alvo : '') + '</i>' : '')
+      + '<i>' + nome.replace(/^objects_/, '') + (ct.id ? ' · ' + ct.id : '')
+                + (ct.cat ? ' · ' + ct.cat : '') + '</i>'
+      + '<i>span ' + span + ' · ' + (ah / TS).toFixed(2) + ' tiles'
+                + (ct.h ? ' · alt ' + ct.h.toFixed(2) + ' (ladrilha)'
+                          : ct.w ? ' · larg ' + ct.w.toFixed(2) : ' · régua global') + ' · #'
+                + info.c.toString(16).padStart(6, '0') + '</i>'
+      + '<i>base escura ' + Math.round(info.escuroNaBase * 100) + '%</i>'
+      + (ct.nota ? '<i style="color:#8a7a58;white-space:normal;max-width:230px">' + ct.nota + '</i>' : '');
+    d.appendChild(leg);
+  }
+  const corte = MANIFESTO[nomes[0]].pxTile || 89;
+  $('#resumo').textContent =
+    nomes.length + ' peças recortadas\n' +
+    'largura em tiles: ' + Object.keys(larguras).sort((a, b) => a - b).map(k => k + ' tile: ' + larguras[k]).join('  ·  ') + '\n' +
+    grande + ' passam de 2 tiles de altura (moldura dourada)\n' +
+    sombra + ' com mais de 25% de pixel escuro e sem croma na base (moldura vermelha)\n' +
+    '\nescala: PNG cortado a ' + corte + ' px/tile, mostrado a ' + cfg.px + '.\n' +
+    (cfg.px === corte ? 'A régua bate com o corte — o que você vê é o PNG, sem reamostragem.\n'
+                      : 'Reamostrado ' + (corte / cfg.px).toFixed(2) + '× nesta página: julgue o TAMANHO, não a nitidez.\n') +
+    'Ancoragem construída (px/tile): porta 48,0 · arco 46,0 · boca de caverna 49,6\n' +
+    '· poço 46,5 · fonte 50,0 · cadeira 47,3 — mediana 47,3.\n' +
+    '\nA sombra é inteira do motor: comprimento pelo `alturaSol` da hora escolhida,\n' +
+    'direção, mancha de contato, alfa, e o FADE ao longo do rastro. Antes desta\n' +
+    'volta o `altSolF` ficava em 0 aqui (só o `drawWorld` o atualiza) e a projetada\n' +
+    'saía no teto de 1,71 em TODA hora — a peça lia como boiando sobre uma sombra\n' +
+    'de poente mesmo ao meio-dia.';
+}
+
+Promise.all([
+  fetch(RAIZ + 'assets/objetos/manifest.json').then(r => r.json()),
+  fetch(RAIZ + 'assets/objetos/catalogo.json').then(r => r.json()).catch(() => ({ pecas: {} }))
+]).then(([m, cat]) => {
+  MANIFESTO = m; CAT = cat.pecas || {};
+  $('#chao').innerHTML = CHAOS.map(c => '<option>' + c + '</option>').join('');
+  let faltam = Object.keys(m).length;
+  if (!faltam) { $('#resumo').textContent = 'manifesto vazio — rode o build_objetos.py com --aplicar'; return; }
+  for (const nome in m) {
+    const im = new Image();
+    im.onload = im.onerror = () => { if (--faltam === 0) monta(); };
+    im.src = RAIZ + 'assets/objetos/' + nome + '.png';
+    IMGS[nome] = im;
+  }
+  for (const s of ['#zoom', '#hora', '#chao', '#soSus', '#sombra', '#contorno', '#ref', '#ver']) $(s).onchange = monta;
+  $('#px').value = MANIFESTO[Object.keys(MANIFESTO)[0]].pxTile || 89;
+  $('#px').oninput = monta;
+  $('#filtro').oninput = monta;
+}).catch(e => {
+  $('#resumo').textContent = 'não achei assets/objetos/manifest.json — rode:\n'
+    + '  python assets/build_objetos.py assets/scenario/objects_01.png --aplicar';
+});
+</script>

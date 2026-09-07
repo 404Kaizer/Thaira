@@ -312,7 +312,6 @@ function hudOptions(soAtualiza) {
   volume('geral', 'Volume geral');
   volume('musica', 'Música');
   volume('efeitos', 'Efeitos');
-  volume('passos', 'Passos');
   volume('ambiente', 'Ambiente (vento, chuva)');
 
   sec('Barras de vida e mana');

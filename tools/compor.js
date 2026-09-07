@@ -152,6 +152,25 @@ function povoa(m, z, cx, cy, r, elenco, quantos, seed, extra) {
    Pintar um tile só de um objeto com `span` deixaria uma âncora sem rastro (o
    desenho transborda por cima de chão andável) ou um rastro sem âncora (o tile
    bloqueia e não desenha nada, que é a parede invisível de novo). */
+/* PÕE UM OBJETO NO LUGAR, depois da descida para duas camadas — o mesmo que o
+   editor faz, e o caminho de quem NÃO tem vocabulário de tile.
+   Os dois caminhos existem e não competem: TILE é para o que se pinta em ÁREA
+   (a mata, a cerca, o muro), onde o autor quer escrever `espalha(T.TREE)` e não
+   mil coordenadas; OBJETO DIRETO é para o que se põe UM A UM — mobília, adereço,
+   marca. Dar tile a cada cadeira gastaria o alfabeto (que já entrou no Latin-1)
+   e encheria a paleta de tile com coisa que não é chão.
+   Falha alto se chamada antes do `parte()`: sem `m.objs` ela empurraria para o
+   nada e a mobília sumiria em silêncio. */
+function poe(m, z, x, y, id) {
+  if (!m.objs) throw new Error('poe(): chame C.parte(m) antes — o mapa ainda está em uma camada');
+  if (!OBJ[id]) throw new Error('poe(): objeto desconhecido: ' + id);
+  if (!dentro(m, x, y)) return null;
+  const o = { x, y, o: id };
+  m.objs[z].push(o);
+  if (m._oi) m._oi[z] = null;                 // o índice de colisão envelheceu
+  return o;
+}
+
 function objeto(m, z, x, y, tile) {
   const sp = TILE[tile].span || [1, 1];
   for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) pinta(m, z, x + i, y + j, tile);
@@ -199,7 +218,14 @@ function objsEm(m, z, x, y) {
   if (!m._oi[z]) {
     const idx = new Map();
     for (const o of m.objs[z]) {
-      const sp = (OBJ[o.o] || {}).span || [1, 1];
+      /* O FOOTPRINT, não a largura de desenho — o mesmo que o `reindexObjs` do
+         jogo faz. Este índice serve ao `andavel`, e é COLISÃO: lendo `span`, a
+         árvore (`span: [2,1]` de copa, `pe: [1,1]` de tronco) passou a barrar o
+         tile a leste de cada uma das 1712, o que recorta a mata em bolsões
+         isolados e faz a conferência de recintos acusar dezenas de pedaços que
+         não existem no jogo. Terceiro leitor de `span` desta leva. */
+      const d = OBJ[o.o] || {};
+      const sp = d.pe || d.span || [1, 1];
       for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) {
         const k = (o.y + j) * m.w + (o.x + i), l = idx.get(k);
         if (l) l.push(o); else idx.set(k, [o]);
@@ -487,4 +513,4 @@ function salva(m) {
 module.exports = { T, TILE, OBJ, MONSTERS, mulberry32,
   novoMapa, le, pinta, retangulo, disco, poligono, linha, caminho,
   rasga, espalha, limpaIlhotas, spawn, povoa, objeto, conferObjetos, hunt, poi, escada, conta, componentes,
-  espalhaDeco, andavel, objsEm, parte, aplicaPatch, patchAtrasado, salva };
+  espalhaDeco, andavel, objsEm, poe, parte, aplicaPatch, patchAtrasado, salva };

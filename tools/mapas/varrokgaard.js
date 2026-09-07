@@ -14,7 +14,7 @@
    jogador não está coberto —, então a ponte não pediu código de motor nenhum. */
 'use strict';
 const C = require('../compor');
-const { T } = C;
+const { T, TILE } = C;
 
 const MURO = 0, S = 1, GOELA = 2;          // sobre o muro, superfície, subsolo
 const L = 192;
@@ -360,19 +360,48 @@ m.templo = { x: TPL_CX, y: TPL_Y + 4, z: S };
 C.linha(m, S, RUA_X + 1, MY0 + 4, RUA_X + 1, MY1 - 3, T.PAVE, 3);
 C.linha(m, S, MX0 + 4, 152, MX1 - 4, 152, T.PAVE, 3);            // a travessa do largo
 
-function casa(x, y, w, h, px, py) {
+function casa(x, y, w, h, px, py, piso) {
   C.retangulo(m, S, x, y, w, h, T.WALL);
-  C.retangulo(m, S, x + 1, y + 1, w - 2, h - 2, T.FLOOR);
+  C.retangulo(m, S, x + 1, y + 1, w - 2, h - 2, piso);
   C.pinta(m, S, px, py, T.DOOR);
 }
 /* Fila oeste e fila leste, de frente para a rua; os fundos dão para as hortas,
-   que é o que casa de fazenda faz. A porta olha SEMPRE para a rua. */
-for (const [x, y, w, h, px, py] of [
-  [70, 127, 11, 8, 80, 131], [70, 137, 11, 8, 80, 141],
-  [70, 157, 11, 8, 80, 161], [70, 167, 11, 7, 80, 170],
-  [99, 157, 11, 8, 99, 161], [99, 167, 11, 7, 99, 170],
-  [82, 167, 8, 7, 85, 167]
-]) casa(x, y, w, h, px, py);
+   que é o que casa de fazenda faz. A porta olha SEMPRE para a rua.
+   O PISO DIZ O QUE A CASA É, e é ele — não a parede — que separa um cômodo do
+   outro para quem olha de cima: numa planta você lê quatro cômodos ANTES de
+   olhar para as paredes. Até aqui as sete casas tinham o mesmo `T.FLOOR` e a
+   vila lia como um galpão repartido.
+   A escolha não é decorativa: onde há FOGO o piso é incombustível, que é o que
+   se fazia de verdade — a forja ganha laje e a padaria, tijolo, porque o forno
+   fica nela. As moradias ficam de tábua, e a taverna leva a tábua ESCURA, que é
+   a mesma família em variante gasta: chão de taverna é pisado e derramado.
+   Três famílias (tábua, tijolo, calçada) e não sete: variante da mesma família
+   se parece de propósito, e a régua de distância de cor vale ENTRE famílias. */
+for (const [x, y, w, h, px, py, piso] of [
+  [70, 127, 11, 8, 80, 131, T.FLOOR_CLARA],     // moradia
+  [70, 137, 11, 8, 80, 141, T.FLOOR_ESCURA],    // A TAVERNA — tábua pisada
+  [70, 157, 11, 8, 80, 161, T.FLOOR_CLARA],     // moradia
+  [70, 167, 11, 7, 80, 170, T.BRICK],           // A PADARIA — o forno é dela
+  [99, 157, 11, 8, 99, 161, T.PAVE_LAJE],       // A FORJA — laje, por causa do fogo
+  [99, 167, 11, 7, 99, 170, T.FLOOR_LARGA],     // o escriba
+  [82, 167, 8, 7, 85, 167, T.FLOOR_DEITADA]     // a casa pequena
+]) casa(x, y, w, h, px, py, piso);
+
+/* A AMOSTRA DE TELHADO SAIU DAQUI, e a lição fica.
+   Ela pintava o telhado em (71,128), um tile a SUDESTE da casa, para compensar o
+   deslocamento com que o `drawFloor` desenha o andar de cima (`dz` entra no X e
+   no Y). Foi compensar um deslocamento de RENDER dentro do DADO — e o dado é o
+   que a lógica lê: o `souCoberto` pergunta "há tile em z−1 NESTA coordenada?" e
+   não sabe nada de deslocamento de desenho.
+   Medido, o estrago: `abrigado` ficava verdadeiro numa faixa deslocada um tile a
+   sudeste da casa. O corte de 42% do telhado e a sombra de prédio vazavam para
+   FORA pelo leste e pelo sul, a coluna oeste e a fileira norte do interior
+   ficavam ACESAS, e o jogador clareava ao passar do lado errado da casa. Três
+   sintomas, um erro.
+   Quando o telhado voltar: ele se pinta nas coordenadas DA CASA, e o
+   deslocamento do andar de cima é o que dá a leitura de altura — é assim que o
+   Tibia mostra elevação, e é do render, não do mapa. */
+
 
 /* O PAIOL DA HALDA — o segundo prédio com função da vila, e de onde sai o
    primeiro equipamento. Palha por dentro: é o que distingue paiol de casa. */
@@ -561,6 +590,278 @@ const patch = C.aplicaPatch(m, null, 'tiles');
    que não existem. */
 const partiu = C.parte(m);
 
+/* ---------------------------------------------------------------------------
+   A VILA VESTIDA. Trabalho de MÃO, e não de `espalha`: mobília sorteada põe cama
+   na cozinha. Cada casa tem uma vocação e a mobília dela diz qual — é o que
+   separa "sete casas" de "a padaria, a forja, a taverna e quatro moradias".
+
+   Vem DEPOIS do `parte()` porque estas peças não têm vocabulário de tile: dar um
+   `T.` a cada cadeira gastaria o alfabeto (que já entrou no Latin-1) e encheria
+   a paleta de tile com coisa que não é chão. Tile é para o que se pinta em ÁREA;
+   objeto direto é para o que se põe um a um.
+   E vem ANTES do patch de objeto, para a correção do dono ganhar da minha.
+
+   A regra de composição, para quem for vestir os outros lugares: mobília ENCOSTA
+   NA PAREDE e o miolo fica livre. Não é gosto — é o que impede a casa de virar
+   um labirinto de tiles selados, e a conferência de recintos cobra isso. */
+function mobilia(z, lista) {
+  const pulados = [];
+  for (const [x, y, id] of lista) {
+    const d = C.OBJ[id] || {};
+    const sp = d.pe || d.span || [1, 1];
+    /* PULA em vez de empilhar. `poe` não pergunta nada — é o editor em forma de
+       função —, então quem confere é aqui: peça que cairia dentro de parede, em
+       cima de outra ou fora do chão não entra, e sai no relatório. Sem isto a
+       mobília entraria calada dentro do muro e só apareceria como uma cadeira
+       flutuando na pedra. */
+    let cabe = true;
+    for (let j = 0; j < sp[1] && cabe; j++)
+      for (let i = 0; i < sp[0]; i++)
+        if (!C.andavel(m, z, x + i, y + j)) { cabe = false; break; }
+    if (!cabe) { pulados.push(`${id} em ${x},${y}`); continue; }
+    C.poe(m, z, x, y, id);
+  }
+  return pulados;
+}
+
+/* AS JANELAS. Elas são um campo da INSTÂNCIA da parede (`jan`), como o `aberta`
+   da porta — nenhum id novo, nenhum tile novo, e a janela herda o material, a
+   máscara de vizinho e a face da parede em que está.
+   Vão SÓ na fachada que dá para a rua. Casa de aldeia não tem janela nos fundos:
+   os fundos dão para a horta e para o muro, e abrir vão ali é convite. É a mesma
+   razão pela qual a porta olha sempre para a rua. */
+function janelas(z, lista) {
+  const pulados = [];
+  for (const [x, y] of lista) {
+    const alvo = C.objsEm(m, z, x, y).find(o => (C.OBJ[o.o] || {}).cat === 'parede' && o.x === x && o.y === y);
+    if (!alvo) { pulados.push(`${x},${y}`); continue; }
+    /* TROCA O ID, e não marca a instância: o mapa grava `x,y,id` e campo de
+       instância não sobrevive ao salvamento — medido, as 21 janelas sumiram na
+       primeira tentativa e o jogo carregou sem nenhuma. */
+    const comJanela = { ptabua: 'ptabuaj', pbloco: 'pblocoj' }[alvo.o];
+    if (!comJanela) { pulados.push(`${x},${y} (${alvo.o} nao tem variante com janela)`); continue; }
+    alvo.o = comJanela;
+  }
+  return pulados;
+}
+const semJanela = janelas(S, [
+  /* As sete casas: dois vãos por fachada, ladeando a porta. */
+  [80, 129], [80, 133],            // casa 1, fachada leste
+  [80, 139], [80, 143],            // a taverna
+  [80, 159], [80, 163],            // casa 3
+  [80, 168], [80, 172],            // a padaria
+  [99, 159], [99, 163],            // a forja, fachada oeste
+  [99, 168], [99, 172],            // o escriba
+  [83, 167], [87, 167],            // a casa pequena, fachada norte
+  /* O templo: vão alto nas duas naves, ritmado com os contrafortes. */
+  [99, 131], [99, 135], [99, 139],
+  [111, 131], [111, 135], [111, 139]
+]);
+
+const pulados = mobilia(S, [
+  /* CASA 1 (70,127) — moradia. Cama e lareira na parede norte, mesa no meio-sul. */
+  [71, 128, 'cama'], [74, 128, 'armario'], [75, 128, 'bau'], [77, 128, 'lareira'],
+  [79, 128, 'candelabro'], [72, 131, 'mesar'], [74, 131, 'cadeira'],
+  [71, 132, 'tamborete'], [75, 132, 'tapete'], [71, 133, 'pote'],
+
+  /* CASA 2 (70,137) — A TAVERNA. Duas mesas compridas e a adega ao sul; é a
+     única casa da vila com mais de uma mesa, e é isso que a nomeia. */
+  [72, 139, 'mesa'], [76, 139, 'mesa'], [71, 139, 'tamborete'], [74, 139, 'tamborete'],
+  [75, 139, 'tamborete'], [78, 139, 'tamborete'], [74, 138, 'lustre'],
+  [71, 142, 'adega'], [74, 142, 'tonel'], [75, 142, 'engradado'],
+  [76, 142, 'garrafa'], [77, 142, 'jarro'],
+
+  /* CASA 3 (70,157) — moradia. */
+  [71, 158, 'cama'], [74, 158, 'armario'], [77, 158, 'lareira'],
+  [72, 161, 'mesar'], [74, 161, 'cadeira'], [71, 162, 'bau'],
+  [79, 158, 'pote'], [79, 163, 'jarro'],
+
+  /* CASA 4 (70,167) — A PADARIA. O forno é a peça que a nomeia. */
+  [71, 168, 'forno'], [74, 168, 'caldeirao'], [76, 168, 'mesa'],
+  [71, 171, 'potao'], [72, 171, 'anfora'], [74, 171, 'tina'], [78, 171, 'pote'],
+
+  /* CASA 5 (99,157) — A FORJA. Bigorna e mó, e o braseiro que a acende. */
+  [101, 159, 'bigorna'], [105, 159, 'mo'], [108, 159, 'braseiro'],
+  [100, 162, 'tonel'], [101, 162, 'tina'], [107, 162, 'bau'],
+  [108, 158, 'escadamao'],
+
+  /* CASA 6 (99,167) — o escriba: escrivaninha, duas estantes e o mapa. */
+  [101, 168, 'escrivania'], [104, 168, 'estante'], [107, 168, 'estante'],
+  [103, 169, 'cadeira'], [100, 171, 'bau'], [104, 171, 'tapete'],
+  [101, 172, 'mapaparede'], [108, 171, 'candelabro'],
+
+  /* CASA 7 (82,167) — a menor, e por isso a mais pobre: cama e pouco mais. */
+  [83, 169, 'cama'], [87, 169, 'tamborete'], [88, 168, 'pote'],
+  [83, 172, 'jarro'], [87, 172, 'bau'],
+
+  /* O TEMPLO. As colunas da nave já são pedra lavrada (tile), então o que entra
+     aqui é o que a pedra não diz: estandarte e flâmula nas paredes, braseiro nas
+     naves laterais, e as colunas SOLTAS ladeando o pórtico, do lado de fora. */
+  [100, 129, 'estandarte'], [110, 129, 'estandarte'],
+  [100, 141, 'flamula'], [110, 141, 'flamula'],
+  [101, 133, 'braseiro'], [109, 133, 'braseiro'],
+  [105, 135, 'lustre'], [104, 138, 'tapete'],
+  [103, 141, 'colunal'], [107, 141, 'colunal'],
+  [103, 126, 'coluna'], [107, 126, 'coluna'],
+
+  /* A RUA E O LARGO. O poço e o moinho já estavam; falta o que diz que aqui se
+     PARA: a fonte, o quadro de avisos e a placa de quem chega pela ponte. */
+  [86, 155, 'fonte'], [94, 128, 'quadroaviso'], [89, 128, 'placa'],
+  [90, 149, 'braseiro'],
+  /* E o que diz que aqui se MORA, do lado de fora das casas. */
+  [71, 135, 'varal'], [81, 138, 'escadamao'], [81, 158, 'tonel']
+]);
+
+/* SEMEADURA DE OBJETO — o irmão do `espalha` para quem não tem tile.
+   Textura pede sorteio: pôr cinquenta cogumelos à mão é trabalho de escrever
+   cem números, e nenhum deles é uma decisão. MARCO pede mão: a entrada de mina
+   e o espantalho estão onde estão porque alguém escolheu.
+   Semeado, então repetível: a mesma chamada dá sempre o mesmo resultado, e é
+   isso que permite corrigir uma região sem embaralhar as outras. */
+function semeia(z, id, chance, seed, filtro) {
+  const r = C.mulberry32(seed), d = C.OBJ[id] || {};
+  const sp = d.pe || d.span || [1, 1];
+  let n = 0;
+  for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
+    if (!filtro(x, y, C.le(m, z, x, y))) continue;
+    if (r() >= chance) continue;
+    let cabe = true;
+    for (let j = 0; j < sp[1] && cabe; j++)
+      for (let i = 0; i < sp[0]; i++)
+        if (!C.andavel(m, z, x + i, y + j)) { cabe = false; break; }
+    if (!cabe) continue;
+    /* NÃO CAI EM CIMA DE BICHO. Os spawns são escolhidos antes, e adereço por
+       cima de um deixa a criatura nascendo dentro de um toco — a conferência
+       acusa como "spawn em tile que barra" e a causa fica a três regiões de
+       distância de onde o alarme aparece. */
+    if (m.spawns.some(v => v.z === z && v.x >= x && v.x < x + sp[0]
+                                     && v.y >= y && v.y < y + sp[1])) continue;
+    /* NÃO FECHA PASSAGEM. Semeadura densa fecha o último vão de um tile sem
+       saber, e o resultado é um recinto de um ou três tiles que a conferência
+       acusa com razão — foi o que aconteceu na primeira execução, no Corte
+       Velho. Exigir três dos quatro vizinhos livres deixa o adereço encostar
+       numa quina, mas nunca tapar um corredor. */
+    let livres = 0;
+    for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]])
+      if (C.andavel(m, z, x + dx, y + dy)) livres++;
+    if (livres < 3) continue;
+    C.poe(m, z, x, y, id); n++;
+  }
+  return n;
+}
+
+/* ---------------------------------------------------------------- OS TRIGAIS
+   O espantalho é a peça que diz "isto é lavoura" sem precisar de mais nada, e
+   por isso vai UM por talhão, no meio dele — espantalho em dupla vira adereço.
+   O resto é o pátio: o que se guarda entre a colheita e o celeiro. */
+const trigais = mobilia(S, [
+  [62, 82, 'espantalho'], [84, 85, 'espantalho'], [63, 97, 'espantalho'],
+  [84, 102, 'espantalho'], [64, 121, 'espantalho'],
+  [72, 94, 'meda'], [77, 94, 'meda'],
+  [72, 96, 'carrocac'], [75, 96, 'sacaria'], [72, 98, 'caixotes'],
+  [75, 98, 'caixote'], [76, 98, 'barris'], [74, 94, 'sacograo'],
+  [76, 96, 'montegrao'], [77, 97, 'cestograo'], [77, 92, 'tanque']
+]);
+
+/* -------------------------------------------------------------- CORTE VELHO
+   Se ali se corta lenha, tem de haver toco cortado e lenha empilhada — hoje o
+   lugar é mata com um nome. O toco é semeado porque é a marca do machado
+   repetida; a pilha e a fogueira são do lenhador, e ficam no rancho dele. */
+const corte = mobilia(S, [
+  [141, 112, 'lenha'], [142, 116, 'fogueira'], [150, 118, 'lenha']
+]);
+const tocos = semeia(S, 'toco', .055, 7101,
+  (x, y, t) => (t === T.GRASS_RALA || t === T.DIRT) && noCorte(x, y));
+const gravetos = semeia(S, 'gravetos', .04, 7102,
+  (x, y, t) => t === T.GRASS_RALA && noCorte(x, y));
+
+/* --------------------------------------------------------------- MATA FUNDA
+   Deliberadamente pouco: a identidade dela é DENSIDADE DE ÁRVORE, e enchê-la de
+   adereço tira o que a caracteriza. Cogumelo no chão úmido e pedra no meio do
+   mato bastam para não ser um campo de troncos. */
+const cogumelos = semeia(S, 'cogumelo', .022, 7201, naMata(MATA_R * MATA_R));
+const pedrasMata = semeia(S, 'pedrau', .008, 7202, naMata(MATA_R * MATA_R));
+const mataFunda = mobilia(S, [
+  [72, 34, 'pedrasg'], [68, 52, 'pedrasg'], [56, 26, 'pedrasg']
+]);
+
+/* ------------------------------------------------------------ PEDREIRA RASA
+   A entrada de mina é a peça mais importante da leva inteira: ela dá BOCA
+   VISÍVEL ao que hoje é uma escada no chão. Fica ao norte da escada, para quem
+   desce entrar por ela; e o escombro diz que a pedra saiu dali — pedreira sem
+   entulho é morro. */
+const pedreira = mobilia(S, [
+  [PED_X - 1, PED_Y - 1, 'entmina'],
+  [PED_X + 4, PED_Y + 3, 'escombro'], [PED_X - 5, PED_Y + 2, 'escombro']
+]);
+
+/* ---------------------------------------------------------------- A GOELA
+   O archote é o único aqui que muda JOGO e não só leitura: ele acende, e a
+   Goela é o lugar onde luz é recurso. Os cristais dão o ponto de cor que uma
+   caverna de pedra e teia não tem. */
+const cristais = semeia(GOELA, 'cristais', .006, 7301, (x, y, t) => t === T.CFLOOR);
+const buracos = semeia(GOELA, 'buraco', .004, 7302, (x, y, t) => t === T.CFLOOR);
+const archotes = semeia(GOELA, 'archote', .004, 7303, (x, y, t) => t === T.CFLOOR);
+
+/* ------------------------------------------------------------- CABO DO SAL
+   O único lugar da ilha onde peça MÁGICA se justifica, e a lore explica por
+   quê: há um mago num acampamento que ninguém sabe por que existe, num nível
+   acima do que a ilha comporta. A bancada e a prateleira são o que ele deixou;
+   a estela e o orbe são a pergunta sem resposta — UM orbe, não quatro, porque
+   quatro viram decoração. A fogueira completa o que o chão já dizia: o disco de
+   cinza está lá desde o primeiro esboço, sem nada em cima. */
+const cabo = mobilia(S, [
+  [CAB_X, CAB_Y, 'fogueira'],
+  [CAB_X - 4, CAB_Y - 3, 'alquimia'], [CAB_X - 4, CAB_Y - 1, 'prateleira'],
+  [CAB_X - 2, CAB_Y - 3, 'baud'], [CAB_X + 3, CAB_Y - 3, 'estela'],
+  [CAB_X + 3, CAB_Y - 1, 'orbeazul'], [CAB_X - 3, CAB_Y + 4, 'boneco'],
+  [CAB_X - 2, CAB_Y + 1, 'espeto']
+]);
+
+/* ------------------------------------------------- O TRAPICHE E O EMBARCADOURO
+   Não pedem peça nova: pedem as MESMAS da fazenda, em outra densidade e outra
+   arrumação. Carga empilhada em fila junto da tábua lê como porto; a mesma carga
+   esparramada lê como depósito. É composição, não vocabulário. */
+const costa = mobilia(S, [
+  [145, 134, 'caixotes'], [144, 134, 'sacaria'], [148, 133, 'barris'],
+  [92, 174, 'caixote'], [93, 174, 'sacaria'], [94, 174, 'barris'], [92, 176, 'tonel']
+]);
+
+/* --------------------------------------------------- AS FAMILIAS DE ARVORE
+   Onde cada uma mora nao e gosto: sai de onde a agua esta e de onde o terreno
+   sobe. Sao ARVORES JA PLANTADAS que trocam de familia, e nao arvores novas —
+   a mata nao fica mais densa, ela fica mais variada. Trocar em vez de somar e o
+   que impede o bosque de virar um catalogo.
+
+   SALGUEIRO na margem: copa baixa e larga, raiz exposta. O rio ja traz
+   mata-galeria por regra (o `espalha` de linha 169), entao a arvore de margem ja
+   esta la — falta ela ser a arvore CERTA. Perto da agua vira salgueiro.
+
+   PINHEIRO no alto: a Pedreira e a parte alta e seca da ilha, e conifera marca
+   altitude sem precisar de relevo desenhado.
+
+   OUTONO NAO ENTRA. A proposta deixou a decisao em aberto e o dono ainda nao
+   escolheu: Varrokgaard nao tem estacao declarada, e um bosque laranja no meio
+   de uma ilha temperada pede uma explicacao que a terra nao da. Fica parada de
+   proposito, e nao por esquecimento. */
+function trocaFamilia(z, alvo, seed, filtro) {
+  const r = C.mulberry32(seed);
+  let n = 0;
+  for (const o of m.objs[z]) {
+    if (o.o !== 'arvore') continue;
+    if (!filtro(o.x, o.y, r)) continue;
+    o.o = alvo; n++;
+  }
+  if (m._oi) m._oi[z] = null;
+  return n;
+}
+const salgueiros = trocaFamilia(S, 'salgueiro', 7401,
+  (x, y, r) => distDaAgua(x, y, 4) < 4 && r() < .55);
+const pinheiros = trocaFamilia(S, 'pinheiro', 7402,
+  (x, y, r) => (x - PED_X) ** 2 + (y - PED_Y) ** 2 < 34 * 34 && r() < .60);
+
+const pulRegioes = [...trigais, ...corte, ...mataFunda, ...pedreira, ...cabo, ...costa];
+
 /* E o patch de OBJETO por cima, que só existe depois da descida. Mesma regra da
    correção de terreno: por cima do que eu compus, antes de conferir. */
 const patchObj = C.aplicaPatch(m, null, 'objs');
@@ -595,6 +896,35 @@ console.log(`cerca nova: ${cercaTiles} tiles de estacaria  ·  poças limpas: ${
    esperado declara um ponto dentro de si, e a conferência cobra as duas metades:
    que todos existam, e que não exista nenhum fora da lista. Recinto novo entra
    aqui de propósito, com nome, ou é erro. */
+/* OS PISOS DOS PRÉDIOS, POR NOME — mesma forma dos RECINTOS, e pelo mesmo
+   motivo. Quem lê um cômodo de cima lê o CHÃO dele antes de olhar para a parede;
+   enquanto as sete casas tiveram o mesmo `T.FLOOR`, a vila lia como um galpão
+   repartido. E como toda régua desta casa, ela cobra as DUAS metades:
+   · todo prédio declarado tem, no miolo, a família de piso que ele declara;
+   · toda PORTA da vila pertence a um prédio declarado — senão alguém levantou
+     uma casa nova e não decidiu o chão dela, que é o descuido que traz o
+     `T.FLOOR` de volta em todo lugar sem ninguém notar.
+   Contar prédios não serviria: um prédio novo indesejado passaria batido bastando
+   que outro sumisse na mesma execução. É o erro que os RECINTOS já cometeram. */
+const PISOS = [
+  ['moradia norte',  70, 127, 11, 8, 'tabua'],
+  ['a taverna',      70, 137, 11, 8, 'tabua'],
+  ['moradia sul',    70, 157, 11, 8, 'tabua'],
+  ['a padaria',      70, 167, 11, 7, 'tijolo'],    // o forno é dela
+  ['a forja',        99, 157, 11, 8, 'calcada'],   // laje, por causa do fogo
+  ['o escriba',      99, 167, 11, 7, 'tabua'],
+  ['a casa pequena', 82, 167,  8, 7, 'tabua'],
+  /* O PAIOL entrou porque a régua o cobrou, e é o melhor argumento a favor dela:
+     ele já tinha piso próprio (palha, e é o que distingue paiol de casa), mas
+     ninguém o havia declarado — logo ninguém guardava esse piso. */
+  ['o paiol da Halda', 70, 146, 12, 5, 'palha']
+];
+/* TRÊS famílias é o piso da régua, e não sete: variante da mesma família se
+   parece DE PROPÓSITO (duas tábuas têm de se parecer), e o que nunca pode se
+   confundir é tábua com tijolo. Abaixo de três, a vila voltou a ser um material
+   só e a leitura de cômodo se perdeu. */
+const PISO_FAMILIAS_MIN = 3;
+
 const RECINTOS = [
   /* O portão da Cerca Nova, e não o centro da hunt: o centro da Mata Funda cai
      dentro de árvore (o `espalha` não sabe que ali é âncora de conferência), e
@@ -674,11 +1004,48 @@ console.log(`lugar em tile não andável: ${poisNaAgua.length}` +
 console.log(`spawn DENTRO do muro da vila: ${naVila.length}` +
   (naVila.length ? '  -> ' + naVila.map(s => `${s.m} em ${s.x},${s.y}`).join(' | ') : ''));
 console.log(`spawn solto, fora de todo lugar: ${soltos.length}`);
+console.log(`janela sem parede embaixo: ${semJanela.length}` +
+  (semJanela.length ? '  -> ' + semJanela.join(' | ') : ''));
+console.log(`mobília da vila que não coube: ${pulados.length}` +
+  (pulados.length ? '  -> ' + pulados.join(' | ') : ''));
+console.log(`adereço de região que não coube: ${pulRegioes.length}` +
+  (pulRegioes.length ? '  -> ' + pulRegioes.join(' | ') : ''));
+console.log(`semeado: ${tocos} tocos · ${gravetos} gravetos · ${cogumelos} cogumelos · ` +
+  `${pedrasMata} pedras · ${cristais} cristais · ${buracos} buracos · ${archotes} archotes`);
+console.log(`árvore por família: ${salgueiros} salgueiros na margem · ${pinheiros} pinheiros no alto`);
+
 console.log(`corpos d'água menores que 40 tiles (poça solta): ${pocas}  ·  maior: ${maior}`);
 console.log(`o ponto de nascer é andável: ${nasce ? 'sim' : 'NÃO'}`);
 console.log(`a ponte sobre o muro fecha: ${ponteOk ? 'sim' : 'NÃO'}`);
 console.log(`objeto multi-tile com rastro quebrado: ${objRuins.length}` +
   (objRuins.length ? '  -> ' + objRuins.join(' | ') : ''));
+/* O QUE NÃO MORA AQUI — e isto é elenco, não esquecimento.
+   "Elenco fechado por terra, e a ausência caracteriza tanto quanto a presença."
+   A regra já valia para criatura; vale igual para o vocabulário de OBJETO, e por
+   isso ela precisa da mesma conferência: lista com nome, e o script cobra que
+   nenhuma apareça.
+
+   Estas quinze são funerárias e monumentais, e Varrokgaard não tem onde pô-las:
+   a ilha é uma fazenda com uma vila murada, um corte de lenha, uma pedreira e uma
+   caverna — não há cemitério, não há ruína, não há templo anterior. Um campo de
+   lápides pediria uma história que esta terra não tem.
+   Elas foram para ALETO por decisão do dono (2026-09-01), e lá têm endereço: as
+   Ruínas de Aleto e a cripta sob o Pântano do Selo. Ver a seção de elenco do
+   `mundo_aleto.html`.
+
+   Sem esta lista, o dia em que uma delas cair aqui por descuido — um `espalha`
+   mal filtrado, um clique no editor — passaria batido, e a ilha perderia
+   justamente o que a caracteriza. Com ela, entra de propósito ou é erro. */
+const FORA_DO_ELENCO = ['lapide', 'lapidec', 'lapideb', 'cruz', 'cruzcelta', 'cripta',
+  'memorial', 'anjo', 'encapuzada', 'encapuzadam', 'gargula', 'colunaq',
+  'orberoxo', 'orberubro', 'orbeverde'];
+const intrusos = [];
+for (let z = 0; z < m.andares; z++)
+  for (const o of (m.objs[z] || []))
+    if (FORA_DO_ELENCO.includes(o.o)) intrusos.push(`${o.o} em ${o.x},${o.y} z${z}`);
+console.log(`objeto que não é do elenco desta terra: ${intrusos.length}` +
+  (intrusos.length ? '  -> ' + intrusos.join(' | ') : ''));
+
 /* As duas metades: todo recinto esperado existe, e não sobrou nenhum. */
 const { id: idS, tam: tamS } = C.componentes(m, S);
 const achados = new Map();                       // id do componente -> nome esperado
@@ -689,9 +1056,21 @@ for (const [nome, x, y] of RECINTOS) {
   if (achados.has(k)) { faltando.push(`${nome} (emendou com "${achados.get(k)}")`); continue; }
   achados.set(k, nome);
 }
+/* O pedaço sobrando diz ONDE ele está. Dizer só o tamanho manda quem for
+   consertar procurar 192x192 na mão — e, na primeira vez em que isto acusou
+   59 pedaços, foi exatamente isso que custou a volta. Um ponto dentro basta:
+   com ele o editor abre no lugar. */
+const primeiroPonto = new Map();
+for (let i = 0; i < idS.length; i++) {
+  const k = idS[i];
+  if (k >= 0 && !primeiroPonto.has(k)) primeiroPonto.set(k, [i % m.w, (i / m.w) | 0]);
+}
 const sobrando = [];
 for (let k = 0; k < tamS.length; k++)
-  if (!achados.has(k)) sobrando.push(`${tamS[k]} tiles`);
+  if (!achados.has(k)) {
+    const p = primeiroPonto.get(k) || ['?', '?'];
+    sobrando.push(`${tamS[k]} tiles em ${p[0]},${p[1]}`);
+  }
 const recintosOk = !faltando.length && !sobrando.length;
 console.log(`recintos fechados da superfície: ${recintosOk
   ? RECINTOS.map(([n], i) => n + ' (' + tamS[[...achados].find(([, v]) => v === n)[0]] + ')').join(' · ')
@@ -717,6 +1096,104 @@ if (!nasce) queixas.push('o ponto de nascer não é andável — o jogador entra
 if (!ponteOk) queixas.push(`a ponte sobre o muro não fecha em ${PONTE_X},${MY0 - 1} e ${PONTE_X},${MY0 + 2} — ` +
   'ela precisa de escada nos DOIS andares e chão em cima entre elas');
 if (objRuins.length) queixas.push(`${objRuins.length} objeto(s) grande(s) com rastro quebrado`);
+/* ALCANÇÁVEL A PÉ, atravessando ANDARES — e é a régua que faltava.
+   A conferência de recintos mede componentes POR ANDAR, e a saída de Varrok é a
+   escada sobre o muro: um BFS de um andar só responde "a ilha inteira é
+   inalcançável a partir do templo" e passa verde, porque ele nem tenta subir.
+   Nasceu no mapa que foi descartado e é o que sobreviveu dele — lá ela pegou
+   UMA PEDRA semeada no vão do portão que cortava a metade norte da ilha, e nada
+   mais no script inteiro acusava isso.
+   E a linha reta não serve: numa ilha cortada por rio, com um portão só, o
+   caminho anda o triplo da reta. */
+function bfsAndares(sx, sy, sz) {
+  const A = m.andares, d = new Int32Array(A * L * L).fill(-1), q = [[sx, sy, sz]];
+  d[sz * L * L + sy * L + sx] = 0;
+  for (let h = 0; h < q.length; h++) {
+    const [cx, cy, cz] = q[h], base = d[cz * L * L + cy * L + cx];
+    for (const [dx, dy] of NB8) {
+      const nx = cx + dx, ny = cy + dy;
+      if (nx < 0 || ny < 0 || nx >= L || ny >= L) continue;
+      const i = cz * L * L + ny * L + nx;
+      if (d[i] >= 0 || !C.andavel(m, cz, nx, ny)) continue;
+      d[i] = base + 1; q.push([nx, ny, cz]);
+    }
+    const t = C.le(m, cz, cx, cy);
+    for (const nz of [t === T.UP ? cz - 1 : -1, t === T.DOWN ? cz + 1 : -1]) {
+      if (nz < 0 || nz >= A) continue;
+      const i = nz * L * L + cy * L + cx;
+      if (d[i] >= 0 || !C.andavel(m, nz, cx, cy)) continue;
+      d[i] = base + 1; q.push([cx, cy, nz]);
+    }
+  }
+  return d;
+}
+const dTemplo = bfsAndares(m.templo.x, m.templo.y, m.templo.z);
+const LONGE = {};
+for (const h of m.hunts) LONGE[h.n] = [h.x, h.y, h.z];
+for (const p2 of m.pois) LONGE[p2.n] = [p2.x, p2.y, p2.z];
+const inalcancavel = [];
+console.log('distância ANDANDO desde o templo, atravessando andares (2,1 tiles/s):');
+/* A PERGUNTA É "DÁ PARA CHEGAR NESTE LUGAR", e não "este tile exato é chão".
+   Cravar o tile do centro produz alarme falso pelo mesmo motivo que a lista
+   RECINTOS já registra: o `espalha` põe árvore em cima do centro da hunt, e o
+   poço seco está debaixo de uma cerca que o dono pintou. Medido: os três que
+   acusaram INALCANÇÁVEL na primeira versão eram isto, e nenhum era defeito.
+   Então procura-se em anéis o chão mais próximo, e é a distância DELE que
+   responde — se não houver chão a 6 tiles, aí sim o lugar está murado. */
+const perto = (x, y, z) => {
+  for (let r = 0; r <= 6; r++)
+    for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) {
+      if (Math.max(Math.abs(i), Math.abs(j)) !== r) continue;
+      const d = dTemplo[z * L * L + (y + j) * L + (x + i)];
+      if (d >= 0) return [d, r];
+    }
+  return [-1, -1];
+};
+for (const k in LONGE) {
+  const [x, y, z] = LONGE[k], [d, r] = perto(x, y, z);
+  console.log(`  ${k.padEnd(24)} ${d < 0 ? 'INALCANÇÁVEL' :
+    String(d).padStart(4) + ' tiles  ~' + (d / 2.1).toFixed(0) + 's' + (r ? `  (chão a ${r} do centro)` : '')}`);
+  if (d < 0) inalcancavel.push(k);
+}
+if (inalcancavel.length)
+  queixas.push(`inalcançável a pé desde o templo: ${inalcancavel.join(', ')}` +
+    '\n     Alguma coisa semeada fechou uma passagem, ou uma escada perdeu o par.');
+if (intrusos.length) queixas.push(`${intrusos.length} objeto(s) fora do elenco de Varrokgaard` +
+  ' — ' + intrusos.slice(0, 6).join(', ') +
+  '\n     Peça funerária ou monumental é de ALETO. Se for de propósito, tire-a da' +
+  '\n     lista FORA_DO_ELENCO deste script e diga no mundo_varrokgaard.html por quê.');
+/* PISO POR CÔMODO — as duas metades. */
+const famDe = t => (TILE[t] || {}).familia || '(sem família)';
+const pisoErrado = PISOS.filter(([, x, y, w, h, fam]) =>
+  famDe(C.le(m, S, x + (w >> 1), y + (h >> 1))) !== fam)
+  .map(([n, x, y, w, h, fam]) => `${n} (quer ${fam}, tem ${famDe(C.le(m, S, x + (w >> 1), y + (h >> 1)))})`);
+const famsUsadas = new Set(PISOS.map(([, x, y, w, h]) => famDe(C.le(m, S, x + (w >> 1), y + (h >> 1)))));
+/* Porta órfã: uma casa que ninguém declarou. A porta fica na PAREDE, então ela
+   cai na moldura do retângulo do prédio — por isso a comparação é contra a
+   borda, e não contra o miolo.
+   E ela se procura na camada de OBJETO, não na de tile: a conferência roda
+   DEPOIS do `C.parte(m)`, e ali a porta já desceu para objeto — `C.le` devolve o
+   chão debaixo dela. A primeira versão desta régua perguntava `=== T.DOOR` ao
+   tile e por isso não achava porta nenhuma, nunca: passava verde por não ter o
+   que medir, que é o pior jeito de uma régua mentir. */
+const portasOrfas = [];
+for (const o of (m.objs[S] || [])) {
+  if (o.o !== 'porta') continue;
+  if (o.x < MX0 - 2 || o.x > MX1 + 2 || o.y < MY0 - 2 || o.y > MY1 + 2) continue;
+  if (!PISOS.some(([, bx, by, bw, bh]) =>
+      o.x >= bx && o.x < bx + bw && o.y >= by && o.y < by + bh)) portasOrfas.push(`${o.x},${o.y}`);
+}
+if (pisoErrado.length) queixas.push(`piso de prédio fora do declarado — ${pisoErrado.join(', ')}` +
+  '\n     O piso é o que faz um cômodo ler como cômodo. Mudou de propósito? Mude a' +
+  '\n     lista PISOS deste script junto.');
+if (famsUsadas.size < PISO_FAMILIAS_MIN)
+  queixas.push(`a vila usa só ${famsUsadas.size} família(s) de piso (mínimo ${PISO_FAMILIAS_MIN}): ` +
+    [...famsUsadas].join(', ') +
+    '\n     Com uma família só a vila volta a ler como um galpão repartido.');
+if (portasOrfas.length) queixas.push(`${portasOrfas.length} porta(s) de prédio não declarado — ` +
+  portasOrfas.slice(0, 6).join(' · ') +
+  '\n     Levantou casa nova? Ela entra na lista PISOS, com nome e com a família de' +
+  '\n     piso decidida. Sem isso ela nasce com o chão de todo mundo.');
 if (!recintosOk) queixas.push('recinto de chão fechado que não está declarado, ou declarado e sumido' +
   (sobrando.length ? ` — sobrou: ${sobrando.join(', ')}` : '') +
   (faltando.length ? ` — falta: ${faltando.join(', ')}` : '') +

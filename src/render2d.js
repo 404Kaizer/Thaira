@@ -119,6 +119,15 @@ const luzes = [];
    chão têm de ser a MESMA luz. Laranja-âmbar, não branco-quente — o halo pálido
    lia como lanterna. Duas senóides incomensuráveis: o tremor nunca fecha ciclo. */
 const CHAMA_COR = '#ffb14a';
+/* A FOGUEIRA TEM DE VALER MAIS QUE A TOCHA NA MÃO, e não valia: a tocha
+   carregada sai do item (`luz: 6`, vezes .85 = 5,1 tiles) e o objeto do mapa
+   saía do próprio `luz` cru — a fogueira, que é o maior deles, dava 3,2. Uma
+   fogueira mais fraca que o archote no bolso é errado no jogo antes de ser
+   errado na tabela. O fator recoloca a família inteira acima dela sem mexer nas
+   105 fichas: fogueira 5,8, poste 6,5, lampião 5,0, candelabro 3,2.
+   ponytail: um fator sobre a tabela, e não 20 números reescritos. Quando alguma
+   peça precisar destoar da família, é a ficha dela que muda. */
+const LUZ_OBJ = 1.8;
 /* Luz mágica. Branco puxado para o azul frio, no oposto do âmbar da chama: a
    magia de luz e a tocha davam halos idênticos, e o jogador não tinha como ver
    que a tocha tinha apagado e o que restava era a magia. Cor é a única pista
@@ -157,6 +166,28 @@ const AGUA_CINTILO_A = [.05, .04];       // base e amplitude do cintilo da água
    concordar. Com cada um lendo o próprio relógio, a copa balançava para um lado
    e a chuva caía para o outro no mesmo temporal. */
 let ventoF = .25;
+/* DERIVA INTEGRADA. Nuvem e mato tiravam a posição de `G.now * taxa(ventoF)` —
+   o RELÓGIO ABSOLUTO vezes uma taxa que muda. Isso não acelera: teleporta, por
+   `G.now × Δvento`, e o salto cresce com o tempo de sessão. Medido a 10 min de
+   jogo, com o vento congelado como controle: a nuvem sai de 38,8 px/s para 908
+   no pico da frente da tempestade (23,4×) e a fase do mato de 2,07 rad/s para
+   45,8 (22,1×) — o que o dono via como "nuvem acelerada quando vai chover".
+   Integrar é a correção inteira: a posição passa a ser a soma de `dt × taxa`, e
+   mudar a taxa muda só o quanto ela anda daqui para a frente.
+   O teto de 200 ms é para a aba que volta de segundo plano: lá o `rAF` é
+   estrangulado, `G.now` dá um salto de segundos, e sem o teto a nuvem
+   atravessaria a tela de uma vez — o mesmo teleporte por outra porta. E `dt`
+   zero quando `G.now` não andou é o que deixa `drawWorld` ser chamado duas
+   vezes no mesmo instante (o `resizeCam` faz isso, e o editor desenha com o
+   relógio parado) sem a deriva correr em dobro. */
+const deriva = { ms: 0, nuvem: 0, mato: 0 };
+const DERIVA_DT = 200;
+function derivaAvanca() {
+  const dt = Math.min(DERIVA_DT, Math.max(0, G.now - deriva.ms));
+  deriva.ms = G.now;
+  deriva.nuvem += dt * (.4 + ventoF * 1.6);      // calmaria arrasta, temporal corre
+  deriva.mato += dt * .0016 * (.5 + ventoF);
+}
 /* Quanto de poça desenhar no quadro, já com as ressalvas aplicadas (0 debaixo de
    teto ou com o chão seco). Vem pronto porque quem consome está lá dentro do
    drawFloor, que não vê o clima — passar por parâmetro obrigaria a furar a
@@ -166,7 +197,19 @@ let pocaF = 0;
    e a face (aponta para a câmera). Recolhidas no desenho e lidas pelo passe de
    luz — quem sabe se há crista é o laço que desenha a parede, porque com vizinha
    em cima o sprite não desenha nenhuma. */
-const cristas = [], faces = [];
+/* AS FAIXAS DE CRISTA E FACE SAÍRAM. Elas eram o único lugar do motor que
+   pintava um RETÂNGULO DE TILE, OPACO, com a COR DO CÉU, em cima de pixel de
+   parede — e no tile de CIMA, porque a arte da parede transborda um tile. A
+   guarda (`!abrigado(x, y-1)`) é avaliada por tile, então um lance de muro saía
+   com uns tiles banhados de céu e outros não: faixas verticais claras e escuras
+   ao longo da mesma parede. O dono relatou isso três vezes — "cada parede
+   reflete separadamente, como se não fossem um conjunto", "algumas partes das
+   paredes ainda possuem efeitos de fora afetando", "continua".
+   O volume não se perde: quem o desenha é o PRÓPRIO SPRITE — a chapa clara do
+   topo, a face escurecida pela profundidade e a quina viva entre as duas. O que
+   a parede perde é a crista mudar de cor com a hora, e esse é o preço aceito.
+   Se um dia voltar, volta como TERMO de quem calcula luz por pixel — pela mesma
+   razão que a cobertura saiu. */
 
 function drawWorld() {
   if (!g2) return;
@@ -196,7 +239,7 @@ function drawWorld() {
   g2.fillStyle = amb.bg; g2.fillRect(0, 0, VW, VH);
   chamaF = amb.escuro == null ? 1 : amb.escuro;
   luzes.length = 0;
-  cristas.length = faces.length = 0;
+  silhuetaDoQuadro();
 
   const cols = Math.ceil(VW / t / 2) + 2, rows = Math.ceil(VH / t / 2) + 3;
   const cx = Math.floor(camX), cy = Math.floor(camY);
@@ -219,6 +262,7 @@ function drawWorld() {
      ATRIBUIÇÃO e não no uso, para não colidir com o `solNoTile`, que é uma
      pergunta por tile — aqui o assunto é quanta luz o céu está dando. */
   solF = Math.min(1, clima.luz + clima.raio * RAIO_SOMBRA); ventoF = clima.vento;
+  derivaAvanca();                        // depois do vento do quadro, antes de quem deriva
   altSolF = alturaSol();
   bordaF = 1 + (SOL_LONGO - 1) * (1 - altSolF);
   ceuRGB = corDoCeu(horaDoDia());
@@ -246,11 +290,12 @@ function drawWorld() {
   /* O passe rodava só quando a hora escurecia o céu; ao meio-dia ele era pulado
      por economia. Com telhado isso não serve mais: é justamente ao meio-dia que
      a diferença entre dentro e fora tem de aparecer. */
-  /* `faces.length`: ao meio-dia descoberto o passe era pulado por economia, e a
-     divergência entre topo e frente sumiria justo na hora em que ela mais aparece
-     — pior, ela piscaria ao entrar debaixo de um telhado. Com parede em cena o
-     buffer já não é branco liso e o passe tem trabalho a fazer. */
-  if (amb.amb || coberto || faces.length) {
+  /* `luzes.length`: ao meio-dia descoberto o passe era pulado por economia, e
+     com isso a tocha e a fogueira não acendiam nada justo na hora em que o
+     buffer é branco liso. Quem pede o passe é haver fonte em cena — antes era o
+     `faces.length`, e ele saiu com as faixas de parede. */
+  if (temCeu) sobCeu(horaPass);
+  if (amb.amb || coberto || luzes.length) {
     /* A tocha entra como mais uma luz da lista em vez de ser tratada à parte
        dentro do passe: assim o passe de luz e o bloom leem a MESMA coisa e não
        há como um acender o que o outro não acende.
@@ -271,6 +316,14 @@ function drawWorld() {
     lightPass(amb, t);
   }
   bloomPass(t);
+  /* A NÉVOA vai DEPOIS do passe de luz e do bloom: ela é ar entre a câmera e o
+     mundo, então não leva o multiply do ambiente — névoa escurecida pela noite
+     que ela mesma deveria clarear é mancha, não névoa. E vai DENTRO do recorte
+     de céu, com nuvem, relâmpago e chuva: não entra névoa em sala fechada, e o
+     recorte já existe e já é memoizado no quadro. Antes do clarão de propósito
+     — o relâmpago é luz do céu chegando na cena inteira, e a névoa é parte da
+     cena. */
+  if (temCeu) sobCeu(() => nevoaPass(t, clima.molhado));
   /* Relâmpago e chuva por último: caem ENTRE a câmera e o mundo, então não levam
      o multiply do passe de luz. O clarão vem depois do bloom de propósito — ele
      é luz do céu chegando na cena inteira, não brilho de um objeto dela. */
@@ -397,7 +450,14 @@ function recorteCeu(t) {
   for (let y = cy - rows; y <= cy + rows; y++) {
     let ini = null;                                  // início da corrida atual
     for (let x = cx - cols; x <= cx + cols + 1; x++) {
-      const aberto = x <= cx + cols && !abrigado(x, y, P.z);
+      /* `daCasa`, e NÃO `abrigado`. O tile onde a parede está não é "dentro":
+         o `calcDentro` o marca `SALA_PAREDE`, que é fronteira. Enquanto a parede
+         preenchia o tile inteiro isso nunca apareceu — ela tapava o próprio
+         chão. Com a faixa fina e oblíqua o chão do tile da parede fica EXPOSTO,
+         e como ele estava fora da máscara, CHUVA E LUZ DO CÉU entravam por ele:
+         a chuva caía dentro da casa e parava no limite do anel de paredes, que é
+         exatamente o que o dono viu. O anel faz parte da construção. */
+      const aberto = x <= cx + cols && ceuNoTile(x, y, P.z);
       if (aberto && ini === null) ini = x;
       else if (!aberto) {
         if (x <= cx + cols) abrigados++;
@@ -416,9 +476,10 @@ function recorteCeu(t) {
 function camadaNuvem(t, esc, vel, forca, semente) {
   const cv = cloudTexture(semente);
   const wrap = v => ((v % esc) + esc) % esc - esc;
-  const v = vel * (.4 + ventoF * 1.6);          // calmaria arrasta, temporal corre
-  const ox = wrap(VW / 2 - camX * t + G.now * VENTO[0] * v * CAM.scale);
-  const oy = wrap(VH / 2 - camY * t + G.now * VENTO[1] * v * CAM.scale);
+  /* `vel` fica FORA da integral porque é constante por camada; o que muda com o
+     tempo é a taxa do vento, e ela já está somada dentro de `deriva.nuvem`. */
+  const ox = wrap(VW / 2 - camX * t + deriva.nuvem * VENTO[0] * vel * CAM.scale);
+  const oy = wrap(VH / 2 - camY * t + deriva.nuvem * VENTO[1] * vel * CAM.scale);
   g2.globalCompositeOperation = 'multiply';
   g2.globalAlpha = forca;
   for (let y = oy; y < VH; y += esc) for (let x = ox; x < VW; x += esc) g2.drawImage(cv, x, y, esc, esc);
@@ -447,7 +508,12 @@ function poolPass(t, molhado) {
   for (let y = cy - rows; y <= cy + rows; y++) for (let x = cx - cols; x <= cx + cols; x++) {
     const tt = tileAt(x, y, P.z);
     if (tt === T.VOID || TILE[tt].top !== 0) continue;
-    if (abrigado(x, y, P.z)) continue;      // não chove lá dentro, não empoça lá dentro
+    /* `daCasa` e nao `abrigado`: o tile ONDE A PAREDE ESTA nao e "dentro" — o
+       `calcDentro` o marca `SALA_PAREDE`, que e fronteira. Perguntando
+       `abrigado`, o anel de paredes ficava fora da mascara e a chuva caia nele,
+       dentro da casa. O anel faz parte da construcao, e o `recorteCeu` ja usa a
+       mesma regua — as duas tem de fazer a MESMA pergunta. */
+    if (daCasa(x, y, P.z)) continue;        // não chove lá dentro, não empoça lá dentro
     // +1 no tamanho: sem a sobreposição sai um fio de piso seco entre os tiles
     const [sx, sy] = cantoDoTile(x, y, t);
     chao.rect(sx, sy, t + 1, t + 1);
@@ -474,6 +540,106 @@ function poolPass(t, molhado) {
   g2.globalAlpha = 1;
   g2.globalCompositeOperation = 'source-over';
   g2.restore();
+}
+
+/* NÉVOA. Ela tem ONDE e QUANDO, e é isso que separa névoa de filtro de tela —
+   filtro de tela é exatamente a "névoa genérica de jogo gerado por IA" do §23.
+   O QUANDO é uma corcova no amanhecer, e a janela sai dos MESMOS cortes da rampa
+   do céu; é o sol que a queima, e é isso que a faz parecer manhã. O ONDE é a
+   distância até a água, que o `distAgua` responde por tile.
+   QUATRO COISAS DIVERGEM DA BANCADA, e cada uma tem o número que a obriga: ela
+   mediu numa cena sintética de 8×6 tiles, e Varrokgaard é uma ilha com 20.099
+   tiles de água, 54,5% da superfície.
+   · PISO 0,06 e não 0,18 — a 0,18, 64% dos postos do mapa viam só o piso e o
+     contraste margem/campo caía a 3,1×; a 0,06 ele é 8,1×.
+   · O molhado MULTIPLICA a corcova em vez de somar com ela. Somado, a névoa
+     ficava ligada 56,4% do tempo e aparecia às três da tarde; multiplicando,
+     ela vale os 14% do dia que a janela dura e é ZERO ao meio-dia, sempre.
+   · A máscara sai em CORRIDAS e sem a folga de +1 da bancada. Eram 713
+     retângulos, e alfa por tile SOMA na sobreposição (0,18 sobre 0,18 = 0,33):
+     a folga desenhava a grade. É a lição do telhado — a máscara primeiro, o
+     alfa depois — violada dentro da própria bancada que a cita.
+   · A distância até a água é campo pré-calculado com invalidação, não varredura
+     por quadro.
+   Sem deriva, ao contrário da nuvem: névoa é ar parado, e é isso que a separa
+   da sombra de nuvem passando. Como a taxa nunca varia, a armadilha do
+   "relógio × taxa variável" não existe aqui.
+   Ressalva de identidade, honesta: em Varrokgaard "margem" quer dizer sobretudo
+   COSTA — rio e lago somam 1,2% do mapa. Isto vai ler como névoa de ilha, não
+   de rio. É coerente com a terra, e diferente do que a bancada mostra. */
+const NEVOA_INI = .20, NEVOA_FIM = .34;  // a janela, nos cortes da rampa do CÉU
+const NEVOA_TETO = .30;                  // alfa máximo, e é ele que segura a legibilidade
+const NEVOA_PISO = .06;                  // quanto sobra em campo aberto
+const NEVOA_MOLHADO = .55;               // peso do chão encharcado, como SEGUNDA causa
+const nevoaHora = (td = horaDoDia()) => td <= NEVOA_INI || td >= NEVOA_FIM ? 0
+  : Math.sin((td - NEVOA_INI) / (NEVOA_FIM - NEVOA_INI) * Math.PI);
+/* Quadrática: cai rápido ao sair da margem. Linear deixava meia janela em meia
+   névoa, e meia névoa em todo lugar é filtro por outro caminho. */
+const nevoaDens = (x, y) => {
+  const d = distAgua(x, y, P.z);
+  if (d >= NEVOA_AGUA) return NEVOA_PISO;
+  const k = 1 - d / NEVOA_AGUA;
+  return NEVOA_PISO + (1 - NEVOA_PISO) * k * k;
+};
+let nevCv = null, nevMasc = null;
+function nevoaPass(t, molhado) {
+  const causa = nevoaHora() * (1 + molhado * NEVOA_MOLHADO);
+  if (causa < .01) return;
+  if (!nevCv || nevCv.width !== VW || nevCv.height !== VH) {
+    nevCv = nevCv || document.createElement('canvas');
+    nevMasc = nevMasc || document.createElement('canvas');
+    nevCv.width = nevMasc.width = VW; nevCv.height = nevMasc.height = VH;
+  }
+  /* A MÁSCARA PRIMEIRO, num canvas à parte e em `source-over`, e só depois ela
+     vira recorte de uma vez. Duas armadilhas moram aqui e as duas já morderam
+     esta base: `destination-in` aplicado por tile num laço apaga tudo fora do
+     retângulo da vez — o modo de composição vale para o CANVAS inteiro —, e
+     alfa por tile soma na sobreposição.
+     CORRIDAS: tiles vizinhos com a MESMA densidade viram um retângulo só, e a
+     largura vai até o canto do primeiro tile de fora, nunca `t + 1`. Assim os
+     retângulos encostam sem folga e sem vão: zero soma, zero fio de grade. */
+  const mg = nevMasc.getContext('2d');
+  mg.globalCompositeOperation = 'source-over';
+  mg.clearRect(0, 0, VW, VH);
+  const [cols, rows] = janelaDeTiles(t);
+  const cx = Math.floor(camX), cy = Math.floor(camY);
+  let algum = false;
+  for (let y = cy - rows; y <= cy + rows; y++) {
+    const sy = cantoDoTile(0, y, t)[1], sy1 = cantoDoTile(0, y + 1, t)[1];
+    let ini = cx - cols, d0 = nevoaDens(ini, y);
+    for (let x = ini + 1; x <= cx + cols + 1; x++) {
+      const d = x <= cx + cols ? nevoaDens(x, y) : -1;
+      if (d === d0) continue;
+      if (d0 > 0) {
+        const sx = cantoDoTile(ini, y, t)[0], sx1 = cantoDoTile(x, y, t)[0];
+        mg.fillStyle = `rgba(0,0,0,${d0.toFixed(3)})`;
+        mg.fillRect(sx, sy, sx1 - sx, sy1 - sy);
+        algum = true;
+      }
+      ini = x; d0 = d;
+    }
+  }
+  if (!algum) return;
+  /* A FOLHA, ladrilhada em coordenada de MUNDO e tingida com a cor do CÉU.
+     Presa à tela ela andaria com a câmera e viraria sujeira na lente — a mesma
+     lição que a poça e a nuvem já carregam. E a cor nunca é um branco cravado:
+     névoa é ar iluminado pelo céu que está por cima dela. */
+  const bg = nevCv.getContext('2d');
+  bg.globalCompositeOperation = 'source-over';
+  bg.clearRect(0, 0, VW, VH);
+  const folha = nevoaTexture(), esc = t * (NEVOA_S / TS);
+  const wrap = v => ((v % esc) + esc) % esc - esc;
+  const ox = wrap(VW / 2 - camX * t), oy = wrap(VH / 2 - camY * t);
+  for (let y = oy; y < VH; y += esc) for (let x = ox; x < VW; x += esc) bg.drawImage(folha, x, y, esc, esc);
+  bg.globalCompositeOperation = 'source-in';
+  bg.fillStyle = ceuCss;
+  bg.fillRect(0, 0, VW, VH);
+  bg.globalCompositeOperation = 'destination-in';
+  bg.drawImage(nevMasc, 0, 0);
+  bg.globalCompositeOperation = 'source-over';
+  g2.globalAlpha = Math.min(NEVOA_TETO, causa * NEVOA_TETO);
+  g2.drawImage(nevCv, 0, 0);
+  g2.globalAlpha = 1;
 }
 
 /* Chuva em espaço de tela. As gotas são sorteadas uma vez e recicladas pelo
@@ -552,6 +718,40 @@ const SOL_CURTO = .55, SOL_LONGO = 1.71;
    é zero direto. E a sombra de CONTATO não passa por aqui de propósito — ela
    prende o objeto no chão e vale com qualquer luz; o que some é a direção. */
 const solNoTile = (x, y, z) => (ambienteDe(z).amb || abrigado(x, y, z)) ? 0 : solF;
+/* ONDE O PÉ DO SPRITE ENCOSTA, em pixel do próprio sprite. O objeto era o único
+   desenhado por uma identidade aritmética (`sy - (height - 32)`) cujo fundo cai
+   sempre no FUNDO do tile, enquanto a sombra dele, o jogador, a criatura, a
+   árvore e a moita ancoram no MEIO (`CHAO`). A mesma `dropShadow` recebia duas
+   linhas de chão conforme quem a chamava.
+   Medido nos dois lados: 24 px de chão limpo entre a mancha e a base do barril
+   no zoom 2, e — na tela, que é o que conta — a mancha de 27 das 89 peças com
+   sombra não chegava a UM pixel visível, porque a arte é desenhada depois e por
+   cima dela. Era o "objeto parece flutuando" que o `silhuetaFade` tinha
+   consertado pela metade: o degradê arrumou a projetada, a âncora não.
+   `height` como reserva porque nem todo procedural declara `feet`; com ela o pé
+   do sprite cai na linha de chão do mesmo jeito, que é o que se quer. */
+const peDo = spr => spr.feet || spr.height;
+/* O MEIO DO SPRITE, com a mesma reserva do `peDo` e pelo mesmo motivo: nem todo
+   procedural declara `cx`. `cercaSprite`, `escoraSprite`, `fogueiraSprite` e
+   `pocoSprite` nao declaram, e `-undefined * S` da NaN -- o `drawImage` com NaN
+   nao desenha nada e nao da erro. O dono viu o defeito exato: "alguns objetos no
+   editor nao sao exibidos ao posicionar mas ainda geram colisao", porque a
+   colisao vem do indice e nao do desenho. */
+const cxDo = spr => spr.cx !== undefined ? spr.cx : spr.width / 2;
+
+/* O CISALHAMENTO DO VENTO, com o pivô no PÉ da planta. Uma função porque agora
+   DOIS ramos a usam: o `deco` procedural e o de folha. Duplicar a fórmula faria
+   a árvore de folha e a moita procedural deitarem em ângulos diferentes no mesmo
+   temporal, sem erro nenhum — e a de folha é a que tem 1712 instâncias.
+   A fase sai do TILE, não só do relógio: com a fase igual o bosque inteiro se
+   inclina junto, que lê como cortina, não como vento. No vento cheio a copa fica
+   dobrada para um lado e só treme em cima disso — planta em temporal não oscila
+   em torno da vertical, ela deita —, por isso o vento entra como VIÉS somado, e
+   o tremor por cima dele oscila para os dois lados, que é o que brisa faz. */
+const balancoEm = (x, y, forca) => forca === 0 ? 0
+  : (viesDoVento(ventoF)
+    + Math.sin(deriva.mato + x * .9 + y * 1.7) * VENTO_INCL * (.4 + ventoF)) * forca;
+
 function dropShadow(spr, px, py, sol) {
   const s = silhouette(spr), S = CAM.scale * (spr.k || 1);   // k: sprite já em pixel de tela
   // contato primeiro: é ele que prende o boneco no chão, a projetada só dá direção
@@ -563,9 +763,46 @@ function dropShadow(spr, px, py, sol) {
   // geometria vem da ALTURA do sol, alfa vem da ATMOSFERA — nunca as duas do mesmo número
   const comp = SOL_CURTO + (SOL_LONGO - SOL_CURTO) * (1 - altSolF);
   g2.transform(1, 0, -SOL_INCL * comp, -SOL_ACHAT * comp, px, py);
-  g2.drawImage(s, -s.cx * S, -s.feet * S, s.width * S, s.height * S);
+  /* a silhueta que vai para a projetada é a do FADE: cheia no pé, esvaindo na
+     ponta. A do contato acima continua sendo a lisa — ela é contato, não
+     projeção, e desvanecer justo onde o objeto encosta desprenderia a peça do
+     chão, que é o defeito que ela existe para evitar. */
+  const f = silhuetaFade(spr);
+  g2.drawImage(f, -f.cx * S, -f.feet * S, f.width * S, f.height * S);
   g2.restore();
 }
+
+/* ONDE ESTÁ A CUMEEIRA, sem o autor precisar dizer. Conta quantos tiles de
+   telhado correm acima e abaixo deste: no meio do lance a razão dá .5, e é ali
+   que as duas águas se encontram. Com isso o autor pinta um retângulo e o
+   telhado sai com forma — se a cumeeira tivesse de ser pintada à mão, toda casa
+   nova exigiria três tiles diferentes e a primeira que alguém esquecesse
+   voltaria a ser uma chapa.
+   TETO ANOTADO: só resolve telhado de duas águas correndo leste-oeste, que é o
+   das casas da vila. Cumeeira no outro eixo, ou de quatro águas, pede o mesmo
+   cálculo na horizontal e a menor das duas distâncias. */
+const telhaEm = (x, y, z) => tileAt(x, y, z) === T.TELHA;
+function faixaTelhado(x, y, z) {
+  let u = 0, d = 0;
+  while (telhaEm(x, y - u - 1, z)) u++;
+  while (telhaEm(x, y + d + 1, z)) d++;
+  return (u + d) ? u / (u + d) : .5;
+}
+/* A CUMEEIRA É UMA FILEIRA, e ela não sai de comparar a fração com .5: num
+   telhado de 8 fileiras as frações são 0, .14, .29, .43, .57, ... e NENHUMA cai
+   em .5. Medido na amostra: a cumeeira simplesmente não era desenhada, e o
+   telhado saiu com duas águas de tom diferente e nenhuma dobra entre elas — o
+   que lê como dois materiais, não como um telhado.
+   Quem responde é a contagem: a fileira do meio é aquela em que os tiles acima
+   são a metade inteira do lance. */
+function cumeTelhado(x, y, z) {
+  let u = 0, d = 0;
+  while (telhaEm(x, y - u - 1, z)) u++;
+  while (telhaEm(x, y + d + 1, z)) d++;
+  return (u + d) > 0 && u === Math.floor((u + d) / 2);
+}
+const mascaraTelhado = (x, y, z) => (telhaEm(x, y - 1, z) ? 1 : 0) | (telhaEm(x, y + 1, z) ? 2 : 0) |
+  (telhaEm(x - 1, y, z) ? 4 : 0) | (telhaEm(x + 1, y, z) ? 8 : 0);
 
 function drawFloor(z, x0, x1, y0, y1, t, bucket) {
   const S = CAM.scale, dz = (P.z - z) * t;
@@ -598,20 +835,36 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
     if (def.hide || def.top > 0.5) continue;
     const sx = telaX(x), sy = telaY(y), tw = largT(x), th = altT(y);
     const cropX = ((x % 3) + 3) % 3 * TS, cropY = ((y % 3) + 3) % 3 * TS;
-    const corre = def.tex === 'water' || def.tex === 'lava';
+    /* A pergunta é de FAMÍLIA, não de `tex`. Enquanto era igualdade de string
+       com os dois originais, `agua_clara`, `agua_funda` e `lava_viva` eram chão
+       morto: não corriam, não cintilavam, não espumavam, e a lava não acendia.
+       Nenhum deles tem tile em Varrokgaard hoje — era alçapão armado, e ele
+       dispararia no dia em que alguém pintasse um lago com a variante no editor,
+       com o sintoma "o lago novo está morto e o velho não". A `familia` é a
+       mesma régua que a paleta já usa; `pantano` fica de fora porque a família
+       dele é outra. */
+    const fam = def.familia, ehLava = fam === 'lava';
+    const corre = fam === 'agua' || ehLava;
     if (corre) {
       // o recorte desce com o relógio: a água escorre em vez de só piscar
-      const vel = def.tex === 'lava' ? .004 : .011;
+      const vel = ehLava ? .004 : .011;
       g2.drawImage(flowTexture(def.tex, def.c),
         cropX, cropY + (G.now * vel) % TEX_S, TS, TS, sx, sy, tw, th);
       const k = Math.sin(G.now * 0.0018 + x * .7 + y * .5);
-      g2.globalAlpha = def.tex === 'lava' ? .18 + k * .12
+      g2.globalAlpha = ehLava ? .18 + k * .12
         : AGUA_CINTILO_A[0] + k * AGUA_CINTILO_A[1];
       // água REFLETE, lava EMITE — só a primeira pergunta que cor o céu está
-      g2.fillStyle = def.tex === 'lava' ? '#ff8a2a' : ceuCss;
+      g2.fillStyle = ehLava ? '#ff8a2a' : ceuCss;
       g2.fillRect(sx, sy, tw, th); g2.globalAlpha = 1;
-      if (def.tex === 'lava' && z === P.z)
+      if (ehLava && z === P.z)
         luzes.push({ x: sx + t / 2, y: sy + t / 2, r: t * 2.2, cor: '#ff8c32', a0: .8, a1: .3 });
+    } else if (tt === T.TELHA) {
+      /* TELHADO, e ele é o único chão que pergunta aos VIZINHOS. Um telhado
+         ladrilhado com uma textura só sai chapado, e chapado lê como parede
+         deitada — foi o que o dono viu na primeira amostra. A máscara diz onde
+         a água acaba (beiral) e a faixa diz onde está a cumeeira. */
+      g2.drawImage(roofSprite(def.c, mascaraTelhado(x, y, z), faixaTelhado(x, y, z),
+        cumeTelhado(x, y, z)), sx, sy, tw, th);
     } else {
       /* A porta saiu daqui: ela deixou de ser tile e virou objeto, então quem
          a desenha é o laço de objetos do 2º passe, com a textura escolhida pelo
@@ -622,8 +875,17 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
     tileBorders(x, y, z, def, sx, sy, t, tw, th);
     if (tt === T.DOWN || tt === T.UP) g2.drawImage(stairSprite(tt === T.DOWN), sx, sy, tw, th);
     // parede ao norte ou a oeste projeta no chão daqui: é a sombra dela e o contato
-    if (alto(x, y - 1)) g2.drawImage(edgeShadow(0, bordaF), sx, sy, tw, th);
-    if (alto(x - 1, y)) g2.drawImage(edgeShadow(1, bordaF), sx, sy, tw, th);
+    /* Só a faixa que tem tinta. O gradiente ocupa `e.px` de 32 e o resto do
+       canvas é alfa zero: mesmo número de blits, 56% menos pixel ao meio-dia.
+       A escala sai de `tw`/`th` e não de `S` porque é a distância até o vizinho
+       que dá a largura do tile na tela — a mesma razão do 1º passe —, e `ceil`
+       para não abrir fresta quando `t` é fracionário. */
+    /* So a faixa que tem tinta. O gradiente ocupa `e.px` de 32 e o resto do
+       canvas e alfa zero: mesmo numero de blits, 56%% menos pixel ao meio-dia. */
+    if (alto(x, y - 1)) { const e = edgeShadow(0, bordaF);
+      g2.drawImage(e, 0, 0, 32, e.px, sx, sy, tw, Math.ceil(e.px * th / 32)); }
+    if (alto(x - 1, y)) { const e = edgeShadow(1, bordaF);
+      g2.drawImage(e, 0, 0, e.px, 32, sx, sy, Math.ceil(e.px * tw / 32), th); }
   }
 
   /* Sangue do chão entra entre os dois passes: depois do piso inteiro, para a
@@ -644,6 +906,27 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
        sombra de nuvem, e de lá pintava por cima do jogador — nuvem passa por
        cima de quem está em pé de propósito, água parada no chão não. */
     if (pocaF > 0) poolPass(t, pocaF);
+    /* DECALQUE DE CHÃO. Entre os dois passes pelo mesmo motivo do sangue de
+       combate: depois do piso inteiro, para o tile vizinho não apagar a mancha,
+       e antes dos volumes, para quem pisa nela passar por cima. */
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++)
+      for (const o of objsAt(x, y, z)) {
+        if (o.x !== x || o.y !== y) continue;
+        const d = OBJ[o.o];
+        if (!d || d.cat !== 'mancha') continue;
+        // marca sobre parede ou objeto sai no 2º passe, por cima deles
+        if (temVolume(x, y, z)) continue;
+        const v = ((x * 92837111) ^ (y * 689287499)) >>> 28;
+        const spr = objSprite(Array.isArray(d.png) ? d.png[v % d.png.length] : d.png);
+        if (!spr) continue;
+        /* `multiply`, como o sangue de combate: marca TINGE o que está embaixo.
+           Com `source-over` ela sairia chapada por cima da textura, que é o
+           adesivo colado no chão. */
+        g2.globalCompositeOperation = 'multiply';
+        const w = spr.width * S, h = spr.height * S;
+        g2.drawImage(spr, telaX(x) + t / 2 - w / 2, telaY(y) + t * CHAO - h / 2, w, h);
+        g2.globalCompositeOperation = 'source-over';
+      }
     const limP = VW / t + 3;
     for (const p of WORLD.pois)
       if (p.z === z && Math.abs(p.x - camX) <= limP && Math.abs(p.y - camY) <= limP)
@@ -665,6 +948,17 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
 
   /* 2º passe: o que tem volume, na ordem do pintor */
   const vergas = [];                       // a metade de cima das portas desta fileira
+  /* A COPA SAI DEPOIS DA FILEIRA, pelo mesmo motivo da verga da porta: ela fica
+     ACIMA DA CABEÇA de quem está debaixo dela. A árvore tem `span` 2 e `pe` 1 —
+     o tronco ocupa um tile e a copa transborda meio tile para cada lado, sobre
+     chão em que se PISA. Desenhando-a com os objetos da fileira, quem pisa ali é
+     desenhado depois e cobre a copa: o relato foi "em alguns tiles a árvore fica
+     por trás do player".
+     A pergunta é pelo PAPEL e o motor já a responde: `span[0] > pe[0]` é
+     exatamente "a arte cobre tile que dá para pisar". Cama e carroça têm os dois
+     iguais e continuam saindo na hora certa, debaixo de quem passa. A SOMBRA
+     não vem junto — ela é chão, e sai na hora de sempre. */
+  const copas = [];
   for (let y = y0; y <= y1; y++) { for (let x = x0; x <= x1; x++) {
     const tt = tileAt(x, y, z), def = TILE[tt];
     if (def.hide && !bucket) continue;                    // buraco ainda pode ter alguém em cima
@@ -693,17 +987,100 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
            `tocha: 1` o mantém fora do bloom, como a tocha largada faz: sem isso
            o poste vira holofote de dia. E quem treme é quem tem chama nua. */
         if (d.luz) luzes.push({ x: sx + t / 2, y: sy + t * CHAO - t * .35,
-          r: t * d.luz * (d.tremula ? chamaTremor() : 1), cor: d.luzCor || CHAMA_COR,
-          a0: .85 * chamaF, a1: .28 * chamaF, tocha: 1 });
+          r: t * d.luz * LUZ_OBJ * (d.tremula ? chamaTremor() : 1), cor: d.luzCor || CHAMA_COR,
+          a0: .95 * chamaF, a1: .38 * chamaF, tocha: 1 });
         // 9 variantes por `x*7+y*13` repetiam em diagonal e a olho nu; 16 com as
         // duas coordenadas embaralhadas quebram o padrão sem inchar o cache
         const v = ((x * 92837111) ^ (y * 689287499)) >>> 28;
         const gx = sx + t / 2, gy = sy + t * CHAO;
+        /* A VARIANTE E O VENTO VALEM PARA OS DOIS RAMOS DE FOLHA, e por isso
+           moram ACIMA da cadeia. Enquanto a escolha da variante estava só no
+           ramo de objeto solto, dar `span` a uma peça a mandava para o ramo de
+           `span` — que chamava `objSprite(d.png)` com o ARRAY inteiro, recebia
+           `null` e caía no `continue`. A árvore sumiu do mapa inteiro assim, sem
+           erro nenhum e com todos os sprites carregados: 8 árvores em volta do
+           jogador e ZERO blits. É a armadilha da cadeia de ramos de novo — quem
+           decide por cadeia obriga todo caminho a saber a mesma coisa. */
+        const folha = Array.isArray(d.png) ? d.png[v % d.png.length] : d.png;
+        /* O MEIO DO FOOTPRINT, que é onde a peça se apoia. Não é o meio do
+           `span`: quando `pe` é menor que ele — copa de 2 tiles sobre tronco de
+           1 —, alinhar o desenho pela esquerda do span joga o tronco na BORDA
+           DIREITA do tile âncora, meia tile fora do lugar. Foi o que o dono viu:
+           "as árvores não ficaram centralizadas nos tiles". */
+        const meio = sx + t * ((d.pe || d.span || [1, 1])[0]) / 2;
+        /* `dy` é a linha de chão, e o pivô do vento é ela: a raiz fica pregada
+           no chão e quem balança é a copa.
+           A âncora horizontal é o `cx` DO SPRITE, como no ramo `deco`, na
+           criatura e no boneco — e não a borda da lona. É o que faz o contorno
+           do `outlined` (que engorda a lona em 1 px de cada lado) não deslocar a
+           peça, e o que mantém a peça centrada quando a lona é maior que o pé. */
+        const desenha = (spr, cxTela, dy) => {
+          const ox = -cxDo(spr) * S, oy = -peDo(spr) * S, w = spr.width * S, h = spr.height * S;
+          const bal = d.balanca ? balancoEm(x, y, d.balanca) : 0;
+          if (!bal) g2.drawImage(spr, cxTela + ox, dy + oy, w, h);
+          else {
+            g2.save();
+            g2.transform(1, 0, bal, 1, cxTela, dy);
+            g2.drawImage(spr, ox, oy, w, h);
+            g2.restore();
+          }
+          /* A SILHUETA LEVA SÓ A BANDA DE BAIXO — UM TILE a partir do chão —, e
+             não a peça inteira. A tocha está na altura de uma pessoa: a COPA de
+             uma árvore passa muito acima dela e não pode fazer sombra no chão ao
+             lado do tronco. Medido no jogo antes de escrever isto: com a peça
+             inteira, numa mata **87% da tela virava oclusor** e a luz saía
+             uniforme — o efeito desaparecia justamente onde deveria aparecer. Foi
+             o caso que a bancada não tinha, porque a cena dela era rua com
+             barril e caixote, peças que cabem inteiras na banda.
+             Com a banda: o tronco barra, a copa não; barril, caixote e poço
+             continuam barrando inteiros, porque são mais baixos que um tile.
+             Sem `clip`, pela janela de ORIGEM do `drawImage`: recorte por peça
+             custa proporcional ao número de retângulos, e são centenas por
+             quadro. Só o andar do jogador — peça de outro andar não barra a luz
+             deste. */
+          if (silG && z === P.z) {
+            const banda = Math.min(spr.height, 32);
+            const sy0 = spr.height - banda, dh = banda * S;
+            if (!bal) silG.drawImage(spr, 0, sy0, spr.width, banda, cxTela + ox, dy - dh, w, dh);
+            else {
+              silG.save();
+              silG.transform(1, 0, bal, 1, cxTela, dy);
+              silG.drawImage(spr, 0, sy0, spr.width, banda, ox, -dh, w, dh);
+              silG.restore();
+            }
+          }
+        };
         // uma vez por tile: os três desenhos abaixo projetam do mesmo sol
         const sol = solNoTile(x, y, z);
 
+        /* MARCA, e ela vem PRIMEIRO na cadeia. A mancha declara `span` (a arte tem
+           2 tiles de largura), e enquanto este ramo vinha DEPOIS do de `span`
+           ela era engolida por ele e desenhada como objeto comum, com sombra e
+           tudo. Terceira vez nesta leva que a cadeia de ramos morde: quem decide
+           aqui e a CATEGORIA, nao um campo que varios ramos tambem leem.
+           Sobre coisa. A que caiu em chão vazio já saiu no passe de chão,
+           debaixo de quem pisa nela; aqui sai só a que está SOBRE parede ou
+           objeto, e ela tem de vir depois deles — sangue numa parede está na
+           parede, não no rodapé dela.
+           Na parede a marca se centra na FACE, e não na linha de chão: a parede
+           transborda um tile para cima, então o meio dela é `WALL_H·.55` abaixo
+           da crista. Sobre objeto ela fica na altura do chão, que é onde o
+           objeto encosta. TETO: a marca não acompanha a inclinação do que está
+           embaixo — numa peça alta e estreita ela sobra para os lados. */
+        if (d.cat === 'mancha') {
+          if (!temVolume(x, y, z)) continue;              // já saiu no passe de chão
+          const spr = folha && objSprite(folha);
+          if (!spr) continue;
+          const cyM = paredeEm(x, y, z)
+            ? sy - WALL_TOP * S + WALL_H * S * .55
+            : sy + t * CHAO;
+          const w = spr.width * S, h = spr.height * S;
+          g2.globalCompositeOperation = 'multiply';
+          g2.drawImage(spr, sx + t / 2 - w / 2, cyM - h / 2, w, h);
+          g2.globalCompositeOperation = 'source-over';
+        }
         /* Planta: sprite de deco, com vento e sombra de motor. */
-        if (d.deco !== undefined) {
+        else if (d.deco !== undefined) {
           const s = outlined(decoSprite(d.deco, v));
           dropShadow(s, gx, gy, sol);
           /* Vento: cisalhamento com o pivô no PÉ da planta — a mesma transform
@@ -718,10 +1095,7 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
              Pedra não balança, moita balança metade da árvore. */
           /* O tremor por cima do viés oscila para os DOIS lados, que é o que
              brisa faz — quem carrega a direção é só o viés. */
-          const balanco = d.deco === 1 ? 0
-            : (viesDoVento(ventoF)
-              + Math.sin(G.now * .0016 * (.5 + ventoF) + x * .9 + y * 1.7) * VENTO_INCL * (.4 + ventoF))
-              * (d.deco === 0 ? 1 : .5);
+          const balanco = balancoEm(x, y, d.deco === 1 ? 0 : d.deco === 0 ? 1 : .5);
           g2.save();
           g2.transform(1, 0, balanco, 1, gx, gy);
           g2.drawImage(s, -s.cx * S, -s.feet * S, s.width * S, s.height * S);
@@ -744,6 +1118,14 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
           const spr = portaSprite(o.aberta, !(paredeEm(x - 1, y, z) || paredeEm(x + 1, y, z)));
           g2.drawImage(spr, 0, 32, 32, 32, sx, sy, tw, th);
           vergas.push([spr, sx, sy, tw, th]);
+          /* PORTA ABERTA VIRA VÃO DE GRAÇA: o sprite tem um buraco no meio, e
+             como o oclusor agora é o alfa, a luz passa por ele sem ninguém
+             precisar perguntar `aberta`. Era uma pergunta a mais no `tapaVista`
+             e agora é geometria. */
+          if (silG && z === P.z) {
+            silG.drawImage(spr, 0, 32, 32, 32, sx, sy, tw, th);
+            silG.drawImage(spr, 0, 0, 32, 32, sx, sy - th, tw, th);
+          }
         }
         /* Objeto de mais de um tile: desenha a coisa inteira a partir da âncora.
            A sombra vem do MOTOR, a mesma da árvore e do boneco: mancha de
@@ -753,13 +1135,34 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
            de contato que prende, e a projetada que dá direção. */
         else if (d.span) {
           const sp = d.span;
-          const spr = (PAREDE_DRAW[d.draw] || OBJ_DRAW[d.draw])();
-          dropShadow(spr, sx + t * sp[0] / 2, sy + t * (sp[1] - 1) + t * CHAO, sol);
-          /* Pela mesma razão do objeto solto: a altura é a do sprite, e o pé
-             dele encosta no fim do rastro. A fórmula antiga esticava o desenho
-             até `alto + 32·linhas`, então mudar a altura da parede deformaria o
-             moinho de tabela. */
-          g2.drawImage(spr, sx, sy - (spr.height - 32 * sp[1]) * S, t * sp[0], spr.height * S);
+          /* PNG de folha primeiro, procedural como reserva — mesma ordem do
+             objeto solto e do terreno. */
+          /* CONTORNO. O ramo `deco` sempre chamou `outlined`, e o de folha não —
+             então a peça de folha saía como PNG chapado, sem a linha escura que
+             separa o objeto do chão. O dono descreveu o efeito exato: "sem
+             contorno, parece um papel balançando". Vale para as 88, não só a
+             árvore. `outlined` cacheia por sprite e ajusta `cx`/`feet`. */
+          const spr = (folha && outlined(objSprite(folha)))
+            || (d.draw && (PAREDE_DRAW[d.draw] || OBJ_DRAW[d.draw])());
+          if (!spr) continue;                  // peça de folha ainda carregando
+          /* `sombra: 0` na ficha tira a projetada, e ela existe para o que é
+             PLANO no chão: um tapete não projeta silhueta, e a mancha de contato
+             de uma coisa sem altura lê como sujeira. O padrão continua sendo
+             projetar — é a regra do CLAUDE.md. */
+          /* A LINHA DE CHÃO DA ÚLTIMA FILEIRA DO RASTRO. Uma só, e a arte e as
+             duas sombras saem dela — era o desencontro: a sombra ancorava em
+             `CHAO` e a arte no fundo do tile, meia tile abaixo, e a mancha saía
+             DEBAIXO do desenho (medido: 27 das 89 peças sem um pixel visível).
+             Quem se move é a SOMBRA, não a arte. A primeira tentativa subiu a
+             arte até o `CHAO` e o dono viu na hora: todo objeto do mapa passou a
+             flutuar meia tile acima do próprio tile. A causa é que `feet`, para
+             peça de folha, NÃO é âncora — o `build_objetos.py` grava
+             `peq.shape[0]`, o fundo da lona, então `feet == h` nas 105. Alinhar
+             por ele não alinha pé com pé: só sobe o desenho. */
+          const gyS = sy + t * sp[1];
+          if (d.sombra !== 0) dropShadow(spr, meio, gyS, sol);
+          if (d.pe && sp[0] > d.pe[0]) copas.push(() => desenha(spr, meio, gyS));
+          else desenha(spr, meio, gyS);
         }
         /* Parede. A cor e a textura são do MATERIAL do objeto — não mais do
            tile, que agora é o chão que ele pisa. */
@@ -768,52 +1171,76 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
              o terceiro. Agora ele recebe os vizinhos DO MESMO material, que é o
              que emenda o lance — rochedo encostado em parede de tábua continua
              sendo duas coisas e cada uma guarda a própria crista. */
-          const m = vizinhosIguais(x, y, z, o.o) & 3, topY = sy - WALL_TOP * S;
-          /* As duas faixas desta parede para o passe de luz. Só o `wallSprite`:
-             teia e moinho não têm crista, e anunciar uma faixa que o sprite não
-             desenhou pintaria céu no meio de outra coisa.
-             E SÓ SE O TILE DE CIMA FOR RUA — esta condição é o conserto de um
-             retângulo azul chapado dentro de toda casa. A parede transborda um
-             tile para CIMA, então a parede SUL desenha a própria crista DENTRO do
-             interior; as faixas saem opacas e por cima do abrigo, e arrancavam
-             aquele pedaço do telhado. Medido no quadro que o dono mostrou: 4 das
-             11 cristas caíam em tile abrigado, e eram exatamente as manchas.
-             Casa tem telhado, e o topo do muro está debaixo dele: quem vê o céu é
-             a crista que cai na RUA. */
-          if (!d.draw && !abrigado(x, y - 1, z)) {
-            const chapa = (m & 1) ? 0 : WALL_CHAPA * S;
-            /* O TILE viaja junto com a faixa. Reconstruí-lo depois a partir de
-               `camX` é remontar coordenada de mundo a partir de pixel de tela, e
-               esta base já foi mordida três vezes por isso — aqui o tile está na
-               mão de graça. */
-            if (chapa) cristas.push([sx, topY, tw, chapa, x, y - 1]);
-            faces.push([sx, topY + chapa, tw, WALL_H * S - chapa, x, y - 1]);
-          }
-          g2.drawImage((d.draw ? PAREDE_DRAW[d.draw] : wallSprite)(d.tex, d.c,
+          /* OS QUATRO BITS, e nao `& 3`. Com `& 3` a parede tinha quatro
+             variantes e canto de casa saia igual a lance reto -- a "visualizacao
+             confusa" que o dono relatou. O `wallSprite` usa leste e oeste para
+             as faces laterais, e e isso que da quina.
+             E o lance NAO QUEBRA NA PORTA: `vizinhosIguais` pergunta pelo
+             MATERIAL, e porta e `cat: 'objeto'` com material proprio, entao a
+             parede de cada lado do vao via o fim do lance e fechava a propria
+             ponta -- um entalhe em V na fachada. Quem continua a linha de uma
+             construcao e parede OU porta. */
+          const m = mascaraParede(x, y, z, o.o), topY = sy - WALL_TOP * S;
+          /* A janela vem da FICHA e nao da instancia: o mapa grava `x,y,id`, e
+             estado de instancia e SAVE, nao mapa. `ptabuaj` e tabua COM vao. */
+          const spr = (d.draw ? PAREDE_DRAW[d.draw] : wallSprite)(d.tex, d.c,
               m, profParede(x, y, z, o.o),
-              (((x % 3) + 3) % 3) + (((y % 3) + 3) % 3) * 3),
-            sx, topY, tw, WALL_H * S);
+              (((x % 3) + 3) % 3) + (((y % 3) + 3) % 3) * 3, d.jan);
+          g2.drawImage(spr, sx, topY, tw, WALL_H * S);
+          /* A parede é o oclusor principal, e vai para a silhueta pela SILHUETA
+             do sprite e não pelo retângulo da lona: o prisma já ensinou que
+             anunciar a lona tinge o que está em volta. */
+          if (silG && z === P.z) silG.drawImage(spr, sx, topY, tw, WALL_H * S);
         }
         /* Objeto solto ou corrido (cerca, escoramento, barril). Sai no 2º passe,
            com os volumes: no 1º viraria risco pintado no chão e o jogador
            passaria por cima do que devia estar na frente dele. O eixo vem do
            vizinho IGUAL — é o que faz a cerca correr no sentido da cerca e a
            escora no sentido da galeria. */
-        else if (d.draw) {
-          const spr = OBJ_DRAW[d.draw](d.eixo ? vizinhosIguais(x, y, z, o.o) : 0);
+        /* MANCHA saiu daqui: ela e decalque de CHAO, desenhada entre os dois
+           passes junto do sangue de combate. No passe de volumes ela cobriria
+           quem pisa nela, que e o defeito do `ponytail:` do tapete. */
+        else if (d.draw || d.png) {
+          /* PNG de folha primeiro, procedural como reserva. A ordem importa e é
+             a mesma do terreno: peça com arte usa a arte, e enquanto o PNG não
+             chega — ou numa máquina sem `Image`, como o node dos testes — cai no
+             desenho por código, que é o que mantém o `drawWorld` headless. Por
+             isso as sete que a folha SUBSTITUI mantêm o `draw` na ficha. */
+          /* `png` pode ser UMA peça ou uma LISTA de variantes, sorteada pelo
+             mesmo `v` do tile que a `decoSprite` já usava. Sem isso um bosque
+             inteiro sai com a mesma árvore e lê como papel de parede — é a
+             razão de a folha trazer cinco desenhos por família. */
+          const spr = (folha && outlined(objSprite(folha)))
+            || (d.draw && OBJ_DRAW[d.draw](d.eixo ? vizinhosIguais(x, y, z, o.o) : 0));
+          /* Sem sprite não há o que desenhar, e isso é ESTADO NORMAL: peça só de
+             folha some por um quadro enquanto o PNG carrega. Desenhar `null`
+             estouraria o laço do render inteiro por um asset que chega em
+             seguida. */
+          if (!spr) continue;
           /* Cerca e escoramento CORREM em linha, e sombra projetada por tile num
              lance de cerca vira serrilha; quem tem sombra de motor é o objeto
              SOLTO — carroça, barril, poço. É o `sombra` da FICHA que decide, e
              não o nome do objeto, senão o render volta a conhecer coisa por
              coisa. */
-          if (d.sombra) dropShadow(spr, gx, gy, sol);
+          /* A base da ARTE, que é o fundo do tile — não o `gy` do `CHAO`, que é
+             onde a planta e o boneco pisam. Ver a nota do ramo de `span`: para
+             peça de folha o `feet` é o fundo da lona, então a linha de chão do
+             objeto solto é a de sempre e quem estava fora do lugar era a mancha. */
+          const gyObj = sy + t;
+          if (d.sombra) dropShadow(spr, meio, gyObj, sol);
           /* A altura sai do SPRITE, não de `CERCA_H`. Enquanto era a constante,
              TODO objeto solto era espremido em 46 px: barril, carroça, lampião,
              fogueira e poste de luz saíam do mesmo tamanho, e um poste não podia
              ser mais alto que um barril por construção. Com 46 a conta dá o
              mesmo de antes (46−32 = CERCA_TOP), então nada que já estava certo
              se mexe; quem quiser subir só precisa nascer num canvas maior. */
-          g2.drawImage(spr, sx, sy - (spr.height - 32) * S, tw, spr.height * S);
+          /* `balanca` na ficha devolve o vento à peça de folha. A árvore trocou
+             o procedural pela arte e com isso saiu do ramo `deco`, que era quem
+             cisalhava — sem isto as 1712 do mapa parariam de deitar no temporal,
+             e o temporal é 28,4% do tempo real. O pivô é o PÉ, como na planta
+             procedural e na sombra projetada: a raiz fica pregada no chão e quem
+             balança é a copa. */
+          desenha(spr, meio, gyObj);
         }
       }
     }
@@ -837,6 +1264,8 @@ function drawFloor(z, x0, x1, y0, y1, t, bucket) {
      existe com ou sem bicho no andar. */
   for (const [spr, px, py, pw, ph] of vergas) g2.drawImage(spr, 0, 0, 32, 32, px, py - ph, pw, ph);
   vergas.length = 0;
+  for (const f of copas) f();
+  copas.length = 0;
   }
 }
 /* pé desenhado: quem anda está entre dois tiles, o resto está no tile mesmo */
@@ -856,7 +1285,7 @@ const NB8 = EDGE_DIR;                                   // a ordem é a das más
 function tileBorders(x, y, z, def, sx, sy, t, tw, th) {
   tw = tw || t; th = th || t;
   const p0 = TERRAIN_PRIO[def.tex] || 0;
-  const praia = def.tex === 'water';
+  const praia = def.familia === 'agua';
   let orto = 0;
   for (let m = 0; m < 8; m++) {
     if (m > 3 && (orto >> (m - 4) & 1 || orto >> ((m - 3) & 3) & 1)) continue;
@@ -917,8 +1346,44 @@ function entityBucket() {
    8 leste. A cerca precisa dos quatro para fazer quina — com o booleano antigo
    ("corre na horizontal?") ela passava reto no canto, e um lance que não se
    fecha lê como duas cercas que não se encontram. */
+/* MESMO MATERIAL, e não mesmo id — que é o que o comentário acima sempre
+   afirmou e o código não fazia. Enquanto era `n.o === id`, duas paredes do mesmo
+   material com ids diferentes (a de tábua e a de tábua COM JANELA) liam-se como
+   coisas distintas: o lance se partia na janela e nascia uma aresta lateral no
+   meio da fachada.
+   `familia` é opcional e ninguém a declarava até agora, então `familia || id`
+   deixa TODO o conteúdo existente exatamente como estava — cerca, escora,
+   rochedo e teia continuam se comparando por id, porque é isso que `familia ||
+   id` devolve para quem não a tem. */
+const materialDe = id => (OBJ[id] || {}).familia || id;
+/* O LANCE DE PAREDE NÃO QUEBRA NA PORTA.
+   `vizinhosIguais` pergunta pelo MATERIAL, e porta é `cat: 'objeto'` com
+   material próprio — então a parede de cada lado do vão via o fim do lance e
+   fechava a própria ponta, deixando um entalhe em V na fachada. É o mesmo erro
+   do `paredeEm` na sombra de prédio: perguntar pela CATEGORIA em vez do PAPEL.
+   Quem continua a linha de uma construção é parede OU porta. */
+const segueALinha = (x, y, z, mat) => objsAt(x, y, z).some(n =>
+  materialDe(n.o) === mat || (OBJ[n.o] || {}).abrivel);
+const mascaraParede = (x, y, z, id) => {
+  const mat = materialDe(id);
+  const t = (a, b) => segueALinha(a, b, z, mat);
+  return (t(x, y - 1) ? 1 : 0) | (t(x, y + 1) ? 2 : 0)
+    | (t(x - 1, y) ? 4 : 0) | (t(x + 1, y) ? 8 : 0);
+};
+/* E a máscara da PORTA olha para qualquer parede ou porta: o vão não tem
+   material, então ele não pode exigir igualdade de material para saber em que
+   sentido o muro corre. */
+const mascaraVao = (x, y, z) => {
+  const t = (a, b) => objsAt(a, b, z).some(n => {
+    const d = OBJ[n.o] || {}; return d.cat === 'parede' || d.abrivel;
+  });
+  return (t(x, y - 1) ? 1 : 0) | (t(x, y + 1) ? 2 : 0)
+    | (t(x - 1, y) ? 4 : 0) | (t(x + 1, y) ? 8 : 0);
+};
+
 const vizinhosIguais = (x, y, z, id) => {
-  const tem = (a, b) => objsAt(a, b, z).some(n => n.o === id);
+  const mat = materialDe(id);
+  const tem = (a, b) => objsAt(a, b, z).some(n => materialDe(n.o) === mat);
   return (tem(x, y - 1) ? 1 : 0) | (tem(x, y + 1) ? 2 : 0)
     | (tem(x - 1, y) ? 4 : 0) | (tem(x + 1, y) ? 8 : 0);
 };
@@ -934,6 +1399,12 @@ const profParede = (x, y, z, id) => {
 };
 
 const paredeEm = (x, y, z) => objsAt(x, y, z).some(n => (OBJ[n.o] || {}).cat === 'parede');
+/* Tem alguma coisa COM VOLUME aqui? É o que decide em qual passe a marca sai:
+   sobre chão vazio ela é decalque e o jogador pisa por cima; sobre parede ou
+   objeto ela está NA coisa, e tem de sair depois dela. */
+const temVolume = (x, y, z) => objsAt(x, y, z).some(n => {
+  const c = (OBJ[n.o] || {}).cat; return c === 'parede' || c === 'objeto';
+});
 
 const _num = c => typeof c === 'number' ? c : parseInt(String(c).replace('#', ''), 16);
 function facingOf(e) {
@@ -1189,11 +1660,22 @@ function drawBlood(z, t) {
     // source-over as poças saíam chapadas por cima da textura, como adesivo.
     g2.globalCompositeOperation = 'multiply';
     g2.globalAlpha = Math.max(0, .85 * (1 - k * k));
-    g2.fillStyle = b.cor;
-    for (const m of b.manchas) {
-      g2.beginPath();
-      g2.ellipse(cx + m.dx * t, cy + m.dy * t, m.rx * t, m.ry * t, 0, 0, 7);
-      g2.fill();
+    /* PECA DE FOLHA primeiro, elipses como reserva -- mesma ordem do terreno e
+       do objeto. O `multiply` continua: mancha TINGE o chao, tinta cobre, e com
+       `source-over` a poca saia chapada por cima da textura, como adesivo.
+       A reserva nao e decorativa: sem `Image` (o node dos testes) a peca nunca
+       chega, e e ela que mantem o `drawWorld` headless desenhando sangue. */
+    const spr = b.png && manchaSprite(b.png, b.cor);
+    if (spr) {
+      const w = spr.width * b.esc * (t / TS), h = spr.height * b.esc * (t / TS);
+      g2.drawImage(spr, cx + b.dx * t - w / 2, cy + b.dy * t - h / 2, w, h);
+    } else {
+      g2.fillStyle = b.cor;
+      for (const m of b.manchas) {
+        g2.beginPath();
+        g2.ellipse(cx + m.dx * t, cy + m.dy * t, m.rx * t, m.ry * t, 0, 0, 7);
+        g2.fill();
+      }
     }
   }
   g2.globalAlpha = 1;
@@ -1462,103 +1944,45 @@ function halo(ctx, x, y, r, cor, a0, a1) {
   ctx.translate(-x, -y);
   ctx.globalAlpha = aAntes;
 }
-/* DENTRO É MAIS ESCURO QUE FORA. Sem isto o interior de uma casa recebe a mesma
-   luz do céu que a rua, e o relato foi exatamente esse: "não dá pra saber o que
-   é dentro e o que é fora". Coberto quer dizer que existe andar por cima —
-   `souCoberto` já respondia isso e ninguém perguntava por tile.
-   Entra NO BUFFER de luz e antes dos halos, não como um multiply à parte: assim
-   a tocha e o lampião levantam o interior de volta, que é o que faz uma luz
-   dentro de casa valer alguma coisa. Um passe separado deixaria a tocha inútil
-   lá dentro, porque dois multiplies se acumulam e nada os desfaz. */
-const TELHADO = .42;                     // quanto o telhado corta da luz do céu
-let abrigoCv = null;
-/* A MÁSCARA VEM PRIMEIRO, O ALFA DEPOIS — e esta ordem é o conserto de um
-   defeito que este mesmo passe criou. Pintando um retângulo POR TILE já com
-   alfa, os retângulos se sobrepõem (o `+1` de folga e o arredondamento do
-   `w2s`), e alfa que se sobrepõe SOMA: duas passadas de 42% dão 66% na faixa
-   comum. O resultado é uma linha escura em toda quina de tile — uma grade
-   desenhada por cima do chão, que foi exatamente o que o dono viu.
-   Com a máscara opaca num canvas à parte, sobreposição não acumula (preto sobre
-   preto continua preto) e o alfa entra UMA vez, na hora de compor. */
-function telhadoNaLuz(lg) {
-  if (!abrigoCv) abrigoCv = document.createElement('canvas');
-  if (abrigoCv.width !== VW || abrigoCv.height !== VH) { abrigoCv.width = VW; abrigoCv.height = VH; }
-  const ag = abrigoCv.getContext('2d');
-  ag.clearRect(0, 0, VW, VH);
-  const t = tpx();
-  const [cols, rows] = janelaDeTiles(t);
-  const cx = Math.floor(camX), cy = Math.floor(camY);
-  let algum = false;
-  ag.fillStyle = '#000';
-  for (let y = cy - rows; y <= cy + rows; y++) for (let x = cx - cols; x <= cx + cols; x++) {
-    if (!abrigado(x, y, P.z)) continue;
-    /* CANTO, não centro — e por isso pelo `cantoDoTile`. Aqui estava escrito
-       `w2s(x, y)`, que devolve o MEIO: a máscara saía meio tile a sudeste do
-       chão que ela escurece. Medido no jogo, a faixa escura começava no pixel 64
-       (centro da coluna 71) em vez de 48 (borda dela) — meia largura de tile do
-       interior ficava acesa nas paredes norte e oeste, e 42% de escuro escorria
-       para a rua ao sul e a leste. */
-    const [sx, sy] = cantoDoTile(x, y, t);
-    ag.fillRect(sx, sy, Math.ceil(t) + 1, Math.ceil(t) + 1);
-    algum = true;
-  }
-  if (!algum) return;
-  lg.globalAlpha = TELHADO;
-  lg.drawImage(abrigoCv, 0, 0);
-  lg.globalAlpha = 1;
-}
-
-/* O TOPO APONTA PARA O CÉU E A FRENTE NÃO — e é essa divergência que dá volume,
-   não a quantidade de sombra. O passe multiplicava a crista da parede e o chão
-   pelo MESMO ambiente: a superfície que mais vê o céu levava o tratamento da que
-   menos vê, e a parede lia como adesivo colado no chão.
-   O CHÃO E A CRISTA SÃO A MESMA NORMAL, e o chão já está certo — quem está errada
-   é a face. Por isso o topo não ganha nada e a face perde: rebaixar a face
-   preserva o mundo inteiro como está hoje, enquanto levantar o topo recoloriria
-   o mapa todo por causa de uma faixa de 14 px.
-   A face leva as DUAS coisas. Rebaixada sozinha ela só vira a mesma cor mais
-   escura, e ao entardecer parede e telhado ficam os dois laranja; quem separa é
-   LAVAR a cor — a face vê metade do domo e recebe muito mais luz de volta do
-   chão, então a inclinação de cor do céu chega nela diluída. É isso que faz a
-   crista ficar azul de madrugada e dourada no poente enquanto a face não.
-   As faixas entram DEPOIS do abrigo e opacas, e por isso quem entra é filtrado no
-   recolhimento: faixa que transborda para dentro de uma casa não é anunciada.
-   Ver a nota no ramo da parede, no `drawFloor`.
-   Máscara opaca e um `drawImage` só, a lição de alfa do `telhadoNaLuz`: faixa de
-   parede vizinha se sobrepõe, e alfa sobreposto somaria uma listra na emenda.
-   As faces saem ANTES das cristas: uma parede de outro material logo acima não
-   conta como vizinha, então a face dela cobre o tile onde a crista mora, e na
-   ordem inversa ela apagaria a crista.
-   ponytail: só parede declara faixa. Barril, poço e carroça têm tampa e lateral
-   e continuam levando o mesmo ambiente nas duas — quando incomodar, o caminho é
-   o sprite declarar as próprias faixas, não o render conhecer objeto por objeto. */
-const FRENTE_F = .88;      // quanto do céu uma superfície vertical vê
-const FRENTE_LAVA = .5;    // e quanto ela lava a cor dele (1 = cinza da própria luz)
-/* A luz de uma normal sai de UMA função. Enquanto cada sprite escolhia o próprio
-   alfa a olho, dois objetos feitos em dias diferentes nunca concordavam — foi o
-   que aconteceu com a crista da parede contra a tampa do barril. A do TOPO é a
-   cor do céu sem mexer, e por isso não tem função. */
-const luzDaFrente = (r, g, b) => {
-  const l = r * .3 + g * .6 + b * .1;
-  const lava = v => Math.max(0, Math.min(255, Math.round((v + (l - v) * FRENTE_LAVA) * FRENTE_F)));
-  return [lava(r), lava(g), lava(b)];
-};
+/* QUEM FECHA O RECINTO, e não `paredeEm`. Quem lê isto hoje é a chuva, a
+   poça e o recorte de céu — o corte de luz da cobertura saiu do motor a pedido
+   do dono: ele estava quebrado, e conserto em cima de conserto piorava o resto. Perguntar pela categoria `parede`
+   deixa a PORTA de fora — ela é `cat: 'objeto'` —, e porta é um buraco no meio
+   da fachada: o recorte não a apaga, mas a silhueta do vizinho cai em cima dela,
+   e sobra uma mancha de sombra DENTRO de todo vão. O dono viu na hora, e o
+   sintoma engana: pisando na porta o corpo cobre a mancha e ela "some", o que
+   lê como se a sombra fosse chão.
+   `salaDe === SALA_PAREDE` é a pergunta certa e é do próprio motor: o
+   `calcDentro` marca assim tudo que fecha o recinto — parede, porta aberta ou
+   fechada, e o que entrar depois. A vizinhança abrigada continua limitando isso
+   à casa, senão uma pedra solta no campo viraria prédio. */
+const daCasa = (x, y, z) => abrigado(x, y, z) ||
+  (salaDe(x, y, z) === SALA_PAREDE && (abrigado(x - 1, y, z) || abrigado(x + 1, y, z) ||
+                                       abrigado(x, y - 1, z) || abrigado(x, y + 1, z)));
+/* QUEM RESPONDE "CAI CHUVA AQUI?" É A SUPERFÍCIE QUE O PIXEL MOSTRA, e num
+   mapa de paredes frontais isso quase nunca é o chão do tile. A arte da parede
+   cobre DOIS tiles — o dela e o de cima, porque ela sai de `sy - WALL_TOP` — e
+   a face que ela desenha é sempre a VIRADA PARA O SUL, já que só existe um
+   sprite. Daí a régua, e ela concilia os dois relatos do dono:
+   · parede cuja vizinha ao SUL é interior está mostrando a face de DENTRO. Não
+     chove nela — era o "tem luz/névoa/chuva de fora entrando na parte coberta
+     da casa, na parede", visto de dentro da taverna;
+   · parede cuja vizinha ao sul é rua está mostrando a FACHADA. Chove nela, e
+     não chover era o "a parede da frente não está sendo afetada pela chuva".
+   O tile de CIMA herda a resposta da parede que o cobre. Sem isso a fachada sai
+   molhada embaixo e seca em cima, partida no meio da própria altura.
+   `SALA_PAREDE` e não `paredeEm`: quem fecha o recinto é parede E PORTA, e a
+   verga da porta transborda igual. */
+const ehParede = (x, y, z) => salaDe(x, y, z) === SALA_PAREDE;
+/* A parede também tem de estar descoberta ELA MESMA: com piso por cima, o
+   andar de cima é o telhado dela, e a face não vê céu por mais aberta que
+   esteja a rua ao sul. */
+const faceExposta = (x, y, z) => !abrigado(x, y, z) && !abrigado(x, y + 1, z);
+const ceuNoTile = (x, y, z) =>
+    ehParede(x, y, z)     ? faceExposta(x, y, z)
+  : ehParede(x, y + 1, z) ? faceExposta(x, y + 1, z)
+  :                         !abrigado(x, y, z);
 const _corDoAmb = amb => /(\d+)\D+(\d+)\D+(\d+)/.exec(amb || 'rgb(255,255,255)').slice(1).map(Number);
-let topoCv = null;
-function topoNaLuz(lg, amb) {
-  if (!cristas.length && !faces.length) return;
-  if (!topoCv) topoCv = document.createElement('canvas');
-  if (topoCv.width !== VW || topoCv.height !== VH) { topoCv.width = VW; topoCv.height = VH; }
-  const tg = topoCv.getContext('2d');
-  tg.clearRect(0, 0, VW, VH);
-  const ceu = _corDoAmb(amb.amb);
-  tg.fillStyle = `rgb(${luzDaFrente(...ceu)})`;
-  for (const [x, y, w, h] of faces) tg.fillRect(x, y, w, h);
-  tg.fillStyle = `rgb(${ceu})`;
-  for (const [x, y, w, h] of cristas) tg.fillRect(x, y, w, h);
-  lg.drawImage(topoCv, 0, 0);
-}
-
 /* A LUZ PARA NA PAREDE, dos dois lados. O `halo` é gradiente radial puro: ele
    não perguntava geometria nenhuma, então a tocha da rua acendia a sala fechada
    ao lado e a tocha de dentro de casa vazava para a rua.
@@ -1589,6 +2013,18 @@ function recorteDaLuz(l, t) {
   if (l.rec === undefined) l.rec = recorteVisivel(l, t);
   return l.rec;
 }
+/* A INUNDAÇÃO É POR QUADRO, e o cache que eu tentei aqui FOI REVERTIDO.
+   A ideia continua certa no papel — alcance de luz não muda enquanto a parede
+   não muda, e medido deu 254 inundações por quadro → 0 numa tela de campo de
+   fogo. Mas em jogo o dono viu o oposto: cena parada, sem chuva, caindo abaixo
+   de 60, e 30 ao mexer no zoom. Foi a única mudança entre os 52 fps medidos e
+   isso, então ela sai até haver medição que a defenda.
+   Duas suspeitas ficam anotadas para quem retomar, nenhuma confirmada: o raio
+   da tocha TREMULA a cada quadro e entra na chave (`R` sai de `l.r / t`), o que
+   erra o cache e ainda o faz crescer; e o cache não tinha teto. Quem voltar a
+   isto quantiza o raio da chave e põe limite de tamanho ANTES de medir de novo.
+   ponytail: sem cache, cada luz refaz a busca em largura por quadro. É o preço
+   conhecido, e ele é aceitável até alguém medir de novo com a chave estável. */
 function recorteVisivel(l, t) {
   if (!(l.r > 0) || !(t > 0)) return null;  // raio ou tile degenerado: `l.r / t` daria Infinity
   const [lx, ly] = tileDaTela(l.x, l.y, t), z = P.z;
@@ -1616,14 +2052,10 @@ function recorteVisivel(l, t) {
     if (y > y0) { const j = i - w; if (!vis[j]) { vis[j] = 1; fila.push(j); } }
     if (y < y1) { const j = i + w; if (!vis[j]) { vis[j] = 1; fila.push(j); } }
   }
-  /* MESMA ECONOMIA DO `recorteCeu`, e pelo mesmo motivo medido: o custo de um
-     `clip` é proporcional ao número de retângulos, e este recorte é aplicado
-     DUAS vezes por luz (passe de luz e bloom). Numa tela cheia de campo de fogo
-     são dezenas de luzes, e foi ali que o dono viu 29 fps.
-     · tiles alcançados vizinhos na horizontal viram uma corrida só;
-     · se a inundação alcançou a janela INTEIRA — campo aberto, que é justamente
-       a cena dos campos de fogo — não há o que recortar, e `null` faz o
-       chamador pular o `clip`. */
+  /* Um retângulo por CORRIDA, e `null` quando nada barrou — esta parte FICA:
+     ela foi medida (81 → 10 retângulos por luz) e é o que levou a cena de fogo
+     de 10 para 55 fps. O custo de um `clip` é proporcional aos retângulos, e
+     este recorte é aplicado duas vezes por luz (passe de luz e bloom). */
   const larg = x1 - x0 + 1, alt = y1 - y0 + 1;
   if (fila.length === larg * alt) return null;      // nada barrou: recorte dispensado
   const p = new Path2D();
@@ -1643,16 +2075,225 @@ function recorteVisivel(l, t) {
   }
   return p;
 }
+
+
+/* ====================================================== LUZ EM WEBGL ======
+   TROCA SO O LACO DE HALOS, e nada mais. O buffer de luz continua sendo um
+   canvas 2D: o ambiente do ceu, o corte do telhado e as faixas de crista/face da
+   parede seguem exatamente como estao, porque funcionam. O que sai e o laco que
+   pinta um DISCO por fonte e o recorta por corridas de tile -- e e ele o
+   "nao reflete luz de verdade": o disco atravessa parede, nao sai por vao, e a
+   borda dele e o gradiente, nao a geometria.
+   No lugar entra uma textura somada com `lighter`, onde cada pixel e CONTA:
+   distancia ate a fonte, atenuacao, e uma marcha ate ela por uma textura de
+   oclusao. Sombra e penumbra saem da mesma conta.
+   RESERVA: sem WebGL, com o contexto perdido ou com o shader sem compilar,
+   `luzGLTextura` devolve `null` e o `lightPass` usa o laco de hoje. O jogo nunca
+   depende da GPU para desenhar -- e a mesma disciplina do `TEX_DRAW` ser reserva
+   do PNG de terreno.
+   TETO ANOTADO: a marcha tem 24 passos e a grade de oclusao e POR TILE, entao a
+   sombra tem a resolucao do tile. Num jogo de tiles isso e justo, mas quer dizer
+   que um vao de meia tile nao projeta meio facho. */
+const LUZ_GL_MAX = 24;                   // fontes por passada; o resto vem somado
+
+/* A LONA DE SILHUETA. As mesmas peças que vão para a tela vão também para cá,
+   NO MESMO laço — dois laços divergiriam na primeira peça nova, e é a mesma
+   razão de o editor chamar o render do jogo em vez de ter arte própria. Só o
+   ALFA importa: o shader lê `.a`, então a peça entra desenhada como está e não
+   há passe de conversão.
+   SÓ QUANDO HÁ GPU. Sem WebGL — o node da suíte, por exemplo — `silG` fica nulo
+   e nenhum blit extra acontece: o caminho de reserva não paga por isto.
+   TETO ANOTADO: entram parede, porta e objeto; criatura e jogador não. Sombra
+   de bicho mudaria a cada quadro e o corpo se sombrearia ao girar — quando
+   quiser, o caminho é o mesmo, mais uma chamada no `drawEntity`. */
+let silCv = null, silG = null;
+function silhuetaDoQuadro() {
+  if (!luzGLInicia()) { silG = null; return; }
+  if (!silCv) silCv = document.createElement('canvas');
+  if (silCv.width !== VW || silCv.height !== VH) { silCv.width = VW; silCv.height = VH; }
+  silG = silCv.getContext('2d');
+  silG.setTransform(1, 0, 0, 1, 0, 0);
+  silG.globalCompositeOperation = 'source-over';
+  silG.globalAlpha = 1;
+  silG.imageSmoothingEnabled = false;
+  silG.clearRect(0, 0, VW, VH);
+}
+let luzGL = null, luzGLFalhou = false;
+const LUZ_VS = `attribute vec2 p; varying vec2 uv;
+void main(){ uv = p * .5 + .5; uv.y = 1. - uv.y; gl_Position = vec4(p, 0., 1.); }`;
+/* A CURVA E A MESMA DO `haloGrad`, de proposito: trocar o modelo de oclusao sem
+   trocar a curva deixa a mudanca isolada. O gradiente de la tem parada em 0, .5
+   e 1 com alfa 1, a1/a0 e 0, e o canvas interpola LINEAR entre elas -- entao
+   aqui sao dois `mix`, e nao uma exponencial. */
+const LUZ_FS = `precision highp float;
+varying vec2 uv;
+uniform sampler2D occ;
+uniform vec2 res;
+uniform vec2 occOrig;
+uniform vec2 occTam;
+uniform float tilePx;           // um tile em pixels de tela: a unidade da espessura
+uniform int nLuz;
+uniform vec3 luzCor[24];
+uniform vec3 luzPos[24];
+uniform vec2 luzA[24];
+/* O OCLUSOR E A SILHUETA DO QUE FOI DESENHADO, e nao mais uma grade de um bit
+   por tile. Na grade, barril, caixote, arvore, poco e carroca nao existiam --
+   a tocha os atravessava como se fossem pintura no chao -- e a parede barrava
+   com a forma do TILE. Agora a sombra tem a forma da PECA, e a borda dela vem
+   macia do proprio alfa do sprite. Julgado na bancada tools/amostra/oclusor.html.
+   Le o canal ALFA: o canvas de silhueta guarda as pecas desenhadas normalmente,
+   entao converter para branco-sobre-preto seria um passe de tela cheia a toa.
+   QUANTA COISA O RAIO ATRAVESSOU, em tiles -- e nao "atravessou, sim ou nao".
+   A resposta binaria era o que fazia a luz sair QUADRADA. O passo entra na
+   conta porque ele muda com a distancia da fonte: sem isso o mesmo muro vedaria
+   mais de longe.
+   SAI DO PROPRIO CORPO ANTES DE CONTAR: o pixel que cai DENTRO de uma peca se
+   veria bloqueado por ela mesma, e a peca sairia com terra por cima. Pular um
+   numero fixo de passos nao resolve -- quanto de corpo ha entre o pixel e a
+   borda depende do tamanho da peca e da direcao. A regra e ignorar a CORRIDA
+   INICIAL de amostras ocluidas: assim que o raio sai para o ar, comeca a
+   contar. Encostado num muro, a espessura dele nao conta contra a propria face.
+   Medido na bancada antes de vir para ca. */
+float livre(vec2 a, vec2 b, float passo){
+  vec2 d = (b - a) / 24.0;
+  float bloq = 0.;
+  bool saiu = false;
+  for (int i = 1; i < 22; i++) {
+    float v = texture2D(occ, a + d * float(i)).a;
+    if (!saiu) { if (v > .5) continue; saiu = true; }
+    bloq += v;
+  }
+  return exp(-bloq * passo * 4.0);
+}
+void main(){
+  vec2 px = uv * res;
+  vec3 col = vec3(0.);
+  for (int i = 0; i < 24; i++) {
+    if (i >= nLuz) break;
+    float r = luzPos[i].z;
+    float d = distance(px, luzPos[i].xy) / r;
+    if (d >= 1.) continue;
+    float a0 = luzA[i].x, a1 = luzA[i].y;
+    float razao = a1 / max(a0, .0001);
+    float f = d < .5 ? mix(1., razao, d / .5) : mix(razao, 0., (d - .5) / .5);
+    float passo = distance(px, luzPos[i].xy) / max(tilePx, 1.) / 24.0;
+    float oc = livre((px - occOrig) / occTam, (luzPos[i].xy - occOrig) / occTam, passo);
+    col += luzCor[i] * (a0 * f * oc);
+  }
+  gl_FragColor = vec4(col, 1.);
+}`;
+function luzGLInicia() {
+  if (luzGL || luzGLFalhou) return luzGL;
+  try {
+    const cv = document.createElement('canvas');
+    const gl = cv.getContext('webgl', { antialias: false, premultipliedAlpha: false });
+    if (!gl) throw new Error('sem webgl');
+    const sh = (tipo, src) => { const o = gl.createShader(tipo);
+      gl.shaderSource(o, src); gl.compileShader(o);
+      if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o));
+      return o; };
+    const pr = gl.createProgram();
+    gl.attachShader(pr, sh(gl.VERTEX_SHADER, LUZ_VS));
+    gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, LUZ_FS));
+    gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr));
+    gl.useProgram(pr);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(pr, 'p');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    /* DUAS TEXTURAS E DOIS FILTROS, e a diferenca entre eles e o ponto.
+       A de OCLUSAO e NEAREST: quem veda a luz veda por tile inteiro, e
+       interpolar ali borraria a quina da parede. A de COBERTURA e LINEAR: ali a
+       interpolacao E a penumbra que se quer. */
+    /* LINEAR, e nao NEAREST. Amostrando por tile a resposta so podia ser 0 ou
+       1 e a sombra saia com a quina do tile -- e o relato foi exatamente esse:
+       "esta muito pixelado", "cada parede reflete separadamente". Interpolando,
+       a borda da parede vira meia tile de rampa e a marcha soma valores
+       fracionarios: a mesma conta devolve penumbra em vez de degrau. O preco e
+       a luz vazar meia tile na quina, que e o lado barato do erro. */
+    const tex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.uniform1i(gl.getUniformLocation(pr, 'occ'), 0);
+    /* SOMA, e nao substitui: com mais de 24 fontes o quadro sai em varias
+       passadas, e a soma e o que faz as passadas se juntarem. */
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    cv.addEventListener('webglcontextlost', e => { e.preventDefault(); luzGL = null; luzGLFalhou = true; });
+    luzGL = { cv, gl, pr, tex, U: n => gl.getUniformLocation(pr, n) };
+  } catch (e) {
+    luzGLFalhou = true;
+    console.warn('luz em WebGL indisponivel, usando o caminho 2D:', e.message);
+  }
+  return luzGL;
+}
+/* A GRADE DE OCLUSAO: quem veda a luz, por tile, na janela visivel mais folga.
+   `tapaVista` e a mesma regua que o recorte 2D ja usa -- uma copia so. */
+/* A TEXTURA DE OCLUSAO E A LONA DE SILHUETA, direto. Some a grade de tile, e
+   com ela some o laco que a montava — era um `tapaVista` por tile da janela mais
+   folga, todo quadro. O que entra no lugar ja foi desenhado durante o quadro
+   pelos proprios blits do render. */
+function luzGLTextura(t) {
+  const L = luzGLInicia();
+  if (!L || !luzes.length || !silCv) return null;
+  const cv = L.cv, gl = L.gl, U = L.U;
+  if (cv.width !== VW || cv.height !== VH) { cv.width = VW; cv.height = VH; }
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, L.tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, silCv);
+  gl.viewport(0, 0, VW, VH);
+  gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniform2f(U('res'), VW, VH);
+  /* A silhueta e da TELA, entao a origem e o canto dela e o tamanho e a tela
+     inteira: `(px - occOrig) / occTam` vira `px / res`, e as duas contas do
+     shader continuam as mesmas. */
+  gl.uniform2f(U('occOrig'), 0, 0);
+  gl.uniform2f(U('occTam'), VW, VH);
+  gl.uniform1f(U('tilePx'), t);
+  const cor = new Float32Array(LUZ_GL_MAX * 3), pos = new Float32Array(LUZ_GL_MAX * 3),
+        alf = new Float32Array(LUZ_GL_MAX * 2);
+  for (let base = 0; base < luzes.length; base += LUZ_GL_MAX) {
+    let n = 0;
+    for (let k = base; k < Math.min(base + LUZ_GL_MAX, luzes.length); k++) {
+      const l = luzes[k], num = _num(l.cor);
+      if (!(l.r > 0) || !(num >= 0) || !(l.a0 > 0)) continue;
+      cor[n * 3] = (num >> 16 & 255) / 255; cor[n * 3 + 1] = (num >> 8 & 255) / 255;
+      cor[n * 3 + 2] = (num & 255) / 255;
+      pos[n * 3] = l.x; pos[n * 3 + 1] = l.y; pos[n * 3 + 2] = l.r;
+      alf[n * 2] = Math.min(1, l.a0); alf[n * 2 + 1] = l.a1 || 0;
+      n++;
+    }
+    if (!n) continue;
+    gl.uniform1i(U('nLuz'), n);
+    gl.uniform3fv(U('luzCor'), cor);
+    gl.uniform3fv(U('luzPos'), pos);
+    gl.uniform2fv(U('luzA'), alf);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  return cv;
+}
+
 function lightPass(amb, t) {
   if (!lightCv) lightCv = document.createElement('canvas');
   if (lightCv.width !== VW || lightCv.height !== VH) { lightCv.width = VW; lightCv.height = VH; }
   const lg = lightCv.getContext('2d');
   lg.globalCompositeOperation = 'source-over';
   lg.fillStyle = amb.amb || 'rgb(255,255,255)'; lg.fillRect(0, 0, VW, VH);
-  telhadoNaLuz(lg);
-  topoNaLuz(lg, amb);
   lg.globalCompositeOperation = 'lighter';
-  for (const l of luzes) {
+  /* A LUZ VEM DA GPU quando ela existe, e do laco de discos quando nao. O que
+     muda e so a producao da mancha: em GL cada pixel pergunta a distancia e
+     marcha ate a fonte pela grade de oclusao, entao a luz PARA na parede e SAI
+     pelo vao. No 2D ela e um disco recortado por corridas de tile. */
+  const luzTex = luzGLTextura(t);
+  if (luzTex) lg.drawImage(luzTex, 0, 0);
+  else for (const l of luzes) {
     const rec = recorteDaLuz(l, t);
     if (rec) { lg.save(); lg.clip(rec); }
     halo(lg, l.x, l.y, l.r, l.cor, l.a0, l.a1);
@@ -1723,6 +2364,91 @@ const GRADE_LIFT = .18, GRADE_GAMA = 1.04, GRADE_GANHO = 1.06, GRADE_SPLIT = .22
    olhando o jogo. Mistura dentro do shader, não num segundo `drawImage` com
    alfa: um passe só, e o número fica explícito. */
 const GRADE_FORCA = .30;
+/* A NOITE MUDA DE MATIZ, e não só de brilho. O ambiente do céu é um MULTIPLY, e
+   multiply só SUBTRAI: com a arte de chão medindo B/G 0,17, nenhum céu azul
+   consegue levar o azul acima do verde sem apagar o quadro junto. Medido em
+   campo aberto, sem fonte de luz: a tela ia de B/R 0,30 ao meio-dia a 0,63 de
+   madrugada — mais azul, sim, mas ainda um VERDE escuro, quando a hora devia ser
+   contada pela cor.
+   Quem resolve é `color`: ele toma matiz e saturação e PRESERVA a luminosidade,
+   então a noite fica azul sem clarear um pixel — a mesma receita que o sangue já
+   usa para recolorir sem chapar a peça numa silhueta. Some sozinho de dia porque
+   o céu de meio-dia é branco, e branco não tem matiz para impor.
+   Fora do buffer de luz de propósito: lá dentro ele só caberia como mais um
+   multiply, que é o beco de onde este item saiu. */
+/* Céu normalizado para meio-tom: o que sobra dele é só a INCLINAÇÃO de cor, sem
+   o brilho. O `gradePass` e o `horaPass` pedem a mesma coisa, e ela é uma função
+   e não duas contas iguais — duas cópias divergem no dia em que alguém mexer numa. */
+function ceuNorm() {
+  const [r, g, b] = ceuRGB;
+  const f = 128 / Math.max(1, r * .3 + g * .6 + b * .1);
+  return [Math.min(255, r * f) | 0, Math.min(255, g * f) | 0, Math.min(255, b * f) | 0];
+}
+
+/* A HORA SE CONTA PELA COR, não só pelo brilho — e este passe vai ANTES do de
+   luz, que é onde a primeira versão errou.
+
+   O ambiente do céu é um MULTIPLY, e multiply só SUBTRAI: com a arte de chão
+   medindo B/G 0,17, nenhum céu azul leva o azul acima do verde sem apagar o
+   quadro junto. Medido em campo aberto, sem fonte de luz, a tela ia de B/R 0,30
+   ao meio-dia a 0,63 de madrugada — mais azul, mas ainda um VERDE escuro.
+   Quem resolve é `color`: toma matiz e saturação e PRESERVA a luminosidade,
+   então a noite fica azul sem clarear um pixel — a mesma receita que o sangue já
+   usa para recolorir sem chapar a peça numa silhueta. Some sozinho de dia,
+   porque céu de meio-dia é branco e branco não tem matiz para impor.
+
+   O LUGAR É QUE É O PONTO. Rodando no fim, junto do `gradePass`, ele tingia
+   também a poça da tocha: medido no pátio do templo com TRÊS tochas acesas,
+   4,2% de pixels quentes caíam para 0,2%. Uma tocha existe para abrir uma poça
+   quente no escuro, e um tinte que a apaga tirou a única coisa que ela fazia.
+   Antes do passe de luz, o halo quente MULTIPLICA por cima e come o azul de
+   volta onde ele alcança: fora da luz o mundo é azul, dentro dela é quente.
+
+   A rampa é a luminância do céu sobre 200, a mesma escala do sol no
+   `climaAgora` — e não o `escuro` do ambiente, que sai do canal MÍNIMO e por
+   isso marca 0,69 no poente contra 0,78 da meia-noite, empatando duas horas que
+   não se parecem em nada. */
+const NOITE_MATIZ = .45;   // da escada 0 / .25 / .45 / .65 no campo, a 1x: em .25 ainda le verde, .65 nao acrescenta
+
+/* EXPOSIÇÃO DO DIA. O quadro ao meio-dia com céu limpo mede 0,332 de
+   luminância; a referência que motivou a leva fica em ~0,50. O defeito não é dos
+   passes: a `grama_clara` mede 0,36 de valor NO ARQUIVO e a `grama` 0,40 — a
+   arte é que nasceu escura, e o passe de luz nem roda ao meio-dia pleno
+   (multiplicar por branco é trabalho à toa). Por isso o ajuste é de EXPOSIÇÃO e
+   não de arte: mexer nos PNG de chão deixaria objeto, árvore e criatura para
+   trás, e são 105 peças de folha mais as criaturas.
+
+   Ganho de verdade, não clareamento: o canvas somado a si mesmo em `lighter`
+   dá `c + k·c`, que multiplica. Preto continua preto — um `fillRect` cinza em
+   `lighter` somaria uma constante e lavaria as sombras, que é o contrário do
+   que uma direção de arte escura quer.
+
+   E ele é DO DIA. A queixa é que o escuro se gasta antes da noite; abrir a
+   faixa quer dizer clarear o dia SEM tocar na noite. A rampa zera com o céu na
+   metade do brilho: meio-dia 1,00 · poente 0,31 · madrugada 0,00. Dentro do
+   recorte de céu, então interior, telhado e caverna seguem escuros como são.
+
+   A ESCADA, medida no campo ao meio-dia (luminância · % de pixel estourado):
+   0 → 0,337 · 0,00%   |   0,15 → 0,386 · 0,02%
+   0,30 → 0,437 · 0,10%   |   0,45 → 0,484 · 0,14%
+   A referência que motivou a leva fica em ~0,50, e 0,45 chega lá — mas a 1× o
+   campo começa a lavar e a roupa do boneco perde contraste contra a grama. 0,30
+   é onde o dia lê como dia e o jogo mantém o peso. É UM NÚMERO: mexer nele é a
+   forma de mudar de ideia, e 0 volta exatamente ao que era. */
+const EXPO_DIA = .30;
+function horaPass() {
+  const [r, g, b] = ceuRGB;
+  const noite = NOITE_MATIZ * Math.max(0, 1 - (r * .3 + g * .6 + b * .1) / 200);
+  if (noite <= .01) return 0;
+  const n = ceuNorm();
+  g2.save();
+  g2.globalCompositeOperation = 'color';
+  g2.globalAlpha = noite;
+  g2.fillStyle = `rgb(${n[0]},${n[1]},${n[2]})`;
+  g2.fillRect(0, 0, VW, VH);
+  g2.restore();
+  return noite;
+}
 
 /* O PASSE DE LENTE EM WEBGL, e por que ele é opcional.
    A curva acima é por pixel e por canal — canvas 2D não faz isso sem varrer o
@@ -1827,8 +2553,7 @@ function gradeEmGL(norm) {
 function gradePass(ceu) {
   if (!ambienteDe(P.z).amb) {
     const [r, g, b] = ceuRGB;            // já calculada uma vez no quadro
-    const f = 128 / Math.max(1, r * .3 + g * .6 + b * .1);
-    const norm = [Math.min(255, r * f) | 0, Math.min(255, g * f) | 0, Math.min(255, b * f) | 0];
+    const norm = ceuNorm();
     const tratado = gradeEmGL(norm);
     g2.save();
     /* SÓ onde há céu. O telhado corta a LUZ do céu no buffer de luz, e este
@@ -1847,6 +2572,17 @@ function gradePass(ceu) {
       g2.globalAlpha = GRADE_A;
       g2.fillStyle = `rgb(${norm[0]},${norm[1]},${norm[2]})`;
       g2.fillRect(0, 0, VW, VH);
+    }
+    /* A exposição vai por ÚLTIMO dentro do recorte, depois do grade: ela é um
+       ganho uniforme, então escala a poça da tocha junto e o contraste relativo
+       entre dentro e fora da luz não muda. (Ao contrário do tinte da hora, que
+       precisou subir para antes do passe de luz justamente por NÃO ser
+       uniforme.) De noite `dia` é zero e nada disto roda. */
+    const dia = Math.max(0, Math.min(1, ((r * .3 + g * .6 + b * .1) / 200 - .5) * 2));
+    if (EXPO_DIA * dia > .01) {
+      g2.globalCompositeOperation = 'lighter';
+      g2.globalAlpha = EXPO_DIA * dia;
+      g2.drawImage(gcv, 0, 0);
     }
     g2.restore();
   }

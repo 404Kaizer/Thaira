@@ -718,10 +718,22 @@ function manchaChao(x, y, z, cor, forca = 1) {
      da briga, e o chão deixava de contar o que tinha acontecido ali. Agora as
      manchas velhas saem por serem EMPURRADAS pelas novas, que é o certo: numa
      hunt movimentada elas rodam sozinhas, e num canto parado elas ficam. */
-  G.blood.push({ x, y, z, cor, manchas, t: G.now, dur: 300000 });
-  // ponytail: teto simples no total de manchas. Cada uma custa ~6 elipses por
-  // quadro; sem o corte, uma caçada longa vira engasgo. Se um dia incomodar,
-  // pré-desenhar cada mancha num canvas resolve melhor que baixar o limite.
+  /* A PECA DA FOLHA, sorteada aqui e nao no desenho: a mancha tem de sair
+     igual em todo quadro, e sortear na hora de desenhar a faria piscar entre
+     variantes. `esc` e fracao da largura natural da peca (2 tiles), entao a
+     poca sai entre ~0,9 e ~1,6 tile conforme a forca do golpe.
+     As elipses continuam na entrada como RESERVA -- e o caminho que o node dos
+     testes toma, onde nao ha `Image`, e o mesmo padrao do resto do motor. */
+  const vars = (OBJ.mancha || {}).png;
+  const png = vars ? vars[Math.random() * vars.length | 0] : null;
+  const esc = (.45 + Math.random() * .35) * Math.min(1.6, forca);
+  G.blood.push({ x, y, z, cor, manchas, png, esc,
+    dx: (Math.random() - .5) * .5, dy: (Math.random() - .5) * .4,
+    t: G.now, dur: 300000 });
+  /* Teto simples no total de manchas. Cada uma custava ~6 elipses por quadro e
+     hoje custa UM blit de peca ja tingida e cacheada -- o "pre-desenhar cada
+     mancha num canvas" que este ponytail apontava como upgrade e o que a folha
+     de sangue trouxe. O teto fica porque ele protege a memoria, nao o quadro. */
   while (G.blood.length > SANGUE_MAX) G.blood.shift();
 }
 
@@ -1148,7 +1160,9 @@ function habilidade(m, d) {
   const f = m.def.fase;
   if (f && !m.faseOn && m.hp < f.hp * m.maxhp) {
     m.faseOn = true; m.habT = 0;
-    say(m, f.grito); log(`${m.n} muda de postura!`, 'bad'); sfx('levelup');
+    // `hab_fase`, não `levelup`: o jingle de subir de nível estava fazendo o
+    // chefe endurecer soar como recompensa do jogador
+    say(m, f.grito); log(`${m.n} muda de postura!`, 'bad'); sfx('hab_fase', m.x, m.y);
     abalo(6, 400); fxBurst(m.x, m.y, f.hab.col, 3);
   }
   const h = m.faseOn ? f.hab : m.def.hab;
@@ -1158,6 +1172,11 @@ function habilidade(m, d) {
   m.habT = G.now + h.cd;
   if (h.grito) say(m, h.grito);
   fxBurst(m.x, m.y, h.col, (h.r || 1) * .9);
+  // as mesmas duas camadas da magia do jogador: o que a habilidade FAZ, e de que
+  // ela é feita. Antes disto o efeito era só visual, e quem estava de costas
+  // para o bicho não tinha aviso nenhum.
+  sfx('hab_' + h.tipo, m.x, m.y);
+  if (h.el) sfx('spell_' + h.el, m.x, m.y);
   if (h.tipo === 'cura') {
     const v = Math.min(h.val, m.maxhp - m.hp);
     m.hp += v; float(m.x, m.y, '+' + v, '#6ee36e');
@@ -1202,9 +1221,6 @@ function tryStep(e, nx, ny) {
      separar os dois é o que dá o "peso" de cortar caminho na diagonal em vez de
      ela ser sempre o melhor negócio. Vale para todo mundo, bicho inclusive. */
   e.nextStep = G.now + e.stepD * (diag ? 1 + DIAG_PAUSA : 1);
-  // todo mundo que anda passa por aqui, então o passo de monstro sai de graça —
-  // e com posição, que é o que faz ouvir de onde vem. Outro andar não se ouve.
-  if (e.z === P.z) passo(nx, ny, e.z);
   return true;
 }
 /* Onde a entidade ESTÁ, não onde ela reservou. `tryStep` joga `x/y` no destino
@@ -1434,6 +1450,8 @@ function hitPlayer(raw, src, el, estK) {
     if (dmg <= 0) { renderBars(); return; }
   }
   P.hp -= dmg;
+  // aqui, e só aqui: golpe que a armadura come inteiro devolve acima sem passar
+  combateGolpe(P.z);
   if (P.hp > 0 && estK) aplicaEstado(P, estK, dmg);
   // apanhar merece a mesma leitura que bater: clarão no boneco e um tranco leve
   P.hitT = G.now; abalo(2);
@@ -1472,6 +1490,7 @@ const blessPrice = lvl => Math.round(2000 + Math.pow(Math.max(30, lvl) - 20, 1.4
 
 function playerDeath(src) {
   G.dead = true; P.hp = 0;
+  combateLimpa();          // senão o templo fica 12 s com música de batalha
   const b = P.bless || 0;
   const perdas = [];
   let corpo = '';
@@ -1613,9 +1632,14 @@ function castSpell(sp) {
   // treina pelo custo NOMINAL: pelo descontado, o talento de mana pagaria a si
   // mesmo em magic level mais lento, que é uma punição que ninguém escreveu
   addMagic(sp.mana);
-  // magia soa no lugar de quem conjura; o nome carrega o elemento, então dá para
-  // ter gelo diferente de fogo sem tocar em nenhuma tabela de magia
-  sfx(sp.type === 'heal' ? 'heal' : sp.type === 'buff' ? 'buff' : 'spell_' + (sp.el || 'energy'), P.x, P.y);
+  // magia soa no lugar de quem conjura, em DUAS camadas: o GESTO (o que ela faz)
+  // e o ELEMENTO (do que ela é feita). Só o elemento fazia um dardo de gelo soar
+  // igual a uma tempestade de gelo; um arquivo por par seriam 35.
+  if (sp.type === 'heal' || sp.type === 'buff') sfx(sp.type, P.x, P.y);
+  else {
+    if (CAST_GESTO[sp.type]) sfx(CAST_GESTO[sp.type], P.x, P.y);
+    sfx('spell_' + (sp.el || 'energy'), P.x, P.y);
+  }
   const ml = skillOf('magic');
   const power = (v) => magPower(v, ml, P.level);
 
@@ -1727,8 +1751,23 @@ function abrirTesouro(p) {
   P.seen[k] = 1;
   const livres = [[0, 0], ...DIRS].map(([dx, dy]) => [p.x + dx, p.y + dy])
     .filter(([x, y]) => isWalkable(x, y, p.z));
+  /* NENHUM TILE LIVRE em volta é possível, e sem esta linha o jogo caía: com a
+     lista vazia, `livres[i % 0]` é `livres[NaN]` — `undefined` —, e o
+     desestruturamento logo abaixo estoura. Não é hipótese: a conferência do mapa
+     acusa hoje "lugar em tile não andável" no poço seco, porque o dono pintou
+     uma cerca em cima dele. Um POI cercado com `loot` derrubaria o quadro.
+     O item cai no tile do próprio lugar: se ninguém consegue pisar ali, ele fica
+     esperando — melhor que o jogo parar. */
+  if (!livres.length) livres.push([p.x, p.y]);
   let i = 0, n = 0;
-  for (const [id, ch, mn, mx] of p.loot) {
+  /* `loot` é OPCIONAL, e um POI sem ele é caso legítimo — não erro. Os cinco
+     `lugar: 1` de Varrokgaard (o poço seco, o barco na pedra, o alto da
+     Pedreira, a pedra do meio, a foz) são MARCAS: existem para dizer "olha", não
+     para dar item. Sem esta reserva, pisar no tile exato do centro estourava
+     `TypeError: p.loot is not iterable` e derrubava o quadro — e o `r: 1` deles
+     faz o tile exato ser o único que dispara, então o defeito ficava escondido
+     atrás de um passo de precisão. Reproduzido no jogo antes de consertar. */
+  for (const [id, ch, mn, mx] of p.loot || []) {
     if (Math.random() > ch) continue;
     const stack = ITEMS[id].stack;
     const it = mkItem(id, stack ? 0 : rollRarity(1.2), stack && mn ? ri(mn, mx || mn) : 1);
@@ -1953,50 +1992,6 @@ function notify(ico, titulo, sub) {
   setTimeout(() => d.remove(), 3200);
   while (box.children.length > 4) box.firstChild.remove();
 }
-/* atk/armadura/defesa/veloc./postura: usado pela aba Habilidades (monta os chips)
-   e pelo renderBars (mantém os números vivos a cada golpe, sem remontar a aba toda) */
-function renderCombatStats() {
-  const atkEl = $('#stat-atk'); if (!atkEl) return;
-  const w = weaponInfo();
-  atkEl.textContent = w.wt === 'wand' ? `${w.dmg[0]}-${w.dmg[1]}` : Math.round(0.09 * w.atk * (skillOf(w.wt === 'fist' ? 'fist' : w.wt) + 4) + P.level / 5);
-  $('#stat-def').textContent = P.st.def;
-  $('#stat-spd').textContent = P.st.speed;
-  renderResChips();
-}
-/* Resistência é a única linha variável do quadro: entra um chip por elemento que
-   você realmente resiste e some quando a peça sai. Sem isto o afixo mostrava o
-   bônus na ficha do item e desaparecia — não havia onde conferir o total, que é
-   o número que decide se vale entrar na caverna de dragão.
-   O `chave` evita remontar os nós a cada golpe: renderBars chama isto sempre, e
-   a resistência só muda quando o equipamento muda. */
-let resChave = null;
-/* Cor do texto pela luminância do fundo: as cores de elemento foram escolhidas
-   para brilhar sobre terreno escuro, então quase todas pedem texto preto — mas
-   `death` é roxo médio e sumiria. Um `if` resolve os sete casos. */
-const _corTexto = hex => (0.3 * (hex >> 16 & 255) + 0.59 * (hex >> 8 & 255) + 0.11 * (hex & 255)) > 130
-  ? '#1a1410' : '#fff';
-function renderResChips() {
-  const box = $('#res-strip'); if (!box) return;
-  const els = Object.keys(P.st.res).filter(k => P.st.res[k] > 0 && ELEM[k]).sort();
-  const chave = els.map(k => k + P.st.res[k]).join();
-  if (chave === resChave) return;
-  resChave = chave;
-  box.innerHTML = '';
-  for (const k of els) {
-    const pct = Math.round(Math.min(.75, P.st.res[k]) * 100);
-    const b = document.createElement('b');
-    b.style.background = cssCol(ELEM[k].cor);
-    b.style.color = _corTexto(ELEM[k].cor);
-    b.textContent = String(pct);
-    const nome = 'Resistência a ' + ELEM[k].n;
-    const desc = `Corta ${pct}% do dano de ${ELEM[k].n} que chega em você. Vem dos afixos e dos conjuntos que está vestindo. O teto é 75%, mesmo somando peças.`;
-    // o quadro fixo ganha o tooltip uma vez na inicialização; estes nascem depois
-    b.onmouseenter = e => tipEm(e, `<b>${nome}</b><div class="dim">${desc}</div>`);
-    b.onmouseleave = hideTip;
-    b.title = nome;
-    box.appendChild(b);
-  }
-}
 function renderBars() {
   const need = expForLevel(P.level + 1), prev = expForLevel(P.level);
   $('#hp-fill').style.width = clamp(P.hp / P.st.maxhp * 100, 0, 100) + '%';
@@ -2008,7 +2003,6 @@ function renderBars() {
   // o quanto falta é consulta, não vigilância: mora no balão, não na faixa
   $('#xp-row').title = `${(need - P.exp).toLocaleString('pt-BR')} de experiência para o nível ${P.level + 1}`;
   $('#gold-val').textContent = P.gold.toLocaleString('pt-BR');
-  renderCombatStats();
   tickStatus();
 }
 /* Barra de status: tudo que está agindo em você agora, mágico ou não. A zona
@@ -3618,7 +3612,7 @@ function frame(t) {
     chuvaOuvida();
     // a trilha muda com o andar E com a hora; musica() sai na hora quando já é a
     // lista certa, então chamar de novo aqui não custa nada
-    musica(P.z <= SURF ? (noite ? 'superficie-noite' : 'superficie-dia') : P.z >= 3 ? 'abismo' : 'caverna');
+    musica(trilhaDe(P.z));
     renderBars();
   }
   if (G.now - G.lastSave > 15000) { G.lastSave = G.now; save(); }
@@ -3999,12 +3993,6 @@ addEventListener('DOMContentLoaded', () => {
     if (menuL.hidden) return;
     menuL.hidden = true; menuB.setAttribute('aria-expanded', 'false');
   });
-  // nome e explicação de cada indicador moram no data- do próprio elemento
-  document.querySelectorAll('#combat-stats .cst').forEach(c => {
-    c.onmouseenter = e => tipEm(e, `<b>${c.dataset.n}</b><div class="dim">${c.dataset.d}</div>`);
-    c.onmouseleave = hideTip;
-  });
-
   /* mudo = volume da música em 0; o valor anterior volta ao desmutar */
   const vol = $('#home-vol'), semSom = () => +vol.value === 0;
   let ultimoVol = Math.round((audioVols().musica || .6) * 100) || 60;

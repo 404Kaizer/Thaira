@@ -1,0 +1,348 @@
+<meta charset="utf-8">
+<title>Vestir Varrokgaard — o que vai em cada lugar</title>
+<style>
+  :root{
+    --ink:#0b0c0f; --surface:#15151a; --surface2:#1e1c18; --raise:#26241f;
+    --line:#3a352b; --line-soft:#2a261f;
+    --txt:#ddd5c2; --dim:#8f8874; --mute:#6b6558;
+    --gold:#d9a441; --gold2:#f0cd7a;
+    --done:#7fd08a; --wait:#e0a05a; --warn:#e0705f;
+    --serif:"Cinzel","Trajan Pro",Georgia,"Times New Roman",serif;
+    --sans:"Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:ui-monospace,"Cascadia Code",Consolas,"DejaVu Sans Mono",monospace;
+    --measure:74ch;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+      --line:#bdb6a6; --line-soft:#cdc7b9;
+      --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+      --gold:#7d5a15; --gold2:#5e430f;
+      --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+    }
+  }
+  :root[data-theme="light"]{
+    --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+    --line:#bdb6a6; --line-soft:#cdc7b9;
+    --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+    --gold:#7d5a15; --gold2:#5e430f;
+    --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--txt);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px 96px}
+  .col{max-width:var(--measure)}
+  h1,h2,h3,h4{text-wrap:balance;margin:0}
+  a{color:var(--gold2)}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+  header{padding:64px 0 36px;border-bottom:1px solid var(--line)}
+  .eyebrow{font:600 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin-bottom:18px}
+  h1{font:400 clamp(32px,5.5vw,50px)/1.08 var(--serif);letter-spacing:.03em;color:var(--gold2)}
+  .lede{margin-top:20px;color:var(--dim);font-size:17px}
+  .lede b{color:var(--txt);font-weight:600}
+
+  section{padding:48px 0;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:0}
+  h2{font:600 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+     margin-bottom:22px;display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  h3{font:600 17px/1.4 var(--sans);color:var(--txt);margin:26px 0 8px}
+  h3:first-child{margin-top:0}
+  h4{font:600 14px var(--sans);color:var(--gold2);margin:18px 0 6px}
+  p{margin:0 0 14px;max-width:var(--measure)}
+  p:last-child{margin-bottom:0}
+  strong{color:var(--gold2);font-weight:600}
+  code{font:0.87em var(--mono);background:var(--surface2);border:1px solid var(--line-soft);
+       border-radius:3px;padding:1px 5px;color:var(--txt);white-space:nowrap}
+  ul,ol{max-width:var(--measure);margin:0 0 14px;padding-left:20px}
+  li{margin-bottom:6px}
+
+  .band{overflow-x:auto;margin:0 -4px 8px}
+  table{border-collapse:collapse;width:100%;min-width:540px;font-variant-numeric:tabular-nums}
+  caption{text-align:left;color:var(--mute);font-size:13px;padding-bottom:10px}
+  th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  thead th{font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);
+           border-bottom:1px solid var(--line)}
+  tbody th{font:400 14px var(--sans);color:var(--txt);font-weight:500}
+  td{font-size:14px;color:var(--dim)}
+  td.n{font-family:var(--mono);font-size:13.5px}
+  td.now{color:var(--gold2);font-family:var(--mono);font-size:13.5px}
+  td.delta{color:var(--done);font-size:13px}
+
+  .fases{display:grid;gap:2px;background:var(--line-soft);border:1px solid var(--line-soft);margin-bottom:8px}
+  .fase{background:var(--surface);padding:20px 22px;display:grid;grid-template-columns:auto 1fr;gap:18px}
+  .num{font:400 13px var(--mono);color:var(--gold);padding:3px 18px 0 0;border-right:1px solid var(--line-soft)}
+  .fase p,.fase li{color:var(--dim);font-size:14.5px}
+  .why{margin-top:10px;padding-left:14px;border-left:2px solid var(--line);color:var(--mute);
+       font-size:13.5px;font-style:italic}
+
+  .fix{background:var(--surface);border:1px solid var(--line-soft);border-left:2px solid var(--done);
+       padding:16px 20px;margin-bottom:2px}
+  .fix h4{margin-top:0}
+  .fix p{font-size:14px;color:var(--dim);margin-bottom:8px}
+  .causa{font-size:13.5px;color:var(--mute)}
+  .causa b{color:var(--warn);font-weight:600}
+
+  .grupo{margin-bottom:28px}
+  .gtitle{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+  ul.itens{list-style:none;margin:0;padding:0;display:grid;gap:2px;max-width:none}
+  ul.itens li{background:var(--surface);border-left:2px solid var(--wait);padding:13px 18px;
+              display:grid;gap:4px;margin:0}
+  ul.itens li.debt{border-left-color:var(--mute)}
+  .it-n{font:600 15px var(--sans);color:var(--txt)}
+  .it-d{font-size:13.5px;color:var(--dim)}
+  .it-t{font-size:12.5px;color:var(--mute);font-family:var(--mono)}
+
+  /* Selo de estado. Retangular e sem preenchimento: é rótulo, não botão. */
+  .tag{font:600 10px var(--sans);letter-spacing:.09em;text-transform:uppercase;
+       padding:2px 6px;border:1px solid var(--line);border-radius:2px;
+       white-space:nowrap;margin-left:6px}
+  .tag.warn{color:var(--warn);border-color:var(--warn)}
+  .tag.wait{color:var(--wait);border-color:var(--wait)}
+  .tag.done{color:var(--done);border-color:var(--done)}
+  ul.itens li.feito{border-left-color:var(--done)}
+  /* Na lista de invariantes (ul simples, com marcador), o que entrou nesta leva
+     ganha o marcador em verde — some no meio das 30 antigas sem isso. */
+  li.feito::marker{color:var(--done)}
+
+  .aviso{background:var(--surface2);border:1px solid var(--line);border-left:3px solid var(--warn);
+         padding:18px 20px;margin-bottom:14px;max-width:var(--measure)}
+  .aviso h4{color:var(--warn);margin-top:0}
+  .aviso p{font-size:14px;color:var(--dim)}
+
+  footer{padding:36px 0 0;color:var(--mute);font-size:13px;border-top:1px solid var(--line)}
+
+  @media (max-width:640px){
+    .fase{grid-template-columns:1fr;gap:10px}
+    .num{border-right:0;border-bottom:1px solid var(--line-soft);padding:0 0 8px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Thaira · proposta · vestir Varrokgaard</div>
+  <h1>Oitenta e cinco peças sem endereço</h1>
+  <p class="lede">O vocabulário de objetos tem <b>106 ids</b>. O mapa de Varrokgaard usa
+  <b>21</b>. As outras <b>85 existem só na paleta do editor</b> &mdash; foram recortadas,
+  medidas, aprovadas, e nunca foram colocadas em lugar nenhum. Este documento propõe um
+  endereço para cada uma, e o mais importante que ele faz é dizer <b>quais não entram</b>.
+  Nada aqui está implementado: é para você riscar.</p>
+</header>
+
+<section>
+  <h2>O estado, medido</h2>
+
+  <div class="band"><table>
+    <caption>O que está no chão de Varrokgaard hoje — 5.627 objetos, 21 ids</caption>
+    <thead><tr><th>id</th><th class="n">n</th><th>o que é</th></tr></thead>
+    <tbody>
+      <tr><th>arvore</th><td class="n">1712</td><td>a mata inteira, cinco variantes de folha</td></tr>
+      <tr><th>rochedo</th><td class="n">1362</td><td>a Pedreira e a costa</td></tr>
+      <tr><th>cparede</th><td class="n">572</td><td>a Goela</td></tr>
+      <tr><th>moita</th><td class="n">522</td><td>sub-bosque</td></tr>
+      <tr><th>cerca</th><td class="n">472</td><td>a Cerca Nova e os talhões</td></tr>
+      <tr><th>pbloco · ptabua</th><td class="n">753</td><td>o muro de Varrok e as casas</td></tr>
+      <tr><th>teia · pedra · veio</th><td class="n">155</td><td>a Goela e o mato</td></tr>
+      <tr><th>palmeira</th><td class="n">19</td><td>colocadas por você</td></tr>
+      <tr><th>o resto</th><td class="n">60</td><td>barril, porta, mancha, escora, poste, moinho, carroça, poço, tocha, lampião</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>Lido de outro jeito: <strong>a ilha inteira é feita de mato, pedra e parede</strong>. Tudo
+  que diz <i>quem mora aqui</i> &mdash; mobília, ferramenta, mantimento, sinal &mdash; cabe nos
+  60 objetos da última linha. É por isso que Varrokgaard lê como vazia mesmo estando cheia: ela
+  tem 5.627 objetos e quase nenhum deles é <b>vestígio de gente</b>.</p>
+</section>
+
+<section>
+  <h2>A régua desta proposta</h2>
+
+  <p>Três regras da casa, e elas cortam mais do que acrescentam:</p>
+
+  <ul>
+    <li><strong>Elenco fechado por terra, e a ausência caracteriza tanto quanto a presença.</strong>
+    Nem toda peça precisa de casa. Espalhar as 85 porque elas existem é o oposto de compor.</li>
+    <li><strong>Um material, um significado.</strong> Se lápide, estátua, coluna e memorial
+    aparecerem juntos sem motivo, viram entulho e nenhum deles significa nada.</li>
+    <li><strong>Densidade conta história.</strong> Vinte barris no cais dizem "porto"; vinte
+    barris espalhados pela ilha dizem "o script tinha barris".</li>
+  </ul>
+
+  <p>Por isso a proposta é por <b>lugar</b>, e cada peça tem <b>um</b> endereço primário. Onde
+  uma peça serve a dois lugares, está anotado &mdash; mas ela nasce em um.</p>
+</section>
+
+<section>
+  <h2>Por lugar</h2>
+
+  <div class="fases">
+
+    <div class="fase"><div class="num">1</div><div>
+      <h3>Varrok &mdash; a vila murada <span class="tag done">39 peças</span></h3>
+      <p>O único lugar da ilha com gente, e hoje o interior das casas está <b>vazio</b>. É onde o
+      jogador nasce e onde a densidade mais aparece &mdash; se só um lugar for vestido, é este.</p>
+      <h4>Dentro das casas</h4>
+      <p>Cama · Armário · Escrivaninha · Estante de livros · Mesa comprida · Mesa redonda ·
+      Cadeira · Tamborete · Tapete · Lareira · Baú de ferro · Candelabro · Lustre ·
+      Mapa na parede · Pote de barro · Jarro vidrado · Garrafa · Escada de mão · Varal</p>
+      <h4>Cozinha e despensa</h4>
+      <p>Forno de pão · Caldeirão ao fogo · Espeto ao fogo · Adega · Engradado de garrafas ·
+      Tonel · Potão de barro · Ânfora · Tina</p>
+      <h4>Praça, rua e templo</h4>
+      <p>Fonte · Quadro de avisos · Placa de estrada · Braseiro · Estandarte · Flâmula ·
+      Coluna · Coluna lisa</p>
+      <h4>A forja</h4>
+      <p>Bigorna · Mó de afiar</p>
+      <p class="why">A vila já tem casas com porta e chão de tábua e <b>nada dentro</b>. Mobiliar
+      o interior é o maior salto de leitura por peça colocada de toda a lista &mdash; e é o que
+      transforma "casas" em "casas de alguém".</p>
+    </div></div>
+
+    <div class="fase"><div class="num">2</div><div>
+      <h3>Os Trigais &mdash; a fazenda <span class="tag done">11 peças</span></h3>
+      <p>Espantalho · Meda de feno · Saco de grão · Monte de grão · Cesto de grão ·
+      Carroça carregada · Sacaria · Caixotes · Caixote · Barris empilhados · Tanque d'água</p>
+      <p class="why">A várzea é plana e úmida e hoje é chão pintado com cerca em volta. O
+      espantalho e a meda são as duas peças que dizem "isto é lavoura" sem precisar de mais nada;
+      o resto é o que se guarda entre a colheita e o celeiro.</p>
+    </div></div>
+
+    <div class="fase"><div class="num">3</div><div>
+      <h3>Corte Velho &mdash; onde se lenha <span class="tag done">4 peças</span></h3>
+      <p>Toco · Pilha de lenha · Fogueira · Gravetos</p>
+      <p class="why">Quatro peças e o lugar passa a explicar a própria mecânica: se ali se corta
+      lenha, tem de haver toco cortado e lenha empilhada. Hoje o Corte Velho é mata com um nome.</p>
+    </div></div>
+
+    <div class="fase"><div class="num">4</div><div>
+      <h3>Mata Funda &mdash; a hunt de nível 8 <span class="tag done">3 peças</span></h3>
+      <p>Cogumelo · Pedras grandes · Pedra</p>
+      <p class="why">Deliberadamente pouco. A Mata Funda é o lugar cuja identidade é <i>densidade
+      de árvore</i>, e enchê-la de adereço tira dela justamente o que a caracteriza. Cogumelo no
+      chão úmido e pedra no meio do mato bastam para o lugar não ser um campo de troncos.</p>
+    </div></div>
+
+    <div class="fase"><div class="num">5</div><div>
+      <h3>Pedreira Rasa &mdash; a parte alta <span class="tag done">2 peças</span></h3>
+      <p>Escombro de bloco · Entrada de mina</p>
+      <p class="why">A entrada de mina é a peça mais importante desta lista inteira: ela dá
+      <b>boca visível</b> ao que hoje é uma escada no chão. E o escombro diz que a pedra saiu
+      dali &mdash; uma pedreira sem entulho não é uma pedreira, é um morro.</p>
+    </div></div>
+
+    <div class="fase"><div class="num">6</div><div>
+      <h3>A Goela &mdash; a caverna, z2 <span class="tag done">3 peças</span></h3>
+      <p>Cristais · Buraco · Archote de chão</p>
+      <p class="why">O archote é o único aqui que muda jogo e não só leitura: ele <b>acende</b>,
+      e a Goela é o lugar onde luz é recurso. Cristais dão o ponto de cor que uma caverna de
+      pedra e teia não tem.</p>
+    </div></div>
+
+    <div class="fase"><div class="num">7</div><div>
+      <h3>O Trapiche e o Embarcadouro &mdash; a costa <span class="tag wait">empresta</span></h3>
+      <p>Barris empilhados · Caixotes · Sacaria · Tonel · Tanque d'água · Placa de estrada</p>
+      <p class="why">Não pede peça nova: pede as <b>mesmas</b> da fazenda, em outra densidade e
+      outra arrumação. Carga empilhada em fila junto da tábua lê como porto; a mesma carga
+      esparramada lê como depósito. É composição, não vocabulário.</p>
+    </div></div>
+
+    <div class="fase"><div class="num">8</div><div>
+      <h3>Cabo do Sal &mdash; o acampamento de nível 20 <span class="tag done">6 peças</span></h3>
+      <p>Bancada de alquimia · Prateleira de poções · Baú dourado · Estela selada ·
+      <b>um</b> orbe · Boneco de treino</p>
+      <p class="why">O único lugar da ilha onde peça <i>mágica</i> se justifica, e a lore explica
+      por quê: há um mago ali, num acampamento que ninguém sabe por que existe, num nível acima
+      do que a ilha comporta. A bancada e a prateleira são o que ele deixou; a estela e o orbe
+      são a pergunta sem resposta. <b>Um</b> orbe, não quatro &mdash; quatro viram decoração.</p>
+    </div></div>
+
+  </div>
+</section>
+
+<section>
+  <h2>As três árvores novas</h2>
+
+  <p>Elas já estão cortadas e no jogo, com zero instâncias. Onde cada uma mora não é gosto: sai
+  de onde a água está e de onde o terreno sobe.</p>
+
+  <div class="band"><table>
+    <thead><tr><th>família</th><th>onde</th><th>por quê</th></tr></thead>
+    <tbody>
+      <tr><th>Salgueiro</th><td>margem do rio, a foz, a orla dos Trigais</td>
+        <td>copa baixa e larga, raiz exposta — é a árvore de margem, e o rio já tem mata-galeria por regra</td></tr>
+      <tr><th>Pinheiro</th><td>Pedreira Rasa e a encosta norte</td>
+        <td>a parte alta e seca da ilha; conífera marca altitude sem precisar de relevo desenhado</td></tr>
+      <tr><th>Árvore de outono</th><td class="now">nenhum lugar óbvio</td>
+        <td>Varrokgaard não tem estação declarada. Ou ela vira um bosque pequeno e proposital
+        (um trecho do Corte Velho já virando), ou <b>não entra</b> — a decisão é sua</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="why">A palmeira você já colocou (19). Se a intenção era costa, ela fecha o conjunto:
+  salgueiro no rio, palmeira no mar, pinheiro no alto, árvore comum no meio.</p>
+</section>
+
+<section>
+  <h2>O que NÃO entra — e é aqui que está a decisão</h2>
+
+  <div class="aviso">
+    <h4>Quinze peças funerárias e monumentais não têm casa em Varrokgaard <span class="tag done">decidido</span></h4>
+    <p>Lápide · Lápide com cruz · Lápide brasonada · Cruz de pedra · Cruz celta · Cripta ·
+    Memorial · Estátua de anjo · Estátua encapuzada · Estátua musgosa · Gárgula ·
+    Coluna quebrada · Estela selada<sup>*</sup> · três dos quatro orbes</p>
+    <p>A ilha é uma fazenda com uma vila murada, um corte de lenha, uma pedreira e uma caverna.
+    <b>Não há cemitério, não há ruína, não há templo anterior.</b> Um campo de lápides pede uma
+    história que esta terra não tem — e a lore é explícita em que Varrokgaard é o lugar onde
+    <i>nada nascido aqui tem mente</i>.</p>
+  </div>
+
+  <p><b>DECIDIDO em 2026-09-01: ficam para Aleto.</b> A decisão está registrada na seção de
+  elenco do <code>mundo_aleto.html</code> &mdash; elas têm endereço lá, nas Ruínas de Aleto e na
+  cripta sob o Pântano do Selo &mdash; e está <b>travada por conferência</b>: a lista
+  <code>FORA_DO_ELENCO</code> do <code>tools/mapas/varrokgaard.js</code> reprova o mapa se alguma
+  aparecer na ilha. As três saídas que estavam em aberto ficam abaixo, como registro:</p>
+
+  <p>São três saídas, e eu recomendo a primeira:</p>
+
+  <ol>
+    <li><strong>Ficam para Aleto.</strong> A outra terra é maior, mais velha e tem elenco para
+    isso. Varrokgaard fica caracterizada pela ausência, que é a regra da casa.</li>
+    <li><strong>Varrokgaard ganha um lugar novo</strong> — um adro atrás do templo, ou uma ruína
+    anterior à vila na encosta. Isso é <b>lore nova</b>, não decoração: muda o que a ilha diz
+    sobre si mesma, e precisa entrar no <code>mundo_varrokgaard.html</code> antes do mapa.</li>
+    <li><strong>Entram esparsas</strong> — uma cruz na beira da estrada, uma lápide isolada.
+    Barato, mas é o pior dos três: peça solta sem lugar lê como sobra do gerador, que é
+    exatamente o que o mundo autoral existe para evitar.</li>
+  </ol>
+
+  <p class="why"><sup>*</sup> A estela selada aparece nas duas listas de propósito: no Cabo do Sal
+  ela tem dono e motivo. Fora dali, não.</p>
+</section>
+
+<section>
+  <h2>O que isso obriga, se você aprovar</h2>
+
+  <ul>
+    <li><strong>Interior de casa é trabalho de mão, não de <code>espalha</code>.</strong> Mobília
+    sorteada põe cama na cozinha. A vila precisa de composição tile a tile no script (ou no
+    editor), e é a maior parte do custo desta proposta.</li>
+    <li><strong>Nove peças reservam mais tile do que o pé usa</strong> (placa, poste, lampião,
+    boneco de treino, bigorna, carroça). Numa rua estreita de Varrok isso barra o dobro. O campo
+    <code>pe</code> já existe desde a leva das árvores — é só declará-lo nessas nove.</li>
+    <li><strong>O <code>span</code> tem três leitores</strong> (<code>reindexObjs</code>,
+    <code>parteCamadas</code>, <code>objsEm</code>), e os três já foram corrigidos para
+    <code>pe</code> nesta leva. Peça nova com copa larga não vai mais apagar mapa.</li>
+    <li><strong>A conferência do mapa vai reclamar.</strong> Mobília dentro de casa cria recinto
+    fechado e pode selar tile — a régua nomeia cada um, com a posição. É bom: ela vai apontar a
+    cadeira que trancou a despensa.</li>
+  </ul>
+</section>
+
+<footer>
+  Proposta, não decisão · 85 peças, 70 com endereço proposto e 15 sem casa ·
+  nada implementado · rabisque e devolva
+</footer>
+
+</div>

@@ -2,3 +2,8 @@ node_modules/
 # qualquer pasta: a suite de tools importa o serve.py e o Python deixa cache
 __pycache__/
 assets/__pycache__/
+
+# trilha: ~2 GB de MP3, ativo local (manifest.json continua versionado)
+assets/music/*.mp3
+assets/music/*.ogg
+assets/music_antigo_*/

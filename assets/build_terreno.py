@@ -39,8 +39,8 @@ leva mediu na primeira folha, e que vale para as próximas:
     contínuas, e o mapa inteiro ladrilha sem emenda porque o 96 fecha em si.
     Entregar 32 daria a mesma célula nove vezes e o chão viraria papel de parede.
 """
-import sys, os, json
-from PIL import Image, ImageFilter
+import sys, os, json, glob
+from PIL import Image, ImageFilter, PngImagePlugin
 import numpy as np
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -370,6 +370,168 @@ def erro_de_costura(a):
     return {'vertical': perc(1), 'horizontal': perc(0)}
 
 
+# ── CORREÇÃO DE MATIZ: tira o cast OLIVA da vegetação ────────────────────────
+# O gerador entrega vegetação oliva, e a `tiles_02` — de onde saiu TODA a grama
+# do jogo — é a pior folha do projeto nisto. Matiz p10/p50/p90 da vegetação,
+# medido por folha em `assets/scenario/`:
+#
+#     tiles_02    68 /  78 /  84     ← as dez texturas de chão em uso
+#     tiles_01    66 /  80 / 124
+#     trees_01    67 /  89 / 127
+#     objects_01  65 /  81 / 156
+#
+# A tiles_02 não é só mais amarela: ela é CHAPADA. 90% dos pixels dela cabem
+# numa faixa de 16°, enquanto as outras folhas têm cauda até o verde de verdade
+# (`trees_01_12` mede p50 131). Girar o matiz conserta metade do defeito e
+# deixa a outra metade: grama de matiz único lê como papel pintado. O que se
+# faz aqui é ABRIR a faixa, e por isso o mapa tem GANHO e não deslocamento.
+#
+# O viés é do GERADOR, não deste pipeline — o `corrige_oliva.py` documenta o
+# mesmo na armadura do knight. Medido ponta a ponta: folha 77,1° -> PNG gravado
+# 74,4°, Δ 2,7°. Recorte, erosão, costura e reamostragem não tiram matiz.
+#
+# O nó de baixo é 62° porque o corte entre seco e vivo é limpo e medido:
+#
+#     seco e musgo   p50 entre 56 e 64   (grama_seca 56, mato_seco 60, musgo 60)
+#     grama viva     p50 entre 74 e 82   (grama 75, grama_densa 77, clara 81)
+#
+# Palha tem de continuar palha. E terra, pedra, calçada, areia e tábua medem
+# 0,0% de pixel dentro da janela — o filtro não tem como alcançá-las.
+#
+# O nó de cima existe para o mapa ser MONÓTONO e virar identidade fora da
+# banda. Sem ele, o jeito óbvio (ganho com peso que esvai) INVERTE o matiz na
+# saída da janela — 88° sairia mais verde que 96° —, e um ganho sem teto
+# nenhum manda a água e o gelo (matiz ~195) para dentro do verde.
+PIVO = 62.0       # daqui para baixo é seco e musgo: não se move
+ALVO = 95.0       # onde a mediana de toda grama viva vai parar
+VIVO = (70., 84.) # p50 aqui dentro é grama viva. Fora, não se toca.
+SAT_MIN = .15     # abaixo disto é cinza, e girar matiz de cinza é ruído
+
+# A PRIMEIRA VERSÃO deste mapa era global — ganho 2,0 ancorado no pivô — e saiu
+# errada de um jeito que só a folha de contato mostrou: o deslocamento cresce
+# com a distância do pivô, então ela empurrou MAIS justamente as texturas que já
+# estavam MENOS oliva. `grama` (p50 75) foi para 88 e ficou boa; `grama_clara` e
+# `grama_alta` (p50 80,5 e 82) foram para 99 e 102 e ficaram verde neon.
+#
+# E o croma disse que o defeito não era o que parecia: 0,565 antes, 0,565 depois
+# (rotação de matiz não mexe em croma), contra o teto de 0,85 da casa. Nada
+# ficou gritante — o que apareceu foi DISPERSÃO ENTRE VARIANTES: 14° separando
+# gramas que são a mesma família e, pela régua da casa, têm de se parecer.
+#
+# Então a mediana de CADA textura é recentrada em ALVO, e a expansão da faixa
+# sai como consequência das duas inclinações.
+#
+# O ALVO saiu da ESCADA, não de conta: as seis gramas renderizadas lado a lado
+# em 80, 86, 95 e 102, julgadas a 1×. Em 80 quase nada muda; em 86 `grama` e
+# `grama_clara` ainda leem oliva; em 102 `grama_densa` e `grama_pedra` viram
+# esmeralda sintética. 95 é onde as seis viram grama sem estourar, e bate com a
+# leitura das capturas de Stardew que motivaram a leva (95-105).
+#
+# A primeira escolha foi 86, ancorada em `trees_01` (p50 89), e o erro de método
+# vale anotado: `trees_01` é saída do MESMO gerador oliva, então ancorar nela
+# limitava o conserto ao próprio viés que se estava consertando.
+#
+# O pântano fica de fora (p50 86 e 87, acima da janela VIVO) e passa a ler mais
+# AMARELO que a grama — que é o certo para água parada, e mantém os dois
+# separados por 9°, do outro lado.
+
+MARCA = 'verdeja'
+
+
+def _hsv(a):
+    r, g, b = a[..., 0] / 255., a[..., 1] / 255., a[..., 2] / 255.
+    mx, mn = np.maximum.reduce([r, g, b]), np.minimum.reduce([r, g, b])
+    d = np.where(mx - mn == 0, 1e-9, mx - mn)
+    h = np.where(mx == r, ((g - b) / d) % 6,
+                 np.where(mx == g, (b - r) / d + 2, (r - g) / d + 4)) * 60
+    return h, np.where(mx == 0, 0, (mx - mn) / np.where(mx == 0, 1, mx)), mx
+
+
+def _rgb(h, s, v):
+    i, f = np.floor(h / 60.) % 6, h / 60. - np.floor(h / 60.)
+    p, q, t = v * (1 - s), v * (1 - f * s), v * (1 - (1 - f) * s)
+    c = [i == 0, i == 1, i == 2, i == 3, i == 4]
+    return np.clip(np.stack([np.select(c, [v, q, p, p, t], v),
+                             np.select(c, [t, v, v, q, p], p),
+                             np.select(c, [p, p, t, v, v], q)], -1) * 255, 0, 255)
+
+
+def nos(p50):
+    """Os nós do mapa de matiz para uma textura de mediana `p50`, em graus.
+    Linear por partes e MONÓTONO por construção, identidade fora de [62,150] —
+    é isso que deixa água e gelo (matiz ~195) de fora sem precisar de guarda."""
+    return ([0., PIVO, p50, 150., 360.], [0., PIVO, ALVO, 150., 360.])
+
+
+def verdeja(a):
+    """Aplica o mapa de matiz. Saturação e valor passam intactos — o defeito
+    isolado foi de MATIZ, e mexer no brilho de passagem trocaria a direção de
+    arte escura do jogo sem ninguém pedir."""
+    p50 = matiz_p50(a)
+    if p50 is None or not VIVO[0] <= p50 <= VIVO[1]:
+        return a.copy()
+    rgb = a[..., :3].astype(np.float64)
+    h, s, v = _hsv(rgb)
+    alvo = s >= SAT_MIN
+    novo = _rgb(np.where(alvo, np.interp(h, *nos(p50)), h), s, v)
+    out = a.copy()
+    out[..., :3] = np.where(alvo[..., None], novo, rgb).astype(a.dtype)
+    return out
+
+
+def matiz_p50(a):
+    """Mediana do matiz na banda da vegetação — a régua do já-corrigido."""
+    h, s, _ = _hsv(a[..., :3].astype(np.float64))
+    m = (h >= 55) & (h <= 150) & (s >= SAT_MIN)
+    return float(np.median(h[m])) if m.sum() > 200 else None
+
+
+def grava(a, caminho):
+    """Grava carimbando a marca — todo caminho que escreve terreno passa aqui."""
+    meta = PngImagePlugin.PngInfo()
+    meta.add_text(MARCA, f'alvo={ALVO}')
+    Image.fromarray(a).save(caminho, pnginfo=meta)
+
+
+def verdeja_pasta(pasta, aplicar):
+    """Corrige os PNG JÁ GRAVADOS. Existe porque só dez dos 66 arquivos de
+    `assets/terreno/` saem da folha com lista de nomes em NOMES — os outros 56
+    não têm como ser regerados por este script, e sofrem do mesmo cast."""
+    for png in sorted(glob.glob(os.path.join(pasta, '*.png'))):
+        nome = os.path.basename(png)[:-4]
+        im = Image.open(png)
+        a = np.asarray(im)
+        if MARCA in im.info:
+            print(f'  {nome:22} JÁ CORRIGIDO, pulado'); continue
+        antes = matiz_p50(a)
+        if antes is None:
+            print(f'  {nome:22} sem vegetação, gravado sem mudança')
+        else:
+            print(f'  {nome:22} p50 {antes:5.1f} -> {matiz_p50(verdeja(a)):5.1f}')
+        if aplicar:
+            grava(verdeja(a), png)
+    print('\n' + ('gravado' if aplicar else '(nada gravado — rode com --aplicar)'))
+
+
+def checa():
+    """A régua. Roda com `--checa`, e as três primeiras não precisam dos PNG:
+    elas cobram o MAPA, que é onde mora a decisão."""
+    for p50 in (70., 75., 81., 84.):
+        g = np.array([0., 30., 55., 62., 70., 88., 120., 150., 195., 300.])
+        assert np.all(np.diff(np.interp(g, *nos(p50))) > 0), f'mapa não é monótono em p50={p50}'
+        for x in (0., 30., 55., 62., 150., 195., 300.):
+            assert abs(np.interp(x, *nos(p50)) - x) < 1e-9, f'{x}° devia ser identidade'
+        assert abs(np.interp(p50, *nos(p50)) - ALVO) < 1e-9, 'a mediana tem de cair no alvo'
+    # e o caminho inteiro em disco: oliva vira verde, terra e palha não se movem
+    oliva = np.full((20, 20, 3), (82, 98, 11), np.uint8)   # `grama.png` medida
+    terra = np.full((20, 20, 3), (121, 77, 32), np.uint8)  # `terra.png` medida
+    seco = np.full((20, 20, 3), (105, 94, 19), np.uint8)   # `grama_seca.png` medida
+    assert abs(matiz_p50(verdeja(oliva)) - ALVO) < .5, 'oliva não caiu no alvo'
+    assert np.array_equal(verdeja(terra), terra), 'terra se mexeu'
+    assert np.array_equal(verdeja(seco), seco), 'palha virou grama'
+    print('checa: ok')
+
+
 def prova_visual(a, vezes=3):
     """O tile ladrilhado, para o olho conferir o que o percentil afirma."""
     return np.tile(a, (vezes, vezes, 1))
@@ -378,8 +540,13 @@ def prova_visual(a, vezes=3):
 def main():
     if len(sys.argv) < 2:
         print(__doc__); return 1
-    folha = sys.argv[1]
     aplicar = '--aplicar' in sys.argv
+    if '--checa' in sys.argv:
+        checa(); return 0
+    # Modo PASTA: corrige o matiz do que já está gravado, sem recortar de novo.
+    if '--verde' in sys.argv:
+        verdeja_pasta(SAIDA, aplicar); return 0
+    folha = sys.argv[1]
     # Folha em avaliação não escreve na pasta do jogo: `assets/terreno/` é o que
     # o motor carrega, e misturar dezenas de cortes por julgar com os aprovados
     # tira o sentido de olhar a pasta. `--saida` manda o corte para outro lugar.
@@ -432,7 +599,8 @@ def main():
               f'emenda/junção  centrado v{q_centro["v"]:4} h{q_centro["h"]:4}  ->  '
               f'escolhido v{q["v"]:4} h{q["h"]:4}')
         if aplicar:
-            Image.fromarray(final).save(os.path.join(saida, nome + '.png'))
+            final = verdeja(final)
+            grava(final, os.path.join(saida, nome + '.png'))
             # A PROVA: o tile ladrilhado 3×3. O percentil diz que a emenda não se
             # distingue; a prova é para o olho conferir o que o número afirma —
             # que é a régua final deste projeto para qualquer coisa visual.

@@ -346,6 +346,36 @@ const TEX_DRAW = {
     _speckle(ctx, S, c, 200, 1, 3, .5, .68);             // sombra por baixo do monte
   },
 
+  /* TELHA. Fiada de meia-cana, e o que faz ler como telhado NÃO é a cor: é a
+     REPETIÇÃO REGULAR com sombra na junta e luz na crista de cada peça. A
+     direção é a mesma do resto do jogo — sol a noroeste —, então a crista pega
+     luz em cima e à esquerda e a sombra cai no pé de cada fiada.
+     A fiada é DESLOCADA meia peça a cada linha, como telha de verdade: sem isso
+     as juntas se alinham em colunas e o telhado lê como grade. */
+  telha(ctx, S, c) {
+    ctx.fillStyle = _rgb(c, .40); ctx.fillRect(0, 0, S, S);        // a junta, ao fundo
+    const fh = S / 12, pw = S / 8;                                 // 8×12 px em 96: divide certo
+    for (let j = 0; j < 12; j++) {
+      const y = j * fh, desl = (j % 2) * pw / 2;
+      for (let i = -1; i < 9; i++) {
+        const x = i * pw + desl;
+        // o corpo da peça, com o tom sorteado curto para não virar mosaico
+        ctx.fillStyle = _rgb(c, .72 + _rnd() * .20);
+        ctx.fillRect(x + .5, y, pw - 1, fh - 1);
+        // a crista, que é a única aresta virada para cima: pega a luz
+        ctx.fillStyle = _rgb(c, 1.18);
+        ctx.fillRect(x + .5, y, pw - 1, 1);
+        // a lateral esquerda de cada peça também vê o sol de noroeste
+        ctx.fillStyle = _rgb(c, 1.06);
+        ctx.fillRect(x + .5, y, 1, fh - 1);
+        // e o pé da peça é a sombra que a fiada de cima joga na de baixo
+        ctx.fillStyle = _rgb(c, .34);
+        ctx.fillRect(x + .5, y + fh - 1.6, pw - 1, 1.6);
+      }
+    }
+    _speckle(ctx, S, c, 260, 1, 2, .52, .78);                      // desgaste e musgo seco
+  },
+
   /* ---- pedra lavrada: é a REGULARIDADE que denuncia que um homem fez ------ */
   block(ctx, S, c) {                                     // bloco esquadrejado, fiada deslocada
     /* Faces em torno de .8: com .88 a 1.18 e uma aresta em 1.35, o wallSprite
@@ -795,24 +825,105 @@ for (const [alvo, base] of [['grama_clara', 'grass'], ['grama_mata', 'grass'],
                             ['terra_gretada', 'dirt'], ['ossada_areia', 'bone'], ['duna', 'sand']])
   TEX_DRAW[alvo] = TEX_DRAW[base];
 
+/* TODO cache que nasce de `tileTexture` esquece junto, e isto mora FORA do
+   `onload` de propósito: lógica dentro de um callback não tem como ser exercida
+   por teste, e foi exatamente por isso que dois dos quatro ficaram sem
+   invalidação sem ninguém notar. Mesma lição do `tools/patch_fmt.js`.
+
+   O cache guarda por `kind+hex` e já pode ter a versão desenhada por código:
+   sem limpar, a textura nova só apareceria no tile que ninguém tinha olhado
+   ainda, e o mapa ficaria metade de cada. Valia para o chão — e valia igual
+   para a FRANJA DA JUNTA e para a PAREDE, que ninguém tinha ligado: `rock` está
+   no `TEX_PNG_MAP` e são 1.934 paredes de rochedo e de caverna no mapa real.
+   `teiaSprite` divide o `WALL_CACHE` e prefixa a chave com 'teia'. */
+function esqueceTerreno(kind) {
+  for (const k in TEX_CACHE) if (k.startsWith(kind)) delete TEX_CACHE[k];
+  for (const k in FLOW_CACHE) if (k.startsWith(kind)) delete FLOW_CACHE[k];
+  for (const k in BORDER_CACHE) if (k.startsWith(kind)) delete BORDER_CACHE[k];
+  for (const k in WALL_CACHE)
+    if (k.startsWith(kind) || k.startsWith('teia' + kind)) delete WALL_CACHE[k];
+}
+
 function carregaTerrenos() {
   if (_RAIZ === null || typeof Image === 'undefined') return;
   for (const kind in TEX_PNG_MAP) {
     const nome = TEX_PNG_MAP[kind];
     const im = new Image();
     im.onerror = () => { };
-    im.onload = () => {
-      TEX_PNG[kind] = im;
-      /* O cache guarda por `kind+hex` e já pode ter a versão desenhada por
-         código: sem limpar, a textura nova só apareceria no tile que ninguém
-         tinha olhado ainda, e o mapa ficaria metade de cada. */
-      for (const k in TEX_CACHE) if (k.startsWith(kind)) delete TEX_CACHE[k];
-      for (const k in FLOW_CACHE) if (k.startsWith(kind)) delete FLOW_CACHE[k];
-    };
+    im.onload = () => { TEX_PNG[kind] = im; esqueceTerreno(kind); };
     im.src = _RAIZ + 'assets/terreno/' + nome + '.png';
   }
 }
 carregaTerrenos();
+
+/* MANCHA TINGIDA. O sangue tem cor por CLASSE -- inseto verde, morto-vivo cor de
+   osso, demônio vinho, aberração roxa, celeste dourado --, então blitar o PNG
+   vermelho serviria a uma classe só.
+
+   O tingimento e por `color`, e não por `source-in`: preenchimento chapado joga
+   fora o desenho de dentro da mancha (o miolo escuro, as gotas mais claras, o
+   escorrido) e devolve uma silhueta de cor única -- que é o adesivo colado no
+   chão que o `multiply` do `drawBlood` existe para evitar. `color` toma o matiz
+   e a saturação da tinta e MANTÉM a luminosidade do desenho; o
+   `destination-in` no fim devolve o alfa recortado, porque o `fillRect` cobre a
+   lona inteira.
+
+   Cache por peca+cor: são 20 variantes x 9 classes no pior caso, e cada uma é
+   construída uma vez na vida do processo. */
+const MANCHA_CACHE = {};
+function manchaSprite(nome, cor) {
+  const k = nome + '|' + cor;
+  if (MANCHA_CACHE[k]) return MANCHA_CACHE[k];
+  const spr = objSprite(nome);
+  if (!spr) return null;                 // ainda carregando: o chamador cai na reserva
+  const c = _canvas2(spr.width, spr.height), g = c.getContext('2d');
+  g.drawImage(spr, 0, 0);
+  g.globalCompositeOperation = 'color';
+  g.fillStyle = cor; g.fillRect(0, 0, c.width, c.height);
+  g.globalCompositeOperation = 'destination-in';
+  g.drawImage(spr, 0, 0);
+  c.k = 1;
+  return MANCHA_CACHE[k] = c;
+}
+
+/* --- OBJETO DE FOLHA: o PNG recortado, embrulhado com âncora ---------------
+   Mesmo desenho do `carregaTerrenos`: dispara o carregamento e devolve `null`
+   até chegar, para quem chama cair no procedural em vez de estourar. O que muda
+   é o EMBRULHO — `outlined`, `silhouette` e `dropShadow` montam a partir de
+   `spr.width/height` e guardam em cache POR SPRITE, e leem `cx`/`feet` para
+   saber onde o pé encosta. Um `Image` cru serviria para `drawImage` e não
+   carregaria a âncora, que é metade do contrato.
+
+   `k = 1` porque o recorte já sai em pixel de tile (32 px = um tile, e o
+   `build_objetos.py` corta cada peça no tamanho da ficha): quem escala é o
+   `CAM.scale`, como em todo sprite do jogo. */
+const OBJ_PNG = {};
+const _objPronto = [];   // quem quer saber que um PNG de objeto chegou
+function objSprite(nome) {
+  const f = typeof OBJ_FOLHA !== 'undefined' && OBJ_FOLHA[nome];
+  if (!f) return null;
+  const pronto = OBJ_PNG[nome];
+  if (pronto) return pronto.spr || null;
+  if (_RAIZ === null || typeof Image === 'undefined') return null;
+  const reg = OBJ_PNG[nome] = { spr: null };
+  const im = new Image();
+  im.onerror = () => { };
+  im.onload = () => {
+    const c = _canvas2(f.w, f.h);
+    c.getContext('2d').drawImage(im, 0, 0);
+    c.cx = f.cx; c.feet = f.feet; c.k = 1;
+    reg.spr = c;
+    /* AVISA QUEM DESENHA UMA VEZ SÓ. O jogo redesenha todo quadro e não precisa,
+       mas a paleta do editor é montada uma vez: sem este aviso ela mostra o
+       fallback do primeiro instante para sempre — medido, as três estátuas
+       saíam como um quadrado de TERRA, que é o mesmo defeito que as "quatorze
+       entradas da paleta que não eram tile" já custou uma volta. Irmão do
+       `carregaTerrenos`, que limpa o cache de textura pelo mesmo motivo. */
+    for (const f of _objPronto) f(nome);
+  };
+  im.src = _RAIZ + 'assets/objetos/' + nome + '.png';
+  return null;
+}
 
 function tileTexture(kind, hex) {
   if (TEX_PNG[kind]) return TEX_PNG[kind];
@@ -877,6 +988,7 @@ const TERRAIN_PRIO = {
   dirt: 4, gravel: 4, bone: 4, hay: 4,
   sand: 5, rock: 6, ore: 6,
   stone: 7, pave: 7, rubble: 7, gore: 7, rune: 7,
+  telha: 7,          // mora sozinha no andar de cima; a prioridade só a impede de sumir sob borda alheia
   wall: 8, plank: 8, door: 8, door_open: 8, pier: 8, block: 8, prop: 8, web: 8
 };
 
@@ -1096,15 +1208,33 @@ function foamSprite(m) {
   return FOAM_CACHE[m] = c;
 }
 
-/* ------------------------------------------------------------ paredes 32×48 */
-/* No Tibia a parede é vista de frente e transborda para cima, invadindo o tile
-   de trás. Topo claro + face escura + bisel = volume sem 3D. */
+/* ------------------------------------------------------------ paredes 32x64 */
+/* A PAREDE VOLTOU AO DESENHO FRONTAL, e a volta foi decisao do dono depois de
+   uma leva inteira de defeito em cascata.
+   Ela chegou a ser um PRISMA: faixa fina de 8 px varrida na diagonal, tocos
+   direcionais na quina, no molde do muro baixo do Tibia (que e mesmo cisalhado
+   1 px por linha). A ideia resolvia uma coisa real -- lance leste-oeste e
+   norte-sul saiam com a mesma espessura -- e quebrou cinco:
+   . a varredura crescia para a ESQUERDA e invadia a coluna vizinha; o motor
+     pinta fileira por fileira e so fecha se o sprite ficar na propria coluna.
+     Arvore e objeto passaram a atravessar parede, sem erro nenhum;
+   . num MACICO (caverna, rochedo) os tocos formam uma cruz e deixam as quatro
+     quinas do tile vazias: uma grade de buracos. Preencher o tile inteiro
+     nesse caso trouxe a GRADE de topos claros, um por tile;
+   . o chao do proprio tile da parede ficou exposto, e como parede e
+     `SALA_PAREDE` (fronteira, nao "dentro"), por ele entravam CHUVA e luz do
+     ceu ate o limite do anel de paredes;
+   . a sombra de contato passou a comecar 12 px abaixo do pe;
+   . e a porta teve de ser refeita duas vezes e ainda saiu errada.
+   O que se aprende e fica: a espessura de 8 px (`WALL_CHAPA`) foi aprovada e
+   permanece; e desenho de parede se julga em MACICO e em CANTO, nao numa casa
+   de 9x7 -- foi a casinha da bancada que deixou passar tudo isto. */
 const WALL_CACHE = {};
 /* Dois tiles, que é a altura do Tibia e a única que faz sentido contra o
    jogador: com 1,5 tile ele era MAIS ALTO que toda parede do jogo e via por cima
    do muro. `WALL_CHAPA` é a superfície vista de cima e continua fina — ela é a
    quina do bloco, não metade dele. */
-const WALL_TOP = 32, WALL_H = 32 + WALL_TOP, WALL_CHAPA = 14;
+const WALL_TOP = 32, WALL_H = 32 + WALL_TOP, WALL_CHAPA = 8;   // 8: a espessura que o dono aprovou
 // até onde a face continua escurecendo lance abaixo; passando disto vira breu
 const WALL_FUNDO = 4;
 /* `m` diz quem é vizinho DO MESMO material: bit 1 acima, bit 2 abaixo. É o que
@@ -1123,9 +1253,9 @@ const WALL_FUNDO = 4;
    usa o MESMO recorte de textura e a repetição salta aos olhos, que é a outra
    metade da sensação de chapa. Com os dois, a sombra desce ao longo do lance
    inteiro e a superfície muda de tile para tile, como parede de verdade. */
-function wallSprite(kind, hex, m, prof, q) {
-  m = m | 0; prof = Math.min(prof | 0, WALL_FUNDO); q = q | 0;
-  const key = kind + hex + ':' + m + ':' + prof + ':' + q;
+function wallSprite(kind, hex, m, prof, q, jan) {
+  m = m | 0; prof = Math.min(prof | 0, WALL_FUNDO); q = q | 0; jan = jan ? 1 : 0;
+  const key = kind + hex + ':' + m + ':' + prof + ':' + q + ':' + jan;
   if (WALL_CACHE[key]) return WALL_CACHE[key];
   const emCima = m & 1, emBaixo = m & 2;
   const qx = (q % 3) * 32, qy = ((q / 3) | 0) * 32;
@@ -1136,8 +1266,15 @@ function wallSprite(kind, hex, m, prof, q) {
      funda, com a quina viva entre as duas. */
   const TOPO = emCima ? 0 : WALL_CHAPA, FACE = WALL_H - TOPO;
   if (!emCima) {                                                        // topo, só na crista
+    /* A CHAPA NAO LEVA MAIS BANHO DE BRANCO. Lavada em `rgba(255,246,225,.30)`
+       ela ficava 2,6x mais clara que a face -- e uma faixa palida, quase rosa
+       sob o ambiente da hora, correndo por cima de toda parede do mapa: o dono
+       relatou "faixa clara em cima das paredes" com o `topoNaLuz` ja removido,
+       entao a que sobrou era esta, assada no sprite.
+       Ela continua sendo o TOPO e continua se lendo como topo: a face perde 40%
+       ou mais para a profundidade, entao a textura crua ja sai 1,7x mais clara
+       que ela. O que sai e o banho, nao o plano. */
     g.drawImage(tex, qx, qy, 32, WALL_CHAPA, 0, 0, 32, WALL_CHAPA);
-    g.fillStyle = 'rgba(255,246,225,.30)'; g.fillRect(0, 0, 32, WALL_CHAPA);
   }
   g.drawImage(tex, qx, qy, 32, 32, 0, TOPO, 32, FACE);                  // face
   /* A face escurece com a PROFUNDIDADE, não dentro do próprio tile: o pé de um
@@ -1152,7 +1289,33 @@ function wallSprite(kind, hex, m, prof, q) {
     g.fillStyle = fundo; g.fillRect(0, Math.max(TOPO, WALL_H - 20), 32, 20);
     g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, WALL_H - 2, 32, 2);
   }
-  if (!emCima) { g.fillStyle = 'rgba(255,250,235,.42)'; g.fillRect(0, WALL_CHAPA, 32, 1); }  // quina
+  // quina: a aresta entre topo e face. Rebaixada de .42 junto com a chapa —
+  // sozinha ela virava um fio branco em cima de uma faixa que nao existe mais.
+  if (!emCima) { g.fillStyle = 'rgba(255,250,235,.16)'; g.fillRect(0, WALL_CHAPA, 32, 1); }
+  /* AS DUAS FACES LATERAIS, e sao elas que dao QUINA a parede. O render passava
+     so os bits norte e sul e jogava fora leste e oeste: quatro variantes em vez
+     de dezesseis, e o canto de uma casa saia igual a lance reto -- a
+     "visualizacao confusa" que o dono relatou. Sol fixo no NOROESTE: o lado
+     OESTE sem vizinho pega luz, o LESTE sem vizinho cai na sombra. Quem TEM
+     vizinho do mesmo material nao desenha nada ali, que e onde o lance emenda. */
+  const LADO = 3;
+  if (!(m & 4)) { g.fillStyle = 'rgba(255,246,225,.22)'; g.fillRect(0, TOPO, LADO, FACE); }
+  if (!(m & 8)) { g.fillStyle = 'rgba(0,0,0,.30)'; g.fillRect(32 - LADO, TOPO, LADO, FACE); }
+  /* A JANELA, e e ela que faz fachada deixar de ser muro. Vai por ULTIMO: ela e
+     um vao ABERTO na face, e o que passa por cima dela e a moldura. Quatro
+     pecas: o VAO escurece de cima para baixo, o PEITORIL e a unica aresta
+     horizontal virada para cima (entao e a que pega luz), a VERGA faz a sombra
+     que prova espessura, e o MONTANTE e o que faz aquilo ler como janela em vez
+     de buraco. */
+  if (jan) {
+    const jx = 7, jw = 18, jy = TOPO + Math.round(FACE * .18), jh = Math.round(FACE * .34);
+    const vao = g.createLinearGradient(0, jy, 0, jy + jh);
+    vao.addColorStop(0, 'rgba(0,0,0,.74)'); vao.addColorStop(1, 'rgba(0,0,0,.46)');
+    g.fillStyle = vao; g.fillRect(jx, jy, jw, jh);
+    g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(jx - 1, jy - 2, jw + 2, 2);
+    g.fillStyle = 'rgba(255,246,225,.34)'; g.fillRect(jx - 1, jy + jh, jw + 2, 2);
+    g.fillStyle = 'rgba(255,246,225,.20)'; g.fillRect(jx + (jw >> 1) - 1, jy, 2, jh);
+  }
   return WALL_CACHE[key] = c;
 }
 
@@ -1166,6 +1329,88 @@ function wallSprite(kind, hex, m, prof, q) {
    dobro, porque parede se vê por cima e porta se atravessa.
    Aberta não é "outra textura": é a FOLHA saindo do vão. O que muda é a
    silhueta, que é o que se lê a 32 px. */
+/* ------------------------------------------------------------------ telhado */
+/* O QUE FAZ TELHADO LER COMO TELHADO NÃO É O DESENHO DA PEÇA — É A FORMA.
+   A primeira amostra pintou uma fiada uniforme de meia-cana, bem desenhada, e o
+   dono respondeu na hora: <i>"tá parecendo uma parede em cima das paredes"</i>.
+   Ele estava certo, e o motivo é geométrico: fiada regular com junta escura é
+   exatamente o que uma ALVENARIA é. Telhado precisa de três coisas que uma
+   parede não tem — CUMEEIRA no alto, DUAS ÁGUAS com luz diferente, e BEIRAL com
+   sombra por baixo. É a mesma lição do `wallSprite`: quem corre em linha
+   pergunta aos vizinhos, senão a peça se repete e vira papel de parede.
+   `faixa` diz onde este tile cai entre os dois beirais — 0 é o de cima, 1 o de
+   baixo, e .5 é a cumeeira. `m` é a máscara de 4 bits do vizinho de telhado
+   (1 N · 2 S · 4 O · 8 L), e é ela que diz onde a água acaba. */
+const ROOF_CACHE = {};
+const ROOF_BANDAS = 10;                  // quantiza a faixa: 10 chaves por máscara, não infinitas
+function roofSprite(hex, m, faixa, cume) {
+  m = m | 0; cume = cume ? 1 : 0;
+  const b = Math.max(0, Math.min(ROOF_BANDAS - 1, Math.round(faixa * (ROOF_BANDAS - 1))));
+  const key = hex + ':' + m + ':' + b + ':' + cume;
+  if (ROOF_CACHE[key]) return ROOF_CACHE[key];
+  const f = b / (ROOF_BANDAS - 1);
+  const c = _canvas2(32, 32), g = c.getContext('2d');
+  /* A ÁGUA DO NORTE olha para o noroeste e pega o sol; a do sul vira as costas.
+     A diferença de VALOR entre as duas é o que dá volume — é a mesma razão do
+     topo claro contra a face escura da parede. */
+  const norte = f < .5;
+  const luz = norte ? 1.02 : .60;
+  g.fillStyle = _rgb(hex, luz * .46); g.fillRect(0, 0, 32, 32);     // a junta, ao fundo
+  const fh = 8, pw = 11;
+  for (let j = 0; j < 4; j++) {
+    const y = j * fh, desl = (j % 2) * pw / 2;
+    for (let i = -1; i < 4; i++) {
+      const x = i * pw + desl;
+      g.fillStyle = _rgb(hex, luz * (.86 + _rnd() * .16));
+      g.fillRect(x + .5, y, pw - 1, fh - 1);
+      g.fillStyle = _rgb(hex, luz * 1.22);                          // a crista da peça
+      g.fillRect(x + .5, y, pw - 1, 1);
+      g.fillStyle = _rgb(hex, luz * .40);                           // a sombra da fiada de cima
+      g.fillRect(x + .5, y + fh - 1.5, pw - 1, 1.5);
+    }
+  }
+  /* A CUMEEIRA. Só sai no tile em que a faixa cruza o meio, e é a aresta mais
+     alta do telhado inteiro: é ela que separa as duas águas e a que mais vê o
+     céu. Sem ela as duas águas ficam dois retângulos de tom diferente. */
+  if (cume) {
+    g.fillStyle = _rgb(hex, .34); g.fillRect(0, 14, 32, 2);         // a sombra sob a cumeeira
+    g.fillStyle = _rgb(hex, 1.34); g.fillRect(0, 11, 32, 3);        // a peça de cume, na luz
+    g.fillStyle = _rgb(hex, 1.55); g.fillRect(0, 11, 32, 1);        // e a aresta dela
+  }
+  /* O BEIRAL. É o que prega o telhado no prédio: a borda de baixo AVANÇA sobre a
+     parede e joga sombra nela, e a de cima mostra a espessura da telha. Sem
+     beiral o telhado é um adesivo com quina viva — o mesmo defeito do objeto
+     sem sombra de contato. */
+  if (!(m & 2)) {                                                   // não há telhado ao sul: beiral
+    g.fillStyle = _rgb(hex, 1.30); g.fillRect(0, 27, 32, 2);        // a aresta do beiral, na luz
+    g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, 29, 32, 3);      // e a sombra que ele joga
+  }
+  if (!(m & 1)) { g.fillStyle = _rgb(hex, 1.16); g.fillRect(0, 0, 32, 2); }   // beiral de cima
+  if (!(m & 4)) { g.fillStyle = _rgb(hex, 1.26); g.fillRect(0, 0, 2, 32);      // oeste pega sol
+                  g.fillStyle = 'rgba(0,0,0,.30)'; g.fillRect(2, 0, 2, 32); }  // e a sombra do beiral
+  if (!(m & 8)) { g.fillStyle = _rgb(hex, 1.10); g.fillRect(28, 0, 2, 32);     // leste: a aresta ainda lê
+                  g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(30, 0, 2, 32); } // mas o beiral cai na sombra
+  return ROOF_CACHE[key] = c;
+}
+
+/* PORTA: dois tiles de altura, e é o número do Tibia.
+   Ela era um DECALQUE DE CHÃO — `tileTexture('door')` pintado dentro do
+   quadrado —, então tinha altura zero: o jogador não atravessava porta nenhuma,
+   pisava numa pintura. Medido contra o resto do jogo, era o pior caso da escala:
+   a coisa que mais obviamente tem de ser mais alta que uma pessoa era a única
+   sem volume.
+   Como a parede, ela transborda para cima e invade o tile de trás — só que o
+   dobro, porque parede se vê por cima e porta se atravessa.
+   Aberta não é "outra textura": é a FOLHA saindo do vão. O que muda é a
+   silhueta, que é o que se lê a 32 px. */
+/* A PORTA É UM VÃO NA PAREDE, e não um desenho ao lado dela.
+   Ela era uma fachada frontal de dois tiles: ao lado do prisma oblíquo lia como
+   um retângulo colado na frente do muro, e o dono viu na primeira olhada.
+   Agora ela desenha o MESMO prisma — mesma faixa, mesma varredura, mesmo
+   material da parede em que ela está — e ABRE um buraco nele. Um vão de verdade
+   é isso: a parede continua, e falta um pedaço.
+   `aberta` não muda a moldura, muda o que há DENTRO do vão: com a folha, um
+   painel de madeira; sem ela, o buraco vazado, e por ele se vê o chão. */
 const PORTA_TOP = 32, PORTA_H = 32 + PORTA_TOP;
 const PORTA_PED = 0x6b6560, PORTA_MAD = 0x7a5330, PORTA_FER = 0x46454c;
 const PORTA_CACHE = {};
@@ -1240,7 +1485,9 @@ function portaLadoSprite(aberta) {
   const VAO_Y = PORTA_H - 30, VAO_H = 22;          // o rasgo, no pé do bloco
   // a parede acima do vão, com a chapa iluminada em cima como a do wallSprite
   g.fillStyle = _rgb(pe[1]); g.fillRect(0, 0, 32, VAO_Y);
-  g.fillStyle = _rgb(pe[3]); g.fillRect(0, 0, 32, WALL_CHAPA);
+  // `pe[2]` e nao `pe[3]`: o tom mais claro dos quatro fazia a chapa da porta
+  // saltar da chapa da parede ao lado, agora que aquela perdeu o banho.
+  g.fillStyle = _rgb(pe[2]); g.fillRect(0, 0, 32, WALL_CHAPA);
   g.fillStyle = 'rgba(0,0,0,.30)'; g.fillRect(0, WALL_CHAPA, 32, VAO_Y - WALL_CHAPA);
   g.fillStyle = _rgb(pe[0]); g.fillRect(0, VAO_Y - 2, 32, 2);            // a verga
   // e o pedaço de parede abaixo do vão: a soleira
@@ -2189,6 +2436,38 @@ function silhouette(spr) {
   return s;
 }
 
+/* A projetada com FADE ao longo do comprimento: cheia onde ela nasce, no pé, e
+   esvaindo na ponta. Sem isso o alfa é uniforme de ponta a ponta e a silhueta
+   lê como um SEGUNDO objeto deitado no chão em vez de sombra — relato do dono:
+   "parece que o objeto está flutuando e projetando sombra no chão".
+   O degradê vai no CACHE, não no quadro: são dezenas de sombras por quadro e
+   ele não muda com o sol (quem muda com o sol é o comprimento, no `transform`,
+   e o alfa global, no `dropShadow`). Sobre o sprite, o topo é a PONTA da
+   projetada — o `d` negativo do transform espelha na vertical e joga a cabeça
+   para longe dos pés —, então o gradiente é fraco em cima e cheio embaixo.
+   `destination-in` vale para o canvas INTEIRO, e é por isso que ele é aplicado
+   uma vez sobre o quadro todo em vez de em faixas: em faixas, cada retângulo
+   apagaria tudo fora dele e sobraria a interseção. */
+const FADE_CACHE = new WeakMap();
+const SOMBRA_PONTA = .15;                // alfa relativo na ponta da projetada
+function silhuetaFade(spr) {
+  const s = silhouette(spr);
+  let c = FADE_CACHE.get(s);
+  if (c) return c;
+  c = _canvas2(s.width, s.height);
+  const g = c.getContext('2d');
+  g.drawImage(s, 0, 0);
+  g.globalCompositeOperation = 'destination-in';
+  const gr = g.createLinearGradient(0, 0, 0, s.height);
+  gr.addColorStop(0, `rgba(0,0,0,${SOMBRA_PONTA})`);
+  gr.addColorStop(1, 'rgba(0,0,0,1)');
+  g.fillStyle = gr;
+  g.fillRect(0, 0, s.width, s.height);
+  c.cx = s.cx; c.feet = s.feet; c.k = s.k;
+  FADE_CACHE.set(s, c);
+  return c;
+}
+
 /* Mancha de contato sob os pés. A sombra projetada sai inclinada e some para o
    sudeste; na linha dos pés ela tem só a largura da bota — e em quadro de costas,
    largura zero. Sem esta mancha o boneco fica pairando sobre o próprio rastro.
@@ -2229,6 +2508,11 @@ function edgeShadow(dir, comp = 1) {
   const gr = dir ? g.createLinearGradient(0, 0, px, 0) : g.createLinearGradient(0, 0, 0, px);
   gr.addColorStop(0, 'rgba(0,0,0,.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
+  /* Quantos pixels do canvas têm tinta de verdade — o resto é alfa zero, e é o
+     chamador que recorta por aqui. Blitando o tile inteiro, 56% do pixel saía
+     transparente ao meio-dia (14 px de 32), e na vila densa isso é 48% de todos
+     os `drawImage` do quadro: 2,55 dos 6,61 Mpx de destino numa tela de 0,96. */
+  c.px = px;
   return EDGE_CACHE[k] = c;
 }
 
@@ -2343,6 +2627,38 @@ function cloudTexture(semente = 0xc10d5) {
   }
   CLOUD_CACHE.set(semente, c);
   return c;
+}
+
+/* A FOLHA DE NÉVOA. Mesma receita de ladrilho da nuvem — blob pintado nove
+   vezes (ele e os oito vizinhos), então o que sai por uma borda entra pela
+   oposta —, e é reuso deliberado: o problema é o mesmo, ladrilhar sem costura.
+   O que muda é a DUREZA. Névoa não tem contorno; contorno é o que faria o olho
+   reconhecer a folha como padrão repetido. Por isso a queda do gradiente é
+   longa e o alfa é baixo, ao contrário da poça, que tem borda curta de
+   propósito. Branca e translúcida: quem dá a cor é o `corDoCeu` no passe, e um
+   branco cravado aqui seria névoa de meio-dia caindo no amanhecer. */
+const NEVOA_S = 256;
+let NEVOA_CACHE = null;
+function nevoaTexture() {
+  if (NEVOA_CACHE) return NEVOA_CACHE;
+  const c = _canvas(NEVOA_S), g = c.getContext('2d'), rnd = _mulberry(0x9e70a);
+  for (let i = 0; i < 26; i++) {
+    const x = rnd() * NEVOA_S, y = rnd() * NEVOA_S;
+    const rx = NEVOA_S * (.10 + rnd() * .16), ry = rx * (.45 + rnd() * .35);
+    const a = rnd() * Math.PI;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const cx = x + dx * NEVOA_S, cy = y + dy * NEVOA_S;
+      if (cx < -rx * 2 || cx > NEVOA_S + rx * 2 || cy < -ry * 2 || cy > NEVOA_S + ry * 2) continue;
+      const gr = g.createRadialGradient(cx, cy, 0, cx, cy, rx);
+      gr.addColorStop(0, 'rgba(255,255,255,.30)');
+      gr.addColorStop(.55, 'rgba(255,255,255,.14)');
+      gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.save(); g.translate(cx, cy); g.rotate(a); g.scale(1, ry / rx); g.translate(-cx, -cy);
+      g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, rx, 0, 7); g.fill();
+      g.restore();
+    }
+  }
+  return NEVOA_CACHE = c;
 }
 
 /* escadas: buraco escuro para descer, degraus claros para subir */

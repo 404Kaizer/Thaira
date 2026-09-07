@@ -1,0 +1,342 @@
+<meta charset="utf-8">
+<title>Bancada do oclusor — grade de tile × silhueta</title>
+<style>
+  body{margin:0;background:#15151a;color:#ddd5c2;font:14px/1.55 "Segoe UI",system-ui,sans-serif;padding:24px}
+  h1{font:400 26px/1.1 Cinzel,Georgia,serif;color:#f0cd7a;letter-spacing:.03em;margin:0 0 6px}
+  p.lede{color:#8f8874;margin:0 0 18px;max-width:90ch}
+  p.lede b{color:#ddd5c2}
+  .ctrl{margin:0 0 18px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  label{font-size:13px;color:#8f8874;display:flex;gap:7px;align-items:center}
+  select,input{background:#26241f;color:#ddd5c2;border:1px solid #3a352b;padding:4px 8px;font:13px inherit}
+  .grade{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+  .cel{background:#1e1c18;border:1px solid #3a352b;padding:13px;width:562px}
+  .cel h2{font:600 12px "Segoe UI";letter-spacing:.14em;text-transform:uppercase;color:#d9a441;margin:0 0 4px}
+  .cel .nota{color:#8f8874;font-size:12.5px;margin:0 0 9px;min-height:78px}
+  .cel .preco{color:#6b6558;font-size:12px;margin:8px 0 0;border-left:2px solid #3a352b;padding-left:9px}
+  .cel .preco b{color:#e0705f;font-weight:600}
+  canvas{display:block;image-rendering:pixelated;background:#0d0d10;width:536px}
+  .fixo{color:#6b6558;font-size:12.5px;border-left:2px solid #d9a441;padding-left:10px;margin:0 0 18px;max-width:90ch}
+  code{color:#c8b98a}
+</style>
+
+<h1>Bancada do oclusor</h1>
+<p class="lede">A pergunta é uma só: <b>o que o shader de luz deve consultar para saber que alguma
+coisa barra a luz?</b> Hoje ele consulta uma <b>grade de um bit por tile</b> montada do
+<code>tapaVista</code> — e nela barril, caixote, árvore, poço e carroça simplesmente
+<b>não existem</b>, enquanto a parede barra na resolução do tile. Aqui a mesma cena sai três
+vezes, com o <b>mesmo shader e os mesmos números</b>; a única coisa que muda de painel para
+painel é a <b>textura de oclusão</b>.</p>
+
+<p class="fixo"><b>Travado nos três, de propósito:</b> a curva de atenuação, o
+<code>exp(−espessura × k)</code>, os 32 passos da marcha, a regra de <b>sair do próprio corpo
+antes de contar</b> (auto-sombra) e o filtro <code>LINEAR</code>. Uma variável só — senão a
+bancada mede posição e não efeito.</p>
+
+<div class="ctrl">
+  <label>Hora <select id="hora">
+    <option value="0.04">madrugada</option><option value="0.20" selected>noite fechada</option>
+    <option value="0.78">poente</option><option value="0.5">meio-dia</option></select></label>
+  <label>Tocha X <input id="tx" type="range" min="1" max="16" step=".1" value="8" style="width:150px"></label>
+  <label>Tocha Y <input id="ty" type="range" min="2" max="10" step=".1" value="6" style="width:110px"></label>
+  <label>Força <input id="forca" type="range" min="0" max="100" value="90" style="width:100px"></label>
+  <label><input id="mascara" type="checkbox"> ver a máscara</label>
+</div>
+
+<div class="grade" id="grade"></div>
+
+<script src="../../src/art.js"></script>
+<script src="../../src/objetos.js"></script>
+<script src="../../src/world.js"></script>
+<script>
+/* TUDO NUM ESCOPO SÓ. `const` no topo de um script clássico mora no escopo
+   global, e `CEU`, `PAREDE`, `TL` e companhia já existem no `world.js` — a
+   página morria em "Identifier 'CEU' has already been declared" antes de
+   desenhar um pixel. Um invólucro resolve os quinze de uma vez. */
+(function () {
+/* `objetos.js` é o arquivo GERADO com as peças de folha. Sem ele o `objSprite`
+   devolve `null` antes de tentar, e a página desenha um mundo sem objeto nenhum
+   — que é justamente o que ela existe para julgar. Já mordeu uma vez, na página
+   de amostra de objetos. */
+const $ = s => document.querySelector(s);
+
+/* Espelham o render (`render2d.js:732` e `:739`). Duas linhas, e é o preço de a
+   bancada não arrastar o jogo inteiro — a mesma escolha da bancada de luz. */
+const peDo = spr => spr.feet || spr.height;
+const cxDo = spr => spr.cx !== undefined ? spr.cx : spr.width / 2;
+
+const TL = 32, LARG = 17, ALT = 11;
+const W_PX = LARG * TL, H_PX = ALT * TL;
+
+/* A CENA. Um trecho de rua com um lance de muro ao norte e as peças espalhadas
+   EM VOLTA da tocha: o que se julga é a sombra que cada uma joga, e peça só de
+   um lado esconde metade do defeito. */
+const PAREDE = (x, y) => y <= 1;
+const PECAS = [
+  ['barril',  3, 3], ['caixote', 7, 3],  ['coluna', 12, 3],
+  ['arvore',  2, 6], ['poco',    9, 6],  ['tonel',  14, 6],
+  ['meda',    5, 9], ['carroca', 11, 9]
+];
+
+const CEU = { '0.04': [26, 30, 52], '0.20': [34, 38, 62], '0.78': [96, 68, 54], '0.5': [255, 250, 236] };
+const ceu = () => CEU[$('#hora').value];
+const forca = () => +$('#forca').value / 100;
+const tocha = () => ({ x: +$('#tx').value * TL, y: +$('#ty').value * TL });
+const TOCHA_COR = [255, 176, 92], TOCHA_R = 6.5 * TL;
+
+const lona = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+
+/* ------------------------------------------------- o mundo e a silhueta ---
+   UM laço desenha as duas coisas: a arte no canvas do mundo e a mesma peça em
+   preto chapado no canvas de silhueta. Dois laços divergiriam na primeira peça
+   nova — é a mesma razão de o editor chamar o render do jogo. */
+function desenhaMundo() {
+  const cv = lona(W_PX, H_PX), sil = lona(W_PX, H_PX);
+  const g = cv.getContext('2d'), s = sil.getContext('2d');
+  g.imageSmoothingEnabled = s.imageSmoothingEnabled = false;
+
+  const chao = TILE[T.PAVE] || TILE[T.DIRT];
+  for (let y = 0; y < ALT; y++) for (let x = 0; x < LARG; x++) {
+    const cx = ((x % 3) + 3) % 3 * 32, cy = ((y % 3) + 3) % 3 * 32;
+    g.drawImage(tileTexture(chao.tex, chao.c), cx, cy, 32, 32, x * TL, y * TL, TL, TL);
+  }
+  const pd = TILE[T.WALL];
+  for (let y = 0; y < ALT; y++) for (let x = 0; x < LARG; x++) {
+    if (!PAREDE(x, y)) continue;
+    const m = (PAREDE(x, y - 1) ? 1 : 0) | (PAREDE(x, y + 1) ? 2 : 0)
+            | (PAREDE(x - 1, y) ? 4 : 0) | (PAREDE(x + 1, y) ? 8 : 0);
+    const q = ((x % 3) + 3) % 3 + (((y % 3) + 3) % 3) * 3;
+    g.drawImage(wallSprite(pd.tex, pd.c, m, 0, q, 0), x * TL, y * TL - WALL_TOP, 32, WALL_H);
+    s.fillStyle = '#000'; s.fillRect(x * TL, y * TL - WALL_TOP, TL, WALL_H);
+  }
+
+  let faltou = 0;
+  for (const [id, x, y] of PECAS) {
+    const d = OBJ[id]; if (!d) { faltou++; continue; }
+    const nome = Array.isArray(d.png) ? d.png[0] : d.png;
+    const spr = nome && outlined(objSprite(nome));
+    if (!spr) { faltou++; continue; }                 // PNG ainda chegando
+    const sp = d.span || [1, 1], pe = d.pe || sp;
+    const meio = x * TL + TL * pe[0] / 2, dy = y * TL + TL * sp[1];
+    const px = meio - cxDo(spr), py = dy - peDo(spr);
+    g.drawImage(spr, px, py);
+    /* A silhueta é o ALFA da peça, chapado. Desenhar e pintar por cima em
+       `source-atop` guarda o alfa das bordas — é ele que dá borda macia à
+       sombra em vez de escada. */
+    s.save();
+    s.drawImage(spr, px, py);
+    s.globalCompositeOperation = 'source-atop';
+    s.fillStyle = '#000'; s.fillRect(px, py, spr.width, spr.height);
+    s.restore();
+  }
+  return { cv, sil, faltou };
+}
+
+/* --------------------------------------------------------- as texturas ---
+   Três oclusores para a MESMA cena, e é a única coisa que muda entre painéis.
+   · grade    — um bit por tile, só parede: o que o jogo consulta hoje;
+   · grade+   — um bit por tile, parede E o pé das peças: o remendo barato;
+   · silhueta — o alfa do que foi desenhado, na resolução da tela. */
+function texGrade(comPecas) {
+  const cv = lona(LARG, ALT), g = cv.getContext('2d');
+  const im = g.createImageData(LARG, ALT);
+  const ocupa = new Uint8Array(LARG * ALT);
+  for (let y = 0; y < ALT; y++) for (let x = 0; x < LARG; x++)
+    if (PAREDE(x, y)) ocupa[y * LARG + x] = 1;
+  if (comPecas) for (const [id, x, y] of PECAS) {
+    const d = OBJ[id]; if (!d) continue;
+    const pe = d.pe || d.span || [1, 1];
+    for (let j = 0; j < pe[1]; j++) for (let i = 0; i < pe[0]; i++) {
+      const xx = x + i, yy = y + j;
+      if (xx >= 0 && yy >= 0 && xx < LARG && yy < ALT) ocupa[yy * LARG + xx] = 1;
+    }
+  }
+  for (let i = 0; i < LARG * ALT; i++) {
+    const v = ocupa[i] ? 255 : 0, k = i * 4;
+    im.data[k] = im.data[k + 1] = im.data[k + 2] = v; im.data[k + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  return cv;
+}
+/* A silhueta chega como preto sobre transparente e o shader lê o canal
+   vermelho: precisa virar BRANCO onde há peça. Sai por alfa, e não por cor —
+   contar cor num desenho preto mede zero, que é a armadilha anotada no
+   CLAUDE.md. */
+function texSilhueta(sil) {
+  const cv = lona(W_PX, H_PX), g = cv.getContext('2d');
+  /* A ORDEM É O CONSERTO, e a primeira versão errou exatamente como o CLAUDE.md
+     avisa: modo de composição vale para o CANVAS INTEIRO, não para o que se está
+     pintando. Pintando o preto ANTES, o `source-atop` do branco encontrava o
+     canvas inteiro opaco e cobria tudo — a textura saía branca de ponta a ponta,
+     o shader lia oclusão total e o painel 3 vinha PRETO. Sintoma clássico: o
+     efeito mede tudo ou mede zero, nunca no meio.
+     Do jeito certo: as formas primeiro sobre transparente, `source-in` para
+     virarem brancas guardando o alfa das bordas (é ele que dá sombra de borda
+     macia), e só então o preto POR BAIXO. */
+  g.drawImage(sil, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W_PX, H_PX);
+  g.globalCompositeOperation = 'destination-over';
+  g.fillStyle = '#000'; g.fillRect(0, 0, W_PX, H_PX);
+  return cv;
+}
+
+/* ------------------------------------------------------------- o shader ---
+   UM shader para os três. Ele não sabe se a textura tem 17x11 ou 544x352:
+   marcha em uv e mede ESPESSURA ATRAVESSADA em tiles, com o passo na conta —
+   sem isso a mesma parede vedaria mais de longe. */
+const VS = `attribute vec2 p; varying vec2 uv;
+void main(){ uv = p * .5 + .5; uv.y = 1. - uv.y; gl_Position = vec4(p, 0., 1.); }`;
+const FS = `precision highp float;
+varying vec2 uv;
+uniform sampler2D occ;
+uniform vec2 res;
+uniform vec3 amb;
+uniform vec3 luzCor;
+uniform vec2 luzPos;
+uniform float luzR;
+uniform float luzF;
+uniform float K;
+float espessura(vec2 a, vec2 b){
+  /* SAI DO PROPRIO CORPO ANTES DE CONTAR. O pixel que cai DENTRO de uma peca se
+     veria bloqueado por ela mesma, e a peca saia com terra por cima -- medido
+     na primeira versao desta bancada, com o poco e a arvore escuros no meio da
+     luz. Pular um numero fixo de passos nao resolve: o quanto de corpo ha entre
+     o pixel e a borda depende do tamanho da peca e da direcao.
+     A regra e "ignore a CORRIDA INICIAL de amostras ocluidas" -- assim que o
+     raio sai para o ar, comeca a contar. Encostado numa parede, a espessura
+     dela nao conta contra a propria face, que e o certo. Os 2 ultimos passos
+     ficam de fora porque sao a propria chama. */
+  const int N = 32;
+  vec2 d = (b - a) / float(N);
+  float s = 0.;
+  bool saiu = false;
+  for (int i = 1; i < N - 2; i++) {
+    float v = texture2D(occ, a + d * float(i)).r;
+    if (!saiu) { if (v > .5) continue; saiu = true; }
+    s += v;
+  }
+  return s;
+}
+void main(){
+  vec2 px = uv * res;
+  vec3 col = amb;
+  float dpx = distance(px, luzPos * res);
+  float dist = dpx / luzR;
+  if (dist < 1.) {
+    float f = dist < .5 ? mix(1., .35, dist / .5) : mix(.35, 0., (dist - .5) / .5);
+    float passo = dpx / 32.0 / 32.0;              // espessura de um passo, em tiles
+    float oc = exp(-espessura(uv, luzPos) * passo * K);
+    col += luzCor * f * luzF * oc;
+  }
+  gl_FragColor = vec4(col, 1.);
+}`;
+let glCv = null, gl = null, prog = null, tex = null;
+function iniciaGL() {
+  if (glCv) return gl;
+  glCv = lona(W_PX, H_PX);
+  gl = glCv.getContext('webgl', { antialias: false, preserveDrawingBuffer: true });
+  if (!gl) return null;
+  const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'p');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  tex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.uniform1i(gl.getUniformLocation(prog, 'occ'), 0);
+  return gl;
+}
+const K_ESPESSURA = 4.0;
+function luz(occCv) {
+  if (!iniciaGL()) return null;
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, occCv);
+  const c = ceu(), t = tocha();
+  const U = n => gl.getUniformLocation(prog, n);
+  gl.uniform2f(U('res'), W_PX, H_PX);
+  gl.uniform3f(U('amb'), c[0] / 255, c[1] / 255, c[2] / 255);
+  gl.uniform3f(U('luzCor'), TOCHA_COR[0] / 255, TOCHA_COR[1] / 255, TOCHA_COR[2] / 255);
+  gl.uniform2f(U('luzPos'), t.x / W_PX, t.y / H_PX);
+  gl.uniform1f(U('luzR'), TOCHA_R);
+  gl.uniform1f(U('luzF'), forca());
+  gl.uniform1f(U('K'), K_ESPESSURA);
+  gl.viewport(0, 0, W_PX, H_PX);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  return glCv;
+}
+
+/* --------------------------------------------------------------- montar --- */
+let MUNDO = null;
+const MODELOS = [
+  ['1 — grade de tile, só parede &nbsp;(o jogo hoje)', () => texGrade(false),
+   'Um bit por tile, vindo do <code>tapaVista</code>. Barril, caixote, árvore, poço e carroça <b>não barram nada</b>: a tocha os atravessa como se fossem pintura no chão.',
+   'Nenhum objeto do mapa faz sombra. O que se vê são peças chapadas dentro de um disco de luz.'],
+  ['2 — grade de tile, com o pé das peças', () => texGrade(true),
+   'A mesma grade, marcando também o <code>pe</code> de cada peça. É o remendo barato: uma linha a mais no laço que monta a textura, e nada mais muda.',
+   'A sombra tem a forma do TILE e não da peça — o barril redondo joga um bloco quadrado de 32 px, e a coluna fina bloqueia tanto quanto a carroça.'],
+  ['3 — silhueta, na resolução da tela', () => texSilhueta(MUNDO.sil),
+   'A textura passa a ser o <b>alfa do que foi desenhado</b>. A sombra tem a forma da peça — tronco fino, copa larga, aro do poço — e a borda vem macia do próprio alfa.',
+   'Custa um segundo canvas de tela por quadro (as peças redesenhadas em preto) e uma textura maior para a GPU. E a peça não tem espessura: ela barra como um recorte de papel em pé.']
+];
+
+function monta() {
+  MUNDO = desenhaMundo();
+  const alvo = $('#grade');
+  alvo.innerHTML = '';
+  for (const [titulo, occ, nota, preco] of MODELOS) {
+    const d = document.createElement('div');
+    d.className = 'cel';
+    d.innerHTML = '<h2>' + titulo + '</h2><p class="nota">' + nota + '</p>';
+    const cv = lona(W_PX, H_PX);
+    d.appendChild(cv);
+    d.insertAdjacentHTML('beforeend', '<p class="preco"><b>O preço:</b> ' + preco + '</p>');
+    alvo.appendChild(d);
+    const g = cv.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    const o = occ();
+    if ($('#mascara').checked) { g.drawImage(o, 0, 0, W_PX, H_PX); continue; }
+    g.drawImage(MUNDO.cv, 0, 0);
+    const lz = luz(o);
+    if (!lz) { g.fillStyle = 'rgba(120,0,0,.5)'; g.fillRect(0, 0, W_PX, H_PX); continue; }
+    /* A luz MULTIPLICA o mundo, como o jogo compõe: multiply só subtrai, então
+       o buffer nunca clareia o que a arte não tem. */
+    g.globalCompositeOperation = 'multiply';
+    g.drawImage(lz, 0, 0);
+    g.globalCompositeOperation = 'source-over';
+    /* Onde a chama está. Sem o ponto não se sabe de que lado a sombra devia
+       cair, e a bancada vira adivinhação. */
+    const tp = tocha();
+    g.fillStyle = 'rgba(255,214,150,.95)';
+    g.beginPath(); g.arc(tp.x, tp.y, 3, 0, 7); g.fill();
+    g.strokeStyle = 'rgba(255,176,92,.5)'; g.lineWidth = 1;
+    g.beginPath(); g.arc(tp.x, tp.y, 6.5, 0, 7); g.stroke();
+  }
+}
+/* ARTE QUE CHEGA DEPOIS PRECISA AVISAR. Esta página desenha UMA vez; sem o
+   aviso ela mostraria para sempre o mundo do primeiro instante, sem peça
+   nenhuma. Agrupado num quadro só, como o `objSprite` do jogo faz. */
+let pendente = false;
+if (typeof _objPronto !== 'undefined') _objPronto.push(function () {
+  if (pendente) return;
+  pendente = true;
+  requestAnimationFrame(function () { pendente = false; monta(); });
+});
+for (const el of document.querySelectorAll('select,input')) { el.onchange = monta; el.oninput = monta; }
+monta();
+})();
+</script>

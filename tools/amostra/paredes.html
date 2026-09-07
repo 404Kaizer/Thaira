@@ -1,0 +1,338 @@
+<meta charset="utf-8">
+<title>Cinco paredes — qual delas</title>
+<style>
+  body{margin:0;background:#15151a;color:#ddd5c2;font:14px/1.55 "Segoe UI",system-ui,sans-serif;padding:24px}
+  h1{font:400 26px/1.1 Cinzel,Georgia,serif;color:#f0cd7a;letter-spacing:.03em;margin:0 0 6px}
+  p.lede{color:#8f8874;margin:0 0 18px;max-width:82ch}
+  p.lede b{color:#ddd5c2}
+  .barra{margin:0 0 20px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  label{font-size:13px;color:#8f8874;display:flex;gap:7px;align-items:center}
+  select{background:#26241f;color:#ddd5c2;border:1px solid #3a352b;padding:5px 10px;font:13px inherit}
+  .grade{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+  .cel{background:#1e1c18;border:1px solid #3a352b;padding:14px;max-width:520px}
+  .cel h2{font:600 12px "Segoe UI";letter-spacing:.14em;text-transform:uppercase;color:#d9a441;margin:0 0 4px}
+  .cel .nota{color:#8f8874;font-size:12.5px;margin:0 0 10px;max-width:52ch}
+  .cel .preco{color:#6b6558;font-size:12px;margin:9px 0 0;max-width:52ch;
+              border-left:2px solid #3a352b;padding-left:10px}
+  .cel .preco b{color:#e0705f;font-weight:600}
+  canvas{display:block;image-rendering:pixelated;background:#0d0d10}
+</style>
+
+<h1>Cinco paredes, a mesma casa</h1>
+<p class="lede">A mesma planta desenhada cinco vezes, <b>no tamanho e na luz do jogo</b>. O chão, a
+grama, a borda entre terrenos e o boneco são os <b>do jogo</b> — só a parede muda. O boneco está
+aí para escala: ele mede 0,90 tile de largura e 1,50 de altura, e é a régua contra a qual toda
+construção se julga. <b>Julgue no zoom 1</b>, que é o do jogo; os outros servem para achar o
+defeito, não para aprovar.</p>
+
+<div class="barra">
+  <label>Zoom <select id="zoom"><option>1</option><option selected>2</option><option>3</option></select>×</label>
+  <label>Chão de fora <select id="fora">
+    <option value="GRASS">grama</option><option value="DIRT">terra</option>
+    <option value="PAVE">calçada</option></select></label>
+  <label>Chão de dentro <select id="dentro">
+    <option value="FLOOR_CLARA">tábua clara</option><option value="BRICK">tijolo</option>
+    <option value="PAVE_LAJE">laje</option></select></label>
+</div>
+
+<div class="grade" id="grade"></div>
+
+<script src="../../src/art.js"></script>
+<script src="../../src/world.js"></script>
+<script>
+/* art.js e world.js, e nada mais — as texturas, as cores e o boneco saem do
+   PRÓPRIO jogo. Copiar cor ou id para cá criaria a segunda fonte de verdade que
+   a virada de mundo existe para não ter.
+   O QUE ESTA PÁGINA TEM DE PRÓPRIO, e é o que ela existe para julgar: as três
+   maneiras de desenhar a PAREDE. Elas são PROPOSTA, não o jogo — o jogo hoje só
+   sabe desenhar a primeira coluna da opção B (face frontal), que é justamente a
+   queixa: "as laterais parecem extensões diretas da parte de trás". */
+const $ = s => document.querySelector(s);
+
+/* A planta, em caracteres. `#` é parede, `+` é porta, `.` é chão de dentro,
+   ` ` é o chão de fora. Pequena de propósito: o que se julga é a parede, e cena
+   grande esconde defeito atrás de composição. */
+const PLANTA = [
+  '             ',
+  '  #########  ',
+  '  #.......#  ',
+  '  #.......#  ',
+  '  #.......#  ',
+  '  #.......#  ',
+  '  ####+####  ',
+  '             ',
+  '             '
+];
+
+const ESP = 9;    // espessura da parede vista de cima, em px de tile. 9/32 ≈ 0,28
+const ALT = 10;   // altura da face curta, nas opções que têm face
+
+/* ------------------------------------------------------ material da parede */
+/* Sai do TILE do jogo: é a mesma pedra que a vila usa hoje. */
+const PDEF = () => TILE[T.WALL];
+const matCv = (q) => {
+  const d = PDEF(), tex = tileTexture(d.tex, d.c);
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d');
+  g.drawImage(tex, (q % 3) * 32, ((q / 3) | 0) * 32, 32, 32, 0, 0, 32, 32);
+  return c;
+};
+
+const veda = (g, a) => { g.fillStyle = a; };
+
+/* ============================================================== OPÇÃO A ====
+   FINA COM VOLUME BAIXO. A parede é uma faixa fina vista de cima, com uma face
+   CURTA logo abaixo dela. Não transborda para cima: tudo cabe no próprio tile,
+   e por isso a parede da frente deixa de aparecer dentro da sala.
+   A faixa é montada pela MÁSCARA de vizinho, então lance horizontal, lance
+   vertical e quina saem da mesma conta e se encontram sozinhos — que é o que
+   conserta "a lateral parece extensão da traseira". */
+/* AS BARRAS DA FAIXA, e é aqui que a quina se resolve.
+   A primeira versão desenhava a barra horizontal de ponta a ponta do tile
+   SEMPRE que houvesse vizinho a leste ou a oeste — numa quina isso faz a barra
+   AVANÇAR para fora da esquina, e foi o que o dono viu: os trechos horizontais
+   passando direto pela vertical em vez de encontrá-la.
+   O certo é toco DIRECIONAL: um miolo que existe sempre, e um toco do miolo até
+   a borda para CADA vizinho. Assim lance reto, quina, T e poste solto saem todos
+   da mesma conta e se encontram sozinhos — que é a mesma razão de a máscara ter
+   quatro bits e não dois. */
+const CX = 16, MEIA = ESP / 2;
+function barras(m) {
+  const b = [[CX - MEIA, CX - MEIA, ESP, ESP]];                       // o miolo
+  if (m & 1) b.push([CX - MEIA, 0, ESP, CX - MEIA]);                  // toco ao norte
+  if (m & 2) b.push([CX - MEIA, CX + MEIA, ESP, 32 - CX - MEIA]);     // ao sul
+  if (m & 4) b.push([0, CX - MEIA, CX - MEIA, ESP]);                  // a oeste
+  if (m & 8) b.push([CX + MEIA, CX - MEIA, 32 - CX - MEIA, ESP]);     // a leste
+  return b;
+}
+const recorta = (g, x, y, bs) => { g.beginPath();
+  for (const [bx, by, bw, bh] of bs) g.rect(x + bx, y + by, bw, bh); g.clip(); };
+
+function paredeA(g, x, y, m, q) {
+  const mat = matCv(q), bs = barras(m);
+  /* A FACE VEM PRIMEIRO, e é a MESMA forma deslocada para baixo. Desenhar uma
+     face por barra deixava degrau em toda junta; deslocando a silhueta inteira,
+     a face aparece só onde a forma tem borda virada para o sul — que é onde uma
+     parede de verdade mostra altura. */
+  g.save(); recorta(g, x, y + ALT, bs);
+  g.drawImage(mat, x, y + ALT - 32);
+  veda(g, 'rgba(0,0,0,.46)'); g.fillRect(x - 2, y, 36, 64);
+  g.restore();
+  // o topo por cima, e é ele que esconde a parte da face que não se vê
+  g.save(); recorta(g, x, y, bs);
+  g.drawImage(mat, x, y);
+  veda(g, 'rgba(255,246,225,.26)'); g.fillRect(x - 2, y - 2, 36, 36);
+  g.restore();
+  // a quina viva entre o topo e a face, e o pé da face
+  for (const [bx, by, bw, bh] of bs) {
+    veda(g, 'rgba(255,250,235,.40)'); g.fillRect(x + bx, y + by + bh - 1, bw, 1);
+    veda(g, 'rgba(0,0,0,.50)');       g.fillRect(x + bx, y + by + bh + ALT - 1.5, bw, 1.5);
+  }
+}
+
+/* ============================================================== OPÇÃO B ====
+   ORIENTADA, TIBIA DE VERDADE. Mantém a altura de dois tiles, mas o desenho
+   passa a SABER a direção do lance:
+   · lance leste-oeste → visto de frente: crista clara em cima, face alta abaixo;
+   · lance norte-sul   → visto de lado: o TOPO corre pelo tile inteiro e a face
+     aparece só na ponta sul do lance, que é onde ele termina;
+   · quina → as duas coisas, com o topo por cima.
+   É a diferença que o jogo hoje NÃO faz — e é literalmente a queixa. */
+const B_TOP = 32, B_H = 64, B_CHAPA = 9;
+function paredeB(g, x, y, m, q, corta) {
+  const mat = matCv(q);
+  /* CORTA: esta parede fica entre a câmera e um cômodo — é a de baixo. Ela
+     desenha no PRÓPRIO tile, sem transbordar, e por isso deixa de comer a
+     última fileira de piso da sala. Nas outras o transbordo fica: é ele que faz
+     a parede ler como coisa em pé, e tirá-lo de todas devolve a chapa. */
+  const alto = corta ? 32 : B_H, oy = corta ? y : y - B_TOP;
+  const corre = (m & 12) && !(m & 3);         // leste-oeste puro
+  const sobe   = (m & 3) && !(m & 12);        // norte-sul puro
+  if (corre || (!corre && !sobe)) {
+    // FACE FRONTAL: é o que o jogo já faz, e para lance horizontal está certo
+    const topo = (m & 1) ? 0 : B_CHAPA, face = alto - topo;
+    if (!(m & 1)) { g.drawImage(mat, 0, 0, 32, B_CHAPA, x, oy, 32, B_CHAPA);
+      veda(g, 'rgba(255,246,225,.30)'); g.fillRect(x, oy, 32, B_CHAPA); }
+    g.drawImage(mat, 0, 32 - 32 * face / alto, 32, 32 * face / alto, x, oy + topo, 32, face);
+    veda(g, 'rgba(0,0,0,.44)'); g.fillRect(x, oy + topo, 32, face);
+    if (!(m & 1)) { veda(g, 'rgba(255,250,235,.42)'); g.fillRect(x, oy + B_CHAPA, 32, 1); }
+    if (!(m & 2)) { veda(g, 'rgba(0,0,0,.55)'); g.fillRect(x, oy + alto - 2, 32, 2); }
+  }
+  if (sobe || (!corre && !sobe)) {
+    /* DE LADO. O topo do muro corre pelo tile inteiro — é a superfície que se vê
+       quando o lance vem na direção do olhar — e só a ponta ganha face. */
+    const lx = x + 16 - B_CHAPA / 2;
+    g.save(); g.beginPath(); g.rect(lx, oy, B_CHAPA, alto); g.clip();
+    g.drawImage(mat, x, oy); g.drawImage(mat, x, oy + 32);
+    g.restore();
+    veda(g, 'rgba(255,246,225,.30)'); g.fillRect(lx, oy, B_CHAPA, alto);
+    veda(g, 'rgba(255,250,235,.34)'); g.fillRect(lx, oy, 1, alto);           // oeste, na luz
+    veda(g, 'rgba(0,0,0,.34)');       g.fillRect(lx + B_CHAPA - 1, oy, 1, alto); // leste, na sombra
+    if (!(m & 2)) {                                     // a ponta sul do lance
+      veda(g, 'rgba(0,0,0,.44)'); g.fillRect(lx, oy + alto - 10, B_CHAPA, 10);
+      veda(g, 'rgba(0,0,0,.55)'); g.fillRect(lx, oy + alto - 2, B_CHAPA, 2);
+    }
+  }
+}
+
+/* ============================================================== OPÇÃO C ====
+   CHAPADA DE CIMA. Só a superfície de cima da parede, sem face nenhuma — é
+   exatamente a imagem de referência. Altura zero. */
+function paredeC(g, x, y, m, q) {
+  const mat = matCv(q), bs = barras(m);
+  g.save(); recorta(g, x, y, bs);
+  g.drawImage(mat, x, y);
+  veda(g, 'rgba(255,246,225,.22)'); g.fillRect(x - 2, y - 2, 36, 36);
+  g.restore();
+  /* O CONTORNO FINO DOS DOIS LADOS, que é o que a referência tem. Ele corre pela
+     borda de cada toco, e nas juntas some sozinho porque o toco vizinho pinta
+     material por cima — sem isso a quina fica com um risco atravessado. */
+  veda(g, 'rgba(0,0,0,.55)');
+  for (const [bx, by, bw, bh] of bs) {
+    if (bw >= bh) { g.fillRect(x + bx, y + by, bw, 1); g.fillRect(x + bx, y + by + bh - 1, bw, 1); }
+    if (bh >= bw) { g.fillRect(x + bx, y + by, 1, bh); g.fillRect(x + bx + bw - 1, y + by, 1, bh); }
+  }
+  g.save(); recorta(g, x, y, bs.slice(1));
+  g.drawImage(mat, x, y);
+  veda(g, 'rgba(255,246,225,.22)'); g.fillRect(x - 2, y - 2, 36, 36);
+  g.restore();
+}
+
+/* ============================================================== OPÇÃO D ====
+   LEVANTADA NA DIAGONAL — e é a que responde "uma parede está mais grossa que
+   a outra".
+   O DEFEITO NÃO ERA DA B, ERA DA PROJEÇÃO. O motor levanta a parede só na
+   VERTICAL (`topY = sy - WALL_TOP * S`). Com elevação puramente vertical, um
+   lance leste-oeste mostra a face inteira e um lance norte-sul não pode mostrar
+   face NENHUMA — a face dele cai exatamente atrás do próprio topo. Daí um sair
+   com 32 px de massa e o outro com 9.
+   Mas o motor JÁ levanta o andar de cima na diagonal: o `dz` do `drawFloor`
+   entra no X e no Y. É o que o Tibia faz, e é por isso que lá as duas direções
+   lêem igual.
+   Aqui a parede é um PRISMA: a mesma faixa fina varrida da base até o topo, na
+   diagonal. As faces saem de graça e com a MESMA espessura nos dois sentidos,
+   porque é a mesma faixa — não há dois desenhos para divergirem. */
+const LIFT = 26;                       // quanto a parede sobe, em px de tela
+function paredeD(g, x, y, m, q) {
+  const mat = matCv(q), bs = barras(m);
+  /* A MÁSCARA PRIMEIRO, O ALFA DEPOIS — e esta é a terceira vez que esta regra
+     aparece no projeto. A primeira versão pintava a faixa 26 vezes, uma por
+     passo da varredura, cada uma com o seu escurecimento: alfa sobreposto SOMA,
+     e a face saiu quase preta com o material aparecendo só em manchas.
+     O prisma é UM caminho — a faixa repetida em cada passo, unida pelo `clip` —
+     e o material e a sombra entram uma vez cada. */
+  const prisma = new Path2D();
+  for (let k = 0; k <= LIFT; k++)
+    for (const [bx, by, bw, bh] of bs) prisma.rect(x - k + bx, y - k + by, bw, bh);
+  g.save(); g.clip(prisma);
+  /* O material cobre a CAIXA INTEIRA do prisma, e não só o tile: a varredura
+     sobe e vai para a esquerda, então um `drawImage` no tile deixa o resto sem
+     textura e o terreno de baixo aparece escurecido por dentro da parede — que
+     na tela lê como um risco diagonal. */
+  for (let ox = -32; ox <= 0; ox += 32) for (let oy2 = -32; oy2 <= 0; oy2 += 32)
+    g.drawImage(mat, x + ox, y + oy2);
+  /* A face escurece com a ALTURA: o pé de um muro é o que menos vê o céu. Vai
+     de gradiente e não de tom chapado, senão a face lê como recorte de papel. */
+  const gr = g.createLinearGradient(0, y - LIFT, 0, y + 32);
+  gr.addColorStop(0, 'rgba(0,0,0,.30)'); gr.addColorStop(1, 'rgba(0,0,0,.62)');
+  g.fillStyle = gr; g.fillRect(x - LIFT - 2, y - LIFT - 2, 40 + LIFT, 40 + LIFT);
+  g.restore();
+  // O TOPO, e é a única superfície virada para o céu
+  g.save(); recorta(g, x - LIFT, y - LIFT, bs);
+  g.drawImage(mat, x - LIFT, y - LIFT);
+  veda(g, 'rgba(255,246,225,.26)'); g.fillRect(x - LIFT - 2, y - LIFT - 2, 40, 40);
+  g.restore();
+  // a quina viva entre o topo e a face, nas bordas sul e leste da faixa
+  for (const [bx, by, bw, bh] of bs) {
+    veda(g, 'rgba(255,250,235,.36)');
+    g.fillRect(x - LIFT + bx, y - LIFT + by + bh - 1, bw, 1);
+    g.fillRect(x - LIFT + bx + bw - 1, y - LIFT + by, 1, bh);
+  }
+}
+
+/* ------------------------------------------------------------- a cena ---- */
+const MODELOS = [
+  ['A — fina com volume baixo', paredeA,
+   'Faixa de 9 px (0,28 tile) com uma face curta de 13 px. Não transborda: cabe no próprio tile.',
+   'A parede deixa de esconder o que está atrás dela. Porta e janela precisam ser redesenhadas nessa altura.'],
+  ['B — orientada, Tibia de verdade', (g, x, y, m, q) => paredeB(g, x, y, m, q, false),
+   'Dois tiles de altura, mas o desenho sabe a direção: de frente no lance horizontal, o topo correndo no vertical.',
+   'A parede da frente CONTINUA transbordando para cima — o defeito "a frente parece que está embaixo" só some tirando o transbordo.'],
+  ['B· — orientada, com a frente CORTADA', paredeB,
+   'A mesma B, mas a parede que tem cômodo ao norte desenha no próprio tile, sem transbordar. Todas as outras seguem com os dois tiles.',
+   'A parede da frente fica mais baixa que as outras três. É o mesmo trato do cutaway do Sims, e o preço é esse degrau — só o olho diz se ele incomoda.'],
+  ['D — levantada na DIAGONAL', paredeD,
+   'A mesma faixa fina dos dois lados, varrida na diagonal até o topo. As faces saem da própria faixa, então leste-oeste e norte-sul têm a MESMA espessura.',
+   'A parede fica mais baixa que os dois tiles da B. E o transbordo passa a ser diagonal, então ela cobre um pedaço do tile a noroeste — não do de dentro.'],
+  ['C — chapada de cima', paredeC,
+   'Só a superfície de cima, com contorno fino dos dois lados. É a imagem de referência, ao pé da letra.',
+   'Altura zero: a parede vira a única coisa do jogo vista de 90° ao lado de um boneco visto de frente. Arrasta porta, móveis e as 105 peças de folha junto.']
+];
+
+function desenha(cv, modelo, z) {
+  const W = PLANTA[0].length, H = PLANTA.length;
+  const fora = T[$('#fora').value], dentro = T[$('#dentro').value];
+  cv.width = W * 32 * z; cv.height = (H + 1) * 32 * z;
+  const g = cv.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.scale(z, z);
+  const oy = 32;                                     // folga em cima: a opção B sobe um tile
+  const ch = (x, y) => (y < 0 || y >= H || x < 0 || x >= W) ? ' ' : PLANTA[y][x];
+  const parede = (x, y) => ch(x, y) === '#';
+  const piso = (x, y) => { const c = ch(x, y); return c === '.' || c === '+' ? dentro : fora; };
+
+  // 1º passe: o CHÃO, com a borda entre terrenos que o jogo desenha
+  for (let y = -1; y <= H; y++) for (let x = -1; x <= W; x++) {
+    const d = TILE[piso(x, y)];
+    const cx = ((x % 3) + 3) % 3 * 32, cy = ((y % 3) + 3) % 3 * 32;
+    g.drawImage(tileTexture(d.tex, d.c), cx, cy, 32, 32, x * 32, y * 32 + oy, 32, 32);
+    const p0 = TERRAIN_PRIO[d.tex] || 0;
+    let orto = 0;
+    for (let m = 0; m < 8; m++) {
+      if (m > 3 && (orto >> (m - 4) & 1 || orto >> ((m - 3) & 3) & 1)) continue;
+      const nd = TILE[piso(x + EDGE_DIR[m][0], y + EDGE_DIR[m][1])];
+      if ((TERRAIN_PRIO[nd.tex] || 0) <= p0) continue;
+      if (m < 4) orto |= 1 << m;
+      g.drawImage(borderSprite(nd.tex, nd.c, m), x * 32, y * 32 + oy, 32, 32);
+    }
+  }
+
+  // 2º passe: a PAREDE, com a máscara de 4 bits (1 N · 2 S · 4 O · 8 L)
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!parede(x, y)) continue;
+    const m = (parede(x, y - 1) ? 1 : 0) | (parede(x, y + 1) ? 2 : 0) |
+              (parede(x - 1, y) ? 4 : 0) | (parede(x + 1, y) ? 8 : 0);
+    const q = ((x % 3) + 3) % 3 + (((y % 3) + 3) % 3) * 3;
+    /* A PAREDE DA FRENTE é a que tem CÔMODO ao norte: é ela que fica entre a
+       câmera e a sala, e a única em que o transbordo esconde o seu chão. */
+    const dentroAcima = ch(x, y - 1) === '.' || ch(x, y - 1) === '+';
+    modelo(g, x * 32, y * 32 + oy, m, q, dentroAcima);
+  }
+
+  /* 3º passe: O BONECO, e ele é do jogo. Dois: um na rua, na frente da fachada,
+     e um dentro. É contra ele que se julga se a parede tem a altura certa. */
+  for (const [bx, by] of [[6, 7], [5, 3]]) {
+    const spr = creatureSprite('biped', 0x8a6a4a, 1.08, { skin: 0xe8c39e });
+    const pe = spr.feet || spr.height, cxs = spr.cx !== undefined ? spr.cx : spr.width / 2;
+    g.drawImage(spr, bx * 32 + 16 - cxs, by * 32 + oy + 16 - pe);
+  }
+}
+
+function monta() {
+  const z = +$('#zoom').value;
+  $('#grade').innerHTML = '';
+  for (const [titulo, fn, nota, preco] of MODELOS) {
+    const d = document.createElement('div');
+    d.className = 'cel';
+    d.innerHTML = `<h2>${titulo}</h2><p class="nota">${nota}</p>`;
+    const c = document.createElement('canvas');
+    d.appendChild(c);
+    d.insertAdjacentHTML('beforeend', `<p class="preco"><b>O preço:</b> ${preco}</p>`);
+    $('#grade').appendChild(d);
+    desenha(c, fn, z);
+  }
+}
+
+$('#zoom').onchange = $('#fora').onchange = $('#dentro').onchange = monta;
+monta();
+</script>

@@ -197,6 +197,7 @@
 </div>
 
 <script src="../src/criaturas.js"></script>
+<script src="../src/objetos.js"></script>
 <script src="../src/data.js"></script>
 <script src="../src/art.js"></script>
 <script src="../src/world.js"></script>
@@ -312,6 +313,13 @@ window.ambienteAgora = function (zz, ms) {
    estado de clima só para o editor seria uma segunda régua de tempo. */
 const climaReal = climaAgora;
 window.climaAgora = function () { return CLIMA_PARADO; };
+/* E A HORA TAMBÉM. `climaAgora` parado não cobre o RELÓGIO DO DIA: `horaDoDia`
+   é um `const` léxico e lê `Date.now()` por baixo, então o tinte do céu, o
+   cintilo da água e a névoa continuavam saindo na hora de verdade — abrir o
+   editor às seis da manhã punha névoa por cima do tile que se está pintando.
+   `DEV.hora` é o gancho que o motor já tem para isso; não há segunda régua de
+   tempo, e é a mesma constante do `meioDia()` aqui de cima. */
+DEV.hora = .5;
 let pincel = T.GRASS, ferramenta = 'pincel', raio = 0, forma = 'quadrado', dens = 100;
 /* QUEM ESTÁ CARREGADO, que não é o mesmo que o que está escrito na caixinha.
    O `gravar` lia o campo de texto, então bastava trocar o nome depois de editar
@@ -464,6 +472,11 @@ function amostraObj(id) {
        silhueta some contra o painel. Terra batida porque é o chão mais comum
        debaixo de móvel e cerca. */
     g.drawImage(tileTexture('dirt', TILE[T.DIRT].c), 0, 0, 32, 32, 0, 0, AM, AM);
+    /* PEÇA DE FOLHA primeiro, na mesma ordem do render: a paleta desenha o
+       sprite DE VERDADE, e se ela caísse no procedural mostraria uma coisa e
+       pintaria outra. `objSprite` devolve `null` no primeiro quadro (o PNG está
+       carregando) e a paleta se refaz quando ele chega. */
+    if (d.png) { const s = objSprite(d.png); if (s) return encaixa(g, outlined(s)); }
     if (d.deco !== undefined) return encaixa(g, outlined(decoSprite(d.deco, 0)));
     if (d.draw === 'porta') return g.drawImage(tileTexture('door', d.c), 0, 0, 32, 32, 0, 0, AM, AM);
     if (d.draw && PAREDE_DRAW[d.draw]) return encaixa(g, PAREDE_DRAW[d.draw]());
@@ -532,7 +545,7 @@ function pastaDeTile(nome) {
    inferir por "não barra" mandava a pedra para a pasta errada — e a pedra
    passou a barrar justamente por isso. Categoria é DECLARAÇÃO de autor; derivar
    comportamento dela é certo, adivinhá-la de volta é redundância que diverge. */
-const PASTA_DE_CAT = { parede: 'PAREDE', objeto: 'OBJETO', deco: 'MARCA' };
+const PASTA_DE_CAT = { parede: 'PAREDE', objeto: 'OBJETO', deco: 'MARCA', mancha: 'MARCA' };
 function pastaDeObj(id) {
   const o = OBJ[id];
   return (o && PASTA_DE_CAT[o.cat]) || 'OBJETO';
@@ -841,6 +854,17 @@ function desenhaPlanta() {
 
 function desenha() {
   if (!base) return;
+  /* O EDITOR PINTA TILE NO VIVO, e cache de mapa sem invalidação é defeito
+     calado — foi assim que abrir a porta deixou de acender o outro lado. O
+     terreno é escrito em três lugares (pincel, desfazer, descartar) e nenhum
+     passa pelo `reindexObjs`; os três acabam AQUI, que é o único gargalo que
+     não se pode esquecer de atualizar.
+     ponytail: invalida a cada redesenho, não só quando o tile muda. O único
+     cache com chave de geração hoje é o campo de distância até a água, que
+     custa uma inundação por andar e não aparece na conta do editor. Se algum
+     dia um cache caro passar a depender da geração, o lugar de refinar é aqui —
+     bastaria só o `poe` e os dois desfazeres marcarem. */
+  geoMudou();
   limitaCam();
   const x0 = Math.floor(ecamX), y0 = Math.floor(ecamY);
   const ox = (ecamX - x0) * px, oy = (ecamY - y0) * px;
@@ -1744,6 +1768,16 @@ addEventListener('resize', ajusta);
 /* Sair com coisa não gravada é a perda mais boba que um editor permite. */
 addEventListener('beforeunload', e => { if (mexidos.size + mexidosObj.size + mexidosSpawn.size) { e.preventDefault(); e.returnValue = ''; } });
 
+/* A paleta se refaz quando as artes de folha chegam. Ela é montada UMA vez e
+   os PNG carregam depois, então sem isto toda peça de folha mostraria o
+   fallback do primeiro instante — terra batida, no lugar do sprite. Agrupado
+   num quadro só porque são 88 imagens e refazer a paleta 88 vezes trava a
+   página no carregamento. */
+let _repaleta = 0;
+_objPronto.push(() => {
+  clearTimeout(_repaleta);
+  _repaleta = setTimeout(paleta, 80);
+});
 paleta();
 carregar('varrokgaard');
 </script>

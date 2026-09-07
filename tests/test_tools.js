@@ -292,6 +292,121 @@ for (const f of ['quadrado', 'circulo', 'mancha'])
   eh('e o nome carregado é registrado ao carregar', /carregado = nome;/.test(ed));
 }
 
+/* ------------------------------- o recorte de objeto NÃO MUTILA o desenho ---
+   O `encaixa` centraliza a peça numa lona de `span * 32` — contrato que o
+   render assume, já que ele manda `t * span[0]` como largura de destino. Enquanto
+   o span saía de `round(largura / 32)`, uma peça de 1,35 tile virava span 1 e a
+   lona APARAVA 11 px dos lados. Medido: 32 das 105 saíam cortadas, a pior
+   perdendo 29% da largura, e sem erro nenhum.
+
+   A régua mede a SAÍDA, não o fonte: procurar `ceil` no script passaria verde
+   numa versão que voltasse a aparar por outro caminho. Ela cobra que o desenho
+   de cada PNG cabe na lona dele, e que a lona é múltiplo exato de tile. */
+{
+  const dir = path.join(RAIZ, 'assets/objetos');
+  let man = null;
+  try { man = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8')); } catch (e) { }
+  if (!man) {
+    eh('manifesto de objetos existe para a régua do recorte rodar', false,
+       'rode assets/build_objetos.py --aplicar');
+  } else {
+    const nomes = Object.keys(man);
+    eh('o manifesto de objetos tem peças', nomes.length > 0, nomes.length + ' peças');
+    /* PNG sem decodificar: o cabeçalho IHDR dá largura e altura nos bytes 16..23,
+       e é tudo que esta régua precisa. Decodificar exigiria dependência, e a
+       suíte do projeto não tem nenhuma. */
+    const tamPng = f => {
+      const b = fs.readFileSync(f);
+      return [b.readUInt32BE(16), b.readUInt32BE(20)];
+    };
+    const larg = [], desalinhado = [], somem = [];
+    for (const n of nomes) {
+      const v = man[n], f = path.join(dir, n + '.png');
+      if (!fs.existsSync(f)) { somem.push(n); continue; }
+      const [w, h] = tamPng(f);
+      if (w !== v.span[0] * 32) larg.push(n + ' ' + w + '≠' + v.span[0] * 32);
+      if (w % 32) desalinhado.push(n + ' ' + w);
+      if (v.w !== w || v.h !== h) larg.push(n + ' manifesto ' + v.w + 'x' + v.h + ' ≠ png ' + w + 'x' + h);
+    }
+    eh('todo PNG de objeto existe no disco', !somem.length, somem.slice(0, 3).join(', '));
+    eh('a lona de cada objeto é EXATAMENTE span × 32', !larg.length, larg.slice(0, 3).join(' · '));
+    eh('e ela é múltiplo de tile, nunca fracionária', !desalinhado.length, desalinhado.slice(0, 3).join(' · '));
+    /* a âncora é metade do contrato: é ela que diz onde o pé encosta, e um
+       `feet` fora do sprite faria a peça flutuar ou afundar sem erro */
+    const anc = nomes.filter(n => man[n].cx > man[n].w || man[n].feet > man[n].h);
+    eh('a âncora de todo objeto cai DENTRO do sprite', !anc.length, anc.slice(0, 3).join(', '));
+
+    /* E A MUTILAÇÃO, que é o que a primeira versão desta régua NÃO pegava.
+       Medir a lona não basta: com o span saindo de `round`, a lona continua
+       `span * 32` certinha e quem foi aparado é o DESENHO. `artW` é a largura
+       do desenho dentro da lona, e ela tem de caber e de bater com o que a
+       ficha pediu — com folga só para o SNAP de span do recortador. */
+    const semArt = nomes.filter(n => !man[n].artW);
+    eh('todo objeto declara a largura do DESENHO, não só a da lona',
+       !semArt.length, semArt.slice(0, 3).join(', '));
+    const estoura = nomes.filter(n => man[n].artW > man[n].w);
+    eh('o desenho nunca é mais largo que a lona — aparar mutila a arte',
+       !estoura.length, estoura.slice(0, 3).join(', '));
+
+    /* A FRANJA DE CHROMA. O `recorta` erode 1 px contra a borda antialiasada,
+       e isso não alcança estrutura fina — grade, galho, degrau, ponta de estaca
+       —, onde o desenho todo tem 2 a 3 px. Sobravam 544 px de rosa em 80 peças,
+       visíveis no 2×, que é o zoom em que se joga. Quem mede é o script (a
+       suíte não decodifica PNG, e o projeto não tem dependência), mas ele mede
+       o que GRAVOU, depois de despoluir — tirar a despoluição faz o número
+       subir e esta régua pega.
+       A exceção é peça de material roxo: o chroma da folha e um orbe violeta
+       são a mesma cor, e medido, o que a régua acusaria ali é a borda do
+       crescente, arte legítima. Na folha 01 isso é uma peça só. */
+    const roxo = n => {
+      const c = man[n].c, R = (c >> 16) & 255, G = (c >> 8) & 255, B = c & 255;
+      return R > G * 1.25 && B > G * 1.25;
+    };
+    const semFranja = nomes.filter(n => man[n].franja === undefined);
+    eh('todo objeto declara quanto de chroma sobrou na saída',
+       !semFranja.length, semFranja.slice(0, 3).join(', '));
+    const suja = nomes.filter(n => man[n].franja > 0 && !roxo(n));
+    eh('nenhuma peça sai com franja de chroma, salvo as de material roxo',
+       !suja.length, suja.slice(0, 4).map(n => n + ' ' + man[n].franja + 'px').join(' · '));
+  }
+}
+
+/* ------------------------------- o catálogo e o manifesto não divergem -----
+   Os dois descrevem as mesmas peças, e o recortador lê um para gravar o outro.
+   Ficha órfã é peça que o dono anotou e o corte não produziu — some calada. */
+{
+  const dir = path.join(RAIZ, 'assets/objetos');
+  let man = null, cat = null;
+  try {
+    man = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+    cat = JSON.parse(fs.readFileSync(path.join(dir, 'catalogo.json'), 'utf8')).pecas;
+  } catch (e) { }
+  if (man && cat) {
+    const semFicha = Object.keys(man).filter(n => !cat[n]);
+    const orfa = Object.keys(cat).filter(n => !man[n]);
+    eh('toda peça cortada tem ficha no catálogo', !semFicha.length, semFicha.slice(0, 3).join(', '));
+    eh('e toda ficha do catálogo tem peça cortada', !orfa.length, orfa.slice(0, 3).join(', '));
+    /* ou `w` (largura, o padrão) ou `h` (altura, para quem ladrilha) — nunca as
+       duas, senão o recortador escolhe uma e a outra mente sobre o resultado */
+    /* SNAP: o recortador encolhe a peça em até 15% para não gastar um span
+       inteiro a mais. Acima disso o desenho não encolheu, foi APARADO. */
+    const SNAP = .15;
+    const encolheu = Object.keys(cat).filter(n => {
+      const v = man[n], c = cat[n];
+      if (!v || !v.artW || c.h) return false;            // quem ladrilha vai pela altura
+      return v.artW < c.w * 32 * (1 - SNAP) - 1;
+    });
+    eh('nenhuma peça saiu menor que a ficha pediu além do snap de span',
+       !encolheu.length, encolheu.slice(0, 4).map(n => n + ' ' + man[n].artW + 'px'
+         + ' pedia ' + Math.round(cat[n].w * 32)).join(' · '));
+
+    const ambos = Object.keys(cat).filter(n => cat[n].w && cat[n].h);
+    const nenhum = Object.keys(cat).filter(n => !cat[n].w && !cat[n].h);
+    eh('cada ficha declara `w` OU `h`, nunca os dois', !ambos.length, ambos.join(', '));
+    eh('e nenhuma fica sem tamanho declarado', !nenhum.length, nenhum.slice(0, 3).join(', '));
+  }
+}
+
 /* ------------------------------------------------------------------ saída */
 if (falhas.length) {
   console.error('\n' + falhas.length + ' falha(s):');

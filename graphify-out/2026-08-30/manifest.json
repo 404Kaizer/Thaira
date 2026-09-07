@@ -10,9 +10,9 @@
     "semantic_hash": "b01037be7101892d188b83b35f46afc5"
   },
   "assets/build_audicao.py": {
-    "mtime": 1786335220.0,
-    "ast_hash": "242be8f02a986c7a4f27cac42633fa5d",
-    "semantic_hash": "242be8f02a986c7a4f27cac42633fa5d"
+    "mtime": 1788105599.1733644,
+    "ast_hash": "b5e2e018dc4b8735d581cd39df20d9c5",
+    "semantic_hash": ""
   },
   "assets/build_icons.py": {
     "mtime": 1786238006.0,
@@ -20,13 +20,13 @@
     "semantic_hash": "747bf4756c940e4336ccbf11d0fe5d8d"
   },
   "assets/build_sfx.py": {
-    "mtime": 1787064623.7164872,
-    "ast_hash": "3c79f241706572fee003296b3aa9ca82",
+    "mtime": 1788122251.5888145,
+    "ast_hash": "414ec38cece3b16a4a6ffebf95af931e",
     "semantic_hash": ""
   },
   "assets/music/manifest.json": {
-    "mtime": 1786682697.9505103,
-    "ast_hash": "621bffd48c7ec1b4010de0899d1d8a66",
+    "mtime": 1788105578.536126,
+    "ast_hash": "fda71d6bde7809b77e03383e8a23f02b",
     "semantic_hash": ""
   },
   "assets/sfx/manifest.example.json": {
@@ -35,38 +35,38 @@
     "semantic_hash": ""
   },
   "assets/sfx/manifest.json": {
-    "mtime": 1787064589.5468082,
-    "ast_hash": "9fed0d7219b832b8fafde24369509b72",
+    "mtime": 1788122558.503544,
+    "ast_hash": "ef1d26752aecba58cdb18a3b963cdd6d",
     "semantic_hash": ""
   },
   "src/art.js": {
-    "mtime": 1788050815.2463894,
-    "ast_hash": "a6fc316ad01e95d44a3d703fe92f0e49",
+    "mtime": 1788125141.8268504,
+    "ast_hash": "343ea1759868382109eb84bd97695885",
     "semantic_hash": ""
   },
   "src/audio.js": {
-    "mtime": 1787071690.7457755,
-    "ast_hash": "a06730b077fbcda2a531a8d4b0f12ac1",
+    "mtime": 1788122226.1408553,
+    "ast_hash": "15bc1c717988b211bb1ab82387d1bd7b",
     "semantic_hash": ""
   },
   "src/data.js": {
-    "mtime": 1788033944.3304844,
-    "ast_hash": "6db5b95e1ae80698ad5292f96b3fb3ce",
+    "mtime": 1788122211.0768812,
+    "ast_hash": "078deefd465d1df3c6cd45ee0f5d37e2",
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1788100140.8772306,
-    "ast_hash": "c9e72bd1b772f5563201cab13cb8fd29",
+    "mtime": 1788123472.3316102,
+    "ast_hash": "e47f550b6b93b6db63b58efebcb41a67",
     "semantic_hash": ""
   },
   "src/hud.js": {
-    "mtime": 1788093204.1483076,
-    "ast_hash": "aed62119753ae023e51f65182415132a",
+    "mtime": 1788113296.3261437,
+    "ast_hash": "588513c94560c8f6d3bf2e7f3f408234",
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1788101030.1723914,
-    "ast_hash": "f410d9a4d15ce3c1d587ff4bc6b7c465",
+    "mtime": 1788126985.8271258,
+    "ast_hash": "986b4b2f7ebee8fb0c49d7e23bc723a4",
     "semantic_hash": ""
   },
   "src/ui.js": {
@@ -75,18 +75,18 @@
     "semantic_hash": ""
   },
   "src/world.js": {
-    "mtime": 1788097983.5420628,
-    "ast_hash": "3a92fbd26c48f59a9a55c17ce5b3f722",
+    "mtime": 1788131964.1538274,
+    "ast_hash": "6bf69c2379697f6ccea4f0213597cf7c",
     "semantic_hash": ""
   },
   "tests/test.js": {
-    "mtime": 1788100937.007374,
-    "ast_hash": "bdf45d09981517f53626792a7dd97eb2",
+    "mtime": 1788131993.534386,
+    "ast_hash": "6c3922da7f95cdb00a953edd1b4d711d",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1788096292.7938259,
-    "ast_hash": "282ecf66a1a39c63e61523b28508227d",
+    "mtime": 1788133922.7950933,
+    "ast_hash": "68d851f6c8fe5e841e5bf78d9d4b93f5",
     "semantic_hash": ""
   },
   "assets/CREDITOS.md": {
@@ -95,8 +95,8 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1788099773.2088172,
-    "ast_hash": "b46e18743c6d9a15c24dbf3e8205495e",
+    "mtime": 1788120836.616668,
+    "ast_hash": "a5f1da840ff664624f6202aa7c56149c",
     "semantic_hash": ""
   },
   "tools/amostra/kaykit.html": {
@@ -115,9 +115,9 @@
     "semantic_hash": "eb19195978232a6f3ecd7976418340f6"
   },
   "tools/audicao.html": {
-    "mtime": 1786412539.8188672,
-    "ast_hash": "c1db4322bfd45930712ad98e85f79a04",
-    "semantic_hash": "c1db4322bfd45930712ad98e85f79a04"
+    "mtime": 1788122582.3038685,
+    "ast_hash": "08b46ff167950366de00da7a9ee3c1b9",
+    "semantic_hash": ""
   },
   "assets/green_background/_folhas/orc_anim.png": {
     "mtime": 1786249054.0,
@@ -328,91 +328,6 @@
     "mtime": 1788097992.4730353,
     "ast_hash": "88f90ba8e2715f53860f39844e950d9c",
     "semantic_hash": ""
-  },
-  "assets/music/abismo-caverna.ogg": {
-    "mtime": 1786333718.0,
-    "ast_hash": "2cfd489e05c728194d8ec728bdeac2bc",
-    "semantic_hash": "2cfd489e05c728194d8ec728bdeac2bc"
-  },
-  "assets/music/caverna-eco.ogg": {
-    "mtime": 1786333716.0,
-    "ast_hash": "99b4aa0aafd3968495ad74261c7ebe95",
-    "semantic_hash": "99b4aa0aafd3968495ad74261c7ebe95"
-  },
-  "assets/music/caverna-masmorra.ogg": {
-    "mtime": 1786334452.0,
-    "ast_hash": "45d822146fc60075787812a329c7a4f5",
-    "semantic_hash": "45d822146fc60075787812a329c7a4f5"
-  },
-  "assets/music/caverna-templo.mp3": {
-    "mtime": 1786334450.0,
-    "ast_hash": "aa04e3111b53853f5c6ac43c21782877",
-    "semantic_hash": "aa04e3111b53853f5c6ac43c21782877"
-  },
-  "assets/music/dia-banquete.mp3": {
-    "mtime": 1786335142.0,
-    "ast_hash": "24765bd2cceaafcbb119d2dfbb44e443",
-    "semantic_hash": "24765bd2cceaafcbb119d2dfbb44e443"
-  },
-  "assets/music/dia-bardo.mp3": {
-    "mtime": 1786334446.0,
-    "ast_hash": "e1b3c117a5b187ee5c143ecb41e45b00",
-    "semantic_hash": "e1b3c117a5b187ee5c143ecb41e45b00"
-  },
-  "assets/music/dia-campina.mp3": {
-    "mtime": 1786335114.0,
-    "ast_hash": "bd6e9b70c28addca9039e0ea54fd0228",
-    "semantic_hash": "bd6e9b70c28addca9039e0ea54fd0228"
-  },
-  "assets/music/dia-celta.mp3": {
-    "mtime": 1786335110.0,
-    "ast_hash": "ce0f3df4557622b8ac251ffd5ea4a419",
-    "semantic_hash": "ce0f3df4557622b8ac251ffd5ea4a419"
-  },
-  "assets/music/dia-colheita.mp3": {
-    "mtime": 1786334442.0,
-    "ast_hash": "347ac3f8c3f9093439546bb3fae8e89b",
-    "semantic_hash": "347ac3f8c3f9093439546bb3fae8e89b"
-  },
-  "assets/music/dia-exploracao.mp3": {
-    "mtime": 1786334438.0,
-    "ast_hash": "efa3eba39cd6177d5321d48b6bec7b4f",
-    "semantic_hash": "efa3eba39cd6177d5321d48b6bec7b4f"
-  },
-  "assets/music/dia-menestrel.mp3": {
-    "mtime": 1786335132.0,
-    "ast_hash": "beb88ceb0151d8068af6e4beb211ee9b",
-    "semantic_hash": "beb88ceb0151d8068af6e4beb211ee9b"
-  },
-  "assets/music/dia-mercado.mp3": {
-    "mtime": 1786334444.0,
-    "ast_hash": "e0a3a42ce9074be1ea3188ca5004712f",
-    "semantic_hash": "e0a3a42ce9074be1ea3188ca5004712f"
-  },
-  "assets/music/dia-taverna.mp3": {
-    "mtime": 1786333712.0,
-    "ast_hash": "3a8d4cdac419c310dfeb4fba1fcbac8d",
-    "semantic_hash": "3a8d4cdac419c310dfeb4fba1fcbac8d"
-  },
-  "assets/music/dia-vila.mp3": {
-    "mtime": 1786335106.0,
-    "ast_hash": "df8f8a8521a6a83936dccb9bb0fefa56",
-    "semantic_hash": "df8f8a8521a6a83936dccb9bb0fefa56"
-  },
-  "assets/music/noite-campos.mp3": {
-    "mtime": 1786335154.0,
-    "ast_hash": "fad359d2eeb88d017012b8eba7734130",
-    "semantic_hash": "fad359d2eeb88d017012b8eba7734130"
-  },
-  "assets/music/noite-espadas.mp3": {
-    "mtime": 1786335158.0,
-    "ast_hash": "5ca9ff1c3d90a3addaa459f728a078a0",
-    "semantic_hash": "5ca9ff1c3d90a3addaa459f728a078a0"
-  },
-  "assets/music/noite-lamento.mp3": {
-    "mtime": 1786335148.0,
-    "ast_hash": "cc10a2305cd5fd01b2d6ba8613d144b8",
-    "semantic_hash": "cc10a2305cd5fd01b2d6ba8613d144b8"
   },
   "assets/sfx/_corpo_forte-2.ogg": {
     "mtime": 1786333072.0668547,
@@ -754,95 +669,20 @@
     "ast_hash": "7a8371dec16b2f38bffd381175a3d33f",
     "semantic_hash": "7a8371dec16b2f38bffd381175a3d33f"
   },
-  "assets/sfx/spell_death-2.ogg": {
-    "mtime": 1786333305.8784502,
-    "ast_hash": "35a4a5878cca95292710c0eae6868c3f",
-    "semantic_hash": "35a4a5878cca95292710c0eae6868c3f"
-  },
-  "assets/sfx/spell_death.ogg": {
-    "mtime": 1786333305.8774304,
-    "ast_hash": "f023741ba5347ca3c61cf69c0acb74f0",
-    "semantic_hash": "f023741ba5347ca3c61cf69c0acb74f0"
-  },
-  "assets/sfx/spell_earth-2.ogg": {
-    "mtime": 1786333305.9056306,
-    "ast_hash": "ce16bc6dfa1e9022f476b8b23cf79c4a",
-    "semantic_hash": "ce16bc6dfa1e9022f476b8b23cf79c4a"
-  },
-  "assets/sfx/spell_earth-3.ogg": {
-    "mtime": 1786333305.9066324,
-    "ast_hash": "f1e465a13b3efa4e970b0ae5ccb06528",
-    "semantic_hash": "f1e465a13b3efa4e970b0ae5ccb06528"
-  },
-  "assets/sfx/spell_earth-4.ogg": {
-    "mtime": 1786333305.9066324,
-    "ast_hash": "c8318766e3ddea83930142504b965ba2",
-    "semantic_hash": "c8318766e3ddea83930142504b965ba2"
-  },
-  "assets/sfx/spell_earth.ogg": {
-    "mtime": 1786333305.9056306,
-    "ast_hash": "b01b63cb07805865e30e4e6d333dde92",
-    "semantic_hash": "b01b63cb07805865e30e4e6d333dde92"
-  },
-  "assets/sfx/spell_energy-2.ogg": {
-    "mtime": 1786333305.8997927,
-    "ast_hash": "cc5e0da13c61d4aa3fd8b62d20be3466",
-    "semantic_hash": "cc5e0da13c61d4aa3fd8b62d20be3466"
-  },
-  "assets/sfx/spell_energy.ogg": {
-    "mtime": 1786333305.8997927,
-    "ast_hash": "4800fc6d175ea6df2ff29d5b5583ca93",
-    "semantic_hash": "4800fc6d175ea6df2ff29d5b5583ca93"
-  },
-  "assets/sfx/spell_fire-2.ogg": {
-    "mtime": 1786333305.9010034,
-    "ast_hash": "c1cf2da3d4c134dc97f9e413ce27e207",
-    "semantic_hash": "c1cf2da3d4c134dc97f9e413ce27e207"
-  },
-  "assets/sfx/spell_fire-3.ogg": {
-    "mtime": 1786333305.9020061,
-    "ast_hash": "675d285aa492490c5b12a3cdeb25aebf",
-    "semantic_hash": "675d285aa492490c5b12a3cdeb25aebf"
-  },
-  "assets/sfx/spell_fire-4.ogg": {
-    "mtime": 1786333305.9030151,
-    "ast_hash": "03d0ae817b92842f268230196c703ad4",
-    "semantic_hash": "03d0ae817b92842f268230196c703ad4"
-  },
-  "assets/sfx/spell_fire.ogg": {
-    "mtime": 1786333305.9010034,
-    "ast_hash": "07238abe14e0d0b9fdaeb2fddbcc75df",
-    "semantic_hash": "07238abe14e0d0b9fdaeb2fddbcc75df"
-  },
   "assets/sfx/spell_holy-2.wav": {
-    "mtime": 1786333305.912928,
-    "ast_hash": "056b1038e6859693a6836984d6fd2821",
-    "semantic_hash": "056b1038e6859693a6836984d6fd2821"
+    "mtime": 1788122556.6355155,
+    "ast_hash": "980edbb6fa8dbebad17951b139678ca1",
+    "semantic_hash": ""
   },
   "assets/sfx/spell_holy-3.wav": {
-    "mtime": 1786333305.9144316,
-    "ast_hash": "1ff46a91b1e2b666e74bf3b5075a1d0a",
-    "semantic_hash": "1ff46a91b1e2b666e74bf3b5075a1d0a"
+    "mtime": 1788122556.6952052,
+    "ast_hash": "f7f95659dd05d695e07a0cb88d952f90",
+    "semantic_hash": ""
   },
   "assets/sfx/spell_holy.wav": {
-    "mtime": 1786333305.911925,
-    "ast_hash": "42e16d13799eb8bba4f0b5007ef0b3aa",
-    "semantic_hash": "42e16d13799eb8bba4f0b5007ef0b3aa"
-  },
-  "assets/sfx/spell_ice-2.ogg": {
-    "mtime": 1786333072.0614085,
-    "ast_hash": "a2a4923a52fe7539f1ad6117233fed58",
-    "semantic_hash": "a2a4923a52fe7539f1ad6117233fed58"
-  },
-  "assets/sfx/spell_ice-3.ogg": {
-    "mtime": 1786333072.062799,
-    "ast_hash": "66961bf5a5335759c75450d932ed8ab5",
-    "semantic_hash": "66961bf5a5335759c75450d932ed8ab5"
-  },
-  "assets/sfx/spell_ice.ogg": {
-    "mtime": 1786333072.0614085,
-    "ast_hash": "bfe961851857bd0385bec6bb3a2f8cf4",
-    "semantic_hash": "bfe961851857bd0385bec6bb3a2f8cf4"
+    "mtime": 1788122556.576236,
+    "ast_hash": "b34e749eaa5ad956b2ac4e7d875b5268",
+    "semantic_hash": ""
   },
   "assets/sfx/stairs-2.ogg": {
     "mtime": 1786333072.5384235,
@@ -858,156 +698,6 @@
     "mtime": 1786333072.5384235,
     "ast_hash": "983491662cb14781dd0b08ce0191e3d6",
     "semantic_hash": "983491662cb14781dd0b08ce0191e3d6"
-  },
-  "assets/sfx/step_cave-2.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "26fc6ee64072ac9e564297c61d8ee9be",
-    "semantic_hash": "26fc6ee64072ac9e564297c61d8ee9be"
-  },
-  "assets/sfx/step_cave-3.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "9ea5a861dc000861f60b26f47cdd9988",
-    "semantic_hash": "9ea5a861dc000861f60b26f47cdd9988"
-  },
-  "assets/sfx/step_cave-4.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "4cd1c38becd337a09644104c9e905a2a",
-    "semantic_hash": "4cd1c38becd337a09644104c9e905a2a"
-  },
-  "assets/sfx/step_cave-5.ogg": {
-    "mtime": 1786333072.0474236,
-    "ast_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6",
-    "semantic_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6"
-  },
-  "assets/sfx/step_cave.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "1a54419c397fd9c1bdb087bf0fff7919",
-    "semantic_hash": "1a54419c397fd9c1bdb087bf0fff7919"
-  },
-  "assets/sfx/step_dirt-2.ogg": {
-    "mtime": 1786333072.5454633,
-    "ast_hash": "e9b4a723aec382f25f5b8f3b97711384",
-    "semantic_hash": "e9b4a723aec382f25f5b8f3b97711384"
-  },
-  "assets/sfx/step_dirt-3.ogg": {
-    "mtime": 1786333072.5465515,
-    "ast_hash": "9b1fbd49f2b5b756e160a6c9ba398191",
-    "semantic_hash": "9b1fbd49f2b5b756e160a6c9ba398191"
-  },
-  "assets/sfx/step_dirt-4.ogg": {
-    "mtime": 1786333072.5465515,
-    "ast_hash": "69a23043ecf3b78576866c6b06135dfe",
-    "semantic_hash": "69a23043ecf3b78576866c6b06135dfe"
-  },
-  "assets/sfx/step_dirt-5.ogg": {
-    "mtime": 1786333072.5475552,
-    "ast_hash": "e7db2bcac543ead3f10942ca8f5b0422",
-    "semantic_hash": "e7db2bcac543ead3f10942ca8f5b0422"
-  },
-  "assets/sfx/step_dirt.ogg": {
-    "mtime": 1786333072.5454633,
-    "ast_hash": "e5ba26b141619b182b206145b4047edb",
-    "semantic_hash": "e5ba26b141619b182b206145b4047edb"
-  },
-  "assets/sfx/step_grass-2.ogg": {
-    "mtime": 1786333072.048428,
-    "ast_hash": "c12f296eb7db4fe1dda3b3d2b6ba0ad3",
-    "semantic_hash": "c12f296eb7db4fe1dda3b3d2b6ba0ad3"
-  },
-  "assets/sfx/step_grass-3.ogg": {
-    "mtime": 1786333072.048428,
-    "ast_hash": "ebbfae271d23bbdb77d9371477e13dac",
-    "semantic_hash": "ebbfae271d23bbdb77d9371477e13dac"
-  },
-  "assets/sfx/step_grass-4.ogg": {
-    "mtime": 1786333072.0494506,
-    "ast_hash": "4a0b671b14cf708d59cadb6d28ec474d",
-    "semantic_hash": "4a0b671b14cf708d59cadb6d28ec474d"
-  },
-  "assets/sfx/step_grass-5.ogg": {
-    "mtime": 1786333072.0494506,
-    "ast_hash": "f007e368647e726606037bfc576226bb",
-    "semantic_hash": "f007e368647e726606037bfc576226bb"
-  },
-  "assets/sfx/step_grass.ogg": {
-    "mtime": 1786333072.0474236,
-    "ast_hash": "c093e23e647821ea7bfc451541476d5a",
-    "semantic_hash": "c093e23e647821ea7bfc451541476d5a"
-  },
-  "assets/sfx/step_rock-2.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "26fc6ee64072ac9e564297c61d8ee9be",
-    "semantic_hash": "26fc6ee64072ac9e564297c61d8ee9be"
-  },
-  "assets/sfx/step_rock-3.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "9ea5a861dc000861f60b26f47cdd9988",
-    "semantic_hash": "9ea5a861dc000861f60b26f47cdd9988"
-  },
-  "assets/sfx/step_rock-4.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "4cd1c38becd337a09644104c9e905a2a",
-    "semantic_hash": "4cd1c38becd337a09644104c9e905a2a"
-  },
-  "assets/sfx/step_rock-5.ogg": {
-    "mtime": 1786333072.0474236,
-    "ast_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6",
-    "semantic_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6"
-  },
-  "assets/sfx/step_rock.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "1a54419c397fd9c1bdb087bf0fff7919",
-    "semantic_hash": "1a54419c397fd9c1bdb087bf0fff7919"
-  },
-  "assets/sfx/step_sand-2.ogg": {
-    "mtime": 1786333072.050451,
-    "ast_hash": "6f6fed7a85c72558568d18fcafef1744",
-    "semantic_hash": "6f6fed7a85c72558568d18fcafef1744"
-  },
-  "assets/sfx/step_sand-3.ogg": {
-    "mtime": 1786333072.0515702,
-    "ast_hash": "75eb3eb0d8025f41cbf167127133b14c",
-    "semantic_hash": "75eb3eb0d8025f41cbf167127133b14c"
-  },
-  "assets/sfx/step_sand-4.ogg": {
-    "mtime": 1786333072.0515702,
-    "ast_hash": "f8da25cef8fa18e8e4129f128bb81e9d",
-    "semantic_hash": "f8da25cef8fa18e8e4129f128bb81e9d"
-  },
-  "assets/sfx/step_sand-5.ogg": {
-    "mtime": 1786333072.0525718,
-    "ast_hash": "0b494074142a917e6f87d1b881d30577",
-    "semantic_hash": "0b494074142a917e6f87d1b881d30577"
-  },
-  "assets/sfx/step_sand.ogg": {
-    "mtime": 1786333072.0494506,
-    "ast_hash": "453aee8cc86c73701d363534fcab0897",
-    "semantic_hash": "453aee8cc86c73701d363534fcab0897"
-  },
-  "assets/sfx/step_stone-2.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "26fc6ee64072ac9e564297c61d8ee9be",
-    "semantic_hash": "26fc6ee64072ac9e564297c61d8ee9be"
-  },
-  "assets/sfx/step_stone-3.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "9ea5a861dc000861f60b26f47cdd9988",
-    "semantic_hash": "9ea5a861dc000861f60b26f47cdd9988"
-  },
-  "assets/sfx/step_stone-4.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "4cd1c38becd337a09644104c9e905a2a",
-    "semantic_hash": "4cd1c38becd337a09644104c9e905a2a"
-  },
-  "assets/sfx/step_stone-5.ogg": {
-    "mtime": 1786333072.0474236,
-    "ast_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6",
-    "semantic_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6"
-  },
-  "assets/sfx/step_stone.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "1a54419c397fd9c1bdb087bf0fff7919",
-    "semantic_hash": "1a54419c397fd9c1bdb087bf0fff7919"
   },
   "assets/sfx/unequip-2.ogg": {
     "mtime": 1786333072.5369976,
@@ -2679,11 +2369,6 @@
     "ast_hash": "a0e505e82431086848982be8057d385c",
     "semantic_hash": ""
   },
-  "assets/music/Scape Main.mp3": {
-    "mtime": 1786680480.2220168,
-    "ast_hash": "90ba52edf750219740f30561e80de417",
-    "semantic_hash": ""
-  },
   "tools/freesound.py": {
     "mtime": 1786760752.863919,
     "ast_hash": "e05256e08cf9745a4b29a7f5f64e2a1a",
@@ -3040,8 +2725,8 @@
     "semantic_hash": ""
   },
   "tasks.html": {
-    "mtime": 1788101252.9224243,
-    "ast_hash": "8d58ba4767559aa3c7b7dc9f10b300b4",
+    "mtime": 1788133895.9038925,
+    "ast_hash": "0a9260c1371a8533dd77a983e4fac20f",
     "semantic_hash": ""
   },
   "assets/skins/creatures/cyclops/cyclops_brute/cyclops_anim.png": {
@@ -5480,8 +5165,8 @@
     "semantic_hash": ""
   },
   "maps/varrokgaard.json": {
-    "mtime": 1788101300.8076434,
-    "ast_hash": "b49185e0c7cc2fb2dc6b199ac49d02e5",
+    "mtime": 1788101341.7447405,
+    "ast_hash": "562b2c8deed94120470b46ad0da5261b",
     "semantic_hash": ""
   },
   "tools/compor.js": {
@@ -5520,18 +5205,18 @@
     "semantic_hash": ""
   },
   "tools/editor.html": {
-    "mtime": 1787712692.8771367,
-    "ast_hash": "2684ccb4d9e75d5411a858f949eec04e",
+    "mtime": 1788125379.1570518,
+    "ast_hash": "f29e57df8d958d6633b083622c0b3385",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.json": {
-    "mtime": 1788101299.090184,
-    "ast_hash": "5f23477b24cbca51744070773f24e181",
+    "mtime": 1788101341.165971,
+    "ast_hash": "d64f83907dfa696b7df997839263a40f",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.bak.json": {
-    "mtime": 1788101299.087586,
-    "ast_hash": "a655e2115fd5c662dfedf9717c8edbe1",
+    "mtime": 1788101341.1633441,
+    "ast_hash": "505048503f70af48544b6d36ed997833",
     "semantic_hash": ""
   },
   "maps/_bak/varrokgaard.20260823-1330.json": {
@@ -6490,8 +6175,8 @@
     "semantic_hash": ""
   },
   "proposta_luz.html": {
-    "mtime": 1788044776.2936516,
-    "ast_hash": "8503009f28e2606bbbd0b9b759235d15",
+    "mtime": 1788129073.6830318,
+    "ast_hash": "572721858e7544bd49be8f7f35009d53",
     "semantic_hash": ""
   },
   "SESSAO_2026-08-29_graficos.md": {
@@ -6517,6 +6202,841 @@
   "tools/amostra/ranger_frames2.png": {
     "mtime": 1788098040.2079995,
     "ast_hash": "c6b0aa1703e3e0e5f28c16836f8e13d1",
+    "semantic_hash": ""
+  },
+  "assets/build_magias.py": {
+    "mtime": 1788122554.5544817,
+    "ast_hash": "4f63c38f598beadb8b8df20039b90122",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_aoe-2.wav": {
+    "mtime": 1788122557.2586284,
+    "ast_hash": "480528b6c92ad106465538d0dcb13005",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_aoe-3.wav": {
+    "mtime": 1788122557.3161163,
+    "ast_hash": "0dbe295e9949457fabad1083d89e899e",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_aoe.wav": {
+    "mtime": 1788122557.2012315,
+    "ast_hash": "526fb0de3e2b941e286362211cd427e0",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_bolt-2.wav": {
+    "mtime": 1788122556.9802098,
+    "ast_hash": "6aca085340f35cd991727248790bc920",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_bolt-3.wav": {
+    "mtime": 1788122556.999225,
+    "ast_hash": "95fddebf2814378a01939ceb5b039abf",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_bolt.wav": {
+    "mtime": 1788122556.9599133,
+    "ast_hash": "97fd4420dba3e083c2fd8a53641069c7",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_conjure-2.wav": {
+    "mtime": 1788122557.4056327,
+    "ast_hash": "7f28853ad37a2550780a799296bef7c1",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_conjure.wav": {
+    "mtime": 1788122557.3610916,
+    "ast_hash": "851e42c67acf2ea89160efb92a208ea0",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_taunt-2.wav": {
+    "mtime": 1788122557.5157456,
+    "ast_hash": "7dea360340eb78d947d37cd1f4007a25",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_taunt.wav": {
+    "mtime": 1788122557.4604785,
+    "ast_hash": "390381585ba14716e28a598603a8a823",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_wave-2.wav": {
+    "mtime": 1788122557.0972538,
+    "ast_hash": "af4e2be6668ae640a508456772cd232c",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_wave-3.wav": {
+    "mtime": 1788122557.1464233,
+    "ast_hash": "3a86e2f33d650c22fc5ae732d6296664",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_wave.wav": {
+    "mtime": 1788122557.0491838,
+    "ast_hash": "a4055246b697a9c4c00bf8b664f8ff5a",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_area-2.wav": {
+    "mtime": 1788122557.659647,
+    "ast_hash": "4fd80923d49ef9ec4f0eaf1e4d13c7f9",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_area-3.wav": {
+    "mtime": 1788122557.7506194,
+    "ast_hash": "6d8511734d2d3ecba364e846db380ed4",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_area.wav": {
+    "mtime": 1788122557.5863986,
+    "ast_hash": "9bf6e3dc605c17e9075a671db3215d13",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_cura-2.wav": {
+    "mtime": 1788122558.0931559,
+    "ast_hash": "e7225c493406ab86852deeb55a41568d",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_cura.wav": {
+    "mtime": 1788122558.0176456,
+    "ast_hash": "f71c0d47a39b24c6328527289a69de52",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_fase-2.wav": {
+    "mtime": 1788122558.5000308,
+    "ast_hash": "7debefc384407c50689f1437b1b46d53",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_fase.wav": {
+    "mtime": 1788122558.353058,
+    "ast_hash": "334fdec632063d0e7f8cfa97afd75da6",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_lento-2.wav": {
+    "mtime": 1788122557.9394045,
+    "ast_hash": "d016af3c6be84da7cd6518dc050dbc12",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_lento.wav": {
+    "mtime": 1788122557.8449767,
+    "ast_hash": "5d01d278cb6c4f75e8fbda866d17e4fd",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_mana-2.wav": {
+    "mtime": 1788122558.2197611,
+    "ast_hash": "80f837ab9bc42ab1177a5bc10ad9dfaa",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_mana.wav": {
+    "mtime": 1788122558.1563325,
+    "ast_hash": "6be5d6f1a67a174c5ae8768325612ff9",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_death-2.wav": {
+    "mtime": 1788122556.7990124,
+    "ast_hash": "abe60bb403b92af93e678c0af7930b9f",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_death-3.wav": {
+    "mtime": 1788122556.8494916,
+    "ast_hash": "05c87a9d6ffbc111b8a505d12edf6649",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_death.wav": {
+    "mtime": 1788122556.746441,
+    "ast_hash": "df4b40c8ea321974707d2a888b70040e",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_earth-2.wav": {
+    "mtime": 1788122556.4444313,
+    "ast_hash": "747184d8e217ac73c157c6a9e9fd81fa",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_earth-3.wav": {
+    "mtime": 1788122556.515406,
+    "ast_hash": "493b693f41ca35894391a18f439c3148",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_earth.wav": {
+    "mtime": 1788122556.375257,
+    "ast_hash": "76f9158eb8ea2b16d03cc0b68216c4ae",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_energy-2.wav": {
+    "mtime": 1788122556.300135,
+    "ast_hash": "c404a38f7ac2431da9e3454e239399d3",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_energy-3.wav": {
+    "mtime": 1788122556.305993,
+    "ast_hash": "df848623ede1804f871764e847a4bbb8",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_energy.wav": {
+    "mtime": 1788122556.2930975,
+    "ast_hash": "12791e80566d3878b9905b669a24c0d1",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_fire-2.wav": {
+    "mtime": 1788122555.9202025,
+    "ast_hash": "d830de2865d65316a17d7b954379c875",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_fire-3.wav": {
+    "mtime": 1788122555.972433,
+    "ast_hash": "8f4fd961be7d5bded7119eeaf0f00e29",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_fire-4.wav": {
+    "mtime": 1788122556.021792,
+    "ast_hash": "6608d38a8c763f2b273c286ba084a032",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_fire.wav": {
+    "mtime": 1788122555.873191,
+    "ast_hash": "c18a15b760cbfb2ab471c9a369d62c00",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_ice-2.wav": {
+    "mtime": 1788122556.1995034,
+    "ast_hash": "01e77a1fb767b419a04a2e399fcc9c0b",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_ice-3.wav": {
+    "mtime": 1788122556.2874498,
+    "ast_hash": "93835642167a02d8340a39425afbd9c2",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_ice.wav": {
+    "mtime": 1788122556.1108987,
+    "ast_hash": "0c4f957d3d785e055617bbf3cdef48f0",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_physical-2.wav": {
+    "mtime": 1788122556.9096386,
+    "ast_hash": "e6560c05ca7ddfca4dfa8ba95d7e29a0",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_physical-3.wav": {
+    "mtime": 1788122556.940293,
+    "ast_hash": "df5afb643627f3574652f941f733e88e",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_physical.wav": {
+    "mtime": 1788122556.8801737,
+    "ast_hash": "7a8ae30f911cafdc9121475f65cd470d",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_death-2.ogg": {
+    "mtime": 1786333305.8784502,
+    "ast_hash": "35a4a5878cca95292710c0eae6868c3f",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_death.ogg": {
+    "mtime": 1786333305.8774304,
+    "ast_hash": "f023741ba5347ca3c61cf69c0acb74f0",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_earth-2.ogg": {
+    "mtime": 1786333305.9056306,
+    "ast_hash": "ce16bc6dfa1e9022f476b8b23cf79c4a",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_earth-3.ogg": {
+    "mtime": 1786333305.9066324,
+    "ast_hash": "f1e465a13b3efa4e970b0ae5ccb06528",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_earth-4.ogg": {
+    "mtime": 1786333305.9066324,
+    "ast_hash": "c8318766e3ddea83930142504b965ba2",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_earth.ogg": {
+    "mtime": 1786333305.9056306,
+    "ast_hash": "b01b63cb07805865e30e4e6d333dde92",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_energy-2.ogg": {
+    "mtime": 1786333305.8997927,
+    "ast_hash": "cc5e0da13c61d4aa3fd8b62d20be3466",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_energy.ogg": {
+    "mtime": 1786333305.8997927,
+    "ast_hash": "4800fc6d175ea6df2ff29d5b5583ca93",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_fire-2.ogg": {
+    "mtime": 1786333305.9010034,
+    "ast_hash": "c1cf2da3d4c134dc97f9e413ce27e207",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_fire-3.ogg": {
+    "mtime": 1786333305.9020061,
+    "ast_hash": "675d285aa492490c5b12a3cdeb25aebf",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_fire-4.ogg": {
+    "mtime": 1786333305.9030151,
+    "ast_hash": "03d0ae817b92842f268230196c703ad4",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_fire.ogg": {
+    "mtime": 1786333305.9010034,
+    "ast_hash": "07238abe14e0d0b9fdaeb2fddbcc75df",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_ice-2.ogg": {
+    "mtime": 1786333072.0614085,
+    "ast_hash": "a2a4923a52fe7539f1ad6117233fed58",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_ice-3.ogg": {
+    "mtime": 1786333072.062799,
+    "ast_hash": "66961bf5a5335759c75450d932ed8ab5",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_ice.ogg": {
+    "mtime": 1786333072.0614085,
+    "ast_hash": "bfe961851857bd0385bec6bb3a2f8cf4",
+    "semantic_hash": ""
+  },
+  "assets/build_objetos.py": {
+    "mtime": 1788133013.3766901,
+    "ast_hash": "690a3af44d12c2d13f86f9af4b01c6c1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/manifest.json": {
+    "mtime": 1788133014.2812471,
+    "ast_hash": "d927edf8b39cc4d0a14fda59944fbcd3",
+    "semantic_hash": ""
+  },
+  "tools/amostra/objetos.html": {
+    "mtime": 1788133048.3763528,
+    "ast_hash": "38aba254e7c6c0b99209307ab836c94c",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_01.png": {
+    "mtime": 1788133014.2213984,
+    "ast_hash": "668bfd4fb17463505cf435e641e14cc6",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_02.png": {
+    "mtime": 1788133014.2245185,
+    "ast_hash": "721e36c774fac6647c8583529dd72b57",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_03.png": {
+    "mtime": 1788133014.2245185,
+    "ast_hash": "2e618c424d636cc3d17973f3f72af8b4",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_04.png": {
+    "mtime": 1788133014.2245185,
+    "ast_hash": "6016c0b3c94ed4f7196333e9ceed0547",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_05.png": {
+    "mtime": 1788133014.2245185,
+    "ast_hash": "2c79e1fc37f3975dc657136b831d317b",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_06.png": {
+    "mtime": 1788133014.2267177,
+    "ast_hash": "bda773ab10aabc76627c99dfa5e39078",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_07.png": {
+    "mtime": 1788133014.2267177,
+    "ast_hash": "cbe5620e789237d7f04cab6d8db45bfd",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_08.png": {
+    "mtime": 1788133014.2275016,
+    "ast_hash": "38f3a5520577951c6dd58c21110bf03d",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_09.png": {
+    "mtime": 1788133014.2275016,
+    "ast_hash": "0c99d1ee29a9452213bb8ef4455727b4",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_10.png": {
+    "mtime": 1788133014.2275016,
+    "ast_hash": "6fd283dc0e7dd7a71a14746ad4719de1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_100.png": {
+    "mtime": 1788133014.2760623,
+    "ast_hash": "f25a2c7052f4979ebde9bb15c9715068",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_101.png": {
+    "mtime": 1788133014.2760623,
+    "ast_hash": "8e56667d4a34d0db42cce6fcfa4123e5",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_102.png": {
+    "mtime": 1788133014.2760623,
+    "ast_hash": "6b4c9ef0b3a01722ba8750167d286d1c",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_103.png": {
+    "mtime": 1788133014.2782423,
+    "ast_hash": "92f419af2ea1578a7207c7e90c259e3f",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_104.png": {
+    "mtime": 1788133014.2782423,
+    "ast_hash": "bf5b464284ebf6f53f7d4e3cb35b788d",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_105.png": {
+    "mtime": 1788133014.2782423,
+    "ast_hash": "c4ff078b01742f64cac5e23ce927f340",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_11.png": {
+    "mtime": 1788133014.2275016,
+    "ast_hash": "fdec9f1addcf66947d276d0a5984a2a7",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_12.png": {
+    "mtime": 1788133014.2275016,
+    "ast_hash": "935c9e177336cf27be882ed625261729",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_13.png": {
+    "mtime": 1788133014.2307184,
+    "ast_hash": "eb38207008a2cf595d82592495df703d",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_14.png": {
+    "mtime": 1788133014.2307184,
+    "ast_hash": "f0fa6220b584c59fbe56072be619c573",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_15.png": {
+    "mtime": 1788133014.2307184,
+    "ast_hash": "8d78d8bab8cf4e347c4693c7c3d4f3dd",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_16.png": {
+    "mtime": 1788133014.2327669,
+    "ast_hash": "e5f4d9cfc29e9297befa6bfdf18fe976",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_17.png": {
+    "mtime": 1788133014.2335474,
+    "ast_hash": "add37cbfba06194becac0572e82e1960",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_18.png": {
+    "mtime": 1788133014.2335474,
+    "ast_hash": "b1e57ffcfe94c94bae4cd653871162b3",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_19.png": {
+    "mtime": 1788133014.2335474,
+    "ast_hash": "c21a2caa8bf6a5b69d85c1729a7db72c",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_20.png": {
+    "mtime": 1788133014.2335474,
+    "ast_hash": "b1789cecb97acbfa01f7c32ff2e03945",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_21.png": {
+    "mtime": 1788133014.2335474,
+    "ast_hash": "78b5ba86c13bcac094c91b5a2b544e91",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_22.png": {
+    "mtime": 1788133014.2335474,
+    "ast_hash": "8b7ec40eed07e507c608241bf6987d03",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_23.png": {
+    "mtime": 1788133014.2366822,
+    "ast_hash": "d65810da47ca3f0d4620e01ff425f47a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_24.png": {
+    "mtime": 1788133014.2366822,
+    "ast_hash": "17bfe8cc020a3df13a928af73e38a4f3",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_25.png": {
+    "mtime": 1788133014.2366822,
+    "ast_hash": "6f6c7ab47345e5cb5bedd4f87ca9d95d",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_26.png": {
+    "mtime": 1788133014.2366822,
+    "ast_hash": "5bf71d92e4f8c47377a9c1e2131dd326",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_27.png": {
+    "mtime": 1788133014.2388487,
+    "ast_hash": "f978e2a865ac34bdeae7125b0cfdbddc",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_28.png": {
+    "mtime": 1788133014.2394934,
+    "ast_hash": "df71dc665b9c24ad71dcafdd57baa48f",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_29.png": {
+    "mtime": 1788133014.2394934,
+    "ast_hash": "fd0672d5cf4bff04643e827c0d20e28e",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_30.png": {
+    "mtime": 1788133014.2394934,
+    "ast_hash": "647b53208b032ddc42e3e5be08cc4982",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_31.png": {
+    "mtime": 1788133014.2410474,
+    "ast_hash": "246ca210948dba3bb5e494ae544364c4",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_32.png": {
+    "mtime": 1788133014.2410474,
+    "ast_hash": "ad8a669a7b0ec3580b7fe5f27fb5ae9b",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_33.png": {
+    "mtime": 1788133014.2410474,
+    "ast_hash": "ab8835b560e8e5a32771e8a037f7f0fe",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_34.png": {
+    "mtime": 1788133014.2427893,
+    "ast_hash": "85e990269143f3c10e2102c25bafea47",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_35.png": {
+    "mtime": 1788133014.2427893,
+    "ast_hash": "504f9504a9ca08f3f1b3dd9ca0c47837",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_36.png": {
+    "mtime": 1788133014.2427893,
+    "ast_hash": "1ecfce4690db4feeba02cee3e63d3dee",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_37.png": {
+    "mtime": 1788133014.2427893,
+    "ast_hash": "e343643b4a860c8e5a0a0752249a5587",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_38.png": {
+    "mtime": 1788133014.244896,
+    "ast_hash": "0a4949a52ccb09bb7190e43ff9e5af1e",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_39.png": {
+    "mtime": 1788133014.244896,
+    "ast_hash": "76624e19e2cae902bd4a9c85859fd9ea",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_40.png": {
+    "mtime": 1788133014.245767,
+    "ast_hash": "a1a406cf763391eaa4609410a15d7644",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_41.png": {
+    "mtime": 1788133014.245767,
+    "ast_hash": "71c26ca4066438576d5a2c75f03186b7",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_42.png": {
+    "mtime": 1788133014.245767,
+    "ast_hash": "9a63ae41b43282adfec568eb03906e3b",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_43.png": {
+    "mtime": 1788133014.245767,
+    "ast_hash": "0177de06cec2652c41fd4466a32648ed",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_44.png": {
+    "mtime": 1788133014.245767,
+    "ast_hash": "79c0ebdadbf4d5caf9834c3dd4cb8801",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_45.png": {
+    "mtime": 1788133014.2483747,
+    "ast_hash": "40a4d6666bbc1d650c78a7f0f2b7a62e",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_46.png": {
+    "mtime": 1788133014.2483747,
+    "ast_hash": "300b1b85eb36109ec35c88d1c18ca906",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_47.png": {
+    "mtime": 1788133014.2483747,
+    "ast_hash": "8c4286789604c8e87a1da97776f67556",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_48.png": {
+    "mtime": 1788133014.2483747,
+    "ast_hash": "e5ced7af744c3ed2a3396c6f469ea305",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_49.png": {
+    "mtime": 1788133014.2509406,
+    "ast_hash": "766aa293c342e6d614cf008ff74d7dc9",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_50.png": {
+    "mtime": 1788133014.251569,
+    "ast_hash": "7d113ce50d5dcbace77e9a2be146f254",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_51.png": {
+    "mtime": 1788133014.251569,
+    "ast_hash": "f05547109862a08e7882b8399ad898ea",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_52.png": {
+    "mtime": 1788133014.251569,
+    "ast_hash": "1be74e9a3760e9abcdfaf1251e425813",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_53.png": {
+    "mtime": 1788133014.251569,
+    "ast_hash": "cd0a87ecfcc428c79b48792df11ee9b3",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_54.png": {
+    "mtime": 1788133014.251569,
+    "ast_hash": "01e98f0dc63ead9646b496efbb8a1591",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_55.png": {
+    "mtime": 1788133014.251569,
+    "ast_hash": "9d3d7af49372a52da9b73ff26676e9a5",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_56.png": {
+    "mtime": 1788133014.2548823,
+    "ast_hash": "b5d0aaf75abfa8a8bf1871a1400540ec",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_57.png": {
+    "mtime": 1788133014.2548823,
+    "ast_hash": "d624d962052799905fc6fb3b496fd94c",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_58.png": {
+    "mtime": 1788133014.2548823,
+    "ast_hash": "cefc2154714e262453d60f1e0c5b6354",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_59.png": {
+    "mtime": 1788133014.2564113,
+    "ast_hash": "1433b2b6ec34f71ea7628726b9a69472",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_60.png": {
+    "mtime": 1788133014.2564113,
+    "ast_hash": "18e55d955b0c9d7396e19034a7b64d95",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_61.png": {
+    "mtime": 1788133014.2570257,
+    "ast_hash": "e15294a530bbc4b740e236cc3bac5ac1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_62.png": {
+    "mtime": 1788133014.2579422,
+    "ast_hash": "9da32504ed6fb4c9d337ed2caba0aca3",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_63.png": {
+    "mtime": 1788133014.2579422,
+    "ast_hash": "65bb307afa1144c69b94ee9dd618a998",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_64.png": {
+    "mtime": 1788133014.2586577,
+    "ast_hash": "0cfd405ef72ef3add16be172309bdf3f",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_65.png": {
+    "mtime": 1788133014.2586577,
+    "ast_hash": "cc9740abe06da02ef982139bf40f76b7",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_66.png": {
+    "mtime": 1788133014.2586577,
+    "ast_hash": "9449a17a94996a3190c8f9ab8f06fdf3",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_67.png": {
+    "mtime": 1788133014.2586577,
+    "ast_hash": "dd94af05312f2307a616fd9768b9b00e",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_68.png": {
+    "mtime": 1788133014.261149,
+    "ast_hash": "17d27fc1cd7b3371d8a753f442e3d4c1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_69.png": {
+    "mtime": 1788133014.261149,
+    "ast_hash": "6b7ed30493370006a0891964b02ae2c6",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_70.png": {
+    "mtime": 1788133014.261149,
+    "ast_hash": "e9e5ae8cf9d38112a10eacf28116d312",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_71.png": {
+    "mtime": 1788133014.261149,
+    "ast_hash": "c3faa1324de875266b67f471abbbff87",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_72.png": {
+    "mtime": 1788133014.2630792,
+    "ast_hash": "2575896b08192732613087db84dd0a36",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_73.png": {
+    "mtime": 1788133014.2640173,
+    "ast_hash": "a5b99203c9310133ebb4bf1d10f9c14e",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_74.png": {
+    "mtime": 1788133014.2640173,
+    "ast_hash": "fcd0b4ec29820f3bd6fb92a7a7b7cf48",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_75.png": {
+    "mtime": 1788133014.2640173,
+    "ast_hash": "817419615085899b2730354e63b0c3f1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_76.png": {
+    "mtime": 1788133014.2640173,
+    "ast_hash": "f22c442192b876465878b7264d0bb594",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_77.png": {
+    "mtime": 1788133014.2640173,
+    "ast_hash": "6855b8804c9b44711d28e0f734bc3e6f",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_78.png": {
+    "mtime": 1788133014.2640173,
+    "ast_hash": "3fc117db36eeafcafe6c1670dd6d453e",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_79.png": {
+    "mtime": 1788133014.266865,
+    "ast_hash": "98eb5cd96ba5f410640f844c7ea986c3",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_80.png": {
+    "mtime": 1788133014.266865,
+    "ast_hash": "47f66d982fc632d4a64e0476a48908b6",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_81.png": {
+    "mtime": 1788133014.266865,
+    "ast_hash": "b8ad9141101b992ae6149b8314fd5e7d",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_82.png": {
+    "mtime": 1788133014.266865,
+    "ast_hash": "6bf046dd37c4ccc477d69d44d46e0ca5",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_83.png": {
+    "mtime": 1788133014.266865,
+    "ast_hash": "2aae3d5d86c553d09c07df8e4c6a77d7",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_84.png": {
+    "mtime": 1788133014.269128,
+    "ast_hash": "c2a5a5fd880fa2cefab0fbb35f44fe98",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_85.png": {
+    "mtime": 1788133014.269128,
+    "ast_hash": "9dde735254c99eba7efebd6f6c896d54",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_86.png": {
+    "mtime": 1788133014.27001,
+    "ast_hash": "5063a19679b9b600740f89613edd8ade",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_87.png": {
+    "mtime": 1788133014.27001,
+    "ast_hash": "077d5d1ac655c8b5e21493c1609a25f5",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_88.png": {
+    "mtime": 1788133014.27001,
+    "ast_hash": "da0f2d72b0cd9bcb2101bd9115ff9cea",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_89.png": {
+    "mtime": 1788133014.271582,
+    "ast_hash": "4c73d1fd52ca6a52afa50b0e3bb64a34",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_90.png": {
+    "mtime": 1788133014.271582,
+    "ast_hash": "6e1fa1a9c53531ad97cfcb5166edb98d",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_91.png": {
+    "mtime": 1788133014.271582,
+    "ast_hash": "93e2fa496fce130efcfc2e4d8804c5ff",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_92.png": {
+    "mtime": 1788133014.2731037,
+    "ast_hash": "d345cccc6b5d419ef6c03e03d21dcde1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_93.png": {
+    "mtime": 1788133014.2731037,
+    "ast_hash": "3ed60543cb7d60dd4d5bd9229873da6c",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_94.png": {
+    "mtime": 1788133014.2731037,
+    "ast_hash": "38df2766b2314e3b0d61be40479d9249",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_95.png": {
+    "mtime": 1788133014.2731037,
+    "ast_hash": "3a566cd3b8cded6280dc5d0b2908361e",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_96.png": {
+    "mtime": 1788133014.2731037,
+    "ast_hash": "89033a9d8d6487282a48ea4c45f95e19",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_97.png": {
+    "mtime": 1788133014.275195,
+    "ast_hash": "9e9a441f45e47391cf96afaec1541f4b",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_98.png": {
+    "mtime": 1788133014.2760623,
+    "ast_hash": "90980d27af6e8bc6b9a07508d8cdba13",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_99.png": {
+    "mtime": 1788133014.2760623,
+    "ast_hash": "6c64575554ef47239ef4e7aefb5f8885",
     "semantic_hash": ""
   }
 }

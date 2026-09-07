@@ -52,7 +52,13 @@ function parseChildren(html) {
    procura palavra no fonte passa verde em cima de uma mutação que troca os
    dados e mantém a palavra. Era tudo no-op encadeável antes, então gravar não
    muda comportamento nenhum — só deixa de jogar fora a evidência. */
-const REC = { clips: [], transforms: [], ops: [] };
+const REC = { clips: [], transforms: [], ops: [], grads: [], blits: [], tudo: 0 };
+/* QUAL CANVAS. Vários passes montam a máscara num canvas à parte e só depois a
+   compõem na tela, e na fita as duas coisas ficam idênticas: `drawImage` de
+   tela cheia, translúcido, em `source-over`. Sem o id do contexto, a régua da
+   névoa contava a máscara de telhado (alfa .42, no buffer de luz) como se fosse
+   a folha de névoa — e passava a acusar névoa ao meio-dia. */
+let CTX_N = 0;
 /* O que `save`/`restore` de verdade empilham. Sem isto o stub gravava a chamada
    mas NÃO devolvia o estado, e o `globalCompositeOperation` vazava de um quadro
    para o outro: o `soft-light` que o `gradePass` deixa no fim reaparecia no
@@ -60,25 +66,82 @@ const REC = { clips: [], transforms: [], ops: [] };
    motor pinta um. Stub que mente sobre estado inventa defeito. */
 const CTX_ESTADO = ['globalCompositeOperation', 'globalAlpha', 'fillStyle', 'strokeStyle', 'lineWidth'];
 const ctx2d = () => new Proxy({
+  _id: ++CTX_N,
   imageSmoothingEnabled: false, fillStyle: '', strokeStyle: '', lineWidth: 1, globalAlpha: 1,
-  globalCompositeOperation: 'source-over', _pilha: [],
+  globalCompositeOperation: 'source-over', _pilha: [], _tr: [1, 0, 0, 1, 0, 0], _trp: [],
   createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
   getImageData: (x, y, w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+  /* GRADIENTE DE VERDADE, em vez do `chain()` que engolia os `addColorStop`.
+     Sem isto não há como cobrar a DIREÇÃO de um degradê — e direção é
+     exatamente o que separa a sombra que esvai na ponta da que esvai no pé,
+     que seria o defeito oposto e passaria numa régua que só olha "tem
+     gradiente". Não há canvas real no node: o que dá para guardar é a receita,
+     e é ela que a régua do fade cobra. */
+  createLinearGradient(x0, y0, x1, y1) {
+    const g = { x0, y0, x1, y1, stops: [], addColorStop(p, c) { this.stops.push([p, c]); } };
+    REC.grads.push(g);
+    return g;
+  },
   /* `ops` é a FITA: a ordem das chamadas, não só o fato de terem acontecido.
      É ela que permite cobrar "o preenchimento saiu DENTRO deste recorte" — a
      diferença entre a conta existir e o render usá-la, que já passou verde uma
      vez nesta base. */
   clip(p) { REC.clips.push(p); REC.ops.push({ op: 'clip', p }); },
-  save() { REC.ops.push({ op: 'save' }); this._pilha.push(CTX_ESTADO.map(k => this[k])); },
+  save() { REC.ops.push({ op: 'save' }); this._pilha.push(CTX_ESTADO.map(k => this[k]));
+           this._trp.push(this._tr.slice()); },
   restore() {
     REC.ops.push({ op: 'restore' });
+    if (this._trp.length) this._tr = this._trp.pop();
     const e = this._pilha.pop();
     if (e) CTX_ESTADO.forEach((k, i) => { this[k] = e[i]; });
   },
-  fillRect(x, y, w, h) {
-    REC.ops.push({ op: 'fillRect', x, y, w, h, comp: this.globalCompositeOperation, a: this.globalAlpha });
+  /* `fill()` TAMBEM VAI PARA A FITA. Ela nao ia, e por isso uma regua de sangue
+     mediu ZERO achando que o `drawBlood` nao pintava: a elipse sai por
+     `beginPath`+`fill`, nunca por `fillRect`, e o Proxy engolia a chamada num
+     `chain()` mudo. Sem o alvo do desenho a fita nao diz ONDE, mas diz que
+     saiu, com que cor e em que modo -- que e o que separa "o render chama" de
+     "a funcao existe". */
+  fill() {
+    REC.ops.push({ op: 'fill', comp: this.globalCompositeOperation, a: this.globalAlpha,
+                   cor: this.fillStyle, ctx: this._id });
   },
-  transform: (a, b, c, d, e, f) => REC.transforms.push([a, b, c, d, e, f])
+  fillRect(x, y, w, h) {
+    REC.ops.push({ op: 'fillRect', x, y, w, h, comp: this.globalCompositeOperation, a: this.globalAlpha,
+                   cor: this.fillStyle, ctx: this._id });
+  },
+  /* Só o que sai translúcido vai para a fita: nuvem e poça são ~30 chamadas por
+     quadro, enquanto o chão e os sprites são milhares e não interessam a régua
+     nenhuma. `w` é a largura DESENHADA na forma de 5 argumentos — é ela que
+     separa o ladrilho de nuvem (`t*16`) do de poça. */
+  drawImage(src, ...r) {
+    /* FITA CHEIA, e opt-in: `drawImage` sai milhares de vezes por quadro e
+       gravá-lo sempre custaria caro à toa — por isso a fita de baixo só guarda
+       o que é translúcido. Mas há régua que precisa dos ARGUMENTOS de um blit
+       opaco: o recorte da sombra de contato só se distingue do blit de tile
+       inteiro pelo número de argumentos, e "a mesma região" não separa os dois.
+       Quem liga levanta `REC.tudo` e baixa logo depois. */
+    if (REC.tudo) REC.blits.push({ src, r, a: this.globalAlpha, comp: this.globalCompositeOperation, ctx: this._id, tr: this._tr.slice() });
+    if (this.globalAlpha !== 1)
+      REC.ops.push({ op: 'drawImage', a: this.globalAlpha, comp: this.globalCompositeOperation,
+                     x: r[0], y: r[1], w: r[2], ctx: this._id, src });
+  },
+  /* O alfa vai junto do `transform` porque é ali que a sombra projetada se
+     declara: `dropShadow` empilha `globalAlpha = SOMBRA_PROJ * sol` e só então
+     transforma. `drawImage` é chamado milhares de vezes por quadro e gravá-lo
+     inteiro custaria caro à toa; `transform` sai duas vezes no render todo. */
+  transform(a, b, c, d, e, f) {
+    REC.transforms.push([a, b, c, d, e, f]);
+    REC.ops.push({ op: 'transform', m: [a, b, c, d, e, f], a: this.globalAlpha });
+    /* A MATRIZ CORRENTE, acumulada como o canvas de verdade acumula. Sem ela a
+       fita mente sobre POSIÇÃO para tudo que sai dentro de um `transform` — e é
+       ali que moram a sombra projetada e a copa balançando ao vento. Medido: as
+       7 árvores de um quadro saíram todas como se estivessem fora do lugar,
+       porque o número gravado é o de ANTES da matriz. */
+    const t = this._tr;
+    this._tr = [t[0] * a + t[2] * b, t[1] * a + t[3] * b,
+                t[0] * c + t[2] * d, t[1] * c + t[3] * d,
+                t[0] * e + t[2] * f + t[4], t[1] * e + t[3] * f + t[5]];
+  }
 }, { get: (t, k) => k in t ? t[k] : chain(), set: (t, k, v) => (t[k] = v, true) });
 function fakeEl() {
   const el = {
@@ -169,8 +232,18 @@ const ctx = vm.createContext(sandbox);
 /* a MESMA lista do index.html, na mesma ordem: harness que carrega outro
    conjunto testa outro jogo (`criaturas.js` faltava, e com ele a contagem de
    quadros de toda folha de arte) */
-for (const f of ['audio.js', 'icones.js', 'criaturas.js', 'data.js', 'art.js', 'world.js', 'render2d.js', 'game.js', 'ui.js', 'hud.js'])
+for (const f of ['audio.js', 'icones.js', 'criaturas.js', 'objetos.js', 'data.js', 'art.js', 'world.js', 'render2d.js', 'game.js', 'ui.js', 'hud.js'])
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8'), ctx, { filename: f });
+
+/* Todo nome que o jogo pede a sfx(), gravado durante a suíte INTEIRA. O motor
+   engole nome desconhecido em silêncio — foi assim que `spell_physical` deixou
+   três magias de ranger caladas sem ninguém notar. A conferência mora no fim do
+   arquivo, depois de a suíte ter conjurado e apanhado de bicho. */
+vm.runInContext(`
+  globalThis.SFX_PEDIDOS = [];
+  const _sfx = sfx;
+  sfx = function (n, x, y) { SFX_PEDIDOS.push(n); return _sfx(n, x, y); };
+`, ctx);
 
 // expõe os bindings léxicos (let/const de script) para o runner
 vm.runInContext(`
@@ -181,18 +254,23 @@ vm.runInContext(`
     COINS, COIN_V, COIN_MONTE, moedaDe,
     expForLevel, triesFor, manaForML, SKILL_RATE, mkItem, itemStats, newPlayer, dealDamage, weaponInfo,
     damageFormula, skillOf, recalc, G, creatureSprite, TEX_DRAW, tileTexture, decoSprite, buildMinimaps, drawWorld, w2s,
-    corDoCeu, ehNoite, ambienteAgora, climaAgora, souCoberto, FLOOR_AMBIENCE, silhouette, edgeShadow, cloudTexture,
-    luzDaFrente, cristas, faces, WALL_CHAPA, WALL_H, abrigado, dentroDeCasa,
+    corDoCeu, ehNoite, ambienteAgora, climaAgora, souCoberto, FLOOR_AMBIENCE, silhouette, outlined, manchaSprite, cxDo, silhuetaFade, SOMBRA_PONTA, OBJ_FOLHA, edgeShadow, cloudTexture,
+    WALL_CHAPA, WALL_H, abrigado, dentroDeCasa, daCasa, ceuNoTile, paredeEm,
     recorteCeu, cantoDoTile, janelaDeTiles, tpx,
-    tileDaTela, recorteVisivel, salaDe, tapaVista, SALA_PAREDE, alturaSol, SOL_NASCE, SOL_POE,
+    distAgua, calcDistAgua, nevoaPass, nevoaDens, nevoaHora, nevoaTexture, foraDoMapa,
+    OBJ_CAT, decoSprite, portaSprite, wallSprite, roofSprite, faixaTelhado, mascaraTelhado,
+    NEVOA_AGUA, NEVOA_INI, NEVOA_FIM, NEVOA_TETO, NEVOA_PISO, NEVOA_MOLHADO,
+    tileDaTela, recorteVisivel, salaDe, tapaVista, paredeEm, temVolume, vizinhosIguais, materialDe, geoMudou, usaPorta, SALA_PAREDE, alturaSol, SOL_NASCE, SOL_POE,
     SOL_CURTO, SOL_LONGO, SOMBRA_BORDA_PX, SOMBRA_BORDA_MAX, VENTO, VENTO_SINAL, RAIO_SOMBRA, viesDoVento,
+    DEV, SOMBRA_PROJ, dropShadow, AGUA_CINTILO_A,
     horaDoJogo, CLIMA_AVISO, poolTexture,
-    TERRAIN_PRIO, OBJ_DRAW, PAREDE_DRAW, CERCA_TOP, WALL_TOP, paredeSprite, cercaSprite, escoraSprite, teiaSprite, edgeMask, bordaProf, BORDA_P, BORDA_TETO, _mulberry, RANGER_DIR, SHEET_POS, rangerSprite,
-    SANGUE_CLASSE, SANGUE_PADRAO, SANGUE_MAX, bloodSpray, plateAnchor, resizeCam, CAM,
+    TERRAIN_PRIO, borderSprite, esqueceTerreno, TEX_S, flowTexture, foamSprite, OBJ_PNG, contactShadow, CHAO, peDo, OBJ_DRAW, PAREDE_DRAW, CERCA_TOP, WALL_TOP, paredeSprite, cercaSprite, escoraSprite, teiaSprite, edgeMask, bordaProf, BORDA_P, BORDA_TETO, _mulberry, RANGER_DIR, SHEET_POS, rangerSprite,
+    SANGUE_CLASSE, SANGUE_PADRAO, SANGUE_MAX, bloodSpray, abrirTesouro, plateAnchor, resizeCam, CAM,
     itemCell, showTip, hideTip, tipCheck,
     HUNTS, huntAt, BEST_DIFF, MOB_META, bestStage, bestiaryKill, bestKills, toggleCharm, spawnCorpse, CHARM_COST, CHARM_BONUS,
     STANCE, HOT_SLOTS, useItem, castSpell, stepPlayer, hitPlayer, hotEntry, notify, updateMobs, clickTile,
     tickFps, FPS_JANELA, FPS_SALTO,
+    fichaLinhas,
     regenMobs, descLoot, save, load, changeFloor, spawnDrop, tryStep, spawnMob, removeMob, restaurarBichos,
     habilidade, impacto, cssColOu: cssCol, ELEM, RES, resistOf,
     ELITES, ELITE_CHANCE, defModificada, mixCol, SETS,
@@ -209,6 +287,7 @@ vm.runInContext(`
     podeAlocar, alocaNo, respec, respecPreco, custoDe, renderTree, treeLigacoes, vizinhos, ligado, EF_TEXTO, efeitoDoNo,
     escalaMapa, arrastoEmTiles, posicaoJanela, arrastaJanela, reancoraJanelas,
     treeView, treeLimite, TREE_ZOOM, aplicaCam, tipLugar, tipAncora, tipSegue, tipEm, hideTip, $, vocFundo, vocFundoY, VOC_FUNDO_Y,
+    getG2: () => g2,
     getForjaSlot: () => forjaSlot, setForjaSlot: v => forjaSlot = v,
     getHUD: () => HUD, setHUD: v => HUD = v, getP: () => P });
 
@@ -528,66 +607,793 @@ A((() => {
   return r.every(x => Math.abs(x - r[0]) < 0.01);        // mesma posição em CSS nos três
 })(), 'placa fica no mesmo ponto em CSS seja qual for o devicePixelRatio');
 
-/* TOPO x FRENTE. O que dá volume é a crista acompanhar o céu enquanto a face
-   não: rebaixada E com a cor lavada. Só rebaixar deixa parede e telhado os dois
-   laranja no poente, que não separa nada — por isso as duas réguas, e a de croma
-   é a que ninguém veria quebrar. */
-{
-  const croma = c => Math.max(...c) - Math.min(...c);
-  const luma = c => c[0] * .3 + c[1] * .6 + c[2] * .1;
-  for (const td of [0, .26, .5, .78]) {
-    const ceu = S.corDoCeu(td), fr = S.luzDaFrente(...ceu);
-    A(luma(fr) < luma(ceu), `${td}: a face vê menos céu que a crista`);
-    A(croma(fr) <= croma(ceu), `${td}: e recebe a cor do céu diluída (croma ${croma(fr)} <= ${croma(ceu)})`);
-    A(fr.every(v => v >= 0 && v <= 255), `${td}: o multiplicador da face é uma cor válida`);
-  }
-  A(croma(S.luzDaFrente(...S.corDoCeu(.78))) > 0,
-    'no poente a face ainda é quente — lavar não é apagar a cor');
-  A(S.luzDaFrente(255, 255, 255).every(v => v === S.luzDaFrente(255, 255, 255)[0]),
-    'céu sem cor não inventa cor na face');
-}
-/* A crista e a face TÊM de ladrilhar o sprite da parede: sobra vira faixa de
-   parede com luz de chão, e sobreposição de máscara opaca apaga a crista. */
+/* ---- rodada 5: tile, parede e objeto -------------------------------------
+   As cinco réguas dos cinco consertos desta leva. Cada uma foi conferida por
+   MUTAÇÃO: o conserto é desfeito no fonte, um por vez, e ela tem de acusar. */
+
+/* 1 · PNG DE TERRENO QUE CHEGA INVALIDA TODO CACHE DERIVADO.
+   `BORDER_CACHE` e `WALL_CACHE` também nascem de `tileTexture` e ficaram fora da
+   limpeza: a franja da junta e a parede congelavam com o desenho por código, e
+   saía muro metade PNG, metade procedural — o mesmo defeito que a limpeza do
+   `TEX_CACHE` existe para evitar, por outra porta. A limpeza saiu de dentro do
+   `onload` para poder ser exercida daqui: lógica em callback não tem como ser
+   chamada por teste, e foi por isso que o buraco durou. */
 A((() => {
-  const p = S.getP();
-  /* Posta o jogador ENCOSTADO numa parede: no ponto de nascer não há nenhuma no
-     enquadramento e a régua passaria verde sem medir nada. */
-  const antes = [p.x, p.y, p.px, p.py, p.z];
+  const kind = 'rock', hex = 0x445566;
+  const pede = () => [S.tileTexture(kind, hex), S.borderSprite(kind, hex, 0, 0),
+                      S.wallSprite(kind, hex, 0, 0, 0), S.teiaSprite(kind, hex, 0)];
+  const a = pede();
+  /* CONTROLE. Sem isto a régua passa verde num mundo em que nada é cacheado —
+     aí os objetos seriam sempre novos e a segunda asserção não mediria nada. */
+  if (!pede().every((v, i) => v === a[i])) return false;
+  S.esqueceTerreno(kind);
+  const nomes = ['tileTexture', 'borderSprite', 'wallSprite', 'teiaSprite'];
+  const b = pede();
+  const ficou = nomes.filter((n, i) => a[i] === b[i]);
+  if (ficou.length) console.log('    cache que nao esqueceu: ' + ficou.join(', '));
+  return ficou.length === 0;
+})(), 'PNG de terreno que chega invalida os QUATRO caches derivados, nao dois');
+
+
+
+/* 3 · A SOMBRA DE CONTATO É RECORTADA NA FAIXA QUE TEM TINTA, E O RENDER USA.
+   O gradiente ocupa `px` de 32 e o resto do canvas é alfa zero: blitando o tile
+   inteiro, 56% do pixel saía transparente ao meio-dia, e na vila densa isso é
+   48% de todos os `drawImage` do quadro.
+   A régua exerce o CAMINHO INTEIRO. Medir `edgeShadow` sozinho passaria verde na
+   mutação que devolve a forma de 5 argumentos ao `drawFloor` — já aconteceu
+   nesta base com o recorte de luz. E nenhuma régua de COBERTURA separa as duas
+   formas: elas cobrem a mesma região, a diferença é só o pixel gasto. */
+A((() => {
+  if (S.edgeShadow(0, 1).px !== 14 || S.edgeShadow(0, 1.71).px !== 24) return false;
+  const p = S.getP(), antes = [p.x, p.y, p.px, p.py, p.z];
   busca: for (let y = 1; y < S.H - 1; y++) for (let x = 1; x < S.W - 1; x++)
     if (S.objsAt(x, y, S.SURF).some(n => (S.OBJ[n.o] || {}).cat === 'parede')) {
       p.x = p.px = x; p.y = p.py = y + 2; p.z = S.SURF; break busca;
     }
+  REC.tudo = 1; REC.blits.length = 0;
   S.drawWorld();
-  const n = S.cristas.length;
+  REC.tudo = 0;
   Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
-  A(n > 0, 'a régua da crista tem parede no enquadramento para medir');
-  const S_ = S.CAM.scale;
-  return S.cristas.every(([x, y, w, h]) =>
-    Math.abs(h - S.WALL_CHAPA * S_) < .01 &&
-    S.faces.some(([fx, fy, fw, fh]) =>
-      fx === x && fw === w && Math.abs(fy - (y + h)) < .01 && Math.abs(h + fh - S.WALL_H * S_) < .01));
-})(), 'a face começa exatamente onde a crista acaba, e as duas somam a parede inteira');
+  // a sombra de contato se reconhece pelo `px` que o próprio canvas carrega
+  const som = REC.blits.filter(b => b.src && b.src.px !== undefined);
+  const cheios = som.filter(b => b.r.length === 4);
+  if (som.length) console.log('    sombra de contato: ' + som.length + ' blits, ' + cheios.length + ' no tile inteiro');
+  return som.length > 0 && cheios.length === 0;
+})(), 'a sombra de contato sai recortada na faixa com tinta, e ha parede na cena para medir');
 
-/* NENHUMA FAIXA PODE CAIR EM TILE ABRIGADO. A parede transborda um tile para
-   CIMA, então a parede SUL de uma casa desenha a própria crista DENTRO do
-   interior — e as faixas saem opacas e por cima do abrigo, arrancando aquele
-   pedaço do telhado. Deu um retângulo azul chapado em toda casa, e a suíte
-   passou verde: as duas réguas anteriores mediam cor e geometria, e nenhuma
-   perguntava ONDE a faixa cai. */
+/* 4 · OBJETO COM ARTE DE FOLHA NÃO CAI NO RAMO QUE A ENGOLE.
+   O ramo `deco` do render vem ANTES do ramo `png`, então uma ficha com os dois
+   desenha o procedural e a arte fica morta — era o caso da `pedra`, em 70
+   tiles do mapa, e valia igual na paleta do editor, que copia a ordem dos ramos.
+   Uma régua que procurasse a palavra `png` na ficha passaria verde. */
 A((() => {
-  const p = S.getP();
-  const antes = [p.x, p.y, p.px, p.py, p.z];
-  busca: for (let y = 4; y < S.H - 4; y++) for (let x = 4; x < S.W - 4; x++)
-    if (S.isWalkable(x, y, S.SURF) && S.dentroDeCasa(x, y, S.SURF)) {
-      p.x = p.px = x; p.y = p.py = y; p.z = S.SURF; break busca;
+  const engolidos = [];
+  for (const k in S.OBJ) if (S.OBJ[k].png && S.OBJ[k].deco !== undefined) engolidos.push(k);
+  if (engolidos.length) console.log('    arte de folha morta em: ' + engolidos.join(', '));
+  return engolidos.length === 0;
+})(), 'objeto com arte de folha nao declara `deco`, que e o ramo anterior e a engole');
+
+/* 5 · ÁGUA E LAVA SÃO DECIDIDAS POR FAMÍLIA, NÃO POR IGUALDADE DE STRING.
+   Enquanto era `tex === 'water'`, as variantes `agua_clara`, `agua_funda` e
+   `lava_viva` eram chão morto: não corriam, não cintilavam, não espumavam, e a
+   lava não acendia. Nenhuma tem tile em Varrokgaard hoje — era alçapão armado,
+   e ele dispararia no dia em que alguém pintasse um lago com a variante.
+   A régua PINTA a variante e conta o blit de escorrimento no quadro, em vez de
+   perguntar ao fonte: o `flowTexture` é o único canvas de altura `TEX_S*2`. */
+A((() => {
+  const p = S.getP(), antes = [p.x, p.y, p.px, p.py, p.z];
+  const z = S.SURF, f = S.WORLD.floors[z];
+  const escorre = tid => {
+    const salvo = [];
+    for (let y = p.y - 3; y <= p.y + 3; y++) for (let x = p.x - 3; x <= p.x + 3; x++) {
+      const i = y * S.W + x; salvo.push([i, f.t[i]]); f.t[i] = tid;
     }
-  S.drawWorld();
-  const dentro = [...S.cristas, ...S.faces].filter(([, , , , tx, ty]) => S.abrigado(tx, ty, p.z));
-  const n = S.cristas.length;
+    REC.tudo = 1; REC.blits.length = 0;
+    S.drawWorld();
+    REC.tudo = 0;
+    for (const [i, v] of salvo) f.t[i] = v;     // devolve o mapa ANTES de qualquer saida
+    return REC.blits.filter(b => b.src && b.src.height === S.TEX_S * 2).length;
+  };
+  p.x = p.px = (S.W / 2) | 0; p.y = p.py = (S.H / 2) | 0; p.z = z;
+  const orig = escorre(S.T.WATER), clara = escorre(S.T.WATER_CLARA),
+        funda = escorre(S.T.WATER_FUNDA), viva = escorre(S.T.LAVA_VIVA);
   Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
-  A(n > 0, 'a régua do abrigo tem crista no enquadramento para medir');
-  return dentro.length === 0;
-})(), 'nenhuma faixa de parede cai em tile abrigado — o topo não fura o telhado');
+  S.drawWorld();
+  console.log('    escorrimento por tile: water ' + orig + ' . agua_clara ' + clara
+    + ' . agua_funda ' + funda + ' . lava_viva ' + viva);
+  // CONTROLE: o original tem de escorrer, senao a cena nao mede nada
+  return orig > 0 && clara > 0 && funda > 0 && viva > 0;
+})(), 'as variantes de agua e lava escorrem como as originais - a regua e a familia');
+
+/* 6 · O PÉ DA ARTE ENCOSTA ONDE A SOMBRA DELA DIZ QUE ELE ENCOSTA.
+   O objeto era o único desenhado por uma identidade aritmética cujo fundo cai no
+   FUNDO do tile, enquanto a sombra dele — e o jogador, a criatura, a árvore e a
+   moita — ancoram no MEIO (`CHAO`). Medido nos dois lados: 24 px de chão limpo
+   entre a mancha e a base do barril no zoom 2, e na tela a mancha de 27 das 89
+   peças com sombra não chegava a UM pixel, porque a arte é desenhada depois e
+   por cima. A régua cobra a coincidência, que é a forma exata do invariante:
+   uma que só medisse "o objeto tem sombra" passa verde nas duas versões.
+
+   E ela precisou destravar o ramo `png` no node. Sem `Image`, `objSprite`
+   devolve `null`, o `if (!spr) continue` dispara e o `drawWorld` headless NUNCA
+   executava o ramo de folha para nenhuma das 91 peças — foi por isso que este
+   defeito atravessou a leva de recorte inteira sem nada acusar. O `OBJ_FOLHA` já
+   traz `w`/`h`/`cx`/`feet` do recortador, que é tudo que o render lê: dá para
+   plantar o sprite pronto sem imagem nenhuma. *Qual linha do código a régua
+   nunca faz rodar?* — era esta. */
+A((() => {
+  // planta as peças de folha como se os PNG já tivessem chegado
+  for (const nome in S.OBJ_FOLHA) {
+    const f = S.OBJ_FOLHA[nome];
+    /* SEMPRE planta o sprite, nunca so quando a chave falta. O `objSprite` do
+       node CRIA a entrada com `spr: null` (o stub tem `Image`, e a imagem nunca
+       carrega), entao toda peca que um `drawWorld` anterior ja pediu chega aqui
+       com a chave ocupada e vazia -- a guarda `if (!OBJ_PNG[nome])` pulava
+       justamente essas, e a regua media zero achando que o render nao desenhou. */
+    S.OBJ_PNG[nome] = { spr: Object.assign(S.document.createElement('canvas'),
+      { width: f.w, height: f.h, cx: f.cx, feet: f.feet, k: 1 }) };
+  }
+  const p = S.getP(), antes = [p.x, p.y, p.px, p.py, p.z];
+  /* Um cenário por RAMO do render. Cravar uma peça só deixava o ramo `span`
+     sem ser exercido, e a mutação que o desfaz passava verde — a régua
+     mentia sobre estar guardando metade do conserto. */
+  const acha = quer => {
+    for (let z = 0; z < S.FLOORS; z++)
+      for (let y = 4; y < S.H - 4; y++) for (let x = 4; x < S.W - 4; x++)
+        for (const n of S.objsAt(x, y, z)) {
+          const d = S.OBJ[n.o];
+          // `png` pode ser lista: resolve a primeira para saber se a peça está plantada
+          const p0 = Array.isArray(d && d.png) ? d.png[0] : d && d.png;
+          if (d && p0 && d.sombra && S.OBJ_PNG[p0] && quer(d)) return [x, y, z, n.o];
+        }
+    return null;
+  };
+  const solto = acha(d => !d.span || (d.span[0] === 1 && d.span[1] === 1));
+  /* UM CENARIO PARA A PECA DE VARIANTES. Sem ele o ramo que resolve `png` em
+     lista nunca roda, e ele ja quebrou calado uma vez: dar `span` a arvore a
+     mandou para o ramo de `span`, que chamava `objSprite` com o ARRAY inteiro,
+     recebia null e caia no `continue` -- 8 arvores em volta do jogador, ZERO
+     blits, e a suite verde. Regua que nao faz o caminho rodar nao guarda ele. */
+  const varia = acha(d => Array.isArray(d.png));
+  /* O mundo da suíte é o `genWorld` procedural e ele não semeia peca de folha
+     de mais de um tile, então a de `span` é PLANTADA. Sem ela o ramo `span`
+     não roda e a mutação que o desfaz passa verde — medido, foi o que
+     aconteceu na primeira versão desta régua. */
+  let grande = acha(d => d.span && (d.span[0] > 1 || d.span[1] > 1)), plantado = null;
+  if (!grande && solto) {
+    const [sx0, sy0, sz0] = solto, f = S.WORLD.floors[sz0];
+    plantado = { o: 'poco', x: sx0 + 4, y: sy0, z: sz0 };
+    f.objs.push(plantado); S.reindexObjs(sz0);
+    grande = [plantado.x, plantado.y, sz0, 'poco'];
+  }
+  if (!solto || !grande) {
+    console.log('    cenario incompleto: solto=' + !!solto + ' span=' + !!grande);
+    return false;                                 // CONTROLE: os dois ramos têm de existir
+  }
+  const desplanta = () => {
+    if (!plantado) return;
+    const f = S.WORLD.floors[plantado.z], i = f.objs.indexOf(plantado);
+    if (i >= 0) f.objs.splice(i, 1);
+    S.reindexObjs(plantado.z);                    // devolve o mundo ANTES de qualquer saída
+  };
+  const cs = S.contactShadow(), esc = S.CAM.scale;
+  const naTela = (b, x, y) => { const m = b.tr || [1, 0, 0, 1, 0, 0];
+    return [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]]; };
+  let relato = [], mau = 0, naoFinito = 0;
+  if (!varia) { console.log('    sem peca de variantes no mundo da suite'); return false; }
+  /* TEMPORAL CRAVADO, porque a peca que balanca so balanca com vento. Sem isto a
+     regua media a arvore numa calmaria sorteada pelo relogio e a mutacao que tira
+     o vento do ramo de `span` passava verde -- medido, ela passou. */
+  const nubAntes = S.DEV.nublado; S.DEV.nublado = 1;
+  for (const [x, y, z, alvo] of [solto, grande, varia]) {
+    /* O sprite pode vir de UMA peca ou de uma LISTA. A regua aceita qualquer
+       variante desenhada em vez de recalcular qual o tile sorteou: espelhar a
+       conta do render aqui seria duas verdades para a mesma pergunta. */
+    const png = S.OBJ[alvo].png;
+    /* O RENDER desenha `outlined(objSprite(...))`, nao o PNG cru. Comparar
+       contra o cru mede zero e a regua acusa defeito onde nao ha — ela tem de
+       resolver o sprite pelo MESMO caminho. `outlined` cacheia por sprite, entao
+       a identidade bate. */
+    const sprs = (Array.isArray(png) ? png : [png]).map(n => S.outlined(S.OBJ_PNG[n].spr));
+    p.x = p.px = x; p.y = p.py = y + 1; p.z = z;
+    REC.tudo = 1; REC.blits.length = 0;
+    S.drawWorld();
+    REC.tudo = 0;
+    /* NENHUM blit de objeto pode sair em coordenada não-finita. É o que guarda a
+       reserva do `peDo`: peça procedural sem `feet` declarado desenharia em NaN
+       e sumiria da tela sem erro nenhum — a falha mais silenciosa que existe. */
+    naoFinito += REC.blits.filter(b => b.r.some(v => typeof v === 'number' && !isFinite(v))).length;
+    const arte = REC.blits.filter(b => sprs.includes(b.src) && b.r.length === 4);
+    const manchas = REC.blits.filter(b => b.src === cs && b.r.length === 4);
+    if (!arte.length || !manchas.length) {
+      console.log('    controle falhou em ' + alvo + ': arte=' + arte.length + ' manchas=' + manchas.length
+);
+      Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+      /* RESTAURA EM TODA SAIDA. O `DEV.nublado` cravado vazou pela saida
+         antecipada e deixou o resto da suite com temporal permanente: duas
+         reguas de clima passaram a mentir ("chove 100% do tempo"). Estado de
+         bancada que sobrevive a uma regua contamina todas as seguintes. */
+      S.DEV.nublado = nubAntes;
+      desplanta();
+      return false;
+    }
+    /* Para CADA peça desenhada tem de haver uma mancha de contato no pé dela: o
+       pé da arte é o topo mais `feet`, o da mancha é o centro. Uma régua que só
+       cobrasse "o objeto tem sombra" passa verde nas duas versões. */
+    const orfaos = arte.filter(b => {
+      /* posição NA TELA: o blit pode ter saído dentro do cisalhamento do vento */
+      const [tx, ty] = naTela(b, b.r[0] + b.r[2] / 2, b.r[1] + b.src.feet * esc);
+      const peY = ty, meioX = tx;
+      return !manchas.some(m => Math.abs((m.r[1] + m.r[3] / 2) - peY) < .6
+                             && Math.abs((m.r[0] + m.r[2] / 2) - meioX) < .6);
+    });
+    mau += orfaos.length;
+    /* E A LINHA DE CHÃO TEM DE SER O FUNDO DO RASTRO, cravado contra o TILE.
+       Concordância sozinha não basta: a mutação que move a arte E a sombra
+       juntas para o `CHAO` mantém as duas alinhadas e passa verde — e foi
+       exatamente isso que o dono viu na tela, todo objeto flutuando meia tile
+       acima do próprio tile. Uma régua de concordância não tem como pegar um
+       deslocamento solidário; quem pega é uma âncora externa, e a externa aqui
+       é o canto do tile. */
+    const sp = S.OBJ[alvo].span || [1, 1], pe = S.OBJ[alvo].pe || sp;
+    const chaoEsperado = S.cantoDoTile(x, y, S.tpx())[1] + S.tpx() * sp[1];
+    /* E O CENTRO DO DESENHO CAI SOBRE O FOOTPRINT, cravado contra o TILE.
+       Irmao vertical do de baixo, e o mesmo motivo: arte e sombra andam JUNTAS
+       quando a ancora horizontal erra, entao a coincidencia entre as duas passa
+       verde com a peca meia tile fora do lugar. Foi o defeito que o dono viu —
+       copa de 2 tiles alinhada pela esquerda do `span` poe o tronco na borda
+       direita do tile. Medido no PE, onde o cisalhamento do vento vale zero. */
+    const meioEsperado = S.cantoDoTile(x, y, S.tpx())[0] + S.tpx() * pe[0] / 2;
+    if (!arte.some(b => Math.abs(
+          naTela(b, b.r[0] + b.r[2] / 2, b.r[1] + b.src.feet * esc)[0] - meioEsperado) < .6)) {
+      mau++;
+      console.log('    ' + alvo + ': centro em '
+        + arte.map(b => +naTela(b, b.r[0] + b.r[2] / 2, b.r[1] + b.src.feet * esc)[0].toFixed(1)).join('/')
+        + ', esperado ' + meioEsperado.toFixed(1));
+    }
+    /* O PE, nao o fundo do blit. O `outlined` engorda a lona em 1 px de cada
+       lado, entao o fundo do desenho fica um pixel de sprite ABAIXO da linha de
+       chao — e e o contorno, nao a peca. Quem responde onde a coisa se apoia e
+       o `feet`, que o `outlined` ajusta junto. */
+    if (!arte.some(b => Math.abs(naTela(b, 0, b.r[1] + b.src.feet * esc)[1] - chaoEsperado) < .6)) {
+      mau++;
+      console.log('    ' + alvo + ': pe em ' + arte.map(b => +naTela(b, 0, b.r[1] + b.src.feet * esc)[1].toFixed(1)).join('/')
+        + ', esperado ' + chaoEsperado.toFixed(1));
+    }
+    /* E QUEM DECLARA `balanca` TEM DE SAIR CISALHADO. A coincidencia entre pe e
+       sombra e cega ao vento: mover o desenho de volta para fora do `transform`
+       mantem tudo alinhado e apaga o balanco, que e perda visivel em 1712
+       arvores num clima que ocorre 28,4% do tempo. Quem ve isso e a MATRIZ em
+       que o blit saiu, e ela so existe na fita desde esta leva. */
+    if (S.OBJ[alvo].balanca && !arte.some(b => b.tr && Math.abs(b.tr[2]) > 1e-6)) {
+      mau++;
+      console.log('    ' + alvo + ' declara balanca e saiu SEM cisalhamento no temporal');
+    }
+    relato.push(alvo + ' ' + arte.length + '/' + orfaos.length);
+  }
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  S.DEV.nublado = nubAntes;
+  desplanta();
+  /* E A RESERVA DO `peDo`, cobrada direto em vez de torcida para o cenario
+     exercer: peca procedural que nao declara `feet` desenharia em NaN e sumiria
+     da tela sem erro nenhum. Duas cenas nao alcancam as 101 fichas, e regua que
+     depende do que o mundo semeou e regua que so as vezes pega. */
+  const semPe = [];
+  for (const k in S.OBJ) {
+    const d = S.OBJ[k];
+    if (d.draw === 'porta') continue;             // a porta sai por recorte, nao por ancora
+    /* As duas tabelas têm assinaturas diferentes — `PAREDE_DRAW` recebe o
+       material e os vizinhos, `OBJ_DRAW` só o eixo. Chamar as duas igual estoura
+       dentro do `tileTexture` com o `kind` errado. */
+    const spr = (d.png && S.OBJ_PNG[d.png] && S.OBJ_PNG[d.png].spr)
+      || (d.draw && S.PAREDE_DRAW[d.draw] && S.PAREDE_DRAW[d.draw](d.tex, d.c, 0, 0, 0))
+      || (d.draw && S.OBJ_DRAW[d.draw] && S.OBJ_DRAW[d.draw](0));
+    /* AS DUAS ANCORAS, nao so a vertical. `cxDo` foi esquecido quando `peDo`
+       ganhou reserva, e `-undefined * S` da NaN: o `drawImage` com NaN nao
+       desenha e nao da erro, entao cerca, escora, fogueira e poco sumiram da
+       tela mantendo a colisao. A suite passou verde o tempo todo porque esta
+       varredura olhava um campo so. */
+    if (spr && (!isFinite(S.peDo(spr)) || !isFinite(S.cxDo(spr)))) semPe.push(k);
+  }
+  if (semPe.length) console.log('    pe NAO-FINITO em: ' + semPe.join(', '));
+  console.log('    pe contra sombra (desenhados/orfaos): ' + relato.join(' . ')
+    + (naoFinito ? ' . NAO-FINITOS ' + naoFinito : ''));
+  return mau === 0 && naoFinito === 0 && semPe.length === 0;
+})(), 'o pe da arte de folha coincide com a mancha de contato dela, nos dois ramos - nada de objeto flutuando');
+
+/* 7 · O SANGUE DE COMBATE USA A PEÇA DA FOLHA, TINGIDA PELA CLASSE.
+   Substituiu ~6 elipses por quadro e por mancha por UM blit já tingido — o
+   upgrade que o `ponytail:` do `manchaChao` apontava. Três coisas a guardar, e
+   nenhuma delas é "existe sangue na tela":
+
+   · a mancha SORTEIA a peça na criação, nunca no desenho. Sortear ao desenhar
+     faria a poça piscar entre variantes a cada quadro;
+   · a peça é TINGIDA pela cor da classe. O PNG é vermelho, e blitá-lo cru daria
+     sangue vermelho em inseto (verde), morto-vivo (osso) e aberração (roxo) —
+     seis das nove classes erradas, sem erro nenhum;
+   · a RESERVA de elipses continua viva, e não é decorativa: sem `Image` a peça
+     nunca chega, e é ela que mantém o `drawWorld` headless desenhando sangue.
+     Esta régua roda no node, então é a reserva que ela vê no `drawBlood` — o
+     tingimento se cobra na função, que é pura. */
+A((() => {
+  const p = S.getP(), antes = [p.x, p.y, p.px, p.py, p.z];
+  S.G.blood.length = 0;
+  const classe = S.SANGUE_CLASSE['Inseto'];
+  S.bloodSpray(p.x, p.y, p.z, classe, 1);
+  const b = S.G.blood[S.G.blood.length - 1];
+  if (!b) return false;                              // CONTROLE: o golpe tem de manchar
+  const vars = S.OBJ.mancha.png;
+  if (!b.png || !vars.includes(b.png)) {
+    console.log('    mancha sem peca de folha: ' + b.png);
+    return false;
+  }
+  if (!(b.esc > 0)) return false;
+  /* A COR VEM DA CLASSE, e não do PNG. `cssCol` do verde de inseto tem de ser o
+     que a entrada carrega — se o dia em que alguém trocar o tingimento por um
+     blit cru chegar, é aqui que ele para. */
+  if (b.cor !== S.cssColOu(classe.cor)) {
+    console.log('    cor da mancha ' + b.cor + ' nao e a da classe ' + S.cssColOu(classe.cor));
+    return false;
+  }
+  /* Duas manchas seguidas não podem sair sempre na mesma peça: variante única
+     seria papel de parede, e é o motivo de a folha ter 20. */
+  const vistos = new Set();
+  for (let i = 0; i < 40; i++) {
+    S.bloodSpray(p.x, p.y, p.z, classe, 1);
+    vistos.add(S.G.blood[S.G.blood.length - 1].png);
+  }
+  if (vistos.size < 5) { console.log('    so ' + vistos.size + ' variantes em 40 manchas'); return false; }
+  /* E O RENDER TEM DE DESENHAR A MANCHA. A régua da peça pura passaria verde na
+     mutação que tira o ramo do `drawBlood` — já mordeu nesta base com o recorte
+     de luz. Aqui, sem `Image`, quem sai é a reserva de elipses: o que se cobra é
+     que o quadro pinte alguma coisa na cor do sangue. */
+  /* OS DOIS CAMINHOS, e nao o que a ordem das reguas deixou. A regua anterior
+     planta os sprites de folha, entao aqui o `drawBlood` ja usa a PECA -- e uma
+     regua que so olhasse a reserva mediria zero e mentiria sobre o motivo.
+     Cobra-se: com a peca disponivel sai um BLIT dela; sem a peca, cai nas
+     elipses. Regua que depende de qual outra rodou antes nao guarda nada. */
+  /* A RECEITA DO TINGIMENTO, que e o maximo que da para cobrar sem canvas de
+     verdade: no node o `getImageData` devolve zeros, entao NAO ha como medir se
+     o desenho de dentro da mancha sobreviveu. O que se pode ver e a sequencia de
+     modos, e ela e o que separa as duas receitas: `color` toma matiz e saturacao
+     e MANTEM a luminosidade (o miolo escuro, as gotas claras, o escorrido);
+     `source-in` chapa tudo numa silhueta de cor unica, que e o adesivo colado no
+     chao. TETO CONHECIDO: uma terceira receita que preservasse luminosidade por
+     outro caminho passaria aqui -- quem julga o resultado e o olho, no jogo. */
+  {
+    const nome0 = S.OBJ.mancha.png[0], cor0 = '#123456';
+    REC.tudo = 1; REC.ops.length = 0; REC.blits.length = 0;
+    S.manchaSprite(nome0, cor0);
+    REC.tudo = 0;
+    const temColor = REC.ops.some(o => o.op === 'fillRect' && o.comp === 'color');
+    const temRecorte = REC.blits.some(x => x.comp === 'destination-in');
+    if (!temColor || !temRecorte) {
+      console.log('    tingimento sem a receita: color=' + temColor + ' recorte=' + temRecorte);
+      Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+      S.G.blood.length = 0;
+      return false;
+    }
+  }
+  const alvo = S.G.blood[S.G.blood.length - 1];
+  REC.tudo = 1; REC.ops.length = 0; REC.blits.length = 0;
+  S.drawWorld();
+  REC.tudo = 0;
+  const tinta = S.manchaSprite(alvo.png, alvo.cor);
+  const comPeca = tinta ? REC.blits.filter(x => x.src === tinta && x.a < 1).length : 0;
+
+  /* RESERVA: peca que nao existe no manifesto faz o `manchaSprite` devolver
+     null antes de cachear, que e exatamente o estado "PNG ainda nao chegou". */
+  for (const e of S.G.blood) e.png = 'blood_XX_99';
+  REC.ops.length = 0;
+  S.drawWorld();
+  const comReserva = REC.ops.filter(o => o.op === 'fill' && o.comp === 'multiply'
+    && o.cor === S.cssColOu(classe.cor)).length;
+
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  S.G.blood.length = 0;
+  console.log('    sangue: ' + vistos.size + ' variantes em 40 manchas, '
+    + comPeca + ' blits de peca e ' + comReserva + ' elipses de reserva');
+  return comPeca > 0 && comReserva > 0;
+})(), 'o sangue de combate sorteia a peca da folha na criacao e a tinge pela classe');
+
+/* 8 · A MARCA SAI NOS DOIS PASSES, CONFORME O QUE ESTÁ NO TILE.
+   Sobre chão vazio ela é decalque e o jogador pisa por cima — sai entre os dois
+   passes, junto do sangue de combate. Sobre parede ou objeto ela está NA coisa e
+   tem de vir depois dela; sangue numa parede está na parede, não no rodapé.
+   A régua cobra os DOIS cenários, porque um ramo que ela não faz rodar é um ramo
+   que ela não guarda — e nesta leva isso já custou a árvore invisível. */
+A((() => {
+  const p = S.getP(), antes = [p.x, p.y, p.px, p.py, p.z];
+  const z = S.SURF, f = S.WORLD.floors[z];
+  // planta os sprites das manchas, senão o render cai no `continue`
+  for (const n of S.OBJ.mancha.png) {
+    const g = S.OBJ_FOLHA[n];
+    S.OBJ_PNG[n] = { spr: Object.assign(S.document.createElement('canvas'),
+      { width: g.w, height: g.h, cx: g.cx, feet: g.feet, k: 1 }) };
+  }
+  const sprs = S.OBJ.mancha.png.map(n => S.OBJ_PNG[n].spr);
+  /* Um tile de chão limpo e um tile de PAREDE, os dois no enquadramento. */
+  /* Acha a PAREDE primeiro e o chao limpo PERTO dela: as duas tem de caber no
+     mesmo enquadramento, senao a marca da parede fica fora da tela e a regua
+     mede so metade do que cobra. */
+  let limpo = null, parede = null;
+  busca: for (let y = 6; y < S.H - 6; y++) for (let x = 6; x < S.W - 6; x++) {
+    if (!S.paredeEm(x, y, z)) continue;
+    for (let j2 = -3; j2 <= 3; j2++) for (let i2 = -3; i2 <= 3; i2++) {
+      const cx2 = x + i2, cy2 = y + j2;
+      if (S.isWalkable(cx2, cy2, z) && !S.objsAt(cx2, cy2, z).length) {
+        parede = [x, y]; limpo = [cx2, cy2]; break busca;
+      }
+    }
+  }
+  if (!limpo || !parede) { console.log('    sem cenario de chao+parede'); return false; }
+  const postos = [{ o: 'mancha', x: limpo[0], y: limpo[1], z },
+                  { o: 'mancha', x: parede[0], y: parede[1], z }];
+  f.objs.push(...postos); S.reindexObjs(z);
+  p.x = p.px = limpo[0]; p.y = p.py = limpo[1] + 1; p.z = z;
+  REC.tudo = 1; REC.blits.length = 0;
+  S.drawWorld();
+  REC.tudo = 0;
+  /* SÓ os blits com TAMANHO. A fita cheia grava tambem os `drawImage(spr,0,0)`
+     de dentro do `outlined`/`silhouette`/`manchaSprite`, que sao construcao de
+     sprite e nao desenho no mundo -- contá-los fazia a régua ver 6 marcas onde
+     havia 2, e cinco delas sem modo de composicao nenhum. */
+  const marcas = REC.blits.filter(b => sprs.includes(b.src) && b.r.length >= 4);
+  /* A do chão sai ANTES de qualquer bicho da fileira; a da parede sai DEPOIS do
+     sprite de parede daquele tile. Em vez de espelhar a ordem do render, cobra-se
+     o que se pode ver sem ambiguidade: as DUAS saíram, e as duas em `multiply`
+     — marca TINGE o que está embaixo, não cobre. */
+  const emMultiply = marcas.filter(b => b.comp === 'multiply').length;
+  for (const o of postos) { const i = f.objs.indexOf(o); if (i >= 0) f.objs.splice(i, 1); }
+  S.reindexObjs(z);
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  S.drawWorld();
+  console.log('    marca: ' + marcas.length + ' desenhadas, ' + emMultiply + ' em multiply');
+  return marcas.length >= 2 && emMultiply === marcas.length;
+})(), 'a marca sai no chao e sobre parede, sempre tingindo o que esta embaixo');
+
+/* 9 · `parteCamadas` NÃO PODE ENGOLIR OBJETO DE UM TILE SÓ.
+   O descarte de rastro existe para o que o autor pinta em N TILES IGUAIS — poço,
+   moinho, carroça —, em que só a âncora vira entrada. Ele perguntava ao `span`,
+   e no dia em que `span` passou a significar só LARGURA DE DESENHO isso virou
+   destruição de mapa: a árvore ganhou `span: [2,1]` com `pe: [1,1]`, e numa mata
+   densa a vizinha a oeste ou ao norte também é árvore — então toda árvore com
+   vizinha era descartada como rastro de outra.
+
+   Medido no mapa do dono: **1712 árvores viraram 474**, e a conferência do
+   script passou. Ela não podia pegar: perder árvore deixa o mapa MAIS andável, e
+   o que ela mede é alcançabilidade. Por isso esta régua conta OBJETO, não
+   caminho — é a única que fecha esse buraco. */
+A((() => {
+  const w = 8, h = 8;
+  const grid = (ids) => {
+    const t = new Array(w * h).fill(S.T.GRASS);
+    for (const [x, y, v] of ids) t[y * w + x] = v;
+    return t;
+  };
+  /* Bloco 2x2 de ÁRVORE: são QUATRO árvores, uma por tile. O autor pinta uma
+     árvore por tile, e a copa larga é desenho, não footprint. */
+  const arv = S.parteCamadas(grid([[2, 2, S.T.TREE], [3, 2, S.T.TREE],
+                                    [2, 3, S.T.TREE], [3, 3, S.T.TREE]]), [], w, h)
+    .filter(o => o.o === 'arvore');
+  /* Bloco 2x2 de POÇO: é UM poço. `poco` declara `span: [2,2]` e não declara
+     `pe`, então o footprint é o span e os outros três tiles são rastro. */
+  const poc = S.parteCamadas(grid([[2, 2, S.T.WELL], [3, 2, S.T.WELL],
+                                    [2, 3, S.T.WELL], [3, 3, S.T.WELL]]), [], w, h)
+    .filter(o => o.o === 'poco');
+  console.log('    parteCamadas: 2x2 de arvore -> ' + arv.length
+    + ' objetos, 2x2 de poco -> ' + poc.length);
+  /* Os dois lados, e o segundo importa tanto quanto: sem ele, "nunca descarte
+     nada" passaria verde e o rastro do poço voltaria a virar quatro poços. */
+  return arv.length === 4 && poc.length === 1;
+})(), 'parteCamadas descarta rastro de objeto multi-tile e NAO engole objeto de um tile');
+
+/* 10 · A PAREDE TEM QUINA: as 16 máscaras dão 16 desenhos, e o RENDER passa as
+   quatro. Duas metades, e uma sem a outra não guarda nada.
+
+   O render passava `vizinhosIguais(...) & 3` — só norte e sul —, então a parede
+   tinha QUATRO variantes e o canto de uma casa saía desenhado igual a um lance
+   reto. Foi o que o dono relatou como "visualização confusa". A cerca sempre
+   recebeu os quatro bits; era a parede que estava fora.
+
+   A régua cobra as duas pontas porque cada uma passa verde sozinha: `wallSprite`
+   pode saber desenhar dezesseis e o render pedir quatro (o defeito real), e o
+   render pode passar dezesseis para uma função que ignora doze. Já mordeu nesta
+   base — a régua do recorte de luz media a função pura e passou verde na mutação
+   que tirou a chamada. */
+A((() => {
+  /* METADE 1: dezesseis máscaras, dezesseis sprites distintos. Distintos por
+     IDENTIDADE de objeto não basta (o cache guarda por chave e a chave já tem o
+     `m`, então seriam sempre dezesseis objetos diferentes mesmo ignorando os
+     bits). Quem responde é a RECEITA: o que cada variante mandou desenhar. */
+  /* UM HEX SÓ, e a textura AQUECIDA antes. A primeira versão usava um hex por
+     máscara para escapar do cache do `wallSprite` — e com isso a construção da
+     TEXTURA entrava na receita, porque o `TEX_DRAW` pinta com cores tiradas do
+     hex. As dezesseis saíam sempre distintas, e as mutações que apagavam a face
+     de leste e a de oeste passaram verdes. O cache do `wallSprite` já tem o `m`
+     na chave: mesmo hex com máscara diferente roda o corpo do mesmo jeito, e a
+     textura vem pronta sem pintar nada. */
+  /* HEX PRÓPRIO desta régua. Com a cor real do rochedo (0x5a6674), a régua do
+     `OBJ_FOLHA` e os `drawWorld` da suíte já tinham construído algumas máscaras
+     — e cache devolve o sprite sem pintar nada, então essas saíam com receita
+     VAZIA e colidiam entre si: 13 para 16, sem defeito nenhum no código.
+     Régua que depende do que outra construiu antes é régua que mente. */
+  S.tileTexture('rock', 0x123457);
+  const receita = mm => {
+    REC.tudo = 1; REC.ops.length = 0; REC.blits.length = 0;
+    S.wallSprite('rock', 0x123457, mm, 0, 0);
+    REC.tudo = 0;
+    return JSON.stringify(REC.ops.filter(o => o.op === 'fillRect')
+      .map(o => [o.x, o.y, o.w, o.h, typeof o.cor === 'string' ? o.cor : 'grad']));
+  };
+  const vistas = new Set();
+  for (let mm = 0; mm < 16; mm++) vistas.add(receita(mm));
+  if (vistas.size !== 16) {
+    console.log('    wallSprite: ' + vistas.size + ' receitas distintas para 16 mascaras');
+    return false;
+  }
+  /* METADE 2: o RENDER passa os quatro bits, e isto se mede no que a função
+     RECEBE — não no que o mapa tem. Contar vizinhos aqui seria espelhar a
+     decisão do render noutro lugar: a mutação `& 3` deixaria a contagem
+     idêntica e a régua passaria verde. Quem responde é embrulhar o
+     `wallSprite` e olhar o `m` que chegou. */
+  const p = S.getP(), antes = [p.x, p.y, p.px, p.py, p.z];
+  let alvo = null;
+  busca: for (let y = 2; y < S.H - 2; y++) for (let x = 2; x < S.W - 2; x++)
+    if (S.paredeEm(x, y, S.SURF)) { alvo = [x, y]; break busca; }
+  if (!alvo) return false;
+  p.x = p.px = alvo[0]; p.y = p.py = alvo[1] + 2; p.z = S.SURF;
+  const original = S.wallSprite;
+  const recebidos = [];
+  S.wallSprite = function (kind, hex, mm, prof, q) {
+    recebidos.push(mm | 0);
+    return original.apply(this, arguments);
+  };
+  try { S.drawWorld(); } finally { S.wallSprite = original; }
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  const comLado = recebidos.filter(v => v & 12).length;
+  console.log('    parede: 16 receitas distintas · ' + recebidos.length
+    + ' chamadas, ' + comLado + ' com bit de leste/oeste');
+  /* CONTROLE: a cena precisa desenhar parede, senão a segunda metade não mede
+     nada. Um muro corrido sempre produz máscara com bit lateral. */
+  return recebidos.length > 0 && comLado > 0;
+})(), 'a parede usa as QUATRO direcoes e tem quina — 16 mascaras, 16 desenhos');
+
+/* 11 · POI SEM `loot` NÃO DERRUBA O JOGO.
+   `abrirTesouro` fazia `for (const [id] of p.loot)` direto, e os cinco POIs
+   `lugar: 1` de Varrokgaard — o poço seco, o barco na pedra, o alto da Pedreira,
+   a pedra do meio, a foz — não têm `loot`: eles são MARCAS, existem para dizer
+   "olha", não para dar item. Pisar no tile exato do centro estourava
+   `TypeError: p.loot is not iterable` e derrubava o quadro.
+   O `r: 1` deles é o que escondia: só o tile exato dispara, e um passo de
+   diferença não acusa nada. Reproduzido no jogo antes de consertar. */
+A((() => {
+  const marca = { uid: 'regua_poi', x: 4, y: 4, z: S.SURF, n: 'marca', ico: '?', dica: '' };
+  const p = S.getP();
+  p.seen = p.seen || {};
+  delete p.seen['poi' + marca.uid];
+  try { S.abrirTesouro(marca); } catch (e) { console.log('    ' + e.message); return false; }
+  /* E o POI COM loot continua abrindo — senão "nunca abra nada" passaria verde. */
+  const comLoot = { uid: 'regua_poi2', x: 4, y: 4, z: S.SURF, n: 'baú', ico: '?', dica: '',
+                    loot: [['gold_coin', 1, 5, 5]] };
+  const antes = S.G.drops.length;
+  try { S.abrirTesouro(comLoot); } catch (e) { console.log('    com loot: ' + e.message); return false; }
+  const caiu = S.G.drops.length > antes;
+  S.G.drops.length = antes;
+  console.log('    POI: marca sem loot nao estoura · com loot larga item = ' + caiu);
+  return caiu;
+})(), 'POI sem `loot` e uma MARCA, nao um erro — e o com `loot` continua abrindo');
+
+/* 12 · A JANELA — fatia 2 do #53. Três metades, e a terceira é a que ninguém vê.
+
+   Ela é um ID (`ptabuaj`, `pblocoj`) e não um campo de instância. A primeira
+   tentativa marcou `o.jan = 1` no objeto e as 21 janelas SUMIRAM no salvamento:
+   o mapa grava `x,y,id` e o gravador diz com todas as letras que estado de
+   instância é SAVE, não mapa. Janela é geometria de autor.
+
+   E porque virou id, ela criou um problema que só aparece na fachada: o
+   `vizinhosIguais` comparava `n.o === id`, então a parede com janela lia-se como
+   material DIFERENTE da parede ao lado — o lance se partia e nascia uma aresta
+   lateral no meio da fachada. Por isso a comparação passou a ser por
+   `familia || id`, que deixa todo o conteúdo existente idêntico. */
+A((() => {
+  /* METADE 1: o sprite com janela é OUTRO desenho. Sem pixel no node, quem
+     responde é a receita — quatro retângulos a mais (vão, verga, peitoril e
+     montante). Medido no navegador: 476 px diferentes e o vão 46,5% mais escuro. */
+  S.tileTexture('wall', 0x765432);
+  const receita = jan => {
+    REC.tudo = 1; REC.ops.length = 0;
+    S.wallSprite('wall', 0x765432, 3, 0, 0, jan);
+    REC.tudo = 0;
+    return REC.ops.filter(o => o.op === 'fillRect').length;
+  };
+  const lisa = receita(0), comJan = receita(1);
+  if (comJan <= lisa) {
+    console.log('    janela nao muda o desenho: lisa=' + lisa + ' com=' + comJan);
+    return false;
+  }
+
+  /* METADE 2: o RENDER pede a janela. Medir só o sprite passaria verde na
+     mutação que para de passar `d.jan` — é a armadilha de sempre nesta base. */
+  const p = S.getP(), antes = [p.x, p.y, p.px, p.py, p.z];
+  /* O mundo da suíte é o `genWorld` procedural e ele não tem casa nenhuma — só
+     rochedo e parede de caverna. Então a régua PLANTA um lance de três paredes de
+     tábua com a do meio tendo janela: é o cenário mínimo em que a metade 3 tem o
+     que medir (a fachada só pode se partir se houver fachada). Removido no fim. */
+  const z = S.SURF, f = S.WORLD.floors[z];
+  let base = null;
+  busca: for (let y = 6; y < S.H - 6; y++) for (let x = 6; x < S.W - 6; x++) {
+    let livre = true;
+    for (let i2 = -1; i2 <= 3 && livre; i2++)
+      if (!S.isWalkable(x + i2, y, z) || S.objsAt(x + i2, y, z).length) livre = false;
+    if (livre && S.isWalkable(x, y + 1, z)) { base = [x, y]; break busca; }
+  }
+  if (!base) { console.log('    sem espaco para plantar a fachada'); return false; }
+  const postos = [
+    { o: 'ptabua', x: base[0], y: base[1], z },
+    { o: 'ptabuaj', x: base[0] + 1, y: base[1], z },
+    { o: 'ptabua', x: base[0] + 2, y: base[1], z }
+  ];
+  f.objs.push(...postos); S.reindexObjs(z);
+  const alvo = [base[0] + 1, base[1], z];
+  const desplanta = () => {
+    for (const o of postos) { const k = f.objs.indexOf(o); if (k >= 0) f.objs.splice(k, 1); }
+    S.reindexObjs(z);
+  };
+  p.x = p.px = base[0] + 1; p.y = p.py = base[1] + 1; p.z = z;
+  const orig = S.wallSprite;
+  const pedidos = [];
+  S.wallSprite = function (kind, hex, m, prof, q, jan) { pedidos.push(jan ? 1 : 0); return orig.apply(this, arguments); };
+  try { S.drawWorld(); } finally { S.wallSprite = orig; }
+  const comJanela = pedidos.filter(v => v).length;
+
+  /* METADE 3: A FACHADA NÃO SE PARTE. `ptabuaj` e `ptabua` são o mesmo material,
+     então a parede ao lado da janela NÃO pode enxergar um vizinho diferente. Esta
+     é a metade que nenhuma das outras duas cobre, e é a que a mutação de voltar
+     `n.o === id` derruba — a janela continuaria desenhada, só que com uma aresta
+     de fim de lance de cada lado dela. */
+  const [jx, jy, jz] = alvo;
+  const jid = S.objsAt(jx, jy, jz).find(o => (S.OBJ[o.o] || {}).jan).o;
+  const vizinhos = [[0, -1], [0, 1], [-1, 0], [1, 0]]
+    .map(([dx, dy]) => S.objsAt(jx + dx, jy + dy, jz)
+      .find(o => (S.OBJ[o.o] || {}).cat === 'parede'))
+    .filter(Boolean);
+  /* De cada parede vizinha, a janela tem de aparecer como MESMO material. */
+  const cegos = vizinhos.filter(v =>
+    !(S.vizinhosIguais(v.x, v.y, jz, v.o) & 15) ||
+    S.materialDe(v.o) !== S.materialDe(jid));
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  desplanta();
+  console.log('    janela: receita ' + lisa + '->' + comJan + ' retangulos · '
+    + comJanela + ' pedidas ao render · ' + vizinhos.length + ' paredes vizinhas, '
+    + cegos.length + ' que nao a reconhecem');
+  /* CONTROLE: precisa haver janela desenhada E parede colada nela, senão as
+     metades 2 e 3 não medem nada. */
+  return comJanela > 0 && vizinhos.length > 0 && cegos.length === 0;
+})(), 'a janela e um ID, o render a pede, e a fachada nao se parte nela');
+
+
+
+
+
+
+
+
+
+
+
+/* A SOMBRA DE PRÉDIO e o CORTE DE LUZ DA COBERTURA saíram do motor, e a régua
+   deles saiu junto. Os dois nasciam da mesma `pegadaAbrigo`; o dono os reprovou
+   ("está quebrado ainda") depois de várias rodadas de conserto, e o que ficou
+   registrado é a razão de não voltarem do mesmo jeito: máscara montada por
+   RETÂNGULO DE TILE tem a borda na quina do tile, e nenhuma quantidade de
+   desfoque faz isso ler como luz. Quando a cobertura voltar, ela volta como
+   TERMO de quem já calcula luz por pixel, não como camada por cima. */
+
+/* O TINTE DA HORA, e a régua cobra ONDE ele entra — não só que ele existe.
+   O ambiente do céu é um multiply, e multiply só SUBTRAI: com a arte de chão
+   medindo B/G 0,17, nenhum céu azul leva o azul acima do verde. Medido em campo
+   aberto, a tela ia de B/R 0,30 ao meio-dia a 0,63 de madrugada — mais azul, mas
+   ainda um VERDE escuro. Quem resolve é o `color`, que preserva luminosidade.
+   A ORDEM é metade do conserto e a régua existe por causa dela: a primeira
+   versão rodava junto do `gradePass`, no fim do quadro, e tingia a poça da tocha
+   junto — medido no pátio do templo com três tochas acesas, 4,2% de pixels
+   quentes caíram para 0,2%. Antes do passe de luz, o halo quente multiplica por
+   cima e come o azul de volta onde alcança.
+   A âncora é EXTERNA e não uma constante desta leva: o `fillRect` com que o
+   `lightPass` começa o buffer, cuja cor vem do `ambienteAgora`. Cobrar
+   `NOITE_MATIZ` contra ele mesmo passaria verde na mutação que devolve o piso. */
+A((() => {
+  const p = S.getP(), antes = [p.x, p.y, p.px, p.py, p.z];
+  const hAntes = S.DEV.hora, nAntes = S.DEV.nublado;
+  const tinte = () => {
+    REC.ops.length = 0;
+    S.drawWorld();
+    const amb = S.ambienteAgora(p.z).amb;
+    const i = REC.ops.findIndex(o => o.op === 'fillRect' && o.comp === 'color');
+    /* NO CANVAS DO BUFFER, e o `ctx` não é detalhe: a cor do ambiente sai 240
+       vezes no canvas do MUNDO antes disso, e sem esta guarda a âncora casava
+       com o índice 1 e a régua reprovava o código certo. O buffer de luz é
+       outro canvas por construção — é isso que separa "antes do passe" de
+       "antes da primeira vez que alguém usou esta cor". */
+    const mundo = i < 0 ? null : REC.ops[i].ctx;
+    const j = REC.ops.findIndex(o => o.op === 'fillRect' && o.cor === amb && o.ctx !== mundo);
+    return { i, j, a: i < 0 ? 0 : REC.ops[i].a };
+  };
+  try {
+    /* Tile de superfície COM CÉU: debaixo de cobertura o passe é pulado por
+       construção, e a régua mediria zero sem nada estar quebrado. */
+    let ceu = null;
+    busca: for (let y = 2; y < S.H - 2; y++) for (let x = 2; x < S.W - 2; x++)
+      if (S.TILE[S.tileAt(x, y, S.SURF)].walk && !S.souCoberto(x, y, S.SURF)) { ceu = [x, y]; break busca; }
+    A(ceu, 'a régua do tinte de hora achou um tile de superfície com céu');
+    p.x = p.px = ceu[0]; p.y = p.py = ceu[1]; p.z = S.SURF;
+    S.DEV.nublado = 0;
+
+    S.DEV.hora = .5;  const dia = tinte();
+    S.DEV.hora = .78; const poente = tinte();
+    S.DEV.hora = .92; const noite = tinte();
+
+    A(dia.i < 0, 'ao meio-dia o tinte de hora nem é chamado — céu branco não tem matiz a impor');
+    A(noite.a > .2, `de madrugada o tinte entra com força (mediu ${noite.a.toFixed(2)})`);
+    A(poente.a > .05 && poente.a < noite.a,
+      `o poente tinge, e menos que a madrugada (${poente.a.toFixed(2)} < ${noite.a.toFixed(2)})`);
+    A(noite.j >= 0, 'a régua achou o fillRect do ambiente que abre o buffer de luz');
+    return noite.i >= 0 && noite.i < noite.j;
+  } finally {
+    /* Restaura em TODA saída, não só na feliz. */
+    S.DEV.hora = hAntes; S.DEV.nublado = nAntes;
+    Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  }
+})(), 'o tinte da hora entra ANTES do passe de luz, e some ao meio-dia');
+
+/* A EXPOSIÇÃO DO DIA. A régua cobra a RAMPA, que é onde mora o requisito: a
+   queixa era que o escuro se gasta antes da noite, então clarear o dia sem
+   tocar a noite é o conserto — clarear tudo por igual não seria.
+   Ela procura na fita o `drawImage` em `lighter`, que é o ganho (o canvas
+   somado a si mesmo). Nada de refazer a fórmula da rampa aqui: repetir a conta
+   do render numa régua é ter duas verdades, e a que manda passa a ser a errada
+   no dia em que só uma mudar. O que se cobra é a RELAÇÃO entre as três horas. */
+A((() => {
+  const p = S.getP(), antes = [p.x, p.y, p.px, p.py, p.z];
+  const hAntes = S.DEV.hora, nAntes = S.DEV.nublado;
+  const ganho = () => {
+    REC.ops.length = 0;
+    S.drawWorld();
+    const o = REC.ops.find(x => x.op === 'drawImage' && x.comp === 'lighter');
+    return o ? o.a : 0;
+  };
+  try {
+    let ceu = null;
+    busca: for (let y = 2; y < S.H - 2; y++) for (let x = 2; x < S.W - 2; x++)
+      if (S.TILE[S.tileAt(x, y, S.SURF)].walk && !S.souCoberto(x, y, S.SURF)) { ceu = [x, y]; break busca; }
+    A(ceu, 'a régua da exposição achou um tile de superfície com céu');
+    p.x = p.px = ceu[0]; p.y = p.py = ceu[1]; p.z = S.SURF;
+    S.DEV.nublado = 0;
+
+    S.DEV.hora = .5;  const dia = ganho();
+    S.DEV.hora = .78; const poente = ganho();
+    S.DEV.hora = .92; const noite = ganho();
+
+    A(dia > .05, `ao meio-dia a exposição entra (mediu ${dia.toFixed(2)})`);
+    A(poente > 0 && poente < dia, `o poente recebe menos que o meio-dia (${poente.toFixed(2)} < ${dia.toFixed(2)})`);
+    /* O QUE A LEVA EXISTE PARA GARANTIR: a noite não é tocada. Sem isto, abrir a
+       faixa dinâmica clarearia junto justamente o que devia continuar escuro. */
+    return noite === 0;
+  } finally {
+    S.DEV.hora = hAntes; S.DEV.nublado = nAntes;
+    Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  }
+})(), 'a exposição clareia o dia e NÃO toca a noite');
+
+
+
+/* AS FAIXAS DE CRISTA E FACE SAÍRAM DO MOTOR, e as réguas delas saíram junto.
+   Eram o único retângulo de tile, opaco, com a cor do céu, pintado em cima de
+   pixel de parede — e no tile de CIMA. A guarda era por tile, então o mesmo
+   lance de muro saía com uns tiles banhados de céu e outros não. Quem desenha o
+   volume da parede é o sprite dela. */
 
 /* --- o clima é POR TILE ------------------------------------------------- */
 /* Nuvem, chuva e relâmpago liam um `abrigado()` só, o do JOGADOR, e aplicavam a
@@ -617,11 +1423,19 @@ A((() => {
     sx >= rx && sx < rx + rw && sy >= ry && sy < ry + rh);
   const [cols, rows] = S.janelaDeTiles(t);
   const cx = Math.floor(p.px), cy = Math.floor(p.py);   // drawWorld fixou camX/camY nisto
+  /* A TERCEIRA METADE: o tile ao norte de uma parede de casa. Ele é rua no
+     dado, mas a ARTE da parede o ocupa (`sy - WALL_TOP`), e chuva desenhada ali
+     cai em cima do muro — de dentro da casa lê como chuva atravessando a
+     parede. A régua conta essa faixa à parte e cobra que ela esteja SECA, com o
+     piso de existência junto: sem ele, um `soboParede` que respondesse sempre
+     `true` secaria o mundo inteiro e passaria verde. */
   let abrigadosNaJanela = 0, abertosNaJanela = 0, vazam = 0, faltam = 0;
+  let soboNaJanela = 0, soboMolhados = 0;
   for (let y = cy - rows; y <= cy + rows; y++) for (let x = cx - cols; x <= cx + cols; x++) {
     const [sx, sy] = S.cantoDoTile(x, y, t);
     const meio = cobre(sx + t / 2, sy + t / 2);
     if (S.abrigado(x, y, p.z)) { abrigadosNaJanela++; if (meio) vazam++; }
+    else if (!S.ceuNoTile(x, y, p.z)) { soboNaJanela++; if (meio) soboMolhados++; }
     else { abertosNaJanela++; if (!meio) faltam++; }
   }
   Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
@@ -629,6 +1443,8 @@ A((() => {
     `a régua do clima por tile tem as duas metades no enquadramento (${abrigadosNaJanela} abrigados, ${abertosNaJanela} a céu aberto)`);
   A(vazam === 0, `a chuva não entra em tile abrigado (${vazam} vazaram)`);
   A(faltam === 0, `e não deixa de cair em tile a céu aberto (${faltam} secaram)`);
+  A(soboNaJanela > 0, `a régua achou faixa de parede transbordando no enquadramento (${soboNaJanela})`);
+  A(soboMolhados === 0, `e a chuva não cai na metade de cima do muro (${soboMolhados} molhados)`);
   /* E ELE TEM DE SER COMPACTO. Esta é uma invariante de CUSTO, não de geometria:
      um retângulo por tile e um por corrida cobrem exatamente a mesma região, e
      nenhuma régua de cobertura consegue separá-las — foi o que uma mutação
@@ -797,6 +1613,368 @@ const cobreTile = (rec, sx, sy, t) => rec === null ||
   Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
 }
 
+/* --- abrir a porta avisa quem depende da geometria ---------------------- */
+/* O cache de alcance de luz foi revertido, mas a `geoMudou` fica: ela é a
+   única forma de um cache derivado de parede saber que ela mudou, e o defeito
+   que ela conserta é silencioso — abrir uma porta sem avisar deixaria a luz
+   parada no estado fechado. Quem voltar a cachear alcance depende disto. */
+{
+  const z = S.SURF, f = S.WORLD.floors[z];
+  let vago = null;
+  for (let y = 30; y < 60 && !vago; y++) for (let x = 30; x < 60; x++)
+    if (S.isWalkable(x, y, z) && !S.objsAt(x, y, z).length) { vago = [x, y]; break; }
+  A(!!vago, 'a régua achou um tile livre para plantar a porta');
+  const idPorta = vago && Object.keys(S.OBJ).find(k => S.OBJ[k].abrivel);
+  A(!!idPorta, 'existe um objeto abrível na tabela');
+  if (vago && idPorta) {
+    /* O mundo do teste é o procedural do `genWorld` e não tem porta nenhuma —
+       a régua planta uma para exercer o caminho de verdade. */
+    f.objs.push({ x: vago[0], y: vago[1], o: idPorta });
+    S.reindexObjs(z);
+    const g0 = S.WORLD.geo;
+    A(S.usaPorta(vago[0], vago[1], z) === true, 'a porta plantada abre');
+    A(S.WORLD.geo !== g0, 'e abrir a porta AVANÇA a geração — senão a luz não sabe do vão');
+    f.objs.pop();
+    S.reindexObjs(z);
+  }
+}
+
+/* --- o CLARÃO DO RELÂMPAGO endurece a sombra ---------------------------- */
+/* Antes disto o quadro do clarão tinha a luz mais forte do dia com a sombra
+   mais fraca do dia: `solF` saía de `clima.luz` sozinha, e a luz do relâmpago
+   não entrava na conta de quem projeta sombra. A régua exerce o caminho
+   inteiro — `climaAgora` → `solF` → `solNoTile` → `dropShadow` — e cobra o
+   alfa que chegou na ponta, não a fórmula. Medir `solF` direto passaria verde
+   numa versão em que `dropShadow` deixasse de usá-lo, que é o buraco que já
+   custou uma volta no recorte de luz. */
+{
+  const p = S.getP();
+  const antes = [p.x, p.y, p.px, p.py, p.z];
+  S.saiDoTemplo();
+  A(typeof S.relampago === 'function', 'a régua do relâmpago alcança o gerador de clarão');
+  /* Cenário CRAVADO, pelos ganchos `DEV`: meio-dia de tempestade. Sem isto o
+     relógio real decide a luz, e as duas metades do A/B mediriam céus
+     diferentes — a diferença lida seria a hora, não o raio. O céu fechado é
+     necessário: ao meio-dia limpo `solF` já está no teto de 1 e o clarão não
+     teria para onde subir. */
+  const hAntes = S.DEV.hora, nAntes = S.DEV.nublado, rel = S.relampago;
+  S.DEV.hora = .5; S.DEV.nublado = .95;
+  const alfaDaProjetada = () => {
+    REC.ops.length = 0;
+    S.drawWorld();
+    // a projetada é o único transform com d < 0; a copa balança com d === 1
+    const ts = REC.ops.filter(o => o.op === 'transform' && o.m[3] < 0);
+    return ts.length ? Math.max(...ts.map(o => o.a)) : null;
+  };
+  S.relampago = () => 0; const semRaio = alfaDaProjetada();
+  S.relampago = () => 1; const comRaio = alfaDaProjetada();
+  S.relampago = rel; S.DEV.hora = hAntes; S.DEV.nublado = nAntes;
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  A(semRaio !== null && comRaio !== null, 'a régua do relâmpago achou a sombra projetada nos dois quadros');
+  A(semRaio > 0 && semRaio < S.SOMBRA_PROJ,
+    `e o céu fechado deixa folga para o clarão subir (${semRaio} < ${S.SOMBRA_PROJ})`);
+  A(comRaio > semRaio,
+    `o clarão do relâmpago ENDURECE a sombra projetada (${semRaio} → ${comRaio})`);
+}
+
+/* --- a FRENTE DA TEMPESTADE não teleporta nuvem nem mato ---------------- */
+/* Nuvem e mato tiravam a posição de `G.now * taxa(ventoF)`: relógio ABSOLUTO
+   vezes uma taxa que muda. Mudar a taxa saltava a posição em `G.now × Δvento`,
+   e o salto crescia com o tempo de sessão — a 10 min de jogo a nuvem ia de
+   38,8 px/s para 908 no pico da frente (23,4×). O dono viu como "nuvem
+   acelerada quando o clima vai chover".
+   A régua não olha a integral: ela lê ONDE o ladrilho de nuvem foi desenhado em
+   três quadros seguidos e a inclinação de cada moita, com o vento pulando entre
+   o segundo e o terceiro. O primeiro par é o CONTROLE — mesmo vento, mesmo
+   passo de quadro —, e sem ele a tabela seria posição e não efeito. */
+{
+  const p = S.getP(), g = S.G, t = S.tpx(), esc = t * 16;
+  const antes = [p.x, p.y, p.px, p.py, p.z];
+  const nowAntes = g.now, hAntes = S.DEV.hora, nAntes = S.DEV.nublado;
+  S.saiDoTemplo();
+  S.DEV.hora = .5;
+  /* distância no anel: o ladrilho dá a volta em `esc`, então um salto de quase
+     uma volta inteira lê como deslocamento minúsculo se medido em linha reta */
+  const noAnel = d => { const m = ((d % esc) + esc) % esc; return Math.min(m, esc - m); };
+  const quadro = (ms, nublado) => {
+    g.now = ms; S.DEV.nublado = nublado;
+    REC.ops.length = 0;
+    S.drawWorld();
+    const nuvem = REC.ops.find(o => o.op === 'drawImage' && o.comp === 'multiply'
+      && Math.abs(o.w - esc) < 1);
+    const mato = new Map();
+    for (const o of REC.ops)
+      if (o.op === 'transform' && o.m[3] === 1 && o.m[2] !== 0)
+        mato.set(o.m[4] + ',' + o.m[5], o.m[2]);
+    return { nuvem: nuvem ? [nuvem.x, nuvem.y] : null, mato };
+  };
+  /* Um MINUTO de sessão: o salto do defeito é proporcional a `G.now`, então
+     medir com o relógio perto de zero esconderia o defeito que a régua guarda. */
+  const BASE = 60000;
+  /* Os dois céus ficam ACIMA de 0,5116 de nublado de propósito: daí para cima
+     `frente * .9` domina o piso senoidal do vento, então `ventoF` sai cravado
+     em .72 e .9 e o Δ é o mesmo em qualquer execução. Com nublado 0,40 o vento
+     vinha da senóide do relógio REAL, e o salto de fase caía perto de um
+     múltiplo de 2π em parte das execuções — régua que só às vezes pega é pior
+     que régua que nunca pega. */
+  const a = quadro(BASE, .52);            // frente .8 — aquece a deriva
+  const b = quadro(BASE + 16, .52);       // um quadro depois, MESMO vento (controle)
+  const c = quadro(BASE + 32, .55);       // um quadro depois, frente CHEIA
+  const andou = (u, v) => u.nuvem && v.nuvem
+    ? Math.max(noAnel(v.nuvem[0] - u.nuvem[0]), noAnel(v.nuvem[1] - u.nuvem[1])) : null;
+  const torceu = (u, v) => {
+    let pior = 0, n = 0;
+    for (const [k, val] of u.mato) if (v.mato.has(k)) { n++; pior = Math.max(pior, Math.abs(v.mato.get(k) - val)); }
+    return { pior, n };
+  };
+  /* E a aba que volta de segundo plano: lá o `rAF` é estrangulado e `G.now`
+     volta com um salto de segundos. Sem o teto de `dt` a nuvem atravessa a tela
+     de uma vez — é o mesmo teleporte entrando por outra porta, e nenhuma das
+     asserções acima o alcança, porque todas andam de quadro em quadro. */
+  const d = quadro(BASE + 5032, .55);     // cinco segundos de aba escondida
+  const ctrlN = andou(a, b), frenteN = andou(b, c), voltaN = andou(c, d);
+  const ctrlM = torceu(a, b), frenteM = torceu(b, c);
+  g.now = nowAntes; S.DEV.hora = hAntes; S.DEV.nublado = nAntes;
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+
+  A(ctrlN !== null && frenteN !== null, 'a régua da frente achou o ladrilho de nuvem nos três quadros');
+  A(ctrlN !== null && ctrlN < 5,
+    `CONTROLE: com o vento parado a nuvem anda o de um quadro (${(ctrlN || 0).toFixed(2)} px)`);
+  A(frenteN !== null && frenteN < 20,
+    `a frente da tempestade ACELERA a nuvem, não a teleporta (${(frenteN || 0).toFixed(2)} px num quadro)`);
+  A(voltaN !== null && voltaN < 20,
+    `voltar de segundo plano não atravessa a nuvem pela tela (${(voltaN || 0).toFixed(2)} px)`);
+  A(ctrlM.n > 0, `a régua da frente achou mato balançando (${ctrlM.n} moitas)`);
+  A(ctrlM.pior < .02, `CONTROLE: com o vento parado a moita mal se mexe (${ctrlM.pior.toFixed(4)})`);
+  /* Teto em .05: a rajada legítima deita a moita (o viés) e engrossa o tremor,
+     e isso vale .021 medido; o salto de fase vale .089. */
+  A(frenteM.pior < .05,
+    `e a rajada DEITA o mato em vez de saltar a fase dele (${frenteM.pior.toFixed(4)})`);
+}
+
+/* --- o CINTILO DA ÁGUA reflete a cor do CÉU ----------------------------- */
+/* O cintilo tinha um `#cfe8ff` cravado: ao poente o céu virava laranja e a água
+   continuava refletindo meio-dia. A régua não confere a constante — ela planta
+   um tile de água ao lado do jogador (o mundo procedural do teste pode não ter
+   nenhum no enquadramento, e depender da sorte do mapa é régua frouxa), desenha
+   o quadro em duas horas e lê a COR que o preenchimento daquele tile recebeu. */
+{
+  const p = S.getP(), t = S.tpx(), z = S.SURF;
+  const antes = [p.x, p.y, p.px, p.py, p.z];
+  const [bx, by] = S.saiDoTemplo();
+  const ax = bx + 1, ay = by, f = S.WORLD.floors[z], i = ay * S.W + ax;
+  const tileAntes = f.t[i];
+  f.t[i] = S.T.WATER;
+  const hAntes = S.DEV.hora;
+  const corDoCintilo = hora => {
+    S.DEV.hora = hora;
+    REC.ops.length = 0;
+    S.drawWorld();
+    const [sx, sy] = S.cantoDoTile(ax, ay, t);
+    /* o cintilo é o preenchimento translúcido em cima do tile de água: mesmo
+       canto, alfa parcial e composição normal (o tinte do grade é soft-light e
+       cobre a tela inteira) */
+    const o = REC.ops.filter(q => q.op === 'fillRect' && q.x === sx && q.y === sy
+      && q.comp === 'source-over' && q.a > 0 && q.a < 1);
+    return o.length ? String(o[o.length - 1].cor) : null;
+  };
+  const meioDia = corDoCintilo(.5), poente = corDoCintilo(S.SOL_POE - .02);
+  const esperado = h => { const [r, g, b] = S.corDoCeu(h); return `rgb(${r},${g},${b})`; };
+  f.t[i] = tileAntes; S.DEV.hora = hAntes;
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+  A(meioDia !== null && poente !== null, 'a régua do cintilo achou o preenchimento da água nas duas horas');
+  A(meioDia === esperado(.5) && poente === esperado(S.SOL_POE - .02),
+    `a água reflete a cor do CÉU da hora (meio-dia ${meioDia} esperado ${esperado(.5)}; ` +
+    `poente ${poente} esperado ${esperado(S.SOL_POE - .02)})`);
+  A(meioDia !== poente, 'e ela MUDA do meio-dia para o poente — cor cravada daria a mesma nas duas');
+}
+
+/* --- a NÉVOA tem ONDE e QUANDO, e nenhum dos dois é decoração ----------- */
+/* O risco desta entrega não é ela não aparecer — é ela virar FILTRO de tela, que
+   é a "névoa genérica de jogo gerado por IA" do §23. Filtro é névoa sem onde (a
+   mesma em todo lugar) ou sem quando (ligada o dia inteiro), e a bancada
+   entregou os dois defeitos: piso 0,18 fazia 64% dos postos verem só o piso, e
+   o `molhado` SOMADO deixava névoa ligada 56,4% do tempo, às três da tarde.
+   A régua exercita o `drawWorld` inteiro e cobra o que CHEGOU na tela — medir
+   `nevoaPass` direto passaria verde numa versão em que o `drawWorld` deixasse
+   de chamá-lo, ou o chamasse fora do recorte de céu, que é o buraco que já
+   custou uma volta no recorte de luz. */
+{
+  const p = S.getP(), t = S.tpx(), z = S.SURF;
+  const antes = [p.x, p.y, p.px, p.py, p.z];
+  const hAntes = S.DEV.hora, nAntes = S.DEV.nublado;
+  /* Jogador encostado num interior, como na régua do clima por tile: assim o
+     enquadramento tem as duas metades e dá para cobrar que a névoa PARE na
+     parede. Sem interior à vista o `recorteCeu` devolve `null` e não haveria
+     recorte nenhum para ler. */
+  busca: for (let y = 4; y < S.H - 4; y++) for (let x = 4; x < S.W - 4; x++)
+    if (S.dentroDeCasa(x, y, z) && S.isWalkable(x + 3, y, z) && !S.dentroDeCasa(x + 3, y, z)) {
+      p.x = p.px = x + 3; p.y = p.py = y; p.z = z; break busca;
+    }
+  /* ÁGUA PLANTADA ao lado, e não a que o mapa der: depender de o enquadramento
+     ter costa é régua que só às vezes pega. E plantar exercita de quebra a
+     invalidação — sem ela o campo de distância ficaria com a resposta velha. */
+  const f = S.WORLD.floors[z], ax = p.x + 1, ay = p.y, i = ay * S.W + ax;
+  const tileAntes = f.t[i];
+  const antesDePlantar = S.distAgua(ax, ay, z);      // popula o cache com o mapa VELHO
+  f.t[i] = S.T.WATER;
+  const semInvalidar = S.distAgua(ax, ay, z);
+  S.geoMudou();
+  const depoisDeInvalidar = S.distAgua(ax, ay, z);
+
+  const quadro = (hora, nublado) => {
+    S.DEV.hora = hora; S.DEV.nublado = nublado;
+    REC.ops.length = 0;
+    S.drawWorld();
+    return REC.ops.slice();
+  };
+  /* A folha de névoa é o único `drawImage` de tela cheia (forma de 3 argumentos,
+     logo `w` indefinido) que sai translúcido: o tinte do grade e a vinheta saem
+     com alfa 1 e o stub nem chega a gravá-los. */
+  const naTela = S.getG2()._id;
+  /* `w === undefined` NÃO é detalhe: é o que separa esta folha de qualquer outro
+     composto de tela inteira. A sombra de casa (`sombraDeCasa`) também compõe um
+     canvas do tamanho da tela em (0,0) com alfa, e enquanto ela usava a forma de
+     três argumentos era contada aqui — 2 folhas no amanhecer, 1 no controle do
+     meio-dia que exige 0. Quem entrar com outro composto de tela inteira usa a
+     forma de CINCO, ou volta a mentir para esta régua. */
+  const folhaNevoa = ops => ops.filter(o => o.op === 'drawImage' && o.comp === 'source-over'
+    && o.ctx === naTela && o.x === 0 && o.y === 0 && o.w === undefined);
+  /* A máscara: `fillRect` preto translúcido, alto de um tile e largo de pelo
+     menos um. Sombra de sprite é elipse e é miúda; nada mais no quadro pinta
+     retângulo preto no passo da grade. */
+  const mascara = ops => ops.filter(o => o.op === 'fillRect' && /^rgba\(0,0,0,/.test(String(o.cor))
+    && o.w >= t - 1 && o.h >= t - 1 && o.h <= t + 1);
+  /* Em que recorte esta operação caiu: volta na fita até o `save` que a abriu e
+     devolve o `clip` que veio no meio. É isto que separa "a névoa existe" de "a
+     névoa respeita o telhado", e é a segunda que a mutação ataca. */
+  const recorteDe = (ops, k) => {
+    let prof = 0;
+    for (let j = k - 1; j >= 0; j--) {
+      if (ops[j].op === 'restore') prof++;
+      else if (ops[j].op === 'save') { if (!prof) return null; prof--; }
+      else if (ops[j].op === 'clip' && !prof) return ops[j].p;
+    }
+    return null;
+  };
+
+  const madrugada = quadro((S.NEVOA_INI + S.NEVOA_FIM) / 2, 0);   // o pico da corcova
+  const nevMad = folhaNevoa(madrugada);
+  const mascMad = mascara(madrugada);
+  const kMad = nevMad.length ? madrugada.indexOf(nevMad[0]) : -1;
+  const recMad = kMad >= 0 ? recorteDe(madrugada, kMad) : null;
+  /* O CONTROLE DO MEIO-DIA VAI ENCHARCADO, e essa é a metade que importa. Com
+     céu seco o `molhado` é zero e a versão SOMADA também dá zero ao meio-dia:
+     a régua passava verde em cima da mutação que ela existe para pegar — o
+     caso comum exercitado e a ressalva nunca. Com o céu fechado em 1 o chão
+     satura, e aí a soma acende névoa às três da tarde enquanto o produto
+     continua em zero. */
+  const aoMeioDia = folhaNevoa(quadro(.5, 1));
+
+  /* O ONDE, medido na função de que a máscara sai. A MARGEM É A MARGEM, e não
+     o espelho d'água: medindo em cima do tile plantado a distância é zero, a
+     densidade é 1 por construção e a razão contra o campo passa verde com
+     qualquer piso — foi assim que a primeira versão desta régua deixou o piso
+     0,18 da bancada voltar sem ninguém acusar. */
+  const naMargem = S.nevoaDens(p.x, p.y), distMargem = S.distAgua(p.x, p.y, z);
+  let seco = null;
+  for (let d = S.NEVOA_AGUA + 2; d < 60 && seco === null; d++)
+    if (S.distAgua(p.x + d, p.y, z) >= S.NEVOA_AGUA) seco = S.nevoaDens(p.x + d, p.y);
+
+  f.t[i] = tileAntes; S.geoMudou();
+  S.DEV.hora = hAntes; S.DEV.nublado = nAntes;
+  Object.assign(p, { x: antes[0], y: antes[1], px: antes[2], py: antes[3], z: antes[4] });
+
+  A(antesDePlantar > 0 && semInvalidar === antesDePlantar,
+    `o campo de distância até a água é CACHEADO (${antesDePlantar} tiles, e plantar não mexeu nele)`);
+  A(depoisDeInvalidar === 0,
+    `e a geração o INVALIDA — o editor pinta tile no vivo (${antesDePlantar} → ${depoisDeInvalidar})`);
+
+  A(nevMad.length === 1, `a névoa chega na tela no amanhecer (${nevMad.length} folha)`);
+  A(nevMad.length === 1 && nevMad[0].a > 0 && nevMad[0].a <= S.NEVOA_TETO,
+    `e vem com alfa dentro do teto (${nevMad.length ? nevMad[0].a.toFixed(3) : '—'} <= ${S.NEVOA_TETO})`);
+  /* CONTROLE, e é ele que guarda a correção do `molhado`: somado, a névoa
+     acendia às três da tarde e ficava ligada 56,4% do dia. Multiplicando a
+     corcova, o meio-dia é zero por construção, chova o que chover. */
+  A(aoMeioDia.length === 0,
+    `CONTROLE: ao meio-dia ENCHARCADO não há névoa nenhuma (${aoMeioDia.length} folhas)`);
+
+  /* A MÁSCARA PRIMEIRO, O ALFA DEPOIS. A bancada pintava um retângulo por tile
+     com folga de +1, e alfa sobreposto SOMA: 0,18 sobre 0,18 dá 0,33, e o que
+     se vê é a grade desenhada. Nenhuma régua de cor pega isso — a que pega
+     pergunta se dois retângulos se cruzam. */
+  const cruza = (u, v) => u.x < v.x + v.w && v.x < u.x + u.w && u.y < v.y + v.h && v.y < u.y + u.h;
+  let sobrepostos = 0;
+  for (let m = 0; m < mascMad.length; m++) for (let n = m + 1; n < mascMad.length; n++)
+    if (cruza(mascMad[m], mascMad[n])) sobrepostos++;
+  A(mascMad.length > 0, `a régua da névoa achou a máscara de lugar (${mascMad.length} retângulos)`);
+  A(sobrepostos === 0,
+    `e ela sai SEM FOLGA — retângulo sobreposto soma alfa e desenha a grade (${sobrepostos} cruzamentos)`);
+  /* E em CORRIDAS: um retângulo por tile cobre a mesma região sem sobrepor, e a
+     régua de sobreposição sozinha não separaria as duas. Invariante de CUSTO,
+     como a do recorte de céu. */
+  const [cols, rows] = S.janelaDeTiles(t);
+  const tilesNaJanela = (2 * cols + 1) * (2 * rows + 1);
+  A(mascMad.length <= tilesNaJanela / 3,
+    `e junta os tiles de mesma densidade em corridas (${mascMad.length} retângulos para ${tilesNaJanela} tiles)`);
+
+  /* O ONDE. Sem contraste entre margem e campo isto é um filtro de tela com
+     outro nome — e é o defeito que o piso 0,18 da bancada produzia. */
+  /* NÚMERO FIXO, e não `=== NEVOA_PISO`. Comparar com a constante exportada é
+     tautologia: a mutação que devolve o piso da bancada muda os dois lados e
+     passa verde. O teto de 0,10 e o piso de 6x de contraste saem da medição no
+     mapa real — a 0,18 o contraste desabava para 3,6x e 64% dos postos viam só
+     o piso, que é a névoa virando filtro de tela. */
+  A(distMargem === 1, `a régua da névoa está medindo na MARGEM (distância ${distMargem}, não 0)`);
+  A(seco !== null && seco <= .10,
+    `longe da água quase não sobra névoa (${seco} <= 0.10)`);
+  A(seco !== null && naMargem >= seco * 6,
+    `e a margem é MUITO mais densa que o campo (${naMargem.toFixed(3)} contra ${seco}, ${(naMargem / seco).toFixed(1)}x)`);
+  /* A COSTA DO MAPA. Fora do mapa a superfície é oceano, e sem semear a borda
+     com isso os 206 tiles de borda que são TERRA em Varrokgaard sairiam secos —
+     a única faixa sem névoa de uma ilha seria justamente a beira dela. O mundo
+     do teste tem a borda inteira de água, então o ramo não se exercita sozinho:
+     a régua planta terra num pedaço de borda e cobra que ele continue a um
+     tile da água. */
+  A((() => {
+    if ((S.TILE[S.foraDoMapa(z)] || {}).familia !== 'agua') return false;
+    /* O BLOCO INTEIRO, e não a linha. O mundo do teste tem oceano em toda a
+       moldura, então secar só a fileira deixa água a UM tile na vertical e a
+       resposta sai 1 mesmo com o ramo desligado — régua que passa verde sobre a
+       mutação que ela existe para pegar. Seca um quadrado de raio maior que o
+       alcance: aí a única água possível é a de FORA do mapa. */
+    const R = S.NEVOA_AGUA + 1, bx = 0, by = (S.H / 2) | 0, guarda = new Map();
+    for (let y = by - R; y <= by + R; y++) for (let x = 0; x <= R; x++) {
+      if (y < 0 || y >= S.H) continue;
+      const k = y * S.W + x;
+      guarda.set(k, f.t[k]); f.t[k] = S.T.GRASS;
+    }
+    S.geoMudou();
+    const d0 = S.distAgua(bx, by, z);
+    for (const [k, v] of guarda) f.t[k] = v;
+    S.geoMudou();
+    return d0 === 1;
+  })(), 'tile de TERRA na borda do mapa nasce a um tile da água — o oceano de fora conta');
+
+  /* E ela para na parede. Este é o par da régua do recorte de luz: medir o
+     `recorteCeu` direto passou verde na mutação que tirava o `clip` do
+     `lightPass`, então aqui a pergunta é em que recorte a FOLHA caiu. */
+  A(recMad !== null && recMad.rects.length > 0,
+    `a névoa é desenhada DENTRO do recorte de céu (${recMad ? recMad.rects.length : 0} corridas)`);
+  A((() => {
+    if (!recMad) return false;
+    const cx = Math.floor(p.px), cy = Math.floor(p.py);
+    for (let y = cy - rows; y <= cy + rows; y++) for (let x = cx - cols; x <= cx + cols; x++) {
+      if (!S.abrigado(x, y, z)) continue;
+      const [sx, sy] = S.cantoDoTile(x, y, t);
+      const mx = sx + t / 2, my = sy + t / 2;
+      if (recMad.rects.some(([rx, ry, rw, rh]) => mx >= rx && mx < rx + rw && my >= ry && my < ry + rh))
+        return false;
+    }
+    return true;
+  })(), 'e nenhum tile abrigado recebe névoa — não entra bruma em sala fechada');
+}
+
 /* --- e PAREDE SOLTA também barra, e PORTA ABERTA não ------------------- */
 /* Os dois casos que o rótulo de cômodo deixava passar. O primeiro é o que mais
    dói: no andar de baixo 32.685 dos 36.864 tiles caem no mesmo "fora", então
@@ -864,10 +2042,12 @@ const cobreTile = (rec, sx, sy, t) => rec === null ||
        caminho. */
     const bloq = S.objsAt(wx, wy, z).filter(S.objTapaVista);
     for (const o of bloq) o.aberta = true;
+    S.geoMudou();      // mexer em `aberta` na mão é o que o `usaPorta` faz por dentro
     const terreno = S.TILE[S.WORLD.floors[z].t[wy * S.W + wx]].top > 0.5;
     if (terreno) S.WORLD.floors[z].t[wy * S.W + wx] = S.WORLD.floors[z].t[wy * S.W + wx - 1];
     const aberto = rec();
     for (const o of bloq) delete o.aberta;
+    S.geoMudou();
     S.WORLD.floors[z].t[wy * S.W + wx] = antesT;      // devolve o muro
     A(!alcanca(fechado, wx + 1, wy), 'muro sem brecha barra a luz');
     A(alcanca(aberto, wx + 1, wy),
@@ -1295,6 +2475,44 @@ A((() => {
 }
   A(S.silhouette(spr) === S.silhouette(spr), 'silhueta vem do cache na segunda vez');
   A(S.edgeShadow(0) !== S.edgeShadow(1), 'sombra de contato tem versão norte e oeste');
+
+  /* --- a PROJETADA esvai da base para a PONTA ---------------------------- */
+  /* Relato do dono: "as sombras projetadas devem estar coladas no objeto, senão
+     parece que o objeto está flutuando e projetando sombra no chão". Com alfa
+     uniforme de ponta a ponta a silhueta lê como um segundo objeto deitado no
+     chão, e não como sombra.
+     Duas asserções, porque uma sozinha mente. A primeira cobra que o
+     `dropShadow` DESENHA a silhueta com fade — medir `silhuetaFade` direto
+     passaria verde numa versão em que o render voltasse a usar a lisa, que é o
+     buraco que já custou uma volta no recorte de luz. A segunda cobra a
+     DIREÇÃO: um degradê invertido (fraco no pé, cheio na ponta) é o defeito
+     oposto e passa numa régua que só pergunta "tem gradiente". */
+  {
+    const fade = S.silhuetaFade(spr), lisa = S.silhouette(spr);
+    A(fade !== lisa, 'a silhueta com fade é um canvas próprio, não a lisa');
+    A(S.silhuetaFade(spr) === fade, 'e ela vem do cache na segunda vez');
+
+    REC.ops.length = 0;
+    S.dropShadow(spr, 100, 100, 1);
+    const proj = REC.ops.filter(o => o.op === 'drawImage' && o.a < 1);
+    A(proj.some(o => o.src === fade),
+      'o dropShadow desenha a silhueta COM FADE na projetada');
+    A(!proj.some(o => o.src === lisa),
+      'e nunca a silhueta lisa — se ela voltar, a sombra fica chapada de novo');
+
+    /* a receita do degradê: o `y` cresce para BAIXO no canvas do sprite, e o
+       `d` negativo do transform espelha na vertical — então o topo do sprite é
+       a PONTA da sombra e a base é o pé. Cheio no pé, fraco na ponta. */
+    const g = REC.grads[REC.grads.length - 1];
+    A(g && g.stops.length === 2, 'o fade da projetada é um degradê de dois pontos');
+    const aDe = c => +/([\d.]+)\)$/.exec(c)[1];
+    const [pTopo, cTopo] = g.stops[0], [pBase, cBase] = g.stops[1];
+    A(pTopo === 0 && pBase === 1, 'e ele cobre a silhueta inteira, de ponta a pé');
+    A(aDe(cTopo) < aDe(cBase),
+      `a ponta é mais fraca que o pé (${aDe(cTopo)} < ${aDe(cBase)}), e não o contrário`);
+    A(aDe(cTopo) === S.SOMBRA_PONTA && aDe(cBase) === 1,
+      `a ponta vale SOMBRA_PONTA (${S.SOMBRA_PONTA}) e o pé, cheio`);
+  }
 }
 
 /* 20. velocidade por vocação: mago > druida > ranger > cavaleiro */
@@ -1861,12 +3079,20 @@ vm.runInContext(`
   habilidade(es, 3); globalThis.curou = es.hp;
   const es2 = mkMob('demon_skeleton', 3, 1); es2.habT = 0;
   habilidade(es2, 3); globalThis.naoCurou = es2.hp === es2.maxhp && es2.habT === 0;
+  const dev = mkMob('soul_eater', 3, 2); dev.habT = 0; P.mana = 500;
+  habilidade(dev, 3); globalThis.manaDrenada = 500 - P.mana;
+  const tirano = mkMob('forge_tyrant', 2, 2); tirano.habT = 0; tirano.hp = tirano.maxhp * .3;
+  habilidade(tirano, 2); globalThis.faseVirou = tirano.faseOn === true;
 `, ctx);
 A(S.lentoDepois.buff && S.lentoDepois.vel < S.velNormal, `teia da aranha atrasa o jogador (${S.velNormal} → ${S.lentoDepois.vel})`);
 A(S.danoArea > 0, `estouro do ciclope machuca quem está no raio (${S.danoArea})`);
 A(S.danoLonge === 0, 'fora do raio ninguém se machuca');
 A(S.curou > 100, `esqueleto demoníaco se cura (100 → ${S.curou})`);
 A(S.naoCurou, 'quem está de vida cheia não gasta a habilidade de cura');
+/* dreno e virada de fase entram aqui porque nenhum outro teste os fazia RODAR, e
+   som que nunca toca na suíte nenhuma régua de som pode guardar */
+A(S.manaDrenada > 0, `Devorador de Almas dreno de mana (${S.manaDrenada})`);
+A(S.faseVirou, 'chefe abaixo da fração de vida muda de postura');
 const HAB_TIPOS = ['area', 'lento', 'cura', 'mana'];
 A(Object.values(S.MONSTERS).every(d => !d.hab || (d.hab.cd > 0 && HAB_TIPOS.includes(d.hab.tipo))),
   'toda habilidade tem tipo conhecido e descanso');
@@ -2089,20 +3315,23 @@ vm.runInContext(`
 A(S.pecasNS >= 8 && S.resNS === .12, `vestir o Escudeiro Nobre inteiro dá 12% contra Morte (${S.pecasNS} peças, ${S.resNS})`);
 A(S.resVazio === 0, 'e tirar o conjunto zera a resistência');
 
-/* o quadro de status mostra o total, não só a ficha de cada peça */
+/* O TOTAL de resistência tem de aparecer em algum lugar, não só na ficha de cada
+   peça — é ele que decide se vale entrar na caverna de dragão, e o afixo sozinho
+   não soma nada para o jogador. A faixa de chips do painel de equipamentos saiu
+   a pedido do dono; a ficha do personagem passou a ser o único lugar, e a régua
+   mudou de alvo junto em vez de sumir com o invariante. */
 vm.runInContext(`
-  const chipsRes = () => $('#res-strip').children;
-  P.eq = {}; recalc(); renderCombatStats();
-  globalThis.chipsVazio = chipsRes().length;
+  const linhasRes = () => ((fichaLinhas().find(g => g[0] === 'Resistências')) || [0, []])[1];
+  P.eq = {}; recalc();
+  globalThis.resVazia = linhasRes().length;
   P.st.res.fire = .3; P.st.res.ice = .9;               // acima do teto de propósito
-  renderCombatStats();
-  globalThis.chips = chipsRes().map(e => e.textContent);
-  globalThis.dicaGelo = chipsRes().map(e => e.title).join('|');
+  globalThis.resLinhas = linhasRes().map(l => l[0] + ' = ' + l[1]);
 `, ctx);
-A(S.chipsVazio === 0, 'sem resistência nenhuma o quadro não ganha chip');
-A(S.chips.length === 2 && S.chips.includes('30'), `cada resistência vira um badge na faixa (${S.chips.join(' · ')})`);
-A(S.chips.includes('75'), 'e o badge mostra o teto de 75, não o número cru empilhado');
-A(/Resistência a Gelo/.test(S.dicaGelo), 'o chip tem tooltip explicando de onde vem');
+A(S.resVazia === 0, 'sem resistência nenhuma a ficha não abre a seção de resistências');
+A(S.resLinhas.length === 2 && S.resLinhas.some(l => /30%/.test(l)),
+  `cada resistência vira uma linha na ficha (${S.resLinhas.join(' · ')})`);
+A(S.resLinhas.some(l => /75%/.test(l)), 'e a ficha mostra o teto de 75%, não o número cru empilhado');
+A(S.resLinhas.some(l => /Gelo/.test(l)), 'a linha nomeia o elemento');
 A(S.fxDaGarra === '-/fisico', 'e golpe sem elemento continua sendo pancada física');
 
 /* bestiário: a tela de "o que eu sei sobre este bicho" tem de saber disto */
@@ -3127,9 +4356,26 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
       A(sw >= 1 && sh >= 1 && (sw > 1 || sh > 1), `${k} declara span de mais de um tile (${sw}x${sh})`);
       A(!d.walk, `${k} barra o passo em todo o rastro`);
       const alto = d.obj ? S.CERCA_TOP : S.WALL_TOP;
-      const spr = d.obj ? S.OBJ_DRAW[d.obj](false) : S.PAREDE_DRAW[d.parede](d.tex, d.c, 0);
+      /* O DESENHO VEM DO `OBJ`, não do `OBJ_DRAW`. `T.CART` é vocabulário de
+         AUTOR: o script pinta o tile e o `parteCamadas` desce para
+         `OBJ.carroca`, que é quem tem a arte. Enquanto todo objeto era
+         procedural os dois caminhos davam no mesmo, e a régua consultava o
+         `OBJ_DRAW` direto; com peça de folha ele fica vazio, e a régua
+         acusaria a carroça de não ter desenho quando ela tem um PNG. */
+      const alvoObj = d.obj && S.OBJ[d.obj];
+      const folha = alvoObj && alvoObj.png && S.OBJ_FOLHA[alvoObj.png];
+      const spr = folha ? { width: folha.w, height: folha.h }
+        : d.obj ? S.OBJ_DRAW[d.obj](false) : S.PAREDE_DRAW[d.parede](d.tex, d.c, 0);
       A(spr.width === 32 * sw, `o desenho de ${k} tem a largura do span (${spr.width} para ${32 * sw})`);
-      A(spr.height === alto + 32 * sh, `e a altura (${spr.height} para ${alto + 32 * sh})`);
+      /* A ALTURA só é cobrada no caminho procedural, e o motivo está no próprio
+         render: `alto + 32 * linhas` é a fórmula ANTIGA, que esticava o desenho
+         — hoje ele desenha `spr.height` e ancora o pé no fim do rastro, que é a
+         decisão "altura de objeto vem do SPRITE, não de constante". Peça de
+         folha tem a altura que a arte tem, e cobrar a fórmula nela reprovaria
+         código certo. O que continua travado é a LARGURA, acima, porque essa o
+         render manda como `t * span[0]` e divergir dela deforma. */
+      if (folha) A(spr.height > 0, `${k} tem altura de arte (${spr.height}px)`);
+      else A(spr.height === alto + 32 * sh, `e a altura (${spr.height} para ${alto + 32 * sh})`);
     }
 
     /* E o lado de LÁ da mesma régua, que é o que pega o defeito de verdade:
@@ -3147,6 +4393,105 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
       if (spr.width > 32) A(!!d.span, `${k} desenha ${spr.width}px de largura e declara span`);
       const alto = d.obj ? S.CERCA_TOP : S.WALL_TOP;
       if (spr.height > alto + 32) A(!!d.span, `${k} desenha ${spr.height}px de altura e declara span`);
+    }
+
+    /* A MESMA RÉGUA, MAS SOBRE `OBJ` — que é o vocabulário de verdade.
+       As duas de cima varrem `T`/`TILE`, o espelho de AUTOR que o `parteCamadas`
+       desce para objeto. Elas cobrem sete ids (teia, moinho, cerca, escora,
+       poço, carroça, barril) e deixam TREZE de fora — rochedo, parede de
+       caverna, veio, árvore, pedra, moita, parede de tábua, parede de bloco,
+       porta, tocha, lampião, poste e fogueira. Objeto NOVO entra só em `OBJ`,
+       então nasceria sem rede nenhuma: sobra sprite, falta declaração, e nada
+       acusa. Medido antes de escrever esta régua, porque ela quase reprovou
+       código certo — são TRÊS caminhos de desenho com contratos diferentes:
+
+         deco (cx/feet)  árvore 32x72, pedra 32x29, moita 32x18
+         span/draw       cerca e barril 32x46, poço 64x78, moinho 64x128
+         wallSprite      rochedo e parede 32x64
+
+       A ALTURA É LIVRE nos três, e de propósito: o render desenha
+       `spr.height * S` e ancora o pé no fim do rastro, então o objeto cresce
+       para CIMA. É a decisão do CLAUDE.md — "altura de objeto vem do SPRITE,
+       não de constante" —, e o poste (32x64, o dobro do barril) é ela em uso.
+       Quem trava é a LARGURA: o render manda `t * span[0]`, então sprite mais
+       largo que o span sai ESPREMIDO e sprite mais estreito sai ESTICADO, os
+       dois sem erro nenhum. Medido: um span de 12x12 com sprite de barril
+       desenha 12 tiles de largura por 1,4 de altura, e a suíte inteira passa. */
+    {
+      const sprDeObj = k => {
+        const d = S.OBJ[k];
+        /* PEÇA DE FOLHA primeiro, e ela não precisa de `Image`: o
+           `src/objetos.js` é GERADO pelo recortador e traz o tamanho e a âncora
+           de cada PNG, então dá para cobrar a largura contra o span sem
+           carregar imagem nenhuma — que é bom, porque no node não há `Image` e
+           o `objSprite` devolveria `null` para as 88 peças da folha. É o mesmo
+           par de números que o navegador vai desenhar. */
+        /* `png` pode ser UMA peca ou uma LISTA de variantes, e a regua tem de
+           cobrar TODAS: basta uma variante mais larga que o span para ela sair
+           espremida no jogo, e conferir so a primeira deixaria as outras quatro
+           sem rede. */
+        if (d.png) {
+          const ns = Array.isArray(d.png) ? d.png : [d.png];
+          const fs = ns.map(n => S.OBJ_FOLHA[n]);
+          if (fs.some(f => !f)) return null;
+          const pior = fs.reduce((a, b) => (b.w > a.w ? b : a));
+          return { width: pior.w, height: pior.h, cx: pior.cx, feet: pior.feet };
+        }
+        if (d.deco !== undefined) return S.decoSprite(d.deco, 0);
+        /* A porta é um VÃO na parede: ela pede o material do muro em que
+           está, e não tem desenho próprio. Aqui vai o bloco, que é o material
+           da vila. */
+        if (d.draw === 'porta') return S.portaSprite(0, 1);
+        if (S.PAREDE_DRAW[d.draw]) return S.PAREDE_DRAW[d.draw](d.tex, d.c, 0, 0, 0);
+        if (S.OBJ_DRAW[d.draw]) return S.OBJ_DRAW[d.draw](0);
+        if (d.cat === 'parede') return S.wallSprite(d.tex, d.c, 0, 0, 0);
+        return null;
+      };
+      /* Categoria desconhecida NÃO entra aqui: ela estoura o `world.js` na
+         linha 307 durante o carregamento, antes de qualquer régua rodar — o
+         jogo nem sobe. A asserção que eu tinha escrito para ela era código
+         morto, e régua que não pode disparar mente sobre estar guardando. */
+      let semSprite = [], largura = [], atravessa = [];
+      for (const k in S.OBJ) {
+        const d = S.OBJ[k];
+        const sp = d.span || [1, 1];
+        const spr = sprDeObj(k);
+        if (!spr) { semSprite.push(k); continue; }
+        if (spr.width !== 32 * sp[0])
+          largura.push(`${k} ${spr.width}px para span ${sp[0]}`);
+        /* Objeto de mais de um tile TEM de barrar o passo no rastro inteiro:
+           andável em parte dele seria desenho por cima do jogador em metade da
+           área que ele ocupa. `walk` sai da categoria, com a ficha por cima.
+           `deco` fica FORA, e não por conveniência: ela é a categoria de quem
+           não barra NADA por definição, e o que mora nela ou está acima da
+           cabeça (varal, mapa na parede, lustre) ou é plano no chão (tapete).
+           Cobrar barreira ali seria cobrar parede invisível, que é justamente o
+           que a decisão "pedra barra, moita não" existe para impedir. */
+        const anda = d.walk !== undefined ? d.walk : S.OBJ_CAT[d.cat].walk;
+        /* A exclusão é da CATEGORIA QUE NÃO BARRA POR DEFINIÇÃO, não do nome
+           `deco`. Enquanto era o nome, a categoria `mancha` — que nasceu depois
+           e também atravessa por construção — reprovava aqui sem ter defeito
+           nenhum. Perguntar ao `OBJ_CAT` diz o motivo em vez de listar quem já
+           existia, e vale para a próxima categoria plana que aparecer. */
+        if ((sp[0] > 1 || sp[1] > 1) && anda && !S.OBJ_CAT[d.cat].walk) atravessa.push(k);
+      }
+      A(!semSprite.length, `toda entrada de OBJ chega a um desenho (${semSprite.join(', ')})`);
+      A(!largura.length,
+        `a largura de todo objeto casa com o span — mais largo sai espremido, sem erro (${largura.join('; ')})`);
+      A(!atravessa.length, `objeto de mais de um tile barra o passo no rastro inteiro (${atravessa.join(', ')})`);
+      /* E O ESPELHO TEM DE CONCORDAR. `T.WELL` e `T.MILL` carregam o mesmo
+         `span` que `OBJ.poco` e `OBJ.moinho`, e é o `parteCamadas` que faz a
+         travessia — divergir aqui daria um objeto com um rastro no mapa
+         composto e outro no jogo, sem erro nenhum em nenhum dos dois. */
+      let espelho = [];
+      for (const k in S.T) {
+        const d = S.TILE[S.T[k]];
+        const alvo = d.obj || d.parede;
+        if (!alvo || !S.OBJ[alvo]) continue;
+        const a = (d.span || [1, 1]).join('x'), b = (S.OBJ[alvo].span || [1, 1]).join('x');
+        if (a !== b) espelho.push(`${k} ${a} contra OBJ.${alvo} ${b}`);
+      }
+      A(!espelho.length, `o span do espelho de autor casa com o de OBJ (${espelho.join('; ')})`);
     }
 
     /* Parede com física própria: `parede` sem desenho cai em undefined e o 2º
@@ -3196,7 +4541,8 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
       const o = S.OBJ[k];
       A(o.luz > 0 && o.luz <= 6,
         `${k} acende num raio de jogo (${o.luz} tiles; a tocha da mão é 6)`);
-      A(!!S.OBJ_DRAW[o.draw], `${k} tem desenho (${o.draw})`);
+      A(!!(S.OBJ_DRAW[o.draw] || (o.png && S.OBJ_FOLHA[o.png])),
+        `${k} que acende chega a um desenho (${o.draw || o.png})`);
     }
     /* Quem tem CHAMA NUA treme e quem tem vidro não. É a diferença que separa
        fogueira de lampião a olho nu, e ela mora na ficha e não no render —
@@ -4676,6 +6022,130 @@ A(Object.values(S.ITEMS).every(i => i.spr || (i.ico && i.ico[0] !== '<')),
   p.voc = 'knight'; p.level = 100; p.tree = {}; S.recalc();
 
   p.voc = vocAntes; p.level = nivelAntes; p.gold = ouroAntes; p.tree = {}; S.recalc();
+}
+
+/* 45. estado de combate: quem acende, quem apaga, e por onde ele SAI ---------
+   A régua exercita o caminho inteiro — hitPlayer -> combateGolpe -> musica() —
+   e cobra o que chegou na ponta, o nome do ambiente. Medir `trilhaDe` sozinha
+   passaria verde numa versão em que hitPlayer nunca a chama, que é o buraco que
+   já custou uma volta no recorte de luz.
+   `musica` é declaração de função no contexto, então dá para trocá-la por um
+   gravador: no node não há AudioContext e a de verdade sairia na primeira linha,
+   sem contar o que pediram a ela. */
+{
+  vm.runInContext(`
+    globalThis.__trilha = [];
+    globalThis.__musicaReal = musica;
+    musica = a => { __trilha.push(a); return true; };
+    newPlayer('Trilha', 'knight'); P.level = 50; recalc();
+    G.dead = false; P.hp = P.st.maxhp; P.z = 0; combateLimpa();
+  `, ctx);
+  const trilha = () => S.__trilha;
+  const chama = js => { S.__trilha.length = 0; vm.runInContext(js, ctx); };
+
+  A(vm.runInContext('trilhaDe(0)', ctx) === 'superficie-dia' ||
+    vm.runInContext('trilhaDe(0)', ctx) === 'superficie-noite',
+    'em paz o andar 0 devolve a trilha de superfície');
+
+  chama('hitPlayer(30, "Rato");');
+  A(trilha().includes('combate'),
+    'dano direto acende a trilha de combate PELO caminho do jogo, não só na função');
+  A(vm.runInContext('emCombate()', ctx) === true, 'e o latch fica aceso');
+
+  // a profundidade escolhe a lista, como as duas listas pedem
+  chama('P.z = 4; hitPlayer(30, "Demônio");');
+  A(trilha().includes('combate-abismo'), 'no abismo a lista de luta é a do abismo');
+
+  /* Veneno e queimadura NÃO acendem: passam por tickEstados, e um tique a cada
+     3 s seguraria o latch para sempre — a música de luta nunca sairia. */
+  vm.runInContext('P.z = 0; combateLimpa();', ctx);
+  chama('aplicaEstado(P, "poison", 40, true); tickEstados();');
+  A(vm.runInContext('emCombate()', ctx) === false,
+    'veneno cobra vida mas NÃO acende o combate (só dano direto acende)');
+
+  /* Golpe que a armadura come inteiro devolve antes do P.hp -= dmg. */
+  vm.runInContext('combateLimpa(); P.st.def = 1e6;', ctx);
+  chama('hitPlayer(4, "Rato");');
+  A(vm.runInContext('emCombate()', ctx) === false,
+    'golpe absorvido pela armadura não acende: a régua é dano, não agressão');
+  vm.runInContext('recalc();', ctx);
+
+  // sai pelo RELÓGIO: cada golpe empurra o prazo, e o prazo é que apaga
+  vm.runInContext(`
+    combateLimpa(); hitPlayer(30, 'Rato');
+    globalThis.__aceso = emCombate();
+    globalThis.__prazo1 = cbtAte;
+    hitPlayer(30, 'Rato');
+    globalThis.__empurrou = cbtAte >= __prazo1;
+  `, ctx);
+  A(S.__aceso && S.__empurrou, 'golpe novo EMPURRA o prazo em vez de reiniciar a lista');
+  // const no contexto não vira propriedade do sandbox: pergunta lá dentro
+  const saida = vm.runInContext('CBT_SAIDA', ctx);
+  A(saida > 4000, `a saída (${saida} ms) é maior que os ~4 s que a música leva para entrar`);
+
+  // morrer apaga: senão o templo fica com música de batalha
+  vm.runInContext('P.hp = 1; hitPlayer(999999, "Dragão");', ctx);
+  A(vm.runInContext('emCombate()', ctx) === false, 'morrer apaga o latch na hora');
+  vm.runInContext('respawn(); combateLimpa();', ctx);
+
+  /* O marcador é o que faz "tocam em sequência" ser verdade: sem ele toda volta
+     reembaralha e recomeça, e faixa de 7 min contra briga de 30 s vira a mesma
+     abertura para sempre. Aqui se cobra o que _marcar guardou e o que musica()
+     faz com isso — a fila tem de NASCER na faixa marcada. */
+  vm.runInContext(`
+    musica = __musicaReal;                       // a de verdade, para exercer a fila
+    MUS.marca = {}; MUS.amb = 'combate'; MUS.ultima = 'Warrior.mp3';
+    MUS.node = {}; MUS.t0 = 0; MUS.off = 10; MUS.dur = 300;
+    AC = { currentTime: 50 };
+    _marcar();
+    globalThis.__m = JSON.parse(JSON.stringify(MUS.marca));
+    MUS.dur = 55; _marcar();                     // agora falta menos que RETOMA_MIN
+    globalThis.__perto = MUS.marca['combate'];
+  `, ctx);
+  A(S.__m.combate && Math.round(S.__m.combate.off) === 60,
+    'o marcador guarda onde a faixa parou (10 de offset + 40 tocados = 60 s)');
+  A(S.__perto === undefined,
+    'faixa perto do fim NÃO é marcada: retomar nos últimos segundos vira buraco');
+  A(S.__m.combate.arq === 'Warrior.mp3' && S.__m.combate.buf === undefined,
+    'guarda o NOME, nunca o buffer — 7 min decodificados são ~80 MB de PCM');
+
+  vm.runInContext('musica = __musicaReal; combateLimpa(); AC = null;', ctx);
+}
+
+/* 45b. o manifesto tem as duas listas de luta, e ninguém toca em dois ambientes */
+{
+  const man = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'assets', 'music', 'manifest.json'), 'utf8'));
+  for (const a of ['combate', 'combate-abismo'])
+    A(Array.isArray(man[a]) && man[a].length >= 8, `${a}: ${(man[a] || []).length} faixas no manifesto`);
+  const todas = Object.values(man).flat();
+  A(todas.length === new Set(todas).size,
+    'nenhuma faixa em dois ambientes — senão a mesma toca antes e durante a briga');
+  const zs = [[0, 'combate'], [2, 'combate'], [4, 'combate-abismo']];
+  // golpe que NÃO mata: matar chama playerDeath, que apaga o latch que se quer medir
+  vm.runInContext(`newPlayer('Trilha2', 'knight'); P.level = 50; recalc();
+    G.dead = false; P.hp = P.st.maxhp; combateLimpa(); hitPlayer(30, 'x');`, ctx);
+  A(vm.runInContext('emCombate()', ctx) === true, 'o latch está aceso para a conferência abaixo');
+  for (const [z, esperado] of zs)
+    A(vm.runInContext(`trilhaDe(${z})`, ctx) === esperado,
+      `andar ${z} em combate -> ${esperado}, e a lista existe no manifesto`);
+  vm.runInContext('combateLimpa(); respawn();', ctx);
+}
+
+/* 46. som de magia e de habilidade: o nome pedido tem de existir em algum lugar,
+   e as DUAS camadas têm de sair juntas. Medir só o gerador não guardaria isto:
+   uma régua que confere os arquivos passa verde com a chamada removida. */
+{
+  const man = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'assets', 'sfx', 'manifest.json'), 'utf8'));
+  const temSint = vm.runInContext('n => !!(SFX[n] || SFX[SFX_ALT[n]])', ctx);
+  const seq = vm.runInContext('SFX_PEDIDOS', ctx);
+  const mudos = [...new Set(seq)].filter(n => !(n in man) && !temSint(n));
+  A(!mudos.length, `todo som pedido tem arquivo ou síntese (mudos: ${mudos.join(', ') || '—'})`);
+  const i = seq.findIndex((n, k) => n.startsWith('cast_') && (seq[k + 1] || '').startsWith('spell_'));
+  A(i >= 0, `magia sai em duas camadas, gesto e elemento (${seq[i]} + ${seq[i + 1]})`);
+  A(seq.some(n => n.startsWith('hab_')), 'habilidade de criatura toca som — antes era só efeito visual');
+  A(seq.includes('hab_fase'),
+    'virada de fase de chefe tem som próprio, e não o jingle de subir de nível');
+  A(seq.includes('hab_mana'), 'dreno de mana toca som');
 }
 
 console.log(`  espada ${T2.sk.sword.l} · escudo ${T2.sk.shielding.l} após 2 min de treino`);

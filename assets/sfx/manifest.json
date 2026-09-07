@@ -77,28 +77,33 @@
   },
   "spell_fire": {
     "n": 4,
-    "v": 0.5
+    "v": 0.34,
+    "ext": "wav"
   },
   "spell_ice": {
     "n": 3,
-    "v": 0.5
+    "v": 0.34,
+    "ext": "wav"
   },
   "spell_energy": {
-    "n": 2,
-    "v": 0.5
+    "n": 3,
+    "v": 0.34,
+    "ext": "wav"
   },
   "spell_earth": {
-    "n": 4,
-    "v": 0.5
+    "n": 3,
+    "v": 0.34,
+    "ext": "wav"
   },
   "spell_holy": {
     "n": 3,
-    "v": 0.4,
+    "v": 0.3,
     "ext": "wav"
   },
   "spell_death": {
-    "n": 2,
-    "v": 0.5
+    "n": 3,
+    "v": 0.34,
+    "ext": "wav"
   },
   "fire": {
     "n": 3,
@@ -195,30 +200,61 @@
     "v": 0.35,
     "ext": "mp3"
   },
-  "step_grass": {
-    "n": 5,
-    "v": 0.35
-  },
-  "step_dirt": {
-    "n": 5,
-    "v": 0.35
-  },
-  "step_sand": {
-    "n": 5,
-    "v": 0.35
-  },
-  "step_stone": {
-    "n": 5,
-    "v": 0.3
-  },
-  "step_rock": {
-    "n": 5,
-    "v": 0.3
-  },
-  "step_cave": {
-    "n": 5,
-    "v": 0.3
-  },
   "ext": "ogg",
-  "rev": "1787017836"
+  "rev": "1788122558",
+  "spell_physical": {
+    "n": 3,
+    "v": 0.38,
+    "ext": "wav"
+  },
+  "cast_bolt": {
+    "n": 3,
+    "v": 0.5,
+    "ext": "wav"
+  },
+  "cast_wave": {
+    "n": 3,
+    "v": 0.48,
+    "ext": "wav"
+  },
+  "cast_aoe": {
+    "n": 3,
+    "v": 0.52,
+    "ext": "wav"
+  },
+  "cast_conjure": {
+    "n": 2,
+    "v": 0.45,
+    "ext": "wav"
+  },
+  "cast_taunt": {
+    "n": 2,
+    "v": 0.5,
+    "ext": "wav"
+  },
+  "hab_area": {
+    "n": 3,
+    "v": 0.55,
+    "ext": "wav"
+  },
+  "hab_lento": {
+    "n": 2,
+    "v": 0.5,
+    "ext": "wav"
+  },
+  "hab_cura": {
+    "n": 2,
+    "v": 0.48,
+    "ext": "wav"
+  },
+  "hab_mana": {
+    "n": 2,
+    "v": 0.48,
+    "ext": "wav"
+  },
+  "hab_fase": {
+    "n": 2,
+    "v": 0.6,
+    "ext": "wav"
+  }
 }

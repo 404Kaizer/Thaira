@@ -1,0 +1,1189 @@
+{
+ "_leia": [
+  "PROPOSTA, não decisão. Uma linha por peça recortada da objects_01.",
+  "`v` é o veredito: entra | linha | substitui | fora.",
+  "  entra     — objeto solto, vocabulário novo, vai para o OBJ como está.",
+  "  linha     — corre em linha (cerca, grade, porta, arco). Fica para a fatia da",
+  "              máscara de 4 bits do vizinho; cortar agora daria lance sem quina.",
+  "  substitui — já existe procedural no jogo fazendo isto. Entrar significa",
+  "              APOSENTAR o procedural, e isso é decisão do dono. `alvo` nomeia qual.",
+  "  fora      — não vale a entrada (duplica outra peça da própria folha, ou é",
+  "              chão e não objeto).",
+  "`w` é a LARGURA real da peça, em tiles — o jogador ocupa ~0,90 de largura e",
+  "1,50 de altura. Largura, e não altura, porque ela NÃO sofre projeção: a",
+  "extensão vertical do sprite é altura MAIS profundidade, e confundir as duas fez a cama sair menor que quem dorme nela. A altura sai proporcional.",
+  "`cat` é a do OBJ: parede barra pé e vista, objeto barra o pé, deco não barra.",
+  "As peças `linha` (cerca, grade, portão, porta, arco) têm régua DIFERENTE: elas",
+  "ladrilham, então a largura é 1 tile por construção e quem se ajusta é a altura.",
+  "Elas declaram `h` (altura em tiles) em vez de `w`, e a bancada usa `h` quando ela",
+  "existe. MEDIDO nesta leva, e é achado para a fatia delas: com a altura certa a arte",
+  "sai com 1,3 a 2,2 tiles de LARGURA — porque cada desenho é um LANCE de várias",
+  "estacas, não um segmento de um tile. A fatia de linha vai ter de recortar o segmento",
+  "de 1 tile de dentro do lance antes de montar as 16 variantes da máscara de 4 bits;",
+  "usar a peça inteira daria uma cerca que repete o lance a cada tile.",
+  "As 105 larguras foram auditadas UMA A UMA contra a silhueta do jogador (0,90 de",
+  "largura, 1,50 de altura). 29 estavam erradas na primeira passada, declaradas de",
+  "cabeça: o que é alto e estreito saía baixo demais, o que é baixo e largo saía alto."
+ ],
+ "pecas": {
+  "objects_01_01": {
+   "id": "barris",
+   "n": "Barris empilhados",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.95
+  },
+  "objects_01_02": {
+   "id": "barril2",
+   "n": "Barril",
+   "cat": "objeto",
+   "v": "substitui",
+   "w": 0.6,
+   "alvo": "barril"
+  },
+  "objects_01_03": {
+   "id": "caixotes",
+   "n": "Caixotes",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.35
+  },
+  "objects_01_04": {
+   "id": "caixote",
+   "n": "Caixote",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.85
+  },
+  "objects_01_05": {
+   "id": "sacaria",
+   "n": "Sacaria",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.95
+  },
+  "objects_01_06": {
+   "id": "carrocac",
+   "n": "Carroça carregada",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 2.0
+  },
+  "objects_01_07": {
+   "id": "poco2",
+   "n": "Poço",
+   "cat": "objeto",
+   "v": "substitui",
+   "w": 1.8,
+   "alvo": "poco"
+  },
+  "objects_01_08": {
+   "id": "fonte",
+   "n": "Fonte",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 2.0
+  },
+  "objects_01_09": {
+   "id": "placa",
+   "n": "Placa de estrada",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.7
+  },
+  "objects_01_10": {
+   "id": "poste2",
+   "n": "Poste com lampião",
+   "cat": "objeto",
+   "v": "substitui",
+   "w": 1.15,
+   "alvo": "poste"
+  },
+  "objects_01_11": {
+   "id": "tonel",
+   "n": "Tonel",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.7,
+   "nota": "não é balde: não tem alça"
+  },
+  "objects_01_12": {
+   "id": "carroca2",
+   "n": "Carroça vazia",
+   "cat": "objeto",
+   "v": "substitui",
+   "w": 2.3,
+   "alvo": "carroca"
+  },
+  "objects_01_13": {
+   "id": "tanque",
+   "n": "Tanque d'água",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.9
+  },
+  "objects_01_14": {
+   "id": "armario",
+   "n": "Armário",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.1
+  },
+  "objects_01_15": {
+   "id": "estante",
+   "n": "Estante de livros",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.2
+  },
+  "objects_01_16": {
+   "id": "alquimia",
+   "n": "Bancada de alquimia",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.55
+  },
+  "objects_01_17": {
+   "id": "forno",
+   "n": "Forno de pão",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.6
+  },
+  "objects_01_18": {
+   "id": "bau",
+   "n": "Baú de ferro",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.0
+  },
+  "objects_01_19": {
+   "id": "bauc",
+   "n": "Baú cinzento",
+   "cat": "objeto",
+   "v": "fora",
+   "w": 1.0,
+   "nota": "mesmo desenho do 18 em outra cor; um material, um significado"
+  },
+  "objects_01_20": {
+   "id": "baud",
+   "n": "Baú dourado",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.0,
+   "nota": "vale pelo tesouro de POI, que hoje não tem forma própria"
+  },
+  "objects_01_21": {
+   "id": "prateleira",
+   "n": "Prateleira de poções",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.3
+  },
+  "objects_01_22": {
+   "id": "escrivania",
+   "n": "Escrivaninha",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.2
+  },
+  "objects_01_23": {
+   "id": "cama",
+   "n": "Cama",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.3
+  },
+  "objects_01_24": {
+   "id": "lareira",
+   "n": "Lareira",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.6,
+   "luz": 3.0,
+   "tremula": 1
+  },
+  "objects_01_25": {
+   "id": "potao",
+   "n": "Potão de barro",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.5
+  },
+  "objects_01_26": {
+   "id": "pote",
+   "n": "Pote de barro",
+   "cat": "deco",
+   "v": "entra",
+   "w": 0.5
+  },
+  "objects_01_27": {
+   "id": "anfora",
+   "n": "Ânfora",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.5
+  },
+  "objects_01_28": {
+   "id": "jarro",
+   "n": "Jarro vidrado",
+   "cat": "deco",
+   "v": "entra",
+   "w": 0.32
+  },
+  "objects_01_29": {
+   "id": "garrafa",
+   "n": "Garrafa",
+   "cat": "deco",
+   "v": "entra",
+   "w": 0.16
+  },
+  "objects_01_30": {
+   "id": "cestograo",
+   "n": "Cesto de grão",
+   "cat": "deco",
+   "v": "entra",
+   "w": 0.7
+  },
+  "objects_01_31": {
+   "id": "tina",
+   "n": "Tina",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.8
+  },
+  "objects_01_32": {
+   "id": "sacograo",
+   "n": "Saco de grão",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.65
+  },
+  "objects_01_33": {
+   "id": "montegrao",
+   "n": "Monte de grão",
+   "cat": "deco",
+   "v": "entra",
+   "w": 1.0
+  },
+  "objects_01_34": {
+   "id": "estandarte",
+   "n": "Estandarte",
+   "cat": "deco",
+   "v": "entra",
+   "w": 0.8,
+   "nota": "de parede — o pé não encosta no chão, ver a nota da âncora"
+  },
+  "objects_01_35": {
+   "id": "flamula",
+   "n": "Flâmula",
+   "cat": "deco",
+   "v": "entra",
+   "w": 0.8,
+   "nota": "idem 34"
+  },
+  "objects_01_36": {
+   "id": "mapaparede",
+   "n": "Mapa na parede",
+   "cat": "deco",
+   "v": "entra",
+   "w": 1.7,
+   "nota": "idem 34"
+  },
+  "objects_01_37": {
+   "id": "quadroaviso",
+   "n": "Quadro de avisos",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.8,
+   "nota": "casa com o #18, NPC e contrato"
+  },
+  "objects_01_38": {
+   "id": "cerca2",
+   "n": "Cerca baixa",
+   "cat": "objeto",
+   "v": "linha",
+   "h": 0.95,
+   "alvo": "cerca"
+  },
+  "objects_01_39": {
+   "id": "estacaria",
+   "n": "Estacaria",
+   "cat": "objeto",
+   "v": "linha",
+   "h": 1.65,
+   "alvo": "cerca"
+  },
+  "objects_01_40": {
+   "id": "corrente",
+   "n": "Corrente de mourão",
+   "cat": "deco",
+   "v": "linha",
+   "h": 0.95
+  },
+  "objects_01_41": {
+   "id": "gradeferro",
+   "n": "Grade de ferro",
+   "cat": "objeto",
+   "v": "fora",
+   "h": 1.35,
+   "nota": "fora por decisão do dono"
+  },
+  "objects_01_42": {
+   "id": "portaoferro",
+   "n": "Portão de ferro",
+   "cat": "objeto",
+   "v": "linha",
+   "h": 1.85,
+   "nota": "abrível, como a porta"
+  },
+  "objects_01_43": {
+   "id": "gradebaixa",
+   "n": "Grade baixa",
+   "cat": "objeto",
+   "v": "fora",
+   "h": 1.15,
+   "nota": "fora por decisão do dono"
+  },
+  "objects_01_44": {
+   "id": "coluna",
+   "n": "Coluna",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.1,
+   "nota": "as colunas da nave do templo, hoje feitas de tile de bloco"
+  },
+  "objects_01_45": {
+   "id": "colunal",
+   "n": "Coluna lisa",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.95
+  },
+  "objects_01_46": {
+   "id": "colunaq",
+   "n": "Coluna quebrada",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.0,
+   "nota": "ruína — o Labirinto e o Corte Velho"
+  },
+  "objects_01_47": {
+   "id": "estela",
+   "n": "Estela selada",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.9
+  },
+  "objects_01_48": {
+   "id": "anjo",
+   "n": "Estátua de anjo",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.25
+  },
+  "objects_01_49": {
+   "id": "lampiaor",
+   "n": "Lampião de rua",
+   "cat": "objeto",
+   "v": "substitui",
+   "w": 1.15,
+   "alvo": "lampiao",
+   "luz": 2.8
+  },
+  "objects_01_50": {
+   "id": "archote",
+   "n": "Archote de chão",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.42,
+   "luz": 2.6,
+   "tremula": 1
+  },
+  "objects_01_51": {
+   "id": "braseiro",
+   "n": "Braseiro",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.65,
+   "luz": 3.0,
+   "tremula": 1
+  },
+  "objects_01_52": {
+   "id": "candelabro",
+   "n": "Candelabro",
+   "cat": "deco",
+   "v": "entra",
+   "w": 0.6,
+   "luz": 1.8,
+   "tremula": 1
+  },
+  "objects_01_53": {
+   "id": "tocha2",
+   "n": "Tocha de parede",
+   "cat": "deco",
+   "v": "substitui",
+   "w": 0.5,
+   "alvo": "tocha",
+   "luz": 2.4,
+   "tremula": 1
+  },
+  "objects_01_54": {
+   "id": "lustre",
+   "n": "Lustre",
+   "cat": "deco",
+   "v": "entra",
+   "w": 1.0,
+   "luz": 2.6,
+   "tremula": 1,
+   "nota": "pende do teto — não encosta no chão e não projeta sombra de pé"
+  },
+  "objects_01_55": {
+   "id": "lapide",
+   "n": "Lápide",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.8
+  },
+  "objects_01_56": {
+   "id": "lapidec",
+   "n": "Lápide com cruz",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.8
+  },
+  "objects_01_57": {
+   "id": "cruz",
+   "n": "Cruz de pedra",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.8
+  },
+  "objects_01_58": {
+   "id": "cruzcelta",
+   "n": "Cruz celta",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.8
+  },
+  "objects_01_59": {
+   "id": "lapideb",
+   "n": "Lápide brasonada",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.9
+  },
+  "objects_01_60": {
+   "id": "cripta",
+   "n": "Cripta",
+   "cat": "parede",
+   "v": "entra",
+   "w": 2.8,
+   "nota": "parede, não objeto: fecha recinto e tem vão. Confira contra a régua de dentroDeCasa"
+  },
+  "objects_01_61": {
+   "id": "memorial",
+   "n": "Memorial",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.2
+  },
+  "objects_01_62": {
+   "id": "pedras",
+   "n": "Pedras soltas",
+   "cat": "objeto",
+   "v": "substitui",
+   "w": 1.0,
+   "alvo": "pedra"
+  },
+  "objects_01_63": {
+   "id": "pedrasg",
+   "n": "Pedras grandes",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.2
+  },
+  "objects_01_64": {
+   "id": "escombro",
+   "n": "Escombro de bloco",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.95
+  },
+  "objects_01_65": {
+   "id": "lenha",
+   "n": "Pilha de lenha",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.3
+  },
+  "objects_01_66": {
+   "id": "toco",
+   "n": "Toco",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.9
+  },
+  "objects_01_67": {
+   "id": "gravetos",
+   "n": "Gravetos",
+   "cat": "deco",
+   "v": "entra",
+   "w": 0.7
+  },
+  "objects_01_68": {
+   "id": "arvorefolha",
+   "n": "Árvore folhosa",
+   "cat": "objeto",
+   "v": "fora",
+   "w": 2.2,
+   "nota": "árvore vem das trees_0N, que têm 55 e são a fatia própria (#51). Eu tinha lido como arbusto na folha de contato miúda — na bancada, no tamanho do jogo, o tronco aparece"
+  },
+  "objects_01_69": {
+   "id": "pinheiro",
+   "n": "Pinheiro",
+   "cat": "objeto",
+   "v": "fora",
+   "w": 2.0,
+   "nota": "árvore vem das trees_0N, que têm 55 e são a fatia própria (#51)"
+  },
+  "objects_01_70": {
+   "id": "arvore2",
+   "n": "Árvore",
+   "cat": "objeto",
+   "v": "fora",
+   "w": 2.4,
+   "nota": "idem 69"
+  },
+  "objects_01_71": {
+   "id": "arvoremorta",
+   "n": "Árvore morta",
+   "cat": "objeto",
+   "v": "fora",
+   "w": 1.6,
+   "nota": "idem 69"
+  },
+  "objects_01_72": {
+   "id": "cogumelo",
+   "n": "Cogumelo",
+   "cat": "deco",
+   "v": "entra",
+   "w": 0.5
+  },
+  "objects_01_73": {
+   "id": "pedrau",
+   "n": "Pedra",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.6,
+   "nota": "eu tinha lido como laje de chão; é pedra solta, menor que a do 62"
+  },
+  "objects_01_74": {
+   "id": "varal",
+   "n": "Varal",
+   "cat": "deco",
+   "v": "entra",
+   "w": 2.4
+  },
+  "objects_01_75": {
+   "id": "caldeirao",
+   "n": "Caldeirão ao fogo",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.68,
+   "luz": 2.2,
+   "tremula": 1
+  },
+  "objects_01_76": {
+   "id": "espantalho",
+   "n": "Espantalho",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.0,
+   "nota": "os Trigais e a lavoura de CROP"
+  },
+  "objects_01_77": {
+   "id": "boneco",
+   "n": "Boneco de treino",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.4,
+   "nota": "vale um gancho de gameplay que não existe: treinar perícia"
+  },
+  "objects_01_78": {
+   "id": "meda",
+   "n": "Meda de feno",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.6,
+   "nota": "o Paiol da Halda, que hoje é só tile de HAY"
+  },
+  "objects_01_79": {
+   "id": "espeto",
+   "n": "Espeto ao fogo",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.4,
+   "luz": 2.2,
+   "tremula": 1
+  },
+  "objects_01_80": {
+   "id": "tamborete",
+   "n": "Tamborete",
+   "cat": "deco",
+   "v": "entra",
+   "w": 0.5
+  },
+  "objects_01_81": {
+   "id": "mesar",
+   "n": "Mesa redonda",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.3
+  },
+  "objects_01_82": {
+   "id": "mesa",
+   "n": "Mesa comprida",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.8
+  },
+  "objects_01_83": {
+   "id": "banquinho",
+   "n": "Banquinho",
+   "cat": "deco",
+   "v": "fora",
+   "w": 0.6,
+   "nota": "duplica o 80 quase inteiro"
+  },
+  "objects_01_84": {
+   "id": "cadeira",
+   "n": "Cadeira",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.7
+  },
+  "objects_01_85": {
+   "id": "entmina",
+   "n": "Entrada de mina",
+   "cat": "parede",
+   "v": "entra",
+   "w": 3.2,
+   "luz": 1.8,
+   "nota": "parede com vão, span 3. Traz lampião aceso desenhado dentro — declara luz"
+  },
+  "objects_01_86": {
+   "id": "cristais",
+   "n": "Cristais",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.0,
+   "luz": 1.6,
+   "nota": "a Gruta e o Coração do Abismo"
+  },
+  "objects_01_87": {
+   "id": "adega",
+   "n": "Adega",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.7
+  },
+  "objects_01_88": {
+   "id": "tapete",
+   "n": "Tapete",
+   "cat": "deco",
+   "v": "entra",
+   "w": 1.6,
+   "nota": "não projeta sombra — é plano no chão. Marcar sombra:0 na ficha"
+  },
+  "objects_01_89": {
+   "id": "engradado",
+   "n": "Engradado de garrafas",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.0
+  },
+  "objects_01_90": {
+   "id": "bigorna",
+   "n": "Bigorna",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.15,
+   "nota": "a forja do templo, hoje um painel sem lugar no mundo"
+  },
+  "objects_01_91": {
+   "id": "mo",
+   "n": "Mó de afiar",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.2
+  },
+  "objects_01_92": {
+   "id": "escadamao",
+   "n": "Escada de mão",
+   "cat": "deco",
+   "v": "entra",
+   "w": 0.9
+  },
+  "objects_01_93": {
+   "id": "estrado",
+   "n": "Estrado",
+   "cat": "deco",
+   "v": "fora",
+   "w": 1.3,
+   "nota": "isto é CHÃO (o PIER já existe como terreno)"
+  },
+  "objects_01_94": {
+   "id": "buraco",
+   "n": "Buraco",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.7,
+   "nota": "a queda entre andares tem hoje só a escada; isto pode ser o segundo caminho"
+  },
+  "objects_01_95": {
+   "id": "folhada",
+   "n": "Folhada",
+   "cat": "deco",
+   "v": "fora",
+   "w": 1.2,
+   "nota": "isto é CHÃO — vira tex de terreno, não objeto"
+  },
+  "objects_01_96": {
+   "id": "gargula",
+   "n": "Gárgula",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.4
+  },
+  "objects_01_97": {
+   "id": "encapuzada",
+   "n": "Estátua encapuzada",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.15
+  },
+  "objects_01_98": {
+   "id": "encapuzadam",
+   "n": "Estátua musgosa",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 1.25
+  },
+  "objects_01_99": {
+   "id": "orbeazul",
+   "n": "Orbe azul",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.68,
+   "luz": 2.0
+  },
+  "objects_01_100": {
+   "id": "orberoxo",
+   "n": "Orbe roxo",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.68,
+   "luz": 2.0
+  },
+  "objects_01_101": {
+   "id": "orberubro",
+   "n": "Orbe rubro",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.68,
+   "luz": 2.0
+  },
+  "objects_01_102": {
+   "id": "orbeverde",
+   "n": "Orbe verde",
+   "cat": "objeto",
+   "v": "entra",
+   "w": 0.68,
+   "luz": 2.0
+  },
+  "objects_01_103": {
+   "id": "porta2",
+   "n": "Porta",
+   "cat": "objeto",
+   "v": "linha",
+   "w": 1.6,
+   "alvo": "porta"
+  },
+  "objects_01_104": {
+   "id": "arco",
+   "n": "Arco de pedra",
+   "cat": "objeto",
+   "v": "linha",
+   "w": 1.9
+  },
+  "objects_01_105": {
+   "id": "selo",
+   "n": "Selo no chão",
+   "cat": "deco",
+   "v": "fora",
+   "w": 1.6,
+   "nota": "o tile RUNE já é isto, e é chão"
+  },
+  "trees_01_01": {
+   "id": "arvore",
+   "n": "Arvore 1",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.0,
+   "familia": "arvore"
+  },
+  "trees_01_02": {
+   "id": "arvore",
+   "n": "Arvore 2",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.0,
+   "familia": "arvore"
+  },
+  "trees_01_03": {
+   "id": "arvore",
+   "n": "Arvore 3",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.0,
+   "familia": "arvore"
+  },
+  "trees_01_04": {
+   "id": "arvore",
+   "n": "Arvore 4",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.0,
+   "familia": "arvore"
+  },
+  "trees_01_05": {
+   "id": "arvore",
+   "n": "Arvore 5",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.0,
+   "familia": "arvore"
+  },
+  "trees_01_06": {
+   "id": "outono",
+   "n": "Arvore de outono 1",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.0,
+   "familia": "outono"
+  },
+  "trees_01_07": {
+   "id": "outono",
+   "n": "Arvore de outono 2",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.0,
+   "familia": "outono"
+  },
+  "trees_01_08": {
+   "id": "outono",
+   "n": "Arvore de outono 3",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.0,
+   "familia": "outono"
+  },
+  "trees_01_09": {
+   "id": "outono",
+   "n": "Arvore de outono 4",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.0,
+   "familia": "outono"
+  },
+  "trees_01_10": {
+   "id": "outono",
+   "n": "Arvore de outono 5",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.0,
+   "familia": "outono"
+  },
+  "trees_01_11": {
+   "id": "pinheiro",
+   "n": "Pinheiro 1",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 1.5,
+   "familia": "pinheiro"
+  },
+  "trees_01_12": {
+   "id": "pinheiro",
+   "n": "Pinheiro 2",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 1.5,
+   "familia": "pinheiro"
+  },
+  "trees_01_13": {
+   "id": "pinheiro",
+   "n": "Pinheiro 3",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 1.5,
+   "familia": "pinheiro"
+  },
+  "trees_01_14": {
+   "id": "pinheiro",
+   "n": "Pinheiro 4",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 1.5,
+   "familia": "pinheiro"
+  },
+  "trees_01_15": {
+   "id": "pinheiro",
+   "n": "Pinheiro 5",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 1.5,
+   "familia": "pinheiro"
+  },
+  "trees_01_16": {
+   "id": "salgueiro",
+   "n": "Salgueiro 1",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.4,
+   "familia": "salgueiro"
+  },
+  "trees_01_17": {
+   "id": "salgueiro",
+   "n": "Salgueiro 2",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.4,
+   "familia": "salgueiro"
+  },
+  "trees_01_18": {
+   "id": "salgueiro",
+   "n": "Salgueiro 3",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.4,
+   "familia": "salgueiro"
+  },
+  "trees_01_19": {
+   "id": "salgueiro",
+   "n": "Salgueiro 4",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.4,
+   "familia": "salgueiro"
+  },
+  "trees_01_20": {
+   "id": "salgueiro",
+   "n": "Salgueiro 5",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 2.4,
+   "familia": "salgueiro"
+  },
+  "trees_01_21": {
+   "id": "palmeira",
+   "n": "Palmeira 1",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 1.5,
+   "familia": "palmeira"
+  },
+  "trees_01_22": {
+   "id": "palmeira",
+   "n": "Palmeira 2",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 1.5,
+   "familia": "palmeira"
+  },
+  "trees_01_23": {
+   "id": "palmeira",
+   "n": "Palmeira 3",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 1.5,
+   "familia": "palmeira"
+  },
+  "trees_01_24": {
+   "id": "palmeira",
+   "n": "Palmeira 4",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 1.5,
+   "familia": "palmeira"
+  },
+  "trees_01_25": {
+   "id": "palmeira",
+   "n": "Palmeira 5",
+   "cat": "objeto",
+   "v": "variante",
+   "w": 1.5,
+   "familia": "palmeira"
+  },
+  "blood_01_01": {
+   "id": "mancha",
+   "n": "Mancha 01 1",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_01_02": {
+   "id": "mancha",
+   "n": "Mancha 01 2",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_01_03": {
+   "id": "mancha",
+   "n": "Mancha 01 3",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_01_04": {
+   "id": "mancha",
+   "n": "Mancha 01 4",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_01_05": {
+   "id": "mancha",
+   "n": "Mancha 01 5",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_01_06": {
+   "id": "mancha",
+   "n": "Mancha 01 6",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_01_07": {
+   "id": "mancha",
+   "n": "Mancha 01 7",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_01_08": {
+   "id": "mancha",
+   "n": "Mancha 01 8",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_01_09": {
+   "id": "mancha",
+   "n": "Mancha 01 9",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_01_10": {
+   "id": "mancha",
+   "n": "Mancha 01 10",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_02_01": {
+   "id": "mancha",
+   "n": "Mancha 02 1",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_02_02": {
+   "id": "mancha",
+   "n": "Mancha 02 2",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_02_03": {
+   "id": "mancha",
+   "n": "Mancha 02 3",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_02_04": {
+   "id": "mancha",
+   "n": "Mancha 02 4",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_02_05": {
+   "id": "mancha",
+   "n": "Mancha 02 5",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_02_06": {
+   "id": "mancha",
+   "n": "Mancha 02 6",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_02_07": {
+   "id": "mancha",
+   "n": "Mancha 02 7",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_02_08": {
+   "id": "mancha",
+   "n": "Mancha 02 8",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_02_09": {
+   "id": "mancha",
+   "n": "Mancha 02 9",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  },
+  "blood_02_10": {
+   "id": "mancha",
+   "n": "Mancha 02 10",
+   "cat": "mancha",
+   "v": "variante",
+   "w": 1.2,
+   "familia": "sangue"
+  }
+ }
+}

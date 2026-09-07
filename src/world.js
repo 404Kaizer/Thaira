@@ -15,6 +15,13 @@
    maps/ = a terra desenhada. É STRING: sem aspas isto é um identificador solto
    e o world.js inteiro morre de ReferenceError na carga, com o jogo abrindo em
    tela preta e sem erro que aponte para cá. */
+/* `varrokgaard2` é a ilha refeita do zero (ver `tools/mapas/varrokgaard2.js`).
+   A troca só alcança personagem NOVO, e isso é de propósito: o save guarda o
+   nome da terra dele (`saved.mapa`), então quem já existe continua na ilha em
+   que foi criado — com as coordenadas que fazem sentido lá. Forçar um save
+   antigo na ilha nova o largaria dentro de rocha ou de água, e o
+   `chaoMaisPerto` o resgataria para um lugar que não é o dele.
+   `varrokgaard` continua no disco e volta trocando esta linha. */
 const MAPA_ATUAL = 'varrokgaard';   // null volta ao gerador; ver #46
 /* As dimensões DO GERADOR, separadas das variáveis. O gerador produz um mundo
    de 224x224 em 6 andares e precisa dizer isso toda vez que roda — senão, depois
@@ -54,6 +61,10 @@ const T = { VOID: 0, GRASS: 1, DIRT: 2, SAND: 3, WATER: 4, ROCK: 5, TREE: 6, CFL
   GRASS_DENSA: 44, GRASS_FLORIDA: 45, GRASS_PEDRA: 46, GRASS_ALTA: 53, GRASS_PAPOULA: 54, GRASS_MOSTARDA: 55, GRASS_MATO_SECO: 90, GRASS_ARBUSTO: 92,
   DIRT_UMIDA: 47, DIRT_LISA: 48, DIRT_PEDRISCO: 56, DIRT_RACHADA: 57, DIRT_PEDREGOSA: 75, DIRT_GRETADA: 95,
   SAND_FINA: 49, SAND_GROSSA: 58, SAND_PEDRA: 93, SAND_MATO: 94, SAND_DUNA: 97,
+  /* TELHADO. Mora no andar ACIMA da superfície e só existe para ser visto de
+     fora: o `drawWorld` deixa de desenhar esse andar no instante em que o
+     jogador fica abrigado, que é a regra do Tibia e já estava no motor. */
+  TELHA: 98,
   PAVE_BLOCO: 50, PAVE_SEIXO: 51, PAVE_CLARA: 59, PAVE_MUSGO: 60, PAVE_PARALELO: 63, PAVE_LAJE: 65, PAVE_MOSAICO: 66,
   BRICK: 67, BRICK_MUSGO: 68,
   WATER_CLARA: 52, WATER_FUNDA: 61,
@@ -146,7 +157,7 @@ const TILE = {
      É a mesma regra que a cerca e o escoramento já seguem, e é o corolário do
      #48b: cor de material é constante própria, não a cor do tile multiplicada. */
   [T.WELL]:   { c: 0x968a70, top: 0.45, walk: false, tex: 'pave',   obj: 'poco',    span: [2, 2] },
-  [T.CART]:   { c: 0x7a5c30, top: 0.42, walk: false, tex: 'dirt',   obj: 'carroca', sombra: 1 },
+  [T.CART]:   { c: 0x7a5c30, top: 0.42, walk: false, tex: 'dirt',   obj: 'carroca', sombra: 1, span: [3, 1] },
   [T.BARREL]: { c: 0x7a5c30, top: 0.40, walk: false, tex: 'dirt',   obj: 'barril',  sombra: 1 },
   /* O moinho é o único que TAPA a vista: é um prédio, não um móvel, e `top`
      1.1 o põe na régua de parede. Numa ilha que vive de trigo ele é a silhueta
@@ -220,7 +231,12 @@ const TILE = {
   [T.SAND_MATO]: { c: 0xac7b2f, top: 0, walk: true, tex: 'areia_mato', familia: 'areia' },
   [T.DIRT_GRETADA]: { c: 0xab7633, top: 0, walk: true, tex: 'terra_gretada', familia: 'terra' },
   [T.BONE_AREIA]: { c: 0x9d6f38, top: 0, walk: true, tex: 'ossada_areia', familia: 'osso' },
-  [T.SAND_DUNA]: { c: 0xc58d3a, top: 0, walk: true, tex: 'duna', familia: 'areia' }
+  [T.SAND_DUNA]: { c: 0xc58d3a, top: 0, walk: true, tex: 'duna', familia: 'areia' },
+  /* TELHA. `walk: false` porque ninguém anda no telhado — ele só existe no
+     andar de cima, para ser visto de fora. `top: 0` porque é CHÃO daquele
+     andar e não parede: com `top` alto o `calcDentro` o trataria como
+     fronteira de recinto e a casa inteira deixaria de ser “dentro”. */
+  [T.TELHA]: { c: 0x6a4b34, top: 0, walk: false, tex: 'telha', familia: 'telhado' }
 };
 
 /* ------------------------------------------------------------------ OBJETOS
@@ -242,7 +258,13 @@ const TILE = {
      deco    não bloqueia nada — moita, pedra solta
    A cor e a textura aqui são do MATERIAL do objeto, não do chão em que ele se
    apoia: é o corolário do #48b, agora impossível de violar por construção. */
-const OBJ_CAT = { parede: { walk: false, top: 1.1 }, objeto: { walk: false, top: 0.45 }, deco: { walk: true, top: 0 } };
+/* `mancha` e DECALQUE DE CHAO: nao barra, nao tapa vista e nao tem volume.
+   Ela existe como categoria propria em vez de `deco` porque o que a separa
+   nao e a colisao (as duas atravessam) e sim QUANDO ela e desenhada: mancha
+   sai no 1o passe, junto do chao, senao cobre quem pisa nela -- que e o
+   defeito que o `ponytail:` do tapete ja anotava. */
+const OBJ_CAT = { parede: { walk: false, top: 1.1 }, objeto: { walk: false, top: 0.45 },
+                  deco: { walk: true, top: 0 }, mancha: { walk: true, top: 0 } };
 /* `c` é a cor do MATERIAL do objeto, e ela tem dois empregos: o desenho da
    parede e — o que o primeiro corte esqueceu — a PLANTA e o MINIMAPA. Sem ela o
    mapa desenhava só o chão, e parede, mata e cerca sumiam dentro do terreno em
@@ -262,16 +284,44 @@ const OBJ = {
      sombra de motor; o que muda é ela deixar de ser tile E entrada derivada de
      `deco` ao mesmo tempo. Eram 1.887 tiles gerando 1.942 entradas: a mesma
      árvore contada duas vezes, em duas estruturas. */
-  arvore:   { nome: 'Árvore',             cat: 'objeto', top: 0, deco: 0, c: 0x27512f },
+  /* A ARVORE MANTEM O ID. Sao 1712 no mapa, e criar `arvore2` apagaria todas
+     elas -- o mapa gravado guarda o id, nao o desenho. O que muda e a ficha
+     ganhar `png`; o `deco` SAI porque o ramo dele vem antes no render e
+     engoliria a arte de folha, que e o mesmo defeito que a `pedra` teve.
+     `balanca` devolve o vento que o ramo `deco` dava de graca: sem ele as 1712
+     parariam de deitar no temporal, que e 28,4% do tempo real. */
+  arvore:   { nome: 'Árvore',             cat: 'objeto', top: 0, sombra: 1, balanca: 1, span: [2, 1], pe: [1, 1], c: 0x27512f,
+              png: ['trees_01_01', 'trees_01_02', 'trees_01_03', 'trees_01_04', 'trees_01_05'] },
+  outono:   { nome: 'Árvore de outono',   cat: 'objeto', top: 0, sombra: 1, balanca: 1, span: [2, 1], pe: [1, 1], c: 0x8a4410,
+              png: ['trees_01_06', 'trees_01_07', 'trees_01_08', 'trees_01_09', 'trees_01_10'] },
+  pinheiro: { nome: 'Pinheiro',           cat: 'objeto', top: 0, sombra: 1, balanca: .5, span: [2, 1], pe: [1, 1], c: 0x1d3b17,
+              png: ['trees_01_11', 'trees_01_12', 'trees_01_13', 'trees_01_14', 'trees_01_15'] },
+  salgueiro:{ nome: 'Salgueiro',          cat: 'objeto', top: 0, sombra: 1, balanca: 1, span: [3, 1], pe: [1, 1], c: 0x4a4012,
+              png: ['trees_01_16', 'trees_01_17', 'trees_01_18', 'trees_01_19', 'trees_01_20'] },
+  palmeira: { nome: 'Palmeira',           cat: 'objeto', top: 0, sombra: 1, balanca: 1, span: [2, 1], pe: [1, 1], c: 0x5d6b1e,
+              png: ['trees_01_21', 'trees_01_22', 'trees_01_23', 'trees_01_24', 'trees_01_25'] },
   /* PEDRA BARRA, MOITA NÃO — e as duas estavam em `deco`, que é walk:true.
      Decisão do dono, e ela é de leitura: uma pedra que se atravessa não é
      pedra, e uma moita que barra é parede invisível. `deco` é a categoria de
      quem NÃO barra nada; quem barra o pé e não a vista é `objeto`. */
-  pedra:    { nome: 'Pedra solta',        cat: 'objeto', deco: 1, c: 0x6b6f76 },
+  /* Sem `deco`: o ramo `deco` do render vem ANTES do ramo `png` e engolia a arte
+     de folha — `objects_01_62` era arte morta em 70 pedras do mapa, e o mesmo
+     valia na paleta do editor, que copia a ordem dos ramos. Ganha `sombra: 1`
+     junto porque quem saía pelo ramo `deco` recebia a sombra do motor de graça,
+     e no ramo de objeto solto quem decide é a FICHA. */
+  pedra:    { nome: 'Pedra solta',        cat: 'objeto', sombra: 1, c: 0x6b6f76, png: 'objects_01_62' },
   moita:    { nome: 'Moita',              cat: 'deco',   deco: 2, c: 0x3f6b30 },
   /* construído */
-  ptabua:   { nome: 'Parede de tábua',    cat: 'parede', tex: 'wall',  c: 0x6b3a1e },
-  pbloco:   { nome: 'Parede de bloco',    cat: 'parede', tex: 'block', c: 0x6d7590 },
+  /* `familia` diz de que MATERIAL a parede é, e o render emenda o lance por ela
+     em vez de por id — senão a fachada se parte na janela e nasce uma aresta
+     lateral no meio dela. Só quem tem variante precisa declarar. */
+  ptabua:   { nome: 'Parede de tábua',    cat: 'parede', tex: 'wall',  c: 0x6b3a1e, familia: 'ptabua' },
+  pbloco:   { nome: 'Parede de bloco',    cat: 'parede', tex: 'block', c: 0x6d7590, familia: 'pbloco' },
+  /* A MESMA parede, com vão. É id e não campo de instância porque o mapa grava
+     `x,y,id` e o gravador é explícito: estado de instância é save, não mapa —
+     e janela é geometria de autor. */
+  ptabuaj:  { nome: 'Parede de tábua com janela', cat: 'parede', tex: 'wall',  c: 0x6b3a1e, familia: 'ptabua', jan: 1 },
+  pblocoj:  { nome: 'Parede de bloco com janela', cat: 'parede', tex: 'block', c: 0x6d7590, familia: 'pbloco', jan: 1 },
   teia:     { nome: 'Teia',               cat: 'parede', tex: 'web',   c: 0xb0bad2, draw: 'teia' },
   moinho:   { nome: 'Moinho',             cat: 'parede', span: [2, 3], draw: 'moinho', c: 0x8a7a5c },
   /* A porta guarda o próprio estado NA INSTÂNCIA. Antes ele morava num `Set`
@@ -282,10 +332,17 @@ const OBJ = {
   porta:    { nome: 'Porta',              cat: 'objeto', top: 1.1, draw: 'porta', abrivel: 1, c: 0x7a5330 },
   cerca:    { nome: 'Cerca',              cat: 'objeto', draw: 'cerca',  eixo: 1, c: 0xb0894a },
   escora:   { nome: 'Escoramento',        cat: 'objeto', draw: 'escora', eixo: 1, c: 0x9c7c48 },
-  poco:     { nome: 'Poço',               cat: 'objeto', span: [2, 2], draw: 'poco', sombra: 1, c: 0x5f5a50 },
-  carroca:  { nome: 'Carroça',            cat: 'objeto', draw: 'carroca', sombra: 1, c: 0x8f5a24 },
-  barril:   { nome: 'Barril',             cat: 'objeto', draw: 'barril',  sombra: 1, c: 0xa66f2c },
-  /* O QUE ACENDE. `luz` é o raio em TILES, a mesma unidade que a tocha da mão e
+  poco:     { nome: 'Poço',               cat: 'objeto', span: [2, 2], sombra: 1, c: 0x5f5a50, png: 'objects_01_07' },
+  carroca:  { nome: 'Carroça',            cat: 'objeto', span: [3, 1], sombra: 1, c: 0x8f5a24, png: 'objects_01_12' },
+  barril:   { nome: 'Barril',             cat: 'objeto', sombra: 1, c: 0xa66f2c, png: 'objects_01_02' },
+  /* SUBSTITUÍDAS pela folha `objects_01`, por decisão do dono: o `draw`
+     procedural saiu. Ele não podia ficar como reserva porque três delas
+     mudaram de `span` para caber na arte nova — a carroça foi de 1 para 3
+     tiles —, e um sprite procedural de 32 px desenhado em `t * 3` sai
+     esticado, sem erro nenhum. Reserva que mente sobre o tamanho é pior que
+     reserva nenhuma. O id NÃO mudou: trocá-lo apagaria a peça de todo mapa
+     já gravado.
+     O QUE ACENDE. `luz` é o raio em TILES, a mesma unidade que a tocha da mão e
      o vaga-lume já usam. O motor tinha o balde de luzes desde sempre — lava,
      tocha largada, campo elemental — e NENHUMA ficha de objeto declarava
      emissão: não havia como o autor pôr uma tocha na parede da Goela.
@@ -294,10 +351,120 @@ const OBJ = {
      lampião e poste têm vidro e queimam parelho.
      A tocha é `deco` porque mora na PAREDE e não ocupa o chão; as outras três
      barram o passo, porque estão plantadas nele. */
-  tocha:    { nome: 'Tocha de parede',    cat: 'deco',   draw: 'tocha',    c: 0xd8923a, luz: 2.4, tremula: 1 },
-  lampiao:  { nome: 'Lampião',            cat: 'objeto', draw: 'lampiao',  sombra: 1, c: 0xc9a13f, luz: 2.8 },
-  poste:    { nome: 'Poste de luz',       cat: 'objeto', draw: 'poste',    sombra: 1, c: 0x7a5c34, luz: 3.6 },
-  fogueira: { nome: 'Fogueira',           cat: 'objeto', draw: 'fogueira', sombra: 1, c: 0xd2622a, luz: 3.2, tremula: 1 }
+  tocha:    { nome: 'Tocha de parede',    cat: 'deco',   c: 0xd8923a, luz: 2.4, tremula: 1, png: 'objects_01_53' },
+  lampiao:  { nome: 'Lampião',            cat: 'objeto', span: [2, 1], sombra: 1, c: 0xc9a13f, luz: 2.8, png: 'objects_01_49' },
+  poste:    { nome: 'Poste de luz',       cat: 'objeto', span: [2, 1], sombra: 1, c: 0x7a5c34, luz: 3.6, png: 'objects_01_10' },
+  fogueira: { nome: 'Fogueira',           cat: 'objeto', draw: 'fogueira', sombra: 1, c: 0xd2622a, luz: 3.2, tremula: 1 },
+  /* --- A FOLHA objects_01, recortada ------------------------------------
+     81 peças novas de `assets/scenario/objects_01.png`, escolhidas e
+     dimensionadas pelo dono na `tools/amostra/objetos.html`. Elas não têm
+     `draw`: quem desenha é o PNG, pelo `objSprite` do art.js, e o tamanho de
+     cada uma saiu da LARGURA declarada na ficha do `catalogo.json` — a
+     largura, e não a altura, porque em perspectiva a extensão vertical do
+     sprite é altura mais profundidade projetada.
+     As sete que a folha SUBSTITUI estão acima e mantiveram o id: trocar o id
+     apagaria a peça de todo mapa já gravado. Elas guardam o `draw` como
+     reserva, que é o caminho que o node dos testes toma.
+     O que corre em LINHA (cerca, grade, portão, porta, arco) ficou de fora:
+     precisa da máscara de 4 bits do vizinho, e a arte da folha é um LANCE de
+     várias estacas — usá-la inteira repetiria o lance a cada tile. */
+  barris:      { nome: "Barris empilhados", cat: 'objeto', png: 'objects_01_01', sombra: 1, c: 0x3c3407 },
+  caixotes:    { nome: "Caixotes", cat: 'objeto', png: 'objects_01_03', span: [2, 1], sombra: 1, c: 0x5a2b0b },
+  caixote:     { nome: "Caixote", cat: 'objeto', png: 'objects_01_04', sombra: 1, c: 0x592b09 },
+  sacaria:     { nome: "Sacaria", cat: 'objeto', png: 'objects_01_05', sombra: 1, c: 0x7a5430 },
+  carrocac:    { nome: "Carroça carregada", cat: 'objeto', png: 'objects_01_06', span: [2, 1], sombra: 1, c: 0x472414 },
+  fonte:       { nome: "Fonte", cat: 'objeto', png: 'objects_01_08', span: [2, 1], sombra: 1, c: 0x304c3b },
+  placa:       { nome: "Placa de estrada", cat: 'objeto', png: 'objects_01_09', span: [2, 1], sombra: 1, c: 0x6f370d },
+  tonel:       { nome: "Tonel", cat: 'objeto', png: 'objects_01_11', sombra: 1, c: 0x453107 },
+  tanque:      { nome: "Tanque d'água", cat: 'objeto', png: 'objects_01_13', span: [2, 1], sombra: 1, c: 0x314535 },
+  armario:     { nome: "Armário", cat: 'objeto', png: 'objects_01_14', sombra: 1, c: 0x5c2e0c },
+  estante:     { nome: "Estante de livros", cat: 'objeto', png: 'objects_01_15', span: [2, 1], sombra: 1, c: 0x502a0f },
+  alquimia:    { nome: "Bancada de alquimia", cat: 'objeto', png: 'objects_01_16', span: [2, 1], sombra: 1, c: 0x5c3214 },
+  forno:       { nome: "Forno de pão", cat: 'objeto', png: 'objects_01_17', span: [2, 1], sombra: 1, c: 0x4e443e },
+  bau:         { nome: "Baú de ferro", cat: 'objeto', png: 'objects_01_18', sombra: 1, c: 0x57370c },
+  baud:        { nome: "Baú dourado", cat: 'objeto', png: 'objects_01_20', sombra: 1, c: 0x5a3405 },
+  prateleira:  { nome: "Prateleira de poções", cat: 'objeto', png: 'objects_01_21', span: [2, 1], sombra: 1, c: 0x4c2408 },
+  escrivania:  { nome: "Escrivaninha", cat: 'objeto', png: 'objects_01_22', span: [2, 1], sombra: 1, c: 0x6a3618 },
+  cama:        { nome: "Cama", cat: 'objeto', png: 'objects_01_23', span: [2, 1], sombra: 1, c: 0x6b584f },
+  lareira:     { nome: "Lareira", cat: 'objeto', png: 'objects_01_24', span: [2, 1], sombra: 1, luz: 3, tremula: 1, c: 0x5c4228 },
+  potao:       { nome: "Potão de barro", cat: 'objeto', png: 'objects_01_25', sombra: 1, c: 0x693713 },
+  pote:        { nome: "Pote de barro", cat: 'deco', png: 'objects_01_26', sombra: 1, c: 0x45220d },
+  anfora:      { nome: "Ânfora", cat: 'objeto', png: 'objects_01_27', sombra: 1, c: 0x4f3825 },
+  jarro:       { nome: "Jarro vidrado", cat: 'deco', png: 'objects_01_28', sombra: 1, c: 0x47420d },
+  garrafa:     { nome: "Garrafa", cat: 'deco', png: 'objects_01_29', sombra: 1, c: 0x8a5d41 },
+  cestograo:   { nome: "Cesto de grão", cat: 'deco', png: 'objects_01_30', sombra: 1, c: 0x472207 },
+  tina:        { nome: "Tina", cat: 'objeto', png: 'objects_01_31', sombra: 1, c: 0x48280d },
+  sacograo:    { nome: "Saco de grão", cat: 'objeto', png: 'objects_01_32', sombra: 1, c: 0x6b3f19 },
+  montegrao:   { nome: "Monte de grão", cat: 'deco', png: 'objects_01_33', sombra: 1, c: 0x804b19 },
+  estandarte:  { nome: "Estandarte", cat: 'deco', png: 'objects_01_34', sombra: 1, c: 0x042f59 },
+  flamula:     { nome: "Flâmula", cat: 'deco', png: 'objects_01_35', sombra: 1, c: 0x9e2502 },
+  mapaparede:  { nome: "Mapa na parede", cat: 'deco', png: 'objects_01_36', span: [2, 1], sombra: 1, c: 0x877661 },
+  quadroaviso: { nome: "Quadro de avisos", cat: 'objeto', png: 'objects_01_37', span: [2, 1], sombra: 1, c: 0x5d2f11 },
+  coluna:      { nome: "Coluna", cat: 'objeto', png: 'objects_01_44', sombra: 1, c: 0x42484a },
+  colunal:     { nome: "Coluna lisa", cat: 'objeto', png: 'objects_01_45', sombra: 1, c: 0x444748 },
+  colunaq:     { nome: "Coluna quebrada", cat: 'objeto', png: 'objects_01_46', sombra: 1, c: 0x464740 },
+  estela:      { nome: "Estela selada", cat: 'objeto', png: 'objects_01_47', sombra: 1, c: 0x44482e },
+  anjo:        { nome: "Estátua de anjo", cat: 'objeto', png: 'objects_01_48', span: [2, 1], sombra: 1, c: 0x2f3516 },
+  archote:     { nome: "Archote de chão", cat: 'objeto', png: 'objects_01_50', sombra: 1, luz: 2.6, tremula: 1, c: 0x763210 },
+  braseiro:    { nome: "Braseiro", cat: 'objeto', png: 'objects_01_51', sombra: 1, luz: 3, tremula: 1, c: 0x5b2b0d },
+  candelabro:  { nome: "Candelabro", cat: 'deco', png: 'objects_01_52', sombra: 1, luz: 1.8, tremula: 1, c: 0x7b4b1b },
+  lustre:      { nome: "Lustre", cat: 'deco', png: 'objects_01_54', sombra: 1, luz: 2.6, tremula: 1, c: 0x504027 },
+  lapide:      { nome: "Lápide", cat: 'objeto', png: 'objects_01_55', sombra: 1, c: 0x524f3f },
+  lapidec:     { nome: "Lápide com cruz", cat: 'objeto', png: 'objects_01_56', sombra: 1, c: 0x444742 },
+  cruz:        { nome: "Cruz de pedra", cat: 'objeto', png: 'objects_01_57', sombra: 1, c: 0x45484b },
+  cruzcelta:   { nome: "Cruz celta", cat: 'objeto', png: 'objects_01_58', sombra: 1, c: 0x3c4347 },
+  lapideb:     { nome: "Lápide brasonada", cat: 'objeto', png: 'objects_01_59', sombra: 1, c: 0x524d47 },
+  cripta:      { nome: "Cripta", cat: 'objeto', png: 'objects_01_60', span: [3, 1], sombra: 1, c: 0x3b4222 },
+  memorial:    { nome: "Memorial", cat: 'objeto', png: 'objects_01_61', span: [2, 1], sombra: 1, c: 0x54380c },
+  pedrasg:     { nome: "Pedras grandes", cat: 'objeto', png: 'objects_01_63', span: [2, 1], sombra: 1, c: 0x504135 },
+  escombro:    { nome: "Escombro de bloco", cat: 'objeto', png: 'objects_01_64', span: [2, 1], sombra: 1, c: 0x3e3d3a },
+  lenha:       { nome: "Pilha de lenha", cat: 'objeto', png: 'objects_01_65', span: [2, 1], sombra: 1, c: 0x4c2b13 },
+  toco:        { nome: "Toco", cat: 'objeto', png: 'objects_01_66', sombra: 1, c: 0x4a2c1c },
+  gravetos:    { nome: "Gravetos", cat: 'deco', png: 'objects_01_67', sombra: 1, c: 0x29140c },
+  cogumelo:    { nome: "Cogumelo", cat: 'deco', png: 'objects_01_72', sombra: 1, c: 0xab3d11 },
+  pedrau:      { nome: "Pedra", cat: 'objeto', png: 'objects_01_73', sombra: 1, c: 0x675143 },
+  varal:       { nome: "Varal", cat: 'deco', png: 'objects_01_74', span: [3, 1], sombra: 1, c: 0x65431a },
+  caldeirao:   { nome: "Caldeirão ao fogo", cat: 'objeto', png: 'objects_01_75', sombra: 1, luz: 2.2, tremula: 1, c: 0x2f2319 },
+  espantalho:  { nome: "Espantalho", cat: 'objeto', png: 'objects_01_76', sombra: 1, c: 0x70432c },
+  boneco:      { nome: "Boneco de treino", cat: 'objeto', png: 'objects_01_77', span: [2, 1], sombra: 1, c: 0x432b09 },
+  meda:        { nome: "Meda de feno", cat: 'objeto', png: 'objects_01_78', span: [2, 1], sombra: 1, c: 0x97580b },
+  espeto:      { nome: "Espeto ao fogo", cat: 'objeto', png: 'objects_01_79', span: [2, 1], sombra: 1, luz: 2.2, tremula: 1, c: 0x592615 },
+  tamborete:   { nome: "Tamborete", cat: 'deco', png: 'objects_01_80', sombra: 1, c: 0x7a3f13 },
+  mesar:       { nome: "Mesa redonda", cat: 'objeto', png: 'objects_01_81', span: [2, 1], sombra: 1, c: 0x753d0f },
+  mesa:        { nome: "Mesa comprida", cat: 'objeto', png: 'objects_01_82', span: [2, 1], sombra: 1, c: 0x733916 },
+  cadeira:     { nome: "Cadeira", cat: 'objeto', png: 'objects_01_84', sombra: 1, c: 0x59250a },
+  entmina:     { nome: "Entrada de mina", cat: 'objeto', png: 'objects_01_85', span: [3, 1], sombra: 1, luz: 1.8, c: 0x331706 },
+  cristais:    { nome: "Cristais", cat: 'objeto', png: 'objects_01_86', sombra: 1, luz: 1.6, c: 0x1080d4 },
+  adega:       { nome: "Adega", cat: 'objeto', png: 'objects_01_87', span: [2, 1], sombra: 1, c: 0x431d04 },
+  /* ponytail: o tapete é PLANO e sai no passe de volumes como todo objeto,
+     então cobre quem pisa nele. O certo seria um passe de chão para objeto
+     sem altura, junto com o `drawFloor`; enquanto não existe, ele é `deco`
+     (atravessa) e o defeito é ele aparecer por cima do jogador parado em
+     cima. Upgrade: mover objeto de `sombra: 0` para o 1º passe. */
+  tapete:      { nome: "Tapete", cat: 'deco', png: 'objects_01_88', span: [2, 1], sombra: 0, c: 0x9d2f03 },
+  engradado:   { nome: "Engradado de garrafas", cat: 'objeto', png: 'objects_01_89', sombra: 1, c: 0x4a260b },
+  /* MANCHA DE SANGUE. Vinte variantes das duas folhas, sorteadas pelo TILE
+     como a arvore: mancha repetida a cada tile lê como estampa, nao como
+     sujeira. `sombra: 0` porque ela e PLANA -- silhueta projetada de uma
+     coisa sem altura lê como um segundo objeto deitado, e mancha de contato
+     numa mancha e sujeira sobre sujeira. */
+  mancha:      { nome: "Mancha de sangue", cat: 'mancha', sombra: 0, span: [2, 1], c: 0x86020c,
+                 png: [
+                'blood_01_01', 'blood_01_02', 'blood_01_03', 'blood_01_04', 'blood_01_05',
+                'blood_01_06', 'blood_01_07', 'blood_01_08', 'blood_01_09', 'blood_01_10',
+                'blood_02_01', 'blood_02_02', 'blood_02_03', 'blood_02_04', 'blood_02_05',
+                'blood_02_06', 'blood_02_07', 'blood_02_08', 'blood_02_09', 'blood_02_10'] },
+  bigorna:     { nome: "Bigorna", cat: 'objeto', png: 'objects_01_90', span: [2, 1], sombra: 1, c: 0x213a2e },
+  mo:          { nome: "Mó de afiar", cat: 'objeto', png: 'objects_01_91', span: [2, 1], sombra: 1, c: 0x533017 },
+  escadamao:   { nome: "Escada de mão", cat: 'deco', png: 'objects_01_92', sombra: 1, c: 0x5d2813 },
+  buraco:      { nome: "Buraco", cat: 'objeto', png: 'objects_01_94', span: [2, 1], sombra: 1, c: 0x514136 },
+  gargula:     { nome: "Gárgula", cat: 'objeto', png: 'objects_01_96', span: [2, 1], sombra: 1, c: 0x2a340c },
+  encapuzada:  { nome: "Estátua encapuzada", cat: 'objeto', png: 'objects_01_97', span: [2, 1], sombra: 1, c: 0x3b3721 },
+  encapuzadam: { nome: "Estátua musgosa", cat: 'objeto', png: 'objects_01_98', span: [2, 1], sombra: 1, c: 0x343619 },
+  orbeazul:    { nome: "Orbe azul", cat: 'objeto', png: 'objects_01_99', sombra: 1, luz: 2, c: 0x2b3856 },
+  orberoxo:    { nome: "Orbe roxo", cat: 'objeto', png: 'objects_01_100', sombra: 1, luz: 2, c: 0x413043 },
+  orberubro:   { nome: "Orbe rubro", cat: 'objeto', png: 'objects_01_101', sombra: 1, luz: 2, c: 0x5f3327 },
+  orbeverde:   { nome: "Orbe verde", cat: 'objeto', png: 'objects_01_102', sombra: 1, luz: 2, c: 0x3d591d }
 };
 /* `walk` e `top` saem da categoria, com override na ficha. Cinco objetos
    declaravam 0.40, 0.42 e 0.45 como se a diferença significasse alguma coisa —
@@ -370,11 +537,26 @@ function tileAt(x, y, z) { return inBounds(x, y) ? WORLD.floors[z].t[idx(x, y)] 
    nenhum, só um objeto que o render não desenhava. Não há mais rastro para
    quebrar, e o `conferObjetos` que existia para caçá-lo perde o assunto. */
 const SEM_OBJ = [];
+/* GERAÇÃO da geometria: um número que só cresce, e todo cache derivado de
+   parede é descartado quando ele avança. Duas coisas o movem, e as duas
+   precisam: o `reindexObjs` (parede nasceu, sumiu ou mudou de lugar) e o
+   `usaPorta` (o vão abriu ou fechou). Quem cacheia alcance de luz compara com
+   ele — hoje o `alcanceDaLuz` do render. */
+const geoMudou = () => { WORLD.geo = (WORLD.geo || 0) + 1; };
 function reindexObjs(z) {
   const f = WORLD.floors[z], m = new Map();
   f.dentro = null;                      // parede mudou: quem está dentro mudou junto
+  geoMudou();
   for (const o of f.objs) {
-    const sp = (OBJ[o.o] || {}).span || [1, 1];
+    /* O INDICE E DE COLISAO, entao ele usa `pe` quando a ficha o declara.
+       `span` faz dois papeis -- largura de DESENHO e footprint de COLISAO --, e
+       eles so coincidem em peca de base larga. Numa arvore nao coincidem: a copa
+       tem 2 tiles e o tronco tem 1, e sem separar os dois as 1712 arvores do mapa
+       passariam a bloquear o dobro do que bloqueiam hoje, murando o mapa sem que
+       nada acusasse. Era o teto anotado no tasks.html ("nove pecas reservam ao
+       menos um tile a mais do que o pe usa"); a arte de arvore e quem o forcou. */
+    const d = OBJ[o.o] || {};
+    const sp = d.pe || d.span || [1, 1];
     for (let j = 0; j < sp[1]; j++) for (let i = 0; i < sp[0]; i++) {
       const nx = o.x + i, ny = o.y + j;
       if (!inBounds(nx, ny)) continue;
@@ -403,6 +585,11 @@ function usaPorta(x, y, z) {
   const o = objAbrivel(x, y, z);
   if (!o) return false;
   o.aberta = !o.aberta;
+  /* Porta aberta é VÃO, e vão muda o que a luz alcança — o `tapaVista` já
+     responde isso, mas quem cacheia a resposta precisa saber que ela mudou.
+     Sem esta linha, abrir uma porta não acendia o outro lado até alguma outra
+     coisa invalidar o cache. Foi a régua da brecha que pegou. */
+  geoMudou();
   return o.aberta;
 }
 /* Objeto aberto some das DUAS contas — a do pé e a dos olhos. `o.aberta` é
@@ -999,9 +1186,68 @@ const dentroDeCasa = (x, y, z) => {
   const v = salaDe(x, y, z);
   return v > 0 && v !== SALA_PAREDE;
 };
-/* Abrigado da luz do céu: ou tem andar por cima, ou as paredes fecham em volta.
-   É esta a pergunta que o passe de luz e a chuva fazem — não a do andar. */
-const abrigado = (x = P.x, y = P.y, z = P.z) => souCoberto(x, y, z) || dentroDeCasa(x, y, z);
+/* ABRIGADO É SÓ TER ANDAR POR CIMA. A COBERTURA DE CASA SAIU, a pedido do dono
+   e depois de muitas rodadas: "remova COBERTURA das casas, tá feio, não
+   funciona e você não resolve". Enquanto `dentroDeCasa` entrava aqui, todo
+   recinto de parede era tratado como coberto sem ter telhado nenhum — e cada
+   efeito de céu (chuva, névoa, tinte) tinha de ser recortado na quina do tile
+   em volta dele, que é a borda que nunca lê como luz nem como sombra.
+   Sem telhado no mapa, casa de um pavimento não cobre nada: chove lá dentro,
+   como chove na rua. Quem continua abrigado é quem tem PISO por cima — o
+   subsolo e o andar de baixo de um prédio de dois —, e aí a cobertura é um fato
+   do mapa, não uma inferência.
+   `dentroDeCasa` continua vivo e é usado por quem ele foi feito: a pergunta
+   "estou dentro de casa?", que não é a mesma que "vejo o céu?". */
+const abrigado = (x = P.x, y = P.y, z = P.z) => souCoberto(x, y, z);
+
+/* DISTÂNCIA ATÉ A ÁGUA, em tiles. É o ONDE da névoa: sem ele ela seria um
+   filtro chapado na tela inteira, que é justamente o que o §23 proíbe.
+   INUNDAÇÃO, uma vez por andar e guardada, como o `f.dentro`. A bancada varria
+   a cena inteira por tile e por quadro — numa cena de 8×6 isso não custa nada e
+   num mapa 224² é O(janela × mapa) a 60 quadros por segundo.
+   Em 8 vizinhos porque a régua é Chebyshev, a mesma em que o jogo anda; em 4 a
+   névoa sairia em losango na ponta de um cabo de terra.
+   Teto em `NEVOA_AGUA`: além do alcance a densidade já é o piso, então contar
+   mais longe não muda pixel nenhum — e é o teto que deixa isto num Uint8Array.
+   A GERAÇÃO é o que invalida. O editor pinta tile no vivo e não passa pelo
+   `reindexObjs`, e cache de mapa sem invalidação é defeito calado: foi assim
+   que abrir a porta deixou de acender o outro lado. */
+const NEVOA_AGUA = 4;                    // alcance da margem, em tiles
+function calcDistAgua(z) {
+  const f = WORLD.floors[z], n = W * H, d = new Uint8Array(n).fill(255), fila = [];
+  for (let i = 0; i < n; i++)
+    if ((TILE[f.t[i]] || {}).familia === 'agua') { d[i] = 0; fila.push(i); }
+  /* Fora do mapa a superfície é oceano (`foraDoMapa`), então a borda nasce a UM
+     tile da água mesmo quando o tile de dentro é terra firme. Sem isto a costa
+     do mapa seria o único trecho seco de uma ilha. Entram depois dos zeros, e a
+     fila continua ordenada por distância — que é o que a inundação exige. */
+  if ((TILE[foraDoMapa(z)] || {}).familia === 'agua')
+    for (let i = 0; i < n; i++) {
+      const x = i % W, y = (i / W) | 0;
+      if ((x === 0 || y === 0 || x === W - 1 || y === H - 1) && d[i] > 1) { d[i] = 1; fila.push(i); }
+    }
+  for (let k = 0; k < fila.length; k++) {
+    const i = fila[k], v = d[i];
+    if (v >= NEVOA_AGUA) continue;
+    const x = i % W, y = (i / W) | 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const j = ny * W + nx;
+      if (d[j] > v + 1) { d[j] = v + 1; fila.push(j); }
+    }
+  }
+  return d;
+}
+function distAgua(x, y, z) {
+  const f = WORLD.floors[z];
+  if (!f) return 255;
+  const ger = WORLD.geo || 0;
+  if (!f.aguaD || f.aguaGer !== ger) { f.aguaD = calcDistAgua(z); f.aguaGer = ger; }
+  if (x < 0 || y < 0 || x >= W || y >= H)
+    return (TILE[foraDoMapa(z)] || {}).familia === 'agua' ? 0 : 255;
+  return f.aguaD[y * W + x];
+}
 
 /* Clima. Mesma ideia do relógio do dia: sai do Date.now(), então continua entre
    recargas, não precisa de tick nem de estado salvo e é igual em qualquer aba.
@@ -1160,7 +1406,7 @@ function buildMinimaps() {
    o que muda é só o arquivo gravado, que passa a ter 2 bytes onde um
    desses aparece. O teto seguinte é o fim do Latin-1; ver o tasks.html. */
 const TILE_CHAR = '.gdswRTcCLv^#npMPDFHjyISauOkWebzmxr@%$&lfhiE'
-  + "!'()*+,-/0123456789:;<=>?ABGJKNQUVXYZ[]_`oqt{|}~ÀÁÂÃÄÅ";
+  + "!'()*+,-/0123456789:;<=>?ABGJKNQUVXYZ[]_`oqt{|}~ÀÁÂÃÄÅÆ";
 /* Caractere novo entra sempre no FIM: o índice É o id, então inserir no meio
    reescreveria calado o significado de todo mapa já gravado. */
 const CHAR_TILE = {};
@@ -1259,8 +1505,19 @@ function parteCamadas(t, deco, w, h) {
        o render adivinhava a âncora por "não tenho vizinho igual a oeste nem ao
        norte". Aqui a âncora vira UMA entrada e o resto do rastro é descartado —
        o índice esparso recompõe a área a partir do `span`. */
-    const sp = (OBJ[mg.o] || {}).span;
-    if (sp && (em(x - 1, y) === tt || em(x, y - 1) === tt)) { vistos.add(y * w + x); continue; }
+    /* O FOOTPRINT, não a largura de desenho. Este descarte existe para o objeto
+       que o autor pinta em N TILES IGUAIS — poço, moinho, carroça —, em que só a
+       âncora vira entrada e o resto do rastro é lixo. Ler o `span` para isso
+       parou de valer no dia em que ele passou a significar só desenho: a árvore
+       ganhou `span: [2,1]` (copa larga) com `pe: [1,1]` (tronco), e numa mata
+       densa a vizinha a oeste ou ao norte também é árvore — então TODA árvore
+       com vizinha era descartada como se fosse rastro de outra.
+       Medido no mapa do dono: 1712 árvores viraram 474, e nada acusou, porque
+       perder árvore só deixa o mapa MAIS andável e a conferência é de
+       alcançabilidade. `pe` é o que diz quantos tiles a coisa ocupa. */
+    const sp = (OBJ[mg.o] || {}).pe || (OBJ[mg.o] || {}).span;
+    if (sp && (sp[0] > 1 || sp[1] > 1)
+        && (em(x - 1, y) === tt || em(x, y - 1) === tt)) { vistos.add(y * w + x); continue; }
     /* Vizinhança: o terreno andável mais comum em volta ganha da reserva.
        ESCADA FICA DE FORA do voto, e isto custou a suíte inteira de topologia:
        `T.DOWN` e `T.UP` são `walk:true`, então um rochedo encostado numa escada

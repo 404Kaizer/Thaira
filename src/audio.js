@@ -6,12 +6,10 @@
 let AC = null, master = null, ambNodes = [];
 let SFX_ON = localStorage.getItem('thaira.mute') !== '1';
 
-/* Um ganho por categoria, todos pendurados no master. Assim dá para baixar só o
-   passo sem mexer no resto — e o volume de cada um sobrevive ao recarregar.
-   Passo tem barramento próprio porque é o som que mais toca no jogo: quem achar
-   demais precisa poder abaixar só ele. */
-const VOL_CATS = ['musica', 'efeitos', 'passos', 'ambiente'];
-const VOL_PADRAO = { geral: .5, musica: .6, efeitos: 1, passos: .8, ambiente: .7 };
+/* Um ganho por categoria, todos pendurados no master. Assim dá para baixar só a
+   trilha sem mexer no resto — e o volume de cada um sobrevive ao recarregar. */
+const VOL_CATS = ['musica', 'efeitos', 'ambiente'];
+const VOL_PADRAO = { geral: .5, musica: .6, efeitos: 1, ambiente: .7 };
 let VOL = Object.assign({}, VOL_PADRAO);
 try { Object.assign(VOL, JSON.parse(localStorage.getItem('thaira.vol') || '{}')); } catch (e) { }
 const BUS = {};
@@ -254,8 +252,7 @@ function tocarAmostra(nome, saida) {
    erro) não tem lugar nenhum e toca centrado. */
 function sfx(nome, x, y) {
   if (!AC || !SFX_ON) return;
-  // passo tem barramento próprio; o resto dos efeitos divide o mesmo
-  const bus = (nome.lastIndexOf('step_', 0) === 0 ? BUS.passos : BUS.efeitos) || master;
+  const bus = BUS.efeitos || master;
   let saida = bus;
   if (x !== undefined) {
     saida = noMundo(x, y, bus);
@@ -268,25 +265,19 @@ function sfx(nome, x, y) {
   try { f(); } catch (e) { /* som nunca derruba o jogo */ }
   destino = null;
 }
-/* Passo: o nome sai do terreno pisado, então `step_grass`, `step_stone`, etc.
-   Sem arquivo não sai som nenhum — passo sintetizado soa pior que silêncio, e
-   este é justamente o som que precisa ser bom para dar presença. */
-function passo(x, y, z) {
-  if (!AC || !SFX_ON || typeof TILE === 'undefined') return;
-  const def = TILE[tileAt(x, y, z)];
-  if (!def || !def.tex) return;
-  sfx('step_' + def.tex, x, y);
-}
-
-/* Os nomes específicos (atk_sword, spell_fire, step_grass) não existem no banco
-   sintetizado. Enquanto não houver arquivo para eles, caem aqui no som genérico
-   de antes, então nada emudece na troca. Passo é a exceção proposital: fica em
-   silêncio, porque passo sintetizado soa pior que passo nenhum. */
+/* Os nomes específicos (atk_sword, spell_fire) não existem no banco sintetizado.
+   Enquanto não houver arquivo para eles, caem aqui no som genérico de antes,
+   então nada emudece na troca. */
 const SFX_ALT = {
   atk_sword: 'hit', atk_axe: 'hit', atk_club: 'hit', atk_fist: 'hit',
   atk_distance: 'shoot', atk_wand: 'energy',
   spell_fire: 'fire', spell_ice: 'ice', spell_energy: 'energy',
-  spell_earth: 'fire', spell_holy: 'buff', spell_death: 'energy'
+  spell_earth: 'fire', spell_holy: 'buff', spell_death: 'energy',
+  spell_physical: 'shoot',
+  cast_bolt: 'shoot', cast_wave: 'fire', cast_aoe: 'hit',
+  cast_conjure: 'rune', cast_taunt: 'die',
+  hab_area: 'hit', hab_lento: 'ice', hab_cura: 'buff',
+  hab_mana: 'energy', hab_fase: 'die'
 };
 
 /* ---------------------------------------------------------------- trilha */
@@ -300,8 +291,53 @@ const SFX_ALT = {
      { "superficie-dia": ["dia-taverna.mp3", "dia-mercado.mp3"], ... }
    O nome do arquivo traz a extensão, então ogg e mp3 convivem na mesma lista.
    Sem manifesto, `musica()` devolve falso e o ambiente sintetizado assume. */
+/* A trilha de luta acende com DANO DIRETO e só com ele: veneno e queimadura
+   passam por `tickEstados`, e acender a cada tique deles seria justamente a
+   troca sem fim que se quer evitar. Quem apaga é o RELÓGIO, não a ausência de
+   bicho — cada golpe empurra o prazo, então uma troca de golpes segura a música
+   acesa em vez de piscar entre duas listas a cada respiro.
+   12 s porque a ENTRADA custa ~4: 1,1 decodificando a faixa (medido no jogo) e
+   3 de passagem cruzada. Prazo perto disso faz briga curta virar liga-desliga,
+   que é o defeito e não o conserto. O laço do jogo confere a cada 3 s, então a
+   volta ao normal cai entre 12 e 15 s do último golpe. */
+const CBT_SAIDA = 12000;
+let cbtAte = 0;
+const emCombate = () => Date.now() < cbtAte;
+function combateGolpe(z) {
+  cbtAte = Date.now() + CBT_SAIDA;
+  musica(trilhaDe(z));                // sai na hora quando já é a lista certa
+}
+function combateLimpa() { cbtAte = 0; }
+/* Quem decide o ambiente da trilha é UMA função. A conta vivia em dois lugares
+   — o laço do jogo e o `ambience` da troca de andar — com réguas de superfície
+   diferentes (`P.z <= SURF` de um lado, `z <= 1` do outro); enquanto as duas
+   concordavam, ninguém via. Com o combate por cima elas passariam a brigar: o
+   laço devolveria a trilha pacífica três segundos depois do golpe que acendeu a
+   de luta. (`ambienteDe` já é do world.js, a cor do andar — outra coisa.) */
+function trilhaDe(z) {
+  if (emCombate()) return z >= 3 ? 'combate-abismo' : 'combate';
+  return z <= 1 ? (ehNoite() ? 'superficie-noite' : 'superficie-dia')
+    : z >= 3 ? 'abismo' : 'caverna';
+}
+
+/* Marcador por ambiente. Sem ele a trilha reembaralha e recomeça do zero a cada
+   volta, e as faixas de luta têm de 4 a 10 minutos contra briga de 30 segundos:
+   daria para ouvir a mesma abertura em TODA briga e nunca chegar ao fim de faixa
+   nenhuma — nem da de luta, nem da pacífica, que perde o lugar junto. Guarda o
+   NOME e o segundo, nunca o buffer: sete minutos decodificados são ~80 MB de
+   PCM, e ficariam dois pendurados para sempre. Redecodificar custa ~1,1 s, que
+   cabe na passagem cruzada. Faixa a menos de RETOMA_MIN do fim volta do começo:
+   retomar nos últimos segundos é um naco de música e um buraco até a próxima. */
+const RETOMA_MIN = 20;
 const MUS_CROSS = 3;
-const MUS = { lista: null, amb: null, fila: [], i: 0, node: null, gain: null, timer: null, ultima: null };
+const MUS = { lista: null, amb: null, fila: [], i: 0, node: null, gain: null, timer: null, ultima: null,
+  marca: {}, t0: 0, off: 0, dur: 0 };
+function _marcar() {
+  if (!MUS.node || !MUS.amb) return;
+  const off = MUS.off + (AC.currentTime - MUS.t0);
+  if (MUS.dur - off > RETOMA_MIN) MUS.marca[MUS.amb] = { arq: MUS.ultima, off };
+  else delete MUS.marca[MUS.amb];
+}
 
 async function musListas(base) {
   if (MUS.lista !== null) return MUS.lista;
@@ -337,7 +373,7 @@ function _pararFaixa(node, gain) {
 /* Toca a faixa `i` da fila e agenda a troca para MUS_CROSS antes do fim.
    O relógio é o `duration` do buffer, não o evento `ended`: agendando antes dá
    para sobrepor as duas e cruzar de verdade, em vez de deixar um buraco. */
-async function _tocarFila(base, amb) {
+async function _tocarFila(base, amb, off = 0) {
   if (MUS.amb !== amb) return;                     // trocou de ambiente no meio do await
   const fila = MUS.fila;
   if (!fila.length) return;
@@ -355,10 +391,11 @@ async function _tocarFila(base, amb) {
   const g = AC.createGain();
   g.gain.setValueAtTime(0.0001, t);
   g.gain.linearRampToValueAtTime(0.32, t + MUS_CROSS);
-  src.connect(g); g.connect(BUS.musica || master); src.start(t);
+  src.connect(g); g.connect(BUS.musica || master); src.start(t, off);
   MUS.node = src; MUS.gain = g; MUS.ultima = arq;
+  MUS.t0 = t; MUS.off = off; MUS.dur = buf.duration;
   clearTimeout(MUS.timer);
-  const espera = Math.max(4, buf.duration - MUS_CROSS) * 1000;
+  const espera = Math.max(4, buf.duration - off - MUS_CROSS) * 1000;
   MUS.timer = setTimeout(() => {
     MUS.i++;
     if (MUS.i % fila.length === 0) MUS.fila = _embaralhar(fila, MUS.ultima), MUS.i = 0;
@@ -370,11 +407,14 @@ async function musica(amb, base = 'assets/music') {
   const listas = await musListas(base);
   const faixas = listas[amb];
   if (!faixas || !faixas.length) return false;
+  _marcar();                                   // onde a trilha que SAI parou
   MUS.amb = amb;
-  MUS.fila = _embaralhar(faixas, MUS.ultima);
+  const m = MUS.marca[amb], retoma = !!m && faixas.includes(m.arq);
+  MUS.fila = _embaralhar(faixas, retoma ? null : MUS.ultima);
+  if (retoma) { MUS.fila = [m.arq, ...MUS.fila.filter(f => f !== m.arq)]; delete MUS.marca[amb]; }
   MUS.i = 0;
   clearTimeout(MUS.timer);
-  await _tocarFila(base, amb);
+  await _tocarFila(base, amb, retoma ? m.off : 0);
   return true;
 }
 /* A trilha do menu toca por <audio>, não por decodeAudioData: são ~7 MB e
@@ -421,7 +461,7 @@ function ambience(z) {
   if (!audioInit()) return;
   pararAmbiente();
   if (!SFX_ON) return;
-  musica(z <= 1 ? (ehNoite() ? 'superficie-noite' : 'superficie-dia') : z >= 3 ? 'abismo' : 'caverna');
+  musica(trilhaDe(z));
   const t = AC.currentTime;
   if (z === 0 || z === 1) {                       // vento
     const n = AC.sampleRate * 4, buf = AC.createBuffer(1, n, AC.sampleRate), ch = buf.getChannelData(0);

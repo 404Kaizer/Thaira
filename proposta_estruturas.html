@@ -1,0 +1,407 @@
+<meta charset="utf-8">
+<title>Estruturas - parede, cobertura e sombra</title>
+<style>
+  :root{
+    --ink:#0b0c0f; --surface:#15151a; --surface2:#1e1c18; --raise:#26241f;
+    --line:#3a352b; --line-soft:#2a261f;
+    --txt:#ddd5c2; --dim:#8f8874; --mute:#6b6558;
+    --gold:#d9a441; --gold2:#f0cd7a;
+    --done:#7fd08a; --wait:#e0a05a; --warn:#e0705f;
+    --serif:"Cinzel","Trajan Pro",Georgia,"Times New Roman",serif;
+    --sans:"Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:ui-monospace,"Cascadia Code",Consolas,"DejaVu Sans Mono",monospace;
+    --measure:74ch;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+      --line:#bdb6a6; --line-soft:#cdc7b9;
+      --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+      --gold:#7d5a15; --gold2:#5e430f;
+      --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+    }
+  }
+  :root[data-theme="light"]{
+    --ink:#dcd8ce; --surface:#e6e3da; --surface2:#eeebe3; --raise:#f4f2ec;
+    --line:#bdb6a6; --line-soft:#cdc7b9;
+    --txt:#231f18; --dim:#5f5849; --mute:#7c7566;
+    --gold:#7d5a15; --gold2:#5e430f;
+    --done:#2f6b3c; --wait:#8a5610; --warn:#9b3226;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--txt);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px 96px}
+  .col{max-width:var(--measure)}
+  h1,h2,h3,h4{text-wrap:balance;margin:0}
+  a{color:var(--gold2)}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+  header{padding:64px 0 36px;border-bottom:1px solid var(--line)}
+  .eyebrow{font:600 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin-bottom:18px}
+  h1{font:400 clamp(32px,5.5vw,50px)/1.08 var(--serif);letter-spacing:.03em;color:var(--gold2)}
+  .lede{margin-top:20px;color:var(--dim);font-size:17px}
+  .lede b{color:var(--txt);font-weight:600}
+
+  section{padding:48px 0;border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:0}
+  h2{font:600 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+     margin-bottom:22px;display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  h3{font:600 17px/1.4 var(--sans);color:var(--txt);margin:26px 0 8px}
+  h3:first-child{margin-top:0}
+  h4{font:600 14px var(--sans);color:var(--gold2);margin:18px 0 6px}
+  p{margin:0 0 14px;max-width:var(--measure)}
+  p:last-child{margin-bottom:0}
+  strong{color:var(--gold2);font-weight:600}
+  code{font:0.87em var(--mono);background:var(--surface2);border:1px solid var(--line-soft);
+       border-radius:3px;padding:1px 5px;color:var(--txt);white-space:nowrap}
+  ul,ol{max-width:var(--measure);margin:0 0 14px;padding-left:20px}
+  li{margin-bottom:6px}
+
+  .band{overflow-x:auto;margin:0 -4px 8px}
+  table{border-collapse:collapse;width:100%;min-width:540px;font-variant-numeric:tabular-nums}
+  caption{text-align:left;color:var(--mute);font-size:13px;padding-bottom:10px}
+  th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  thead th{font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);
+           border-bottom:1px solid var(--line)}
+  tbody th{font:400 14px var(--sans);color:var(--txt);font-weight:500}
+  td{font-size:14px;color:var(--dim)}
+  td.n{font-family:var(--mono);font-size:13.5px}
+  td.now{color:var(--gold2);font-family:var(--mono);font-size:13.5px}
+  td.delta{color:var(--done);font-size:13px}
+
+  .fases{display:grid;gap:2px;background:var(--line-soft);border:1px solid var(--line-soft);margin-bottom:8px}
+  .fase{background:var(--surface);padding:20px 22px;display:grid;grid-template-columns:auto 1fr;gap:18px}
+  .num{font:400 13px var(--mono);color:var(--gold);padding:3px 18px 0 0;border-right:1px solid var(--line-soft)}
+  .fase p,.fase li{color:var(--dim);font-size:14.5px}
+  .why{margin-top:10px;padding-left:14px;border-left:2px solid var(--line);color:var(--mute);
+       font-size:13.5px;font-style:italic}
+
+  .fix{background:var(--surface);border:1px solid var(--line-soft);border-left:2px solid var(--done);
+       padding:16px 20px;margin-bottom:2px}
+  .fix h4{margin-top:0}
+  .fix p{font-size:14px;color:var(--dim);margin-bottom:8px}
+  .causa{font-size:13.5px;color:var(--mute)}
+  .causa b{color:var(--warn);font-weight:600}
+
+  .grupo{margin-bottom:28px}
+  .gtitle{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+  ul.itens{list-style:none;margin:0;padding:0;display:grid;gap:2px;max-width:none}
+  ul.itens li{background:var(--surface);border-left:2px solid var(--wait);padding:13px 18px;
+              display:grid;gap:4px;margin:0}
+  ul.itens li.debt{border-left-color:var(--mute)}
+  .it-n{font:600 15px var(--sans);color:var(--txt)}
+  .it-d{font-size:13.5px;color:var(--dim)}
+  .it-t{font-size:12.5px;color:var(--mute);font-family:var(--mono)}
+
+  /* Selo de estado. Retangular e sem preenchimento: é rótulo, não botão. */
+  .tag{font:600 10px var(--sans);letter-spacing:.09em;text-transform:uppercase;
+       padding:2px 6px;border:1px solid var(--line);border-radius:2px;
+       white-space:nowrap;margin-left:6px}
+  .tag.warn{color:var(--warn);border-color:var(--warn)}
+  .tag.wait{color:var(--wait);border-color:var(--wait)}
+  .tag.done{color:var(--done);border-color:var(--done)}
+  ul.itens li.feito{border-left-color:var(--done)}
+  /* Na lista de invariantes (ul simples, com marcador), o que entrou nesta leva
+     ganha o marcador em verde — some no meio das 30 antigas sem isso. */
+  li.feito::marker{color:var(--done)}
+
+  .aviso{background:var(--surface2);border:1px solid var(--line);border-left:3px solid var(--warn);
+         padding:18px 20px;margin-bottom:14px;max-width:var(--measure)}
+  .aviso h4{color:var(--warn);margin-top:0}
+  .aviso p{font-size:14px;color:var(--dim)}
+
+  footer{padding:36px 0 0;color:var(--mute);font-size:13px;border-top:1px solid var(--line)}
+
+  @media (max-width:640px){
+    .fase{grid-template-columns:1fr;gap:10px}
+    .num{border-right:0;border-bottom:1px solid var(--line-soft);padding:0 0 8px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Thaira · proposta · estruturas</div>
+  <h1>A parede não está grossa: o jogo está em duas câmeras</h1>
+  <p class="lede">O dono relatou duas coisas &mdash; <i>&ldquo;as paredes são muito grossas&rdquo;</i> e
+  <i>&ldquo;o tile de baixo cobre o chão&rdquo;</i> &mdash; e mandou como referência uma casa vista de
+  cima. Um time de três (artista 2D no Tibia, artista 3D no The Sims, game designer julgando os
+  dois) chegou a um diagnóstico que nenhum dos sintomas anunciava: <b>a planta está desenhada de
+  cima e em corte, e a parede está desenhada de três quartos.</b> Faixa fina de 10&nbsp;px e face
+  de 50&nbsp;px não podem ser a mesma câmera. &ldquo;Grossa&rdquo; foi a palavra que sobrou.</p>
+</header>
+
+<section>
+  <h2>O que está medido</h2>
+
+  <p>Tudo aqui foi medido no jogo rodando, no mapa que o dono joga, ao meio-dia, ou lido do arquivo
+  gravado. Nada é de memória.</p>
+
+  <div class="band"><table>
+    <caption>O estado de hoje</caption>
+    <thead><tr><th>grandeza</th><th>valor</th><th>o que significa</th></tr></thead>
+    <tbody>
+      <tr><th>WALL_TOP / WALL_H / WALL_CHAPA</th><td class="now">32 / 64 / 14</td><td>o sprite é 32&times;64 e sai de <code>sy&nbsp;&minus;&nbsp;32</code>: <b>pinta dois tiles inteiros de tela</b></td></tr>
+      <tr><th>espessura vista de cima</th><td class="now">0,44 tile</td><td>a chapa de 14&nbsp;px num tile de 32. <b>É a queixa literal</b></td></tr>
+      <tr><th>corpo do jogador</th><td class="now">49,2 px</td><td>1,54 tile (sprite 44&times;54, <code>feet</code> 49,2). A parede tem 64</td></tr>
+      <tr><th>fileira de parede na tela</th><td class="now">19%</td><td>64&nbsp;px de um viewport de 343. Uma casa perde uma fileira de piso interno</td></tr>
+      <tr><th>telhado no mapa</th><td class="now">8 tiles</td><td>o andar 0 tem <b>36.852 de 36.864 em VOID</b>. Não há telhado em lugar nenhum</td></tr>
+      <tr><th>tiles internos da casa 1 com telhado</th><td class="now">0 de 54</td><td>toda casa é uma caixa aberta para o céu</td></tr>
+      <tr><th>objetos de parede no mapa</th><td class="now">2.743</td><td>389 <code>pbloco</code> + 344 <code>ptabua</code> + 572 <code>cparede</code> + 1.362 <code>rochedo</code> + 76 <code>teia</code> &mdash; <b>47% de todos os objetos</b></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="aviso">
+    <h4>A referência que o dono mandou não é o The Sims</h4>
+    <p>No modo <i>walls down</i> o Sims não desenha faixa de pedra nenhuma &mdash; ele <b>apaga</b> a
+    parede e deixa um contorno fino. Faixa de pedra texturada com contorno escuro dos dois lados é
+    linguagem de <b>battlemap de VTT</b> (Dungeondraft, Inkarnate). O Sims entra nesta proposta por
+    outra porta, e é a mais barata de todas: <b>cômodo lido pelo piso</b>.</p>
+  </div>
+
+  <div class="aviso">
+    <h4>E o nosso transbordo de 32&nbsp;px É o do Tibia</h4>
+    <p>Verificado no fonte do OTClient (<code>thingtype.cpp:400</code>): átomo de 32&times;32, âncora no
+    canto sudeste, cada átomo extra transborda 32&nbsp;px para cima. <b>Não é defeito nosso, é o
+    padrão.</b> O Tibia tem <b>duas</b> classes de parede e nunca as mistura: muro baixo de 24&nbsp;px
+    (0,75 tile, deixa 3/4 do próprio chão à vista) e parede de casa de 59&nbsp;px, opaca. A
+    referência do dono pede a primeira; a nossa é a segunda.</p>
+  </div>
+</section>
+
+<section>
+  <h2>O diagnóstico</h2>
+
+  <p>No Tibia, <b>da rua você não vê o chão de dentro da casa</b>. Você vê telhado &mdash; um andar
+  de verdade em z&minus;1, culado no instante em que o jogador entra. É por isso que lá a parede
+  pode ser alta e opaca sem incomodar: <b>ela nunca disputa espaço visual com um piso interno</b>.</p>
+
+  <p>Nós temos a parede alta do Tibia <b>sem</b> o telhado do Tibia. O resultado é um corte
+  anatômico: paredes de dois tiles em volta de um piso que a rua enxerga inteiro, escurecido 42%.
+  <b>É a única leitura em que a parede alta parece errada</b> &mdash; e é a que o dono está vendo.</p>
+
+  <h3>Parede de ARESTA contra parede de CÉLULA</h3>
+  <p>A parede do Sims mora <b>entre</b> duas células e ocupa zero tile. A do Tibia <b>é</b> uma
+  célula. A nossa é de célula (objeto num tile, com <code>pe</code> de colisão), e dentro desse
+  modelo <b>o visual da referência não existe</b>: se a parede ocupa um tile, o chão daquele tile é
+  dela. Trocar para aresta refaz colisão, <code>reindexObjs</code>, <code>calcDentro</code>,
+  <code>tapaVista</code>, paleta do editor e formato de patch &mdash; e contradiz &ldquo;parede é objeto&rdquo;.</p>
+  <p class="why">O que a referência realmente exige é que <b>o chão do cômodo apareça</b>. Isso o corte
+  da parede sul entrega dentro do modelo atual, sem tocar em dado nenhum.</p>
+</section>
+
+<section>
+  <h2>Três correções de fato, conferidas no fonte</h2>
+
+  <div class="fix">
+    <h4>1 · A regra de telhado do Tibia JÁ ESTÁ no motor</h4>
+    <p><code>render2d.js:231</code> &mdash; <code>if (P.z - 1 &gt;= 0 &amp;&amp; !coberto) zs.push(P.z - 1)</code>.
+    É literalmente o <code>calcFirstVisibleFloor</code>: o andar de cima aparece enquanto o jogador
+    está fora e some quando ele entra.</p>
+    <p class="causa"><b>Muda o custo de tudo:</b> o telhado custa <b>arte e autoria de mapa</b>, não
+    motor. E a camada está livre &mdash; 36.852 de 36.864 tiles em VOID.</p>
+  </div>
+
+  <div class="fix">
+    <h4>2 · Baixar WALL_H espremeria a PORTA, calado</h4>
+    <p><code>porta</code> tem <code>top: 1.1</code> (<code>world.js:323</code>), então cai no ramo de
+    parede e é desenhada em <code>WALL_H * S</code> &mdash; mas o sprite dela é
+    <code>PORTA_H = 64</code>.</p>
+    <p class="causa"><b>É o caso <code>span</code>/<code>pe</code> outra vez.</b> Sete leitores de
+    <code>WALL_H</code> fora do <code>wallSprite</code>: porta, teia, moinho, centragem de sangue na
+    face, as duas faixas do passe de luz, e a régua que crava <code>2 = WALL_H/32</code>.</p>
+  </div>
+
+  <div class="fix">
+    <h4>3 · O medo do grão da textura era obsoleto</h4>
+    <p><code>src = 32 * FACE / WALL_H</code> (<code>art.js:1236</code>) &rarr; o esticamento é
+    <code>WALL_H/32</code>, ou seja <b>2,00&times; para qualquer chapa</b>. Medido com 14 e com 8: os
+    dois dão 2,00.</p>
+    <p class="causa">Afinar a chapa <b>não toca o grão</b>. Já havia sido consertado.</p>
+  </div>
+</section>
+
+<section>
+  <h2>O que muda</h2>
+
+  <div class="fases">
+    <div class="fase"><div class="num">M1</div><div>
+      <div class="it-n">Piso por cômodo <span class="tag done">correção</span></div>
+      <p><b>Zero linha de código.</b> Já existem 30+ terrenos de piso construído
+      (<code>tijolo</code>, <code>tabua_clara</code>, <code>calcada_laje</code>,
+      <code>pedra_irregular</code>&hellip;), <code>familia</code>, <code>TERRAIN_PRIO</code> e o
+      <code>borderSprite</code> para a junta. Hoje a casa inteira é um <code>T.FLOOR</code> só.</p>
+      <p class="why">Na referência você lê quatro cômodos ANTES de olhar para as paredes. É o maior
+      ganho de leitura da fila, o mais barato, e vale igual sob qualquer resposta à pergunta grande.</p>
+      <p class="it-t">régua: <code>salaDe</code> já rotula recinto por tile. Conferência NOMEIA
+      &mdash; lista de cômodos com âncora, cobrando as duas metades.</p>
+    </div></div>
+
+    <div class="fase"><div class="num">M2</div><div>
+      <div class="it-n">WALL_CHAPA 14 &rarr; 8 <span class="tag done">correção</span></div>
+      <p>Uma constante (<code>art.js:1188</code>). 0,44 &rarr; <b>0,25 tile</b>. Responde literalmente
+      <i>&ldquo;as paredes são muito grossas&rdquo;</i>. Herdada de graça pela porta de perfil, que usa a
+      mesma constante.</p>
+      <p class="why">8 e não 9: é 1/4 exato do tile, é o piso da faixa que o próprio dono declarou,
+      e é onde as duas análises independentes convergiram. <b>Quando a queixa é &ldquo;demais&rdquo;,
+      pousa-se na ponta fina</b> &mdash; uma segunda rodada de &ldquo;ainda grosso&rdquo; é o resultado caro.</p>
+      <p class="it-t">régua: nova, lendo a fita <code>REC</code>, cobrando a banda de topo em <b>8
+      fixo</b>. A que existe compara contra a própria constante e não mede nada.</p>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2>O que é novo</h2>
+
+  <div class="fases">
+    <div class="fase"><div class="num">N1</div><div>
+      <div class="it-n">Sombra de prédio no gramado <span class="tag done">correção, por reuso</span></div>
+      <p>Não é sistema novo: <code>telhadoNaLuz</code> (<code>render2d.js:1832</code>) já constrói
+      exatamente a pegada da casa &mdash; máscara opaca num canvas à parte, alfa uma vez só no
+      <code>drawImage</code>. Extrai-se o construtor e usa-se duas vezes. <b>~15 linhas.</b></p>
+      <p class="why">Hoje o exterior só tem <code>edgeShadow</code>, que é contato de parede por tile.
+      Falta silhueta de <b>prédio</b> &mdash; outra escala, outro leitor.</p>
+      <p class="it-t">teto: é a pegada de ABRIGO, não do telhado. E <code>abrigado()</code> inclui
+      <code>souCoberto</code>, então em caverna a máscara é o mapa inteiro &mdash; guardar por
+      <code>z === SURF</code>.</p>
+      <p class="it-t">régua: contar o canal <b>ALFA</b> (preto sobre transparente mede zero no
+      vermelho); âncora <b>externa</b> no canto do tile, não concordância; <code>altSolF</code>
+      cravada nos dois extremos e restaurada em toda saída; e um controle que mede zero.</p>
+    </div></div>
+
+    <div class="fase"><div class="num">N2</div><div>
+      <div class="it-n">Telhado <span class="tag wait">só se a resposta for TIBIA</span></div>
+      <p>Camada em <code>z = SURF-1</code> sobre cada casa. O código de visibilidade existe. Falta
+      2&ndash;3 texturas (telha, palha, ardósia) com entrada em <code>TEX_DRAW</code> e
+      <code>TERRAIN_PRIO</code> e caractere no <b>fim</b> do <code>TILE_CHAR</code>; pintar os
+      telhados nos scripts; e o <code>edificio()</code> do #53.</p>
+      <p class="it-t">régua: por casa nomeada, todo tile interior tem tile não-VOID em
+      <code>z = SURF-1</code>; e o caminho inteiro, com controle &mdash; jogador na rua grava blits do
+      andar de cima, dentro grava zero.</p>
+    </div></div>
+
+    <div class="fase"><div class="num">N3</div><div>
+      <div class="it-n">Corte da parede sul <span class="tag wait">só se a resposta for SIMS</span></div>
+      <p>Responde a segunda metade da queixa, e é barato porque <b>o render já calcula a
+      condição</b>: <code>render2d.js:1072</code> já pergunta <code>!abrigado(x, y-1, z)</code>. A
+      mesma pergunta escolhe a altura: quando o tile de cima é interior, a parede sai com 32&nbsp;px
+      e <code>topY = sy</code>. Cutaway do Sims dentro do modelo de célula, <b>sem tocar em colisão,
+      <code>calcDentro</code>, <code>tapaVista</code>, editor ou patch</b>.</p>
+      <p class="why">O transbordo para o norte só torna a parede NORTE inofensiva. A parede SUL é a
+      que fica entre a câmera e o interior, e o transbordo a joga <i>para dentro</i> da sala. O motor
+      não resolveu o cutaway &mdash; só deixou de piorar metade dele.</p>
+      <p class="it-t">preço, e só o olho julga: o tile de quina fica de pé, então a parede sul sai
+      rente ao chão entre dois cantos altos. No Sims é assim; aqui pede a bancada antes do mapa.</p>
+      <p class="it-t">régua: tem de exercer o <code>drawWorld</code> INTEIRO &mdash; medir o
+      <code>wallSprite</code> direto passa verde na mutação que ignora a escolha.</p>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2>O que sai ou é refeito</h2>
+  <ul>
+    <li><b>Nada de código sai.</b> Nenhuma peça do sistema de parede está errada; o que está errado
+    é uma constante e um enquadramento.</li>
+    <li><b>Refeita a frase do tasks.html</b> (linha 8538): <i>&ldquo;não há telhado &mdash; o que existe é o
+    <code>abrigado()</code> do passe de luz, que é outra coisa&rdquo;</i>. Está certa sobre autoria e
+    <b>incompleta sobre o motor</b> &mdash; o <code>drawWorld</code> já cula o andar de cima. Enquanto
+    essa frase estiver assim, a próxima leva reconstrói do zero o que já existe.</li>
+    <li><b>Refeito o <code>casa()</code> de três linhas</b> dos scripts de mapa
+    (<code>retangulo(WALL)</code> + <code>retangulo(FLOOR)</code> + <code>pinta(DOOR)</code>). Não
+    sustenta M1 nem N2. Vira <code>edificio()</code> &mdash; que é a fatia 4 do #53, já na fila.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>O que fica como está</h2>
+  <p>Cada um custou uma volta de trabalho e não tem motivo novo para reabrir. <b>Esta lista protege
+  tanto quanto a de cima constrói.</b></p>
+  <ul>
+    <li><b><code>WALL_TOP = 32</code> e <code>WALL_H = 64</code>.</b> É o número do Tibia, é o degrau
+    travado, é o único que deixa a parede mais alta que o corpo de 49,2&nbsp;px, e é a altura em que
+    a porta é desenhada.</li>
+    <li><b>Parede é objeto de CÉLULA</b>, com <code>pe</code> de colisão.</li>
+    <li><b>Máscara de 4 bits, 16 variantes.</b> Estritamente superior às 4 do <code>walls.xml</code>
+    do Remere's. Não empobrecer.</li>
+    <li><b><code>jan</code> como id de ficha</b>, <b><code>aberta</code> como instância</b>,
+    <b><code>prof</code></b>, <b><code>q</code></b>, <b><code>LADO = 3</code></b>, <b>porta de
+    perfil</b>, <b><code>cristas</code>/<code>faces</code> + <code>luzDaFrente</code></b>,
+    <b><code>TELHADO = .42</code></b>, e o filtro <code>!abrigado(x, y-1, z)</code>.</li>
+    <li><b><code>edgeShadow</code> só N e O, 14&nbsp;px.</b> O sol é fixo a noroeste. E <b>não baixar
+    <code>WALL_H</code> para dar &ldquo;pé de chão&rdquo;</b>: a <code>edgeShadow</code> do vizinho ao sul começa
+    em <code>sy+32</code>, sobraria faixa de chão iluminado entre o pé da parede e a sombra dela, e
+    a parede passaria a <b>flutuar</b> &mdash; o defeito que ela existe para evitar.</li>
+    <li><b>Sombra é do motor, nunca assada no sprite.</b></li>
+    <li><b>Uma altura só de parede, por enquanto.</b> Sete leitores de <code>WALL_H</code>; altura por
+    ficha tem de alcançar todos. Teto anotado, não entra nesta leva.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>O que NÃO fazer</h2>
+  <ol>
+    <li><b>Não ir para a faixa chapada de 90&deg;.</b> Não é ajuste de espessura, é troca de
+    direção de arte. O boneco é desenhado de frente, a porta tem 2 tiles e o jogador passa por
+    baixo da verga, as 105 peças de folha declaram <code>cx</code>/<code>feet</code> e projetam
+    sombra oblíqua. <b>Parede vista de 90&deg; ao lado de personagem visto de 0&deg; faz o boneco ler como
+    deitado.</b></li>
+    <li><b>Não baixar <code>WALL_TOP</code>.</b> Espreme a porta, encolhe o moinho, deixa 2,8&nbsp;px de
+    folga sobre o corpo, dispara o arame do teste &mdash; e entrega uma fração da correção.</li>
+    <li><b>Não trocar para parede de aresta.</b> Refaz seis sistemas para um efeito que o corte dá
+    sem tocar em dado nenhum.</li>
+    <li><b>Não criar duas alturas de parede agora.</b> É a armadilha <code>span</code>/<code>pe</code>
+    que custou 1.238 árvores.</li>
+    <li><b>Não implementar &ldquo;walls down&rdquo;.</b> No Sims é modo de CONSTRUÇÃO; THAIRA não tem
+    modo de construção. Seria um botão que apaga as paredes de um RPG.</li>
+    <li><b>Não assar sombra ou contorno dentro do sprite da parede.</b></li>
+    <li><b>Não editar <code>maps/*.json</code> na mão</b> para o piso por cômodo. Ele é saída.</li>
+    <li><b>Não anunciar o corte como pronto sem o olho do dono.</b> Régua mede se o mapa FECHA,
+    nunca se ele CONVENCE.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>As perguntas</h2>
+
+  <div class="aviso">
+    <h4>A pergunta que decide N2 contra N3</h4>
+    <p>Da rua, você quer ver o <b>TELHADO</b> da casa, com o interior aparecendo só quando o
+    personagem entra (Tibia) &mdash; ou o <b>INTERIOR SEMPRE À VISTA</b>, com a parede da frente cortada
+    rente ao chão (Sims/battlemap, que é o que a sua imagem mostra)?</p>
+    <p>Com o dado que muda a conta: a regra de visibilidade do telhado <b>já está pronta no
+    motor</b>, e a camada acima da superfície está vazia. O telhado custa arte e autoria, não
+    motor.</p>
+  </div>
+
+  <div class="aviso">
+    <h4>A segunda, e ela vem DEPOIS de a chapa afinar</h4>
+    <p>Com a chapa em 8&nbsp;px, a parede ainda está <b>grossa</b> &mdash; ou o que incomoda agora é ela
+    ser <b>alta</b>, dois tiles? São defeitos diferentes com consertos diferentes, e escolher o mais
+    chamativo é chutar.</p>
+  </div>
+
+  <div class="aviso">
+    <h4>A terceira, só se a resposta for Sims</h4>
+    <p>Na casa cortada os <b>cantos ficam de pé</b> e a parede sul fica rente ao chão entre eles,
+    como no cutaway do Sims &mdash; está bom assim, ou o corte tem de valer para o canto também?</p>
+  </div>
+</section>
+
+<section>
+  <h2>Ordem de execução</h2>
+  <p>Fazer a pergunta grande hoje. Enquanto ela não volta, tocar <b>M2</b> (uma constante),
+  <b>N1</b> (reuso da máscara que já existe) e <b>M1</b> (autoria, o maior ganho e o menor risco).</p>
+  <p><b>N2 e N3 são mutuamente exclusivos</b> e ficam travados na resposta. Em particular
+  <b>N3 não pode entrar antes dela</b>: cortar a parede sul sem telhado deixa a casa sem fachada
+  vista da rua.</p>
+</section>
+
+<footer>
+  Thaira &middot; proposta de estruturas &middot; 2026-09-03 &middot; time: artista 2D (Tibia,
+  fonte do OTClient e sprites 7.0 medidos), artista 3D (The Sims), game designer.
+  Medições feitas no jogo rodando sobre <code>maps/varrokgaard.json</code>.
+</footer>
+</div>

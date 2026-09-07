@@ -47,6 +47,12 @@ const DEF_K = 400;
 const DANO_MIN = 0.12;
 const DANO_TIPOS = ['attack', 'beam', 'wave', 'aoe', 'melee', 'melee_aoe'];
 const cdDe = sp => DANO_TIPOS.includes(sp.type) ? Math.max(sp.cd, ATAQUE_MS) : sp.cd;
+/* Som do GESTO da magia, tocado por baixo do som do elemento. `melee` não entra:
+   quem soa ali é a arma, e o `spell_` do elemento basta de cor. */
+const CAST_GESTO = {
+  attack: 'cast_bolt', wave: 'cast_wave', beam: 'cast_wave',
+  aoe: 'cast_aoe', melee_aoe: 'cast_aoe', conjure: 'cast_conjure', taunt: 'cast_taunt'
+};
 
 /* Dano e cura de magia. A conta antiga era `base × (1 + ML×0.11)`, ou seja o
    ganho por ponto de ML era 0.11×base — PROPORCIONAL ao tamanho da magia. Isso

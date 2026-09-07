@@ -16,27 +16,10 @@ RAIZ = Path(__file__).parent
 MUS = RAIZ / 'music'
 SFX = RAIZ / 'sfx'
 
-# tags declaradas pelo autor na fonte — é o que sobrou de objetivo para orientar
-TAGS = {
-    'dia-taverna': 'medieval, inn, lute, calm — The Old Tower Inn',
-    'dia-bardo': 'medieval, fantasy, RPG — The Bards Tale',
-    'dia-exploracao': 'medieval, fantasy — Medieval: Exploration',
-    'dia-colheita': 'medieval, fantasy — Medieval: Harvest Season',
-    'dia-mercado': 'medieval, fantasy — Medieval: Market Day',
-    'dia-vila': 'fantasy, RPG, calm, HOME, town — Town Theme',
-    'dia-celta': 'knights, celtic, folk, irish, medieval, strings',
-    'dia-campina': 'classical, bells, horn, medieval, overworld, strings',
-    'dia-menestrel': 'DnD, inn, lute, dance, feast, medieval',
-    'dia-banquete': 'DnD, inn, folk, king, feast, calm',
-    'noite-lamento': 'DnD, fantasy, castle, ancient, arcane, calm',
-    'noite-campos': 'fantasy, RPG, cinematic, instrumental',
-    'noite-espadas': 'ambient, fantasy',
-    'caverna-eco': 'fantasy, cave',
-    'caverna-masmorra': 'dungeon, ambience',
-    'caverna-templo': 'dark, ruins, temple',
-    'abismo-caverna': 'dark, cavern, ambient',
-}
-AMBIENTES = ['superficie-dia', 'superficie-noite', 'caverna', 'abismo']
+# A trilha atual e a OSRS: o nome do arquivo ja diz o lugar, entao nao ha tabela
+# de tags para manter. Se entrar faixa de outra fonte, tag dela vai aqui.
+TAGS = {}
+AMBIENTES = ['superficie-dia', 'superficie-noite', 'caverna', 'abismo', 'combate', 'combate-abismo']
 
 
 def main():
@@ -61,7 +44,7 @@ def main():
         'ambientes': AMBIENTES,
         'sfx': msfx,
     }
-    (RAIZ.parent / 'audicao.html').write_text(
+    (RAIZ.parent / 'tools' / 'audicao.html').write_text(
         PAGINA.replace('__DADOS__', json.dumps(dados, ensure_ascii=False)), encoding='utf8')
     print('audicao.html gerado — %d faixas, %d efeitos' % (len(faixas), len(msfx) - 1))
 
@@ -135,7 +118,7 @@ D.faixas.forEach(f => {
     <td class="tags">${f.tags}</td>
     <td><select><option value="">— descartar —</option>${
       D.ambientes.map(a=>`<option value="${a}"${a===f.amb?' selected':''}>${a}</option>`).join('')}</select></td>`;
-  tr.querySelector('button').onclick = e => { tocar('assets/music/'+f.arq, f.arq);
+  tr.querySelector('button').onclick = e => { tocar('../assets/music/'+f.arq, f.arq);
     document.querySelectorAll('#tmus button').forEach(b=>b.classList.remove('on'));
     e.target.classList.add('on'); };
   tr.querySelector('select').onchange = e => { f.amb = e.target.value; saidaMus(); };
@@ -160,11 +143,11 @@ Object.keys(D.sfx).filter(k=>k!=='ext').sort().forEach(nome => {
     <td><input type="range" min="0" max="1.5" step="0.05" value="${cfg.v}"> <span class="tags">${cfg.v}</span></td>`;
   tr.querySelector('button').onclick = () => {
     const i = 1 + Math.floor(Math.random()*cfg.n);
-    tocar(`assets/sfx/${nome}${i>1?'-'+i:''}.${ext}`, nome);
+    tocar(`../assets/sfx/${nome}${i>1?'-'+i:''}.${ext}`, nome);
     // camada junto, como o jogo faz
     (cfg.mix||[]).forEach(c => { const cc=D.sfx[c]; if(!cc) return;
       const j = 1 + Math.floor(Math.random()*cc.n);
-      const a = new Audio(`assets/sfx/${c}${j>1?'-'+j:''}.${cc.ext||extGeral}`); a.volume=.8; a.play(); });
+      const a = new Audio(`../assets/sfx/${c}${j>1?'-'+j:''}.${cc.ext||extGeral}`); a.volume=.8; a.play(); });
   };
   const r = tr.querySelector('input');
   r.oninput = e => { cfg.v = +e.target.value; e.target.nextElementSibling.textContent = cfg.v; saidaSfx(); };

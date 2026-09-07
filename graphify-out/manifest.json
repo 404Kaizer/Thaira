@@ -10,9 +10,9 @@
     "semantic_hash": "b01037be7101892d188b83b35f46afc5"
   },
   "assets/build_audicao.py": {
-    "mtime": 1786335220.0,
-    "ast_hash": "242be8f02a986c7a4f27cac42633fa5d",
-    "semantic_hash": "242be8f02a986c7a4f27cac42633fa5d"
+    "mtime": 1788105599.1733644,
+    "ast_hash": "b5e2e018dc4b8735d581cd39df20d9c5",
+    "semantic_hash": ""
   },
   "assets/build_icons.py": {
     "mtime": 1786238006.0,
@@ -20,13 +20,13 @@
     "semantic_hash": "747bf4756c940e4336ccbf11d0fe5d8d"
   },
   "assets/build_sfx.py": {
-    "mtime": 1787064623.7164872,
-    "ast_hash": "3c79f241706572fee003296b3aa9ca82",
+    "mtime": 1788122251.5888145,
+    "ast_hash": "414ec38cece3b16a4a6ffebf95af931e",
     "semantic_hash": ""
   },
   "assets/music/manifest.json": {
-    "mtime": 1786682697.9505103,
-    "ast_hash": "621bffd48c7ec1b4010de0899d1d8a66",
+    "mtime": 1788105578.536126,
+    "ast_hash": "fda71d6bde7809b77e03383e8a23f02b",
     "semantic_hash": ""
   },
   "assets/sfx/manifest.example.json": {
@@ -35,38 +35,38 @@
     "semantic_hash": ""
   },
   "assets/sfx/manifest.json": {
-    "mtime": 1787064589.5468082,
-    "ast_hash": "9fed0d7219b832b8fafde24369509b72",
+    "mtime": 1788122558.503544,
+    "ast_hash": "ef1d26752aecba58cdb18a3b963cdd6d",
     "semantic_hash": ""
   },
   "src/art.js": {
-    "mtime": 1788050815.2463894,
-    "ast_hash": "a6fc316ad01e95d44a3d703fe92f0e49",
+    "mtime": 1788697996.4055798,
+    "ast_hash": "d853d8e0e6a37f4ee9e65d2d34bfa3e4",
     "semantic_hash": ""
   },
   "src/audio.js": {
-    "mtime": 1787071690.7457755,
-    "ast_hash": "a06730b077fbcda2a531a8d4b0f12ac1",
+    "mtime": 1788122226.1408553,
+    "ast_hash": "15bc1c717988b211bb1ab82387d1bd7b",
     "semantic_hash": ""
   },
   "src/data.js": {
-    "mtime": 1788033944.3304844,
-    "ast_hash": "6db5b95e1ae80698ad5292f96b3fb3ce",
+    "mtime": 1788122211.0768812,
+    "ast_hash": "078deefd465d1df3c6cd45ee0f5d37e2",
     "semantic_hash": ""
   },
   "src/game.js": {
-    "mtime": 1788100140.8772306,
-    "ast_hash": "c9e72bd1b772f5563201cab13cb8fd29",
+    "mtime": 1788317279.8329308,
+    "ast_hash": "4159e9b7f7e7030e17973474255e6a45",
     "semantic_hash": ""
   },
   "src/hud.js": {
-    "mtime": 1788093204.1483076,
-    "ast_hash": "aed62119753ae023e51f65182415132a",
+    "mtime": 1788113296.3261437,
+    "ast_hash": "588513c94560c8f6d3bf2e7f3f408234",
     "semantic_hash": ""
   },
   "src/render2d.js": {
-    "mtime": 1788101913.3562224,
-    "ast_hash": "e9a6e6e6cead11540519ee4eb8dcf0bb",
+    "mtime": 1788701829.3000355,
+    "ast_hash": "de6ee78b19e2602df0dc538316a457af",
     "semantic_hash": ""
   },
   "src/ui.js": {
@@ -75,18 +75,18 @@
     "semantic_hash": ""
   },
   "src/world.js": {
-    "mtime": 1788097983.5420628,
-    "ast_hash": "3a92fbd26c48f59a9a55c17ce5b3f722",
+    "mtime": 1788698260.5718012,
+    "ast_hash": "695621526ac943f3c123b18d41d7e4bd",
     "semantic_hash": ""
   },
   "tests/test.js": {
-    "mtime": 1788100937.007374,
-    "ast_hash": "bdf45d09981517f53626792a7dd97eb2",
+    "mtime": 1788698302.6859353,
+    "ast_hash": "53b415b965024dcd50dd64d63e6db9eb",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1788101319.1627507,
-    "ast_hash": "6c6ba746044601178c3991159be0c3c3",
+    "mtime": 1788789473.8043456,
+    "ast_hash": "f75956ab7987a1aca9f92387e2ff91d3",
     "semantic_hash": ""
   },
   "assets/CREDITOS.md": {
@@ -95,8 +95,8 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1788099773.2088172,
-    "ast_hash": "b46e18743c6d9a15c24dbf3e8205495e",
+    "mtime": 1788177529.9902,
+    "ast_hash": "1513569ce05b3c292e93c6ce053f3595",
     "semantic_hash": ""
   },
   "tools/amostra/kaykit.html": {
@@ -115,9 +115,9 @@
     "semantic_hash": "eb19195978232a6f3ecd7976418340f6"
   },
   "tools/audicao.html": {
-    "mtime": 1786412539.8188672,
-    "ast_hash": "c1db4322bfd45930712ad98e85f79a04",
-    "semantic_hash": "c1db4322bfd45930712ad98e85f79a04"
+    "mtime": 1788122582.3038685,
+    "ast_hash": "08b46ff167950366de00da7a9ee3c1b9",
+    "semantic_hash": ""
   },
   "assets/green_background/_folhas/orc_anim.png": {
     "mtime": 1786249054.0,
@@ -328,91 +328,6 @@
     "mtime": 1788097992.4730353,
     "ast_hash": "88f90ba8e2715f53860f39844e950d9c",
     "semantic_hash": ""
-  },
-  "assets/music/abismo-caverna.ogg": {
-    "mtime": 1786333718.0,
-    "ast_hash": "2cfd489e05c728194d8ec728bdeac2bc",
-    "semantic_hash": "2cfd489e05c728194d8ec728bdeac2bc"
-  },
-  "assets/music/caverna-eco.ogg": {
-    "mtime": 1786333716.0,
-    "ast_hash": "99b4aa0aafd3968495ad74261c7ebe95",
-    "semantic_hash": "99b4aa0aafd3968495ad74261c7ebe95"
-  },
-  "assets/music/caverna-masmorra.ogg": {
-    "mtime": 1786334452.0,
-    "ast_hash": "45d822146fc60075787812a329c7a4f5",
-    "semantic_hash": "45d822146fc60075787812a329c7a4f5"
-  },
-  "assets/music/caverna-templo.mp3": {
-    "mtime": 1786334450.0,
-    "ast_hash": "aa04e3111b53853f5c6ac43c21782877",
-    "semantic_hash": "aa04e3111b53853f5c6ac43c21782877"
-  },
-  "assets/music/dia-banquete.mp3": {
-    "mtime": 1786335142.0,
-    "ast_hash": "24765bd2cceaafcbb119d2dfbb44e443",
-    "semantic_hash": "24765bd2cceaafcbb119d2dfbb44e443"
-  },
-  "assets/music/dia-bardo.mp3": {
-    "mtime": 1786334446.0,
-    "ast_hash": "e1b3c117a5b187ee5c143ecb41e45b00",
-    "semantic_hash": "e1b3c117a5b187ee5c143ecb41e45b00"
-  },
-  "assets/music/dia-campina.mp3": {
-    "mtime": 1786335114.0,
-    "ast_hash": "bd6e9b70c28addca9039e0ea54fd0228",
-    "semantic_hash": "bd6e9b70c28addca9039e0ea54fd0228"
-  },
-  "assets/music/dia-celta.mp3": {
-    "mtime": 1786335110.0,
-    "ast_hash": "ce0f3df4557622b8ac251ffd5ea4a419",
-    "semantic_hash": "ce0f3df4557622b8ac251ffd5ea4a419"
-  },
-  "assets/music/dia-colheita.mp3": {
-    "mtime": 1786334442.0,
-    "ast_hash": "347ac3f8c3f9093439546bb3fae8e89b",
-    "semantic_hash": "347ac3f8c3f9093439546bb3fae8e89b"
-  },
-  "assets/music/dia-exploracao.mp3": {
-    "mtime": 1786334438.0,
-    "ast_hash": "efa3eba39cd6177d5321d48b6bec7b4f",
-    "semantic_hash": "efa3eba39cd6177d5321d48b6bec7b4f"
-  },
-  "assets/music/dia-menestrel.mp3": {
-    "mtime": 1786335132.0,
-    "ast_hash": "beb88ceb0151d8068af6e4beb211ee9b",
-    "semantic_hash": "beb88ceb0151d8068af6e4beb211ee9b"
-  },
-  "assets/music/dia-mercado.mp3": {
-    "mtime": 1786334444.0,
-    "ast_hash": "e0a3a42ce9074be1ea3188ca5004712f",
-    "semantic_hash": "e0a3a42ce9074be1ea3188ca5004712f"
-  },
-  "assets/music/dia-taverna.mp3": {
-    "mtime": 1786333712.0,
-    "ast_hash": "3a8d4cdac419c310dfeb4fba1fcbac8d",
-    "semantic_hash": "3a8d4cdac419c310dfeb4fba1fcbac8d"
-  },
-  "assets/music/dia-vila.mp3": {
-    "mtime": 1786335106.0,
-    "ast_hash": "df8f8a8521a6a83936dccb9bb0fefa56",
-    "semantic_hash": "df8f8a8521a6a83936dccb9bb0fefa56"
-  },
-  "assets/music/noite-campos.mp3": {
-    "mtime": 1786335154.0,
-    "ast_hash": "fad359d2eeb88d017012b8eba7734130",
-    "semantic_hash": "fad359d2eeb88d017012b8eba7734130"
-  },
-  "assets/music/noite-espadas.mp3": {
-    "mtime": 1786335158.0,
-    "ast_hash": "5ca9ff1c3d90a3addaa459f728a078a0",
-    "semantic_hash": "5ca9ff1c3d90a3addaa459f728a078a0"
-  },
-  "assets/music/noite-lamento.mp3": {
-    "mtime": 1786335148.0,
-    "ast_hash": "cc10a2305cd5fd01b2d6ba8613d144b8",
-    "semantic_hash": "cc10a2305cd5fd01b2d6ba8613d144b8"
   },
   "assets/sfx/_corpo_forte-2.ogg": {
     "mtime": 1786333072.0668547,
@@ -754,95 +669,20 @@
     "ast_hash": "7a8371dec16b2f38bffd381175a3d33f",
     "semantic_hash": "7a8371dec16b2f38bffd381175a3d33f"
   },
-  "assets/sfx/spell_death-2.ogg": {
-    "mtime": 1786333305.8784502,
-    "ast_hash": "35a4a5878cca95292710c0eae6868c3f",
-    "semantic_hash": "35a4a5878cca95292710c0eae6868c3f"
-  },
-  "assets/sfx/spell_death.ogg": {
-    "mtime": 1786333305.8774304,
-    "ast_hash": "f023741ba5347ca3c61cf69c0acb74f0",
-    "semantic_hash": "f023741ba5347ca3c61cf69c0acb74f0"
-  },
-  "assets/sfx/spell_earth-2.ogg": {
-    "mtime": 1786333305.9056306,
-    "ast_hash": "ce16bc6dfa1e9022f476b8b23cf79c4a",
-    "semantic_hash": "ce16bc6dfa1e9022f476b8b23cf79c4a"
-  },
-  "assets/sfx/spell_earth-3.ogg": {
-    "mtime": 1786333305.9066324,
-    "ast_hash": "f1e465a13b3efa4e970b0ae5ccb06528",
-    "semantic_hash": "f1e465a13b3efa4e970b0ae5ccb06528"
-  },
-  "assets/sfx/spell_earth-4.ogg": {
-    "mtime": 1786333305.9066324,
-    "ast_hash": "c8318766e3ddea83930142504b965ba2",
-    "semantic_hash": "c8318766e3ddea83930142504b965ba2"
-  },
-  "assets/sfx/spell_earth.ogg": {
-    "mtime": 1786333305.9056306,
-    "ast_hash": "b01b63cb07805865e30e4e6d333dde92",
-    "semantic_hash": "b01b63cb07805865e30e4e6d333dde92"
-  },
-  "assets/sfx/spell_energy-2.ogg": {
-    "mtime": 1786333305.8997927,
-    "ast_hash": "cc5e0da13c61d4aa3fd8b62d20be3466",
-    "semantic_hash": "cc5e0da13c61d4aa3fd8b62d20be3466"
-  },
-  "assets/sfx/spell_energy.ogg": {
-    "mtime": 1786333305.8997927,
-    "ast_hash": "4800fc6d175ea6df2ff29d5b5583ca93",
-    "semantic_hash": "4800fc6d175ea6df2ff29d5b5583ca93"
-  },
-  "assets/sfx/spell_fire-2.ogg": {
-    "mtime": 1786333305.9010034,
-    "ast_hash": "c1cf2da3d4c134dc97f9e413ce27e207",
-    "semantic_hash": "c1cf2da3d4c134dc97f9e413ce27e207"
-  },
-  "assets/sfx/spell_fire-3.ogg": {
-    "mtime": 1786333305.9020061,
-    "ast_hash": "675d285aa492490c5b12a3cdeb25aebf",
-    "semantic_hash": "675d285aa492490c5b12a3cdeb25aebf"
-  },
-  "assets/sfx/spell_fire-4.ogg": {
-    "mtime": 1786333305.9030151,
-    "ast_hash": "03d0ae817b92842f268230196c703ad4",
-    "semantic_hash": "03d0ae817b92842f268230196c703ad4"
-  },
-  "assets/sfx/spell_fire.ogg": {
-    "mtime": 1786333305.9010034,
-    "ast_hash": "07238abe14e0d0b9fdaeb2fddbcc75df",
-    "semantic_hash": "07238abe14e0d0b9fdaeb2fddbcc75df"
-  },
   "assets/sfx/spell_holy-2.wav": {
-    "mtime": 1786333305.912928,
-    "ast_hash": "056b1038e6859693a6836984d6fd2821",
-    "semantic_hash": "056b1038e6859693a6836984d6fd2821"
+    "mtime": 1788122556.6355155,
+    "ast_hash": "980edbb6fa8dbebad17951b139678ca1",
+    "semantic_hash": ""
   },
   "assets/sfx/spell_holy-3.wav": {
-    "mtime": 1786333305.9144316,
-    "ast_hash": "1ff46a91b1e2b666e74bf3b5075a1d0a",
-    "semantic_hash": "1ff46a91b1e2b666e74bf3b5075a1d0a"
+    "mtime": 1788122556.6952052,
+    "ast_hash": "f7f95659dd05d695e07a0cb88d952f90",
+    "semantic_hash": ""
   },
   "assets/sfx/spell_holy.wav": {
-    "mtime": 1786333305.911925,
-    "ast_hash": "42e16d13799eb8bba4f0b5007ef0b3aa",
-    "semantic_hash": "42e16d13799eb8bba4f0b5007ef0b3aa"
-  },
-  "assets/sfx/spell_ice-2.ogg": {
-    "mtime": 1786333072.0614085,
-    "ast_hash": "a2a4923a52fe7539f1ad6117233fed58",
-    "semantic_hash": "a2a4923a52fe7539f1ad6117233fed58"
-  },
-  "assets/sfx/spell_ice-3.ogg": {
-    "mtime": 1786333072.062799,
-    "ast_hash": "66961bf5a5335759c75450d932ed8ab5",
-    "semantic_hash": "66961bf5a5335759c75450d932ed8ab5"
-  },
-  "assets/sfx/spell_ice.ogg": {
-    "mtime": 1786333072.0614085,
-    "ast_hash": "bfe961851857bd0385bec6bb3a2f8cf4",
-    "semantic_hash": "bfe961851857bd0385bec6bb3a2f8cf4"
+    "mtime": 1788122556.576236,
+    "ast_hash": "b34e749eaa5ad956b2ac4e7d875b5268",
+    "semantic_hash": ""
   },
   "assets/sfx/stairs-2.ogg": {
     "mtime": 1786333072.5384235,
@@ -858,156 +698,6 @@
     "mtime": 1786333072.5384235,
     "ast_hash": "983491662cb14781dd0b08ce0191e3d6",
     "semantic_hash": "983491662cb14781dd0b08ce0191e3d6"
-  },
-  "assets/sfx/step_cave-2.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "26fc6ee64072ac9e564297c61d8ee9be",
-    "semantic_hash": "26fc6ee64072ac9e564297c61d8ee9be"
-  },
-  "assets/sfx/step_cave-3.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "9ea5a861dc000861f60b26f47cdd9988",
-    "semantic_hash": "9ea5a861dc000861f60b26f47cdd9988"
-  },
-  "assets/sfx/step_cave-4.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "4cd1c38becd337a09644104c9e905a2a",
-    "semantic_hash": "4cd1c38becd337a09644104c9e905a2a"
-  },
-  "assets/sfx/step_cave-5.ogg": {
-    "mtime": 1786333072.0474236,
-    "ast_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6",
-    "semantic_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6"
-  },
-  "assets/sfx/step_cave.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "1a54419c397fd9c1bdb087bf0fff7919",
-    "semantic_hash": "1a54419c397fd9c1bdb087bf0fff7919"
-  },
-  "assets/sfx/step_dirt-2.ogg": {
-    "mtime": 1786333072.5454633,
-    "ast_hash": "e9b4a723aec382f25f5b8f3b97711384",
-    "semantic_hash": "e9b4a723aec382f25f5b8f3b97711384"
-  },
-  "assets/sfx/step_dirt-3.ogg": {
-    "mtime": 1786333072.5465515,
-    "ast_hash": "9b1fbd49f2b5b756e160a6c9ba398191",
-    "semantic_hash": "9b1fbd49f2b5b756e160a6c9ba398191"
-  },
-  "assets/sfx/step_dirt-4.ogg": {
-    "mtime": 1786333072.5465515,
-    "ast_hash": "69a23043ecf3b78576866c6b06135dfe",
-    "semantic_hash": "69a23043ecf3b78576866c6b06135dfe"
-  },
-  "assets/sfx/step_dirt-5.ogg": {
-    "mtime": 1786333072.5475552,
-    "ast_hash": "e7db2bcac543ead3f10942ca8f5b0422",
-    "semantic_hash": "e7db2bcac543ead3f10942ca8f5b0422"
-  },
-  "assets/sfx/step_dirt.ogg": {
-    "mtime": 1786333072.5454633,
-    "ast_hash": "e5ba26b141619b182b206145b4047edb",
-    "semantic_hash": "e5ba26b141619b182b206145b4047edb"
-  },
-  "assets/sfx/step_grass-2.ogg": {
-    "mtime": 1786333072.048428,
-    "ast_hash": "c12f296eb7db4fe1dda3b3d2b6ba0ad3",
-    "semantic_hash": "c12f296eb7db4fe1dda3b3d2b6ba0ad3"
-  },
-  "assets/sfx/step_grass-3.ogg": {
-    "mtime": 1786333072.048428,
-    "ast_hash": "ebbfae271d23bbdb77d9371477e13dac",
-    "semantic_hash": "ebbfae271d23bbdb77d9371477e13dac"
-  },
-  "assets/sfx/step_grass-4.ogg": {
-    "mtime": 1786333072.0494506,
-    "ast_hash": "4a0b671b14cf708d59cadb6d28ec474d",
-    "semantic_hash": "4a0b671b14cf708d59cadb6d28ec474d"
-  },
-  "assets/sfx/step_grass-5.ogg": {
-    "mtime": 1786333072.0494506,
-    "ast_hash": "f007e368647e726606037bfc576226bb",
-    "semantic_hash": "f007e368647e726606037bfc576226bb"
-  },
-  "assets/sfx/step_grass.ogg": {
-    "mtime": 1786333072.0474236,
-    "ast_hash": "c093e23e647821ea7bfc451541476d5a",
-    "semantic_hash": "c093e23e647821ea7bfc451541476d5a"
-  },
-  "assets/sfx/step_rock-2.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "26fc6ee64072ac9e564297c61d8ee9be",
-    "semantic_hash": "26fc6ee64072ac9e564297c61d8ee9be"
-  },
-  "assets/sfx/step_rock-3.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "9ea5a861dc000861f60b26f47cdd9988",
-    "semantic_hash": "9ea5a861dc000861f60b26f47cdd9988"
-  },
-  "assets/sfx/step_rock-4.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "4cd1c38becd337a09644104c9e905a2a",
-    "semantic_hash": "4cd1c38becd337a09644104c9e905a2a"
-  },
-  "assets/sfx/step_rock-5.ogg": {
-    "mtime": 1786333072.0474236,
-    "ast_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6",
-    "semantic_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6"
-  },
-  "assets/sfx/step_rock.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "1a54419c397fd9c1bdb087bf0fff7919",
-    "semantic_hash": "1a54419c397fd9c1bdb087bf0fff7919"
-  },
-  "assets/sfx/step_sand-2.ogg": {
-    "mtime": 1786333072.050451,
-    "ast_hash": "6f6fed7a85c72558568d18fcafef1744",
-    "semantic_hash": "6f6fed7a85c72558568d18fcafef1744"
-  },
-  "assets/sfx/step_sand-3.ogg": {
-    "mtime": 1786333072.0515702,
-    "ast_hash": "75eb3eb0d8025f41cbf167127133b14c",
-    "semantic_hash": "75eb3eb0d8025f41cbf167127133b14c"
-  },
-  "assets/sfx/step_sand-4.ogg": {
-    "mtime": 1786333072.0515702,
-    "ast_hash": "f8da25cef8fa18e8e4129f128bb81e9d",
-    "semantic_hash": "f8da25cef8fa18e8e4129f128bb81e9d"
-  },
-  "assets/sfx/step_sand-5.ogg": {
-    "mtime": 1786333072.0525718,
-    "ast_hash": "0b494074142a917e6f87d1b881d30577",
-    "semantic_hash": "0b494074142a917e6f87d1b881d30577"
-  },
-  "assets/sfx/step_sand.ogg": {
-    "mtime": 1786333072.0494506,
-    "ast_hash": "453aee8cc86c73701d363534fcab0897",
-    "semantic_hash": "453aee8cc86c73701d363534fcab0897"
-  },
-  "assets/sfx/step_stone-2.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "26fc6ee64072ac9e564297c61d8ee9be",
-    "semantic_hash": "26fc6ee64072ac9e564297c61d8ee9be"
-  },
-  "assets/sfx/step_stone-3.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "9ea5a861dc000861f60b26f47cdd9988",
-    "semantic_hash": "9ea5a861dc000861f60b26f47cdd9988"
-  },
-  "assets/sfx/step_stone-4.ogg": {
-    "mtime": 1786333072.0464153,
-    "ast_hash": "4cd1c38becd337a09644104c9e905a2a",
-    "semantic_hash": "4cd1c38becd337a09644104c9e905a2a"
-  },
-  "assets/sfx/step_stone-5.ogg": {
-    "mtime": 1786333072.0474236,
-    "ast_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6",
-    "semantic_hash": "bae0d3886cd2ffdc8d1510f79c5bc3f6"
-  },
-  "assets/sfx/step_stone.ogg": {
-    "mtime": 1786333072.04541,
-    "ast_hash": "1a54419c397fd9c1bdb087bf0fff7919",
-    "semantic_hash": "1a54419c397fd9c1bdb087bf0fff7919"
   },
   "assets/sfx/unequip-2.ogg": {
     "mtime": 1786333072.5369976,
@@ -2679,11 +2369,6 @@
     "ast_hash": "a0e505e82431086848982be8057d385c",
     "semantic_hash": ""
   },
-  "assets/music/Scape Main.mp3": {
-    "mtime": 1786680480.2220168,
-    "ast_hash": "90ba52edf750219740f30561e80de417",
-    "semantic_hash": ""
-  },
   "tools/freesound.py": {
     "mtime": 1786760752.863919,
     "ast_hash": "e05256e08cf9745a4b29a7f5f64e2a1a",
@@ -3040,8 +2725,8 @@
     "semantic_hash": ""
   },
   "tasks.html": {
-    "mtime": 1788102042.037637,
-    "ast_hash": "a36c19de4913403880d53de227daf015",
+    "mtime": 1788788700.146555,
+    "ast_hash": "ede81f7bf37766c343cbac871927576b",
     "semantic_hash": ""
   },
   "assets/skins/creatures/cyclops/cyclops_brute/cyclops_anim.png": {
@@ -5450,13 +5135,13 @@
     "semantic_hash": ""
   },
   "mundo_aleto.html": {
-    "mtime": 1787458739.831689,
-    "ast_hash": "44826201112f66d6b85baf6f8315649b",
+    "mtime": 1788313944.053066,
+    "ast_hash": "c9d25444f51875ef217c782c8bd1f236",
     "semantic_hash": ""
   },
   "mundo_varrokgaard.html": {
-    "mtime": 1787466577.4793715,
-    "ast_hash": "cd6899e414c4f76cb64750297b069116",
+    "mtime": 1788392426.7630968,
+    "ast_hash": "e1e3e29eec675e4fd6919d33defd13c2",
     "semantic_hash": ""
   },
   "proposta_24.html": {
@@ -5480,18 +5165,18 @@
     "semantic_hash": ""
   },
   "maps/varrokgaard.json": {
-    "mtime": 1788101341.7447405,
-    "ast_hash": "562b2c8deed94120470b46ad0da5261b",
+    "mtime": 1788630827.3448355,
+    "ast_hash": "42e9cf0611dfa644d05631ce12a3a461",
     "semantic_hash": ""
   },
   "tools/compor.js": {
-    "mtime": 1787625652.271418,
-    "ast_hash": "391363ee5af695951cc6e998c043c7e1",
+    "mtime": 1788236864.628409,
+    "ast_hash": "58d501e8269c23ecd8b9c34c877bc447",
     "semantic_hash": ""
   },
   "tools/mapas/varrokgaard.js": {
-    "mtime": 1787625736.254484,
-    "ast_hash": "5a9a5db269206ec58d8307d24f03aa61",
+    "mtime": 1788630793.5653162,
+    "ast_hash": "46445d14c551288eeefddbd9aaacc3c5",
     "semantic_hash": ""
   },
   "tools/amostra/construido.html": {
@@ -5515,23 +5200,23 @@
     "semantic_hash": ""
   },
   "tools/amostra/planta_varrokgaard_1.png": {
-    "mtime": 1787514555.1640027,
-    "ast_hash": "39a167de1539fb1f9dca2989b0b58cf2",
+    "mtime": 1788315173.7732098,
+    "ast_hash": "37a01c5a4bba58b760e793f3497dcf91",
     "semantic_hash": ""
   },
   "tools/editor.html": {
-    "mtime": 1787712692.8771367,
-    "ast_hash": "2684ccb4d9e75d5411a858f949eec04e",
+    "mtime": 1788232792.7872243,
+    "ast_hash": "9cbc5e744ec0c4f6bc81c281ec3b648b",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.json": {
-    "mtime": 1788101341.165971,
-    "ast_hash": "d64f83907dfa696b7df997839263a40f",
+    "mtime": 1788234869.741887,
+    "ast_hash": "3b0fcca5cb403be65d43ee4a0ec55eb2",
     "semantic_hash": ""
   },
   "maps/varrokgaard.patch.bak.json": {
-    "mtime": 1788101341.1633441,
-    "ast_hash": "505048503f70af48544b6d36ed997833",
+    "mtime": 1788234869.7393692,
+    "ast_hash": "46c31c5464d23dccdf7c1cdb84f56540",
     "semantic_hash": ""
   },
   "maps/_bak/varrokgaard.20260823-1330.json": {
@@ -5550,113 +5235,113 @@
     "semantic_hash": ""
   },
   "assets/build_terreno.py": {
-    "mtime": 1787523980.1993308,
-    "ast_hash": "63ec61478825f96a2b27eee4915ba90f",
+    "mtime": 1788618877.9899127,
+    "ast_hash": "a934f257e1352abd20bec95cc6c99866",
     "semantic_hash": ""
   },
   "assets/terreno/calcada.png": {
-    "mtime": 1787522183.6644232,
-    "ast_hash": "105dc302de3df18b79b55fad8f16adfe",
+    "mtime": 1788618878.437783,
+    "ast_hash": "2cda5a4832affe549d47551aa2d5402d",
     "semantic_hash": ""
   },
   "assets/terreno/cascalho.png": {
-    "mtime": 1787522183.2312677,
-    "ast_hash": "85faf0f805742ce3e4217715d4b80678",
+    "mtime": 1788618878.4580555,
+    "ast_hash": "e3ba4adb999715e673561d21925247d5",
     "semantic_hash": ""
   },
   "assets/terreno/grama.png": {
-    "mtime": 1787522180.6246064,
-    "ast_hash": "4c05191ae7d5f4122ee406645f516109",
+    "mtime": 1788618878.4750195,
+    "ast_hash": "405cfa49627d72d65c6ecc0cc8834a88",
     "semantic_hash": ""
   },
   "assets/terreno/grama_clara.png": {
-    "mtime": 1787522180.2090082,
-    "ast_hash": "ce9c2dcc7b5e79145fe664045ae490a5",
+    "mtime": 1788618878.487798,
+    "ast_hash": "c0eb1e917a4507c06c08e895e58825b1",
     "semantic_hash": ""
   },
   "assets/terreno/grama_mata.png": {
-    "mtime": 1787522181.0441117,
-    "ast_hash": "e3204db6221f6773c236ab649844d230",
+    "mtime": 1788618878.506142,
+    "ast_hash": "609d8fef49aad72a703718b7a4f341d3",
     "semantic_hash": ""
   },
   "assets/terreno/grama_rala.png": {
-    "mtime": 1787522181.9075286,
-    "ast_hash": "cdf7a4185bcb0ce3d478c99d216a4c33",
+    "mtime": 1788618878.5291367,
+    "ast_hash": "de8ba16b6535ac5b0df5c0a2afd3e79d",
     "semantic_hash": ""
   },
   "assets/terreno/grama_seca.png": {
-    "mtime": 1787522181.4853039,
-    "ast_hash": "5bc09d20d8fd41bd9f1b49ae81664d0f",
+    "mtime": 1788618878.533162,
+    "ast_hash": "e0593f3f4790324c79f45b821ca009aa",
     "semantic_hash": ""
   },
   "assets/terreno/pedra.png": {
-    "mtime": 1787522184.106398,
-    "ast_hash": "d698cb180bc16fd1d6d26d09628261d0",
+    "mtime": 1788618878.569864,
+    "ast_hash": "7fe746da7079887d3a72954c1bf3f2eb",
     "semantic_hash": ""
   },
   "assets/terreno/prova/FOLHA_3x3.png": {
-    "mtime": 1787514310.3779342,
+    "mtime": 1788618877.9007187,
     "ast_hash": "47787d7f9e8278ac6fb7a0cf4802ce08",
     "semantic_hash": ""
   },
   "assets/terreno/prova/calcada_3x3.png": {
-    "mtime": 1787522183.6673038,
+    "mtime": 1788618877.9050944,
     "ast_hash": "aab57079ecea42a1b5dab0f519fa271c",
     "semantic_hash": ""
   },
   "assets/terreno/prova/cascalho_3x3.png": {
-    "mtime": 1787522183.234313,
+    "mtime": 1788618877.8956325,
     "ast_hash": "44bb8e690f13221214c1fc3c537670ea",
     "semantic_hash": ""
   },
   "assets/terreno/prova/grama_3x3.png": {
-    "mtime": 1787522180.6274488,
+    "mtime": 1788618877.9017186,
     "ast_hash": "e81c4ff23f62751ca449a4bae82e17c7",
     "semantic_hash": ""
   },
   "assets/terreno/prova/grama_clara_3x3.png": {
-    "mtime": 1787522180.2138643,
+    "mtime": 1788618877.8997152,
     "ast_hash": "a06bcfc7bd5806c0d83621bed37d5b37",
     "semantic_hash": ""
   },
   "assets/terreno/prova/grama_mata_3x3.png": {
-    "mtime": 1787522181.0471325,
+    "mtime": 1788618877.8986454,
     "ast_hash": "0122d337a4a936442dacc376f09e32f8",
     "semantic_hash": ""
   },
   "assets/terreno/prova/grama_rala_3x3.png": {
-    "mtime": 1787522181.9105668,
+    "mtime": 1788618877.89362,
     "ast_hash": "0b3e1f8f319f8eddd3c95b58f64da490",
     "semantic_hash": ""
   },
   "assets/terreno/prova/grama_seca_3x3.png": {
-    "mtime": 1787522181.491432,
+    "mtime": 1788618877.8966355,
     "ast_hash": "fde483d0c1f970e9de6bb6a22b1ec539",
     "semantic_hash": ""
   },
   "assets/terreno/prova/pedra_3x3.png": {
-    "mtime": 1787522184.1101239,
+    "mtime": 1788618877.9040935,
     "ast_hash": "02ff8e627d309b59398980ba1f003ea7",
     "semantic_hash": ""
   },
   "assets/terreno/prova/terra_3x3.png": {
-    "mtime": 1787522182.7984536,
+    "mtime": 1788618877.9017186,
     "ast_hash": "4c2a99ee2f527fb6e9d05c5b6f21d0f1",
     "semantic_hash": ""
   },
   "assets/terreno/prova/terra_escura_3x3.png": {
-    "mtime": 1787522182.365278,
+    "mtime": 1788618877.9030871,
     "ast_hash": "a930355fc3b32dbcd83f4cf99ec46914",
     "semantic_hash": ""
   },
   "assets/terreno/terra.png": {
-    "mtime": 1787522182.7959504,
-    "ast_hash": "2bc6f9eb04df5c29ca0f1a4485472ad3",
+    "mtime": 1788618878.5963147,
+    "ast_hash": "1ab0094137eb658310aa3929e59fcfe9",
     "semantic_hash": ""
   },
   "assets/terreno/terra_escura.png": {
-    "mtime": 1787522182.3619637,
-    "ast_hash": "6057e09409048f2f6f5f94cd1118d540",
+    "mtime": 1788618878.597818,
+    "ast_hash": "15fe5a0348006281862347ca63ca84e3",
     "semantic_hash": ""
   },
   "assets/scenario/tiles_02.png": {
@@ -5670,293 +5355,293 @@
     "semantic_hash": ""
   },
   "assets/terreno/prova/RESOLUCAO.png": {
-    "mtime": 1787515773.4652205,
+    "mtime": 1788618877.8966355,
     "ast_hash": "2d8d7198143cab39276b63d394bdbc4b",
     "semantic_hash": ""
   },
   "assets/terreno/prova/ESCALA.png": {
-    "mtime": 1787516062.718829,
+    "mtime": 1788618877.894626,
     "ast_hash": "003cb0d32993c1a736aea42918fd8750",
     "semantic_hash": ""
   },
   "assets/terreno/prova/ESCALA48.png": {
-    "mtime": 1787518537.5832386,
+    "mtime": 1788618877.897636,
     "ast_hash": "97f9304b7fcc8b0ddc1f6c05d8f8f356",
     "semantic_hash": ""
   },
   "tests/test_tools.js": {
-    "mtime": 1787625540.958748,
-    "ast_hash": "8df23f0cd2d2bf330e794feb82f306d1",
+    "mtime": 1788175905.1063964,
+    "ast_hash": "0e36a24af0c37961255b44a62d2e4d04",
     "semantic_hash": ""
   },
   "assets/terreno/agua_clara.png": {
-    "mtime": 1787523371.4571176,
-    "ast_hash": "742679514df8dfb3aa022b4bfd70f27d",
+    "mtime": 1788618878.409992,
+    "ast_hash": "355013eacd39a4b344b467c7637c6e30",
     "semantic_hash": ""
   },
   "assets/terreno/agua_funda.png": {
-    "mtime": 1787523371.46128,
-    "ast_hash": "e1479f8a0abec1d61b2b45d2d3144833",
+    "mtime": 1788618878.413014,
+    "ast_hash": "63c4c2d3d5b8409a216e12638c9cbe94",
     "semantic_hash": ""
   },
   "assets/terreno/arbusto_frutos.png": {
-    "mtime": 1787523371.4765975,
-    "ast_hash": "e1c86318b3f77d9a3092634f6f0644b7",
+    "mtime": 1788618878.4239652,
+    "ast_hash": "6d3297c79f22a9a3b3b9058437d57854",
     "semantic_hash": ""
   },
   "assets/terreno/areia_fina.png": {
-    "mtime": 1787523371.4561143,
-    "ast_hash": "12c803de62824156af7dab30a41a2a43",
+    "mtime": 1788618878.4269893,
+    "ast_hash": "d4aa5626f25a7419e139a44ca21a4f77",
     "semantic_hash": ""
   },
   "assets/terreno/areia_grossa.png": {
-    "mtime": 1787523371.4602787,
-    "ast_hash": "4d2c0d73c1802ff09d3c3693510ff075",
+    "mtime": 1788618878.4294949,
+    "ast_hash": "da92f2e3725538ac7b942506bcfa1213",
     "semantic_hash": ""
   },
   "assets/terreno/areia_mato.png": {
-    "mtime": 1787523371.4776013,
-    "ast_hash": "8e6ff58b3b1d06c9e5ac1cb433dc6b0d",
+    "mtime": 1788618878.4326646,
+    "ast_hash": "7d6fe79fce9ea844dc4eb63cd61a129c",
     "semantic_hash": ""
   },
   "assets/terreno/areia_pedra.png": {
-    "mtime": 1787523371.4776013,
-    "ast_hash": "9d30ee176af4a6b5cc6bd6b8b541ad90",
+    "mtime": 1788618878.4347763,
+    "ast_hash": "b1ddfc9d74dc3ca7300cc6ca0046ceb8",
     "semantic_hash": ""
   },
   "assets/terreno/calcada_bloco.png": {
-    "mtime": 1787523371.4561143,
-    "ast_hash": "aaf8e8a61995639d76ee1f280444e295",
+    "mtime": 1788618878.439296,
+    "ast_hash": "2a455bab90e3fa7b0e5f8dc742f87e13",
     "semantic_hash": ""
   },
   "assets/terreno/calcada_clara.png": {
-    "mtime": 1787523371.4602787,
-    "ast_hash": "2c5e1d1a3eda9f4f3001c83a608b688a",
+    "mtime": 1788618878.4413013,
+    "ast_hash": "a25cde855fb5b7d2e2453cd67f7ed0fc",
     "semantic_hash": ""
   },
   "assets/terreno/calcada_laje.png": {
-    "mtime": 1787523371.46128,
-    "ast_hash": "5be2c5b4f699310096e1ab142559f91c",
+    "mtime": 1788618878.4438205,
+    "ast_hash": "ec4583c22f2f4795f3b70f9a820cea40",
     "semantic_hash": ""
   },
   "assets/terreno/calcada_mosaico.png": {
-    "mtime": 1787523371.4645205,
-    "ast_hash": "96599b3cd30290967d29215eb2a99c85",
+    "mtime": 1788618878.446874,
+    "ast_hash": "237897e5fc72e25397cb01af485c6129",
     "semantic_hash": ""
   },
   "assets/terreno/calcada_musgo.png": {
-    "mtime": 1787523371.46128,
-    "ast_hash": "16e5c4b6647bb6b6da0043825b92610a",
+    "mtime": 1788618878.4509945,
+    "ast_hash": "85a91be70ef110cffce3ec400538fb08",
     "semantic_hash": ""
   },
   "assets/terreno/calcada_paralelo.png": {
-    "mtime": 1787523371.46128,
-    "ast_hash": "ff09d8ecd75492b31240e83597ed5396",
+    "mtime": 1788618878.4529994,
+    "ast_hash": "c54b5af3573d733b0f24524bcca626f5",
     "semantic_hash": ""
   },
   "assets/terreno/calcada_seixo.png": {
-    "mtime": 1787523371.4571176,
-    "ast_hash": "a47b125feff174a0e3a97c4a0d9c5a3a",
+    "mtime": 1788618878.4550395,
+    "ast_hash": "94c9d29683472b6586af86206580208d",
     "semantic_hash": ""
   },
   "assets/terreno/cascalho_claro.png": {
-    "mtime": 1787523371.46128,
-    "ast_hash": "081aac1b7be3ebee583b22f6a4eeeecc",
+    "mtime": 1788618878.4600728,
+    "ast_hash": "06b40bf57c93eeda1110f828056b1fdc",
     "semantic_hash": ""
   },
   "assets/terreno/duna.png": {
-    "mtime": 1787523371.4796064,
-    "ast_hash": "66ad1ac7bb0ca2a93291bc4285f3aa75",
+    "mtime": 1788618878.4621603,
+    "ast_hash": "640e2f16e6294bbad22db578207a3284",
     "semantic_hash": ""
   },
   "assets/terreno/gelo_agua.png": {
-    "mtime": 1787523371.471002,
-    "ast_hash": "09789624b883d6a754b92d5357ab781f",
+    "mtime": 1788618878.4641683,
+    "ast_hash": "0a4586d9256e3427a4f65018e064bbf2",
     "semantic_hash": ""
   },
   "assets/terreno/gelo_liso.png": {
-    "mtime": 1787523371.4738886,
-    "ast_hash": "272825c22daf2ef8b651d6391294b504",
+    "mtime": 1788618878.4661736,
+    "ast_hash": "3dceb3c139d48790cbbb2a43682769e9",
     "semantic_hash": ""
   },
   "assets/terreno/gelo_trincado.png": {
-    "mtime": 1787523371.471002,
-    "ast_hash": "bbd94f488204fe9ce7feda7937d729fd",
+    "mtime": 1788618878.4687257,
+    "ast_hash": "3d350af54497196e20042c89f5bee490",
     "semantic_hash": ""
   },
   "assets/terreno/grama_alta.png": {
-    "mtime": 1787523371.4581203,
-    "ast_hash": "3acdc8f66f7b5d4f1ca7b0a21d804efc",
+    "mtime": 1788618878.4812756,
+    "ast_hash": "3e400da48db6527132ad4c7ca5fa65d1",
     "semantic_hash": ""
   },
   "assets/terreno/grama_densa.png": {
-    "mtime": 1787523371.453092,
-    "ast_hash": "dda1e487cb8c9e9f6f262a9c62b03ce8",
+    "mtime": 1788618878.4939969,
+    "ast_hash": "88f71f1e40bce863284471af3f22e433",
     "semantic_hash": ""
   },
   "assets/terreno/grama_florida.png": {
-    "mtime": 1787523371.453092,
-    "ast_hash": "6db2fe90bbbd314b5788253e6fd8b88e",
+    "mtime": 1788618878.5001068,
+    "ast_hash": "eefc1355b0de874221d14106516d174f",
     "semantic_hash": ""
   },
   "assets/terreno/grama_mostarda.png": {
-    "mtime": 1787523371.4581203,
-    "ast_hash": "648cf1e98ac532d034ba4533914233ce",
+    "mtime": 1788618878.512789,
+    "ast_hash": "43da5c34fa7d4287d6b13dda88f9e837",
     "semantic_hash": ""
   },
   "assets/terreno/grama_papoula.png": {
-    "mtime": 1787523371.4581203,
-    "ast_hash": "5592cf701336736dd1bb23c07b16abc2",
+    "mtime": 1788618878.5193331,
+    "ast_hash": "403f7aceade3ce36f25f8af0c00f115d",
     "semantic_hash": ""
   },
   "assets/terreno/grama_pedra.png": {
-    "mtime": 1787523371.4540942,
-    "ast_hash": "6073571998f961ba8dd971ed2ea3570b",
+    "mtime": 1788618878.5256202,
+    "ast_hash": "ec26016060c063a2728658260364e7c0",
     "semantic_hash": ""
   },
   "assets/terreno/junco_seco.png": {
-    "mtime": 1787523371.4738886,
-    "ast_hash": "89d9c5a09d8aa0269f87983d68c40651",
+    "mtime": 1788618878.5361705,
+    "ast_hash": "21d33d6c7fb5e35833e8bce7244f3036",
     "semantic_hash": ""
   },
   "assets/terreno/junco_verde.png": {
-    "mtime": 1787523371.4738886,
-    "ast_hash": "d8c9238c77f0a7423e61a949062a38b5",
+    "mtime": 1788618878.5427766,
+    "ast_hash": "c4d1a9f247713d0ed9c99ea9b3ca3dbf",
     "semantic_hash": ""
   },
   "assets/terreno/lava_viva.png": {
-    "mtime": 1787523371.471002,
-    "ast_hash": "4a0874e2a77b96151c642480327648a7",
+    "mtime": 1788618878.545114,
+    "ast_hash": "6b4962305bede4957fd957c162d8a8a0",
     "semantic_hash": ""
   },
   "assets/terreno/mato_seco.png": {
-    "mtime": 1787523371.475549,
-    "ast_hash": "ee8e2cffc38a6aeeb496de5145a8bcc5",
+    "mtime": 1788618878.5486338,
+    "ast_hash": "285edbdcb2fb3b064165c95d5b95867f",
     "semantic_hash": ""
   },
   "assets/terreno/neve_funda.png": {
-    "mtime": 1787523371.471002,
-    "ast_hash": "accf7d9c545d21770ccd94afe46323aa",
+    "mtime": 1788618878.550747,
+    "ast_hash": "40f4b36be6796658ff53a12e371b2c42",
     "semantic_hash": ""
   },
   "assets/terreno/neve_mato.png": {
-    "mtime": 1787523371.471002,
-    "ast_hash": "0afa1996f116011d23dadf1039095e41",
+    "mtime": 1788618878.5529058,
+    "ast_hash": "e9eb61264ba27392ae3814ff6444418b",
     "semantic_hash": ""
   },
   "assets/terreno/neve_pedra.png": {
-    "mtime": 1787523371.471002,
-    "ast_hash": "3d0022446662d0c6921eaa5b87d4372d",
+    "mtime": 1788618878.5549161,
+    "ast_hash": "c5bad7942864865fcc90f5ddff999266",
     "semantic_hash": ""
   },
   "assets/terreno/ossada.png": {
-    "mtime": 1787523371.4679985,
-    "ast_hash": "105476c8437b41ad3893e6a33a7f7973",
+    "mtime": 1788618878.5576382,
+    "ast_hash": "804e7aa281dfd0e3bc294196173403e9",
     "semantic_hash": ""
   },
   "assets/terreno/ossada_areia.png": {
-    "mtime": 1787523371.4796064,
-    "ast_hash": "af77049db282cb11059d05c786a3e84d",
+    "mtime": 1788618878.5596545,
+    "ast_hash": "fe0bff8388eae171d8e64fbaae9efb2f",
     "semantic_hash": ""
   },
   "assets/terreno/pantano_folha.png": {
-    "mtime": 1787523371.475549,
-    "ast_hash": "4019bf89acc708dccb353b5ff9915ceb",
+    "mtime": 1788618878.56374,
+    "ast_hash": "c998394e654d0e8f0999993c97069693",
     "semantic_hash": ""
   },
   "assets/terreno/pantano_vitoria.png": {
-    "mtime": 1787523371.4738886,
-    "ast_hash": "dfaf6a41eb7b33f9c5b279b30653c1b2",
+    "mtime": 1788618878.5677547,
+    "ast_hash": "794bb173eb37a15d662604bb609dffce",
     "semantic_hash": ""
   },
   "assets/terreno/pedra_irregular.png": {
-    "mtime": 1787523371.46128,
-    "ast_hash": "4843922b17de5ca2dabe174c59bc20a5",
+    "mtime": 1788618878.572137,
+    "ast_hash": "f024bcee43f445044f32f0f0ea522829",
     "semantic_hash": ""
   },
   "assets/terreno/pedra_musgo.png": {
-    "mtime": 1787523371.4765975,
-    "ast_hash": "761bd6581bdeeb1e5fe7771bad8a8b98",
+    "mtime": 1788618878.5761578,
+    "ast_hash": "cd7c51db4f79ab185474b50f02c4dc40",
     "semantic_hash": ""
   },
   "assets/terreno/pedregulho.png": {
-    "mtime": 1787523371.4679985,
-    "ast_hash": "2e3dcd83e5924d0c7afb07e711a20ad7",
+    "mtime": 1788618878.5786788,
+    "ast_hash": "1ce3c147e7411c73f30d8b0a1dd11fc7",
     "semantic_hash": ""
   },
   "assets/terreno/rocha_basalto.png": {
-    "mtime": 1787523371.4679985,
-    "ast_hash": "30aa1a84b709016a7ef43d3ec38fb787",
+    "mtime": 1788618878.5806844,
+    "ast_hash": "74658d21a39e33f4c853dda1472c385e",
     "semantic_hash": ""
   },
   "assets/terreno/tabua_clara.png": {
-    "mtime": 1787523371.4645205,
-    "ast_hash": "2d723e8c5b1f7af600832119a59abbd1",
+    "mtime": 1788618878.5826907,
+    "ast_hash": "f3f6791f6ef0320c95741176fc50522b",
     "semantic_hash": ""
   },
   "assets/terreno/tabua_deitada.png": {
-    "mtime": 1787523371.4645205,
-    "ast_hash": "5932987d6c8518efaf785c369ceb7224",
+    "mtime": 1788618878.585705,
+    "ast_hash": "bea36e97a773ace3d6d260e479b211a8",
     "semantic_hash": ""
   },
   "assets/terreno/tabua_escura.png": {
-    "mtime": 1787523371.4645205,
-    "ast_hash": "0cb82f4e015ca88ce77ad10a7e4905dc",
+    "mtime": 1788618878.587772,
+    "ast_hash": "d75743fbc5b344c81da8a83448fa704b",
     "semantic_hash": ""
   },
   "assets/terreno/tabua_larga.png": {
-    "mtime": 1787523371.4679985,
-    "ast_hash": "7313ce5331fb3c499aa8081fe5b2a123",
+    "mtime": 1788618878.5892775,
+    "ast_hash": "a1df2d8aa3e1d3adc0744db0c2ed57cc",
     "semantic_hash": ""
   },
   "assets/terreno/tabua_travessa.png": {
-    "mtime": 1787523371.4645205,
-    "ast_hash": "ed745c1bbeb875c2cce4e61a9b82afff",
+    "mtime": 1788618878.5912852,
+    "ast_hash": "2ae6a2a3fe046f060e7f61921b23323d",
     "semantic_hash": ""
   },
   "assets/terreno/tapete.png": {
-    "mtime": 1787523371.4679985,
-    "ast_hash": "f871ec9e5edade42703cbac17893027b",
+    "mtime": 1788618878.594306,
+    "ast_hash": "e58a84e1e2ee0f201ac6fcccce899994",
     "semantic_hash": ""
   },
   "assets/terreno/terra_gretada.png": {
-    "mtime": 1787523371.4776013,
-    "ast_hash": "18b5cdbf4ef0bed4a93e357fe61e00f9",
+    "mtime": 1788618878.5998342,
+    "ast_hash": "a8ab0a75af474af0cf6e84b3146150ab",
     "semantic_hash": ""
   },
   "assets/terreno/terra_lisa.png": {
-    "mtime": 1787523371.4550886,
-    "ast_hash": "4d69f005e6e9d9841ecc6c9143baf68b",
+    "mtime": 1788618878.6030774,
+    "ast_hash": "06bc82efb9c2a82db431cdaeee5082f8",
     "semantic_hash": ""
   },
   "assets/terreno/terra_pedregosa.png": {
-    "mtime": 1787523371.4679985,
-    "ast_hash": "23ee173f9e2882f247f9e69f5390cb93",
+    "mtime": 1788618878.606089,
+    "ast_hash": "7040c8778540333302f9b260ef9c3318",
     "semantic_hash": ""
   },
   "assets/terreno/terra_pedrisco.png": {
-    "mtime": 1787523371.4592755,
-    "ast_hash": "1a340098f571e30097a72da0065ecd36",
+    "mtime": 1788618878.6086042,
+    "ast_hash": "3ccef67f58d6fa902c3b8fa411ba7e9a",
     "semantic_hash": ""
   },
   "assets/terreno/terra_rachada.png": {
-    "mtime": 1787523371.4592755,
-    "ast_hash": "a44c4e203f51999cbdd74e179637cb65",
+    "mtime": 1788618878.6106155,
+    "ast_hash": "bd62413ca4cf90dc5037d184c5a52f4e",
     "semantic_hash": ""
   },
   "assets/terreno/terra_umida.png": {
-    "mtime": 1787523371.4550886,
-    "ast_hash": "0e1010760e204f036beb03eff4d3e97a",
+    "mtime": 1788618878.6126235,
+    "ast_hash": "b01e38a95ff264c52fe3de82bf32c204",
     "semantic_hash": ""
   },
   "assets/terreno/tijolo.png": {
-    "mtime": 1787523371.4645205,
-    "ast_hash": "8fde9991d7ec9952913415a78c599c99",
+    "mtime": 1788618878.6146343,
+    "ast_hash": "e94645eeb7a72730c702ecde2b169326",
     "semantic_hash": ""
   },
   "assets/terreno/tijolo_musgo.png": {
-    "mtime": 1787523371.4645205,
-    "ast_hash": "8a7892ed776674fed5dd87e8404f081d",
+    "mtime": 1788618878.6181436,
+    "ast_hash": "9394b2015d9191389c1021ea580082ab",
     "semantic_hash": ""
   },
   "tools/amostra/bordas.html": {
@@ -6490,8 +6175,8 @@
     "semantic_hash": ""
   },
   "proposta_luz.html": {
-    "mtime": 1788044776.2936516,
-    "ast_hash": "8503009f28e2606bbbd0b9b759235d15",
+    "mtime": 1788129073.6830318,
+    "ast_hash": "572721858e7544bd49be8f7f35009d53",
     "semantic_hash": ""
   },
   "SESSAO_2026-08-29_graficos.md": {
@@ -6517,6 +6202,1501 @@
   "tools/amostra/ranger_frames2.png": {
     "mtime": 1788098040.2079995,
     "ast_hash": "c6b0aa1703e3e0e5f28c16836f8e13d1",
+    "semantic_hash": ""
+  },
+  "assets/build_magias.py": {
+    "mtime": 1788122554.5544817,
+    "ast_hash": "4f63c38f598beadb8b8df20039b90122",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_aoe-2.wav": {
+    "mtime": 1788122557.2586284,
+    "ast_hash": "480528b6c92ad106465538d0dcb13005",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_aoe-3.wav": {
+    "mtime": 1788122557.3161163,
+    "ast_hash": "0dbe295e9949457fabad1083d89e899e",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_aoe.wav": {
+    "mtime": 1788122557.2012315,
+    "ast_hash": "526fb0de3e2b941e286362211cd427e0",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_bolt-2.wav": {
+    "mtime": 1788122556.9802098,
+    "ast_hash": "6aca085340f35cd991727248790bc920",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_bolt-3.wav": {
+    "mtime": 1788122556.999225,
+    "ast_hash": "95fddebf2814378a01939ceb5b039abf",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_bolt.wav": {
+    "mtime": 1788122556.9599133,
+    "ast_hash": "97fd4420dba3e083c2fd8a53641069c7",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_conjure-2.wav": {
+    "mtime": 1788122557.4056327,
+    "ast_hash": "7f28853ad37a2550780a799296bef7c1",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_conjure.wav": {
+    "mtime": 1788122557.3610916,
+    "ast_hash": "851e42c67acf2ea89160efb92a208ea0",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_taunt-2.wav": {
+    "mtime": 1788122557.5157456,
+    "ast_hash": "7dea360340eb78d947d37cd1f4007a25",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_taunt.wav": {
+    "mtime": 1788122557.4604785,
+    "ast_hash": "390381585ba14716e28a598603a8a823",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_wave-2.wav": {
+    "mtime": 1788122557.0972538,
+    "ast_hash": "af4e2be6668ae640a508456772cd232c",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_wave-3.wav": {
+    "mtime": 1788122557.1464233,
+    "ast_hash": "3a86e2f33d650c22fc5ae732d6296664",
+    "semantic_hash": ""
+  },
+  "assets/sfx/cast_wave.wav": {
+    "mtime": 1788122557.0491838,
+    "ast_hash": "a4055246b697a9c4c00bf8b664f8ff5a",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_area-2.wav": {
+    "mtime": 1788122557.659647,
+    "ast_hash": "4fd80923d49ef9ec4f0eaf1e4d13c7f9",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_area-3.wav": {
+    "mtime": 1788122557.7506194,
+    "ast_hash": "6d8511734d2d3ecba364e846db380ed4",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_area.wav": {
+    "mtime": 1788122557.5863986,
+    "ast_hash": "9bf6e3dc605c17e9075a671db3215d13",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_cura-2.wav": {
+    "mtime": 1788122558.0931559,
+    "ast_hash": "e7225c493406ab86852deeb55a41568d",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_cura.wav": {
+    "mtime": 1788122558.0176456,
+    "ast_hash": "f71c0d47a39b24c6328527289a69de52",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_fase-2.wav": {
+    "mtime": 1788122558.5000308,
+    "ast_hash": "7debefc384407c50689f1437b1b46d53",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_fase.wav": {
+    "mtime": 1788122558.353058,
+    "ast_hash": "334fdec632063d0e7f8cfa97afd75da6",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_lento-2.wav": {
+    "mtime": 1788122557.9394045,
+    "ast_hash": "d016af3c6be84da7cd6518dc050dbc12",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_lento.wav": {
+    "mtime": 1788122557.8449767,
+    "ast_hash": "5d01d278cb6c4f75e8fbda866d17e4fd",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_mana-2.wav": {
+    "mtime": 1788122558.2197611,
+    "ast_hash": "80f837ab9bc42ab1177a5bc10ad9dfaa",
+    "semantic_hash": ""
+  },
+  "assets/sfx/hab_mana.wav": {
+    "mtime": 1788122558.1563325,
+    "ast_hash": "6be5d6f1a67a174c5ae8768325612ff9",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_death-2.wav": {
+    "mtime": 1788122556.7990124,
+    "ast_hash": "abe60bb403b92af93e678c0af7930b9f",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_death-3.wav": {
+    "mtime": 1788122556.8494916,
+    "ast_hash": "05c87a9d6ffbc111b8a505d12edf6649",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_death.wav": {
+    "mtime": 1788122556.746441,
+    "ast_hash": "df4b40c8ea321974707d2a888b70040e",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_earth-2.wav": {
+    "mtime": 1788122556.4444313,
+    "ast_hash": "747184d8e217ac73c157c6a9e9fd81fa",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_earth-3.wav": {
+    "mtime": 1788122556.515406,
+    "ast_hash": "493b693f41ca35894391a18f439c3148",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_earth.wav": {
+    "mtime": 1788122556.375257,
+    "ast_hash": "76f9158eb8ea2b16d03cc0b68216c4ae",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_energy-2.wav": {
+    "mtime": 1788122556.300135,
+    "ast_hash": "c404a38f7ac2431da9e3454e239399d3",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_energy-3.wav": {
+    "mtime": 1788122556.305993,
+    "ast_hash": "df848623ede1804f871764e847a4bbb8",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_energy.wav": {
+    "mtime": 1788122556.2930975,
+    "ast_hash": "12791e80566d3878b9905b669a24c0d1",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_fire-2.wav": {
+    "mtime": 1788122555.9202025,
+    "ast_hash": "d830de2865d65316a17d7b954379c875",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_fire-3.wav": {
+    "mtime": 1788122555.972433,
+    "ast_hash": "8f4fd961be7d5bded7119eeaf0f00e29",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_fire-4.wav": {
+    "mtime": 1788122556.021792,
+    "ast_hash": "6608d38a8c763f2b273c286ba084a032",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_fire.wav": {
+    "mtime": 1788122555.873191,
+    "ast_hash": "c18a15b760cbfb2ab471c9a369d62c00",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_ice-2.wav": {
+    "mtime": 1788122556.1995034,
+    "ast_hash": "01e77a1fb767b419a04a2e399fcc9c0b",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_ice-3.wav": {
+    "mtime": 1788122556.2874498,
+    "ast_hash": "93835642167a02d8340a39425afbd9c2",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_ice.wav": {
+    "mtime": 1788122556.1108987,
+    "ast_hash": "0c4f957d3d785e055617bbf3cdef48f0",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_physical-2.wav": {
+    "mtime": 1788122556.9096386,
+    "ast_hash": "e6560c05ca7ddfca4dfa8ba95d7e29a0",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_physical-3.wav": {
+    "mtime": 1788122556.940293,
+    "ast_hash": "df5afb643627f3574652f941f733e88e",
+    "semantic_hash": ""
+  },
+  "assets/sfx/spell_physical.wav": {
+    "mtime": 1788122556.8801737,
+    "ast_hash": "7a8ae30f911cafdc9121475f65cd470d",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_death-2.ogg": {
+    "mtime": 1786333305.8784502,
+    "ast_hash": "35a4a5878cca95292710c0eae6868c3f",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_death.ogg": {
+    "mtime": 1786333305.8774304,
+    "ast_hash": "f023741ba5347ca3c61cf69c0acb74f0",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_earth-2.ogg": {
+    "mtime": 1786333305.9056306,
+    "ast_hash": "ce16bc6dfa1e9022f476b8b23cf79c4a",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_earth-3.ogg": {
+    "mtime": 1786333305.9066324,
+    "ast_hash": "f1e465a13b3efa4e970b0ae5ccb06528",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_earth-4.ogg": {
+    "mtime": 1786333305.9066324,
+    "ast_hash": "c8318766e3ddea83930142504b965ba2",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_earth.ogg": {
+    "mtime": 1786333305.9056306,
+    "ast_hash": "b01b63cb07805865e30e4e6d333dde92",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_energy-2.ogg": {
+    "mtime": 1786333305.8997927,
+    "ast_hash": "cc5e0da13c61d4aa3fd8b62d20be3466",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_energy.ogg": {
+    "mtime": 1786333305.8997927,
+    "ast_hash": "4800fc6d175ea6df2ff29d5b5583ca93",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_fire-2.ogg": {
+    "mtime": 1786333305.9010034,
+    "ast_hash": "c1cf2da3d4c134dc97f9e413ce27e207",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_fire-3.ogg": {
+    "mtime": 1786333305.9020061,
+    "ast_hash": "675d285aa492490c5b12a3cdeb25aebf",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_fire-4.ogg": {
+    "mtime": 1786333305.9030151,
+    "ast_hash": "03d0ae817b92842f268230196c703ad4",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_fire.ogg": {
+    "mtime": 1786333305.9010034,
+    "ast_hash": "07238abe14e0d0b9fdaeb2fddbcc75df",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_ice-2.ogg": {
+    "mtime": 1786333072.0614085,
+    "ast_hash": "a2a4923a52fe7539f1ad6117233fed58",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_ice-3.ogg": {
+    "mtime": 1786333072.062799,
+    "ast_hash": "66961bf5a5335759c75450d932ed8ab5",
+    "semantic_hash": ""
+  },
+  "assets/sfx_antigo_2026-08-30/spell_ice.ogg": {
+    "mtime": 1786333072.0614085,
+    "ast_hash": "bfe961851857bd0385bec6bb3a2f8cf4",
+    "semantic_hash": ""
+  },
+  "assets/build_objetos.py": {
+    "mtime": 1788220311.3860557,
+    "ast_hash": "b63c684c8caefcaad450e678de40558c",
+    "semantic_hash": ""
+  },
+  "assets/objetos/manifest.json": {
+    "mtime": 1788220336.2415042,
+    "ast_hash": "1afe77132ee719d5a13e1a6137c5df1c",
+    "semantic_hash": ""
+  },
+  "tools/amostra/objetos.html": {
+    "mtime": 1788179810.67882,
+    "ast_hash": "3225526e84d4c8da1169e9b904e6635a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_01.png": {
+    "mtime": 1788220336.1718647,
+    "ast_hash": "3cc178756cfd15bb0d8578ec480b8175",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_02.png": {
+    "mtime": 1788220336.1728768,
+    "ast_hash": "721e36c774fac6647c8583529dd72b57",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_03.png": {
+    "mtime": 1788220336.1728768,
+    "ast_hash": "14743d42708e7c1133d160da84f7a179",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_04.png": {
+    "mtime": 1788220336.1738837,
+    "ast_hash": "ecca83aa07ac455205193bc43cee3445",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_05.png": {
+    "mtime": 1788220336.1746268,
+    "ast_hash": "2bf2f5c43328e9c706ab744c89f1a984",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_06.png": {
+    "mtime": 1788220336.1746268,
+    "ast_hash": "a7e99e7a1af267a978e01fe1be2ae765",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_07.png": {
+    "mtime": 1788220336.175711,
+    "ast_hash": "94e5d3bb37abb4ec3df32596a2636c00",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_08.png": {
+    "mtime": 1788220336.1767142,
+    "ast_hash": "2f9beaac38389b0be6ce167b12eb8591",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_09.png": {
+    "mtime": 1788220336.1777172,
+    "ast_hash": "7c379c8786ce413d52ce84fe429c5416",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_10.png": {
+    "mtime": 1788220336.1777172,
+    "ast_hash": "b48e1b4cbb5bdfbe547257ebf5838426",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_100.png": {
+    "mtime": 1788220336.2274044,
+    "ast_hash": "f25a2c7052f4979ebde9bb15c9715068",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_101.png": {
+    "mtime": 1788220336.2274044,
+    "ast_hash": "c79d1c09d41e9e6c55bea3264d44b44a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_102.png": {
+    "mtime": 1788220336.2284102,
+    "ast_hash": "6b4c9ef0b3a01722ba8750167d286d1c",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_103.png": {
+    "mtime": 1788220336.2284102,
+    "ast_hash": "0f85cd0308064e3479b2f192708e9e74",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_104.png": {
+    "mtime": 1788220336.2293382,
+    "ast_hash": "4592feacb867e8bdd851e3e4d564061d",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_105.png": {
+    "mtime": 1788220336.2304804,
+    "ast_hash": "806b4fe4fd052238fb8a26f8019e7672",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_11.png": {
+    "mtime": 1788220336.1787212,
+    "ast_hash": "98a9d6024a3ad1dabc7f0cfd34977dff",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_12.png": {
+    "mtime": 1788220336.1787212,
+    "ast_hash": "eb7812cf5f2b25077abb2b7359d1a209",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_13.png": {
+    "mtime": 1788220336.1797261,
+    "ast_hash": "95a90b654eeb1df32a5f665cc6a2eaa5",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_14.png": {
+    "mtime": 1788220336.180628,
+    "ast_hash": "54c225d10b9c69c8ed1ddb4bf1d20ff8",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_15.png": {
+    "mtime": 1788220336.180628,
+    "ast_hash": "6993044a0892353a4ccfc8ffc00d0799",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_16.png": {
+    "mtime": 1788220336.1817203,
+    "ast_hash": "5010b1bfb5c8a72e792b4bf715f0a9c1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_17.png": {
+    "mtime": 1788220336.1817203,
+    "ast_hash": "e538b0bcdcc462952dfafefa69e681ef",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_18.png": {
+    "mtime": 1788220336.1827235,
+    "ast_hash": "28d4ca625d6cb76cee1205d51475c4a9",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_19.png": {
+    "mtime": 1788220336.1827235,
+    "ast_hash": "4253050038280dd05b62a8288f29d264",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_20.png": {
+    "mtime": 1788220336.1838129,
+    "ast_hash": "177da16e27170bda6e3a6ffb4edc2661",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_21.png": {
+    "mtime": 1788220336.1838129,
+    "ast_hash": "1fa6dbd9c5a07eb1d5925946c0365da4",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_22.png": {
+    "mtime": 1788220336.1848176,
+    "ast_hash": "6887bb779504a59901681c057006cb71",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_23.png": {
+    "mtime": 1788220336.1848176,
+    "ast_hash": "a87ace700d450b101d1007363a375de6",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_24.png": {
+    "mtime": 1788220336.1858208,
+    "ast_hash": "79946bf0f67bfa8c6f42ff32eea682ab",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_25.png": {
+    "mtime": 1788220336.1868382,
+    "ast_hash": "1ea6bbbb57b69047627dbeff64268496",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_26.png": {
+    "mtime": 1788220336.1868382,
+    "ast_hash": "bcc5578eb22cc0db88ab6903bec639df",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_27.png": {
+    "mtime": 1788220336.187608,
+    "ast_hash": "287a70462ad3a80565e3bb108441b2d8",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_28.png": {
+    "mtime": 1788220336.187608,
+    "ast_hash": "2ff944a8f52b3d4834858c514e142559",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_29.png": {
+    "mtime": 1788220336.187608,
+    "ast_hash": "84c75cc98838bd16af51da633e6eae3e",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_30.png": {
+    "mtime": 1788220336.188697,
+    "ast_hash": "fe47da3b9e01a660318794b076fbf1c1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_31.png": {
+    "mtime": 1788220336.188697,
+    "ast_hash": "a7d7b32a76ad018aee374d70c1048508",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_32.png": {
+    "mtime": 1788220336.1897008,
+    "ast_hash": "deb7952a82774cbb44b144f29c2e30f4",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_33.png": {
+    "mtime": 1788220336.1900105,
+    "ast_hash": "ec5b5740405a9fbcc7430a6830db8782",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_34.png": {
+    "mtime": 1788220336.1900105,
+    "ast_hash": "7216e7fac964ef2841be960319a5cae2",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_35.png": {
+    "mtime": 1788220336.1910095,
+    "ast_hash": "893d5c43b01408012d5d3f882bc6d631",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_36.png": {
+    "mtime": 1788220336.1910095,
+    "ast_hash": "e712990f83f3de35d1a202577b8bea23",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_37.png": {
+    "mtime": 1788220336.1920147,
+    "ast_hash": "e152e77425626a4f6aa4651b93825c52",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_38.png": {
+    "mtime": 1788220336.1925046,
+    "ast_hash": "d448a6f608f51a0714127e413b2485ba",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_39.png": {
+    "mtime": 1788220336.1935844,
+    "ast_hash": "f67e646a349b55988b365b8994f32c44",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_40.png": {
+    "mtime": 1788220336.1935844,
+    "ast_hash": "394c01fb7ebd185a11adfe366e8378c8",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_41.png": {
+    "mtime": 1788220336.1945884,
+    "ast_hash": "c3e86b3395bf3cc9ec34ae11548c5219",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_42.png": {
+    "mtime": 1788220336.1945884,
+    "ast_hash": "c4695fb09d362bec02ce668413e3a406",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_43.png": {
+    "mtime": 1788220336.1945884,
+    "ast_hash": "ec0b1b01b260396a1b0af4a06fc1273a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_44.png": {
+    "mtime": 1788220336.1961212,
+    "ast_hash": "6b1938dc0fcd04f93762c4f82c525b43",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_45.png": {
+    "mtime": 1788220336.1961212,
+    "ast_hash": "3bdadb373c5b548ef7d1606e6beb05ae",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_46.png": {
+    "mtime": 1788220336.1972642,
+    "ast_hash": "9afe49f765a8dc89d39f8f3906340f09",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_47.png": {
+    "mtime": 1788220336.198269,
+    "ast_hash": "a1ed1faa12345a4b413a74d20ae0b200",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_48.png": {
+    "mtime": 1788220336.1988595,
+    "ast_hash": "449d741d64a0d0f543eb4f19d3c387b1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_49.png": {
+    "mtime": 1788220336.1999528,
+    "ast_hash": "e59d52c5e3be7a21371feaf273902e41",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_50.png": {
+    "mtime": 1788220336.1999528,
+    "ast_hash": "44648b210df62b367b2fad8cad2f15c6",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_51.png": {
+    "mtime": 1788220336.2009592,
+    "ast_hash": "712314a7db7565bbaed7bcc6bbb817cc",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_52.png": {
+    "mtime": 1788220336.2009592,
+    "ast_hash": "f5047adee570614ebf4efc440d3570c1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_53.png": {
+    "mtime": 1788220336.2009592,
+    "ast_hash": "d8168eaee1ed0133cd3bb6198975faad",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_54.png": {
+    "mtime": 1788220336.2019792,
+    "ast_hash": "edf02c1f088230f2508ff35b98d74cdc",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_55.png": {
+    "mtime": 1788220336.2019792,
+    "ast_hash": "e7ebd377d56bc19020ecae0d86d4a41a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_56.png": {
+    "mtime": 1788220336.2029824,
+    "ast_hash": "6bcb705c1abf86ee841bc7b69ebb40d4",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_57.png": {
+    "mtime": 1788220336.2029824,
+    "ast_hash": "7c02e14a1e8d710597f3668cfa3e9cd7",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_58.png": {
+    "mtime": 1788220336.203986,
+    "ast_hash": "b56343c3ce899a7ef6b0c6506cf2aee2",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_59.png": {
+    "mtime": 1788220336.203986,
+    "ast_hash": "449ac67fec961f93b38c99cbc350496b",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_60.png": {
+    "mtime": 1788220336.204826,
+    "ast_hash": "d7ae43943567a8f26d2e813ae5da4639",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_61.png": {
+    "mtime": 1788220336.20592,
+    "ast_hash": "d924782e5b7520af367681b4e0e6fbf9",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_62.png": {
+    "mtime": 1788220336.20592,
+    "ast_hash": "d28153086393c78f37babeb97bdb11fe",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_63.png": {
+    "mtime": 1788220336.2069304,
+    "ast_hash": "afa70c5278c7a0ffb1dc0358ce01ab8f",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_64.png": {
+    "mtime": 1788220336.2069304,
+    "ast_hash": "f1d95aea6bf27a13113882a5242efae6",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_65.png": {
+    "mtime": 1788220336.2079341,
+    "ast_hash": "a817a2b9744648b33e556b1613253d87",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_66.png": {
+    "mtime": 1788220336.2079341,
+    "ast_hash": "3b9f562cb4e106789344302af7c70a4f",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_67.png": {
+    "mtime": 1788220336.2089403,
+    "ast_hash": "174d2e3fe32bdadbf26118734fd657c3",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_68.png": {
+    "mtime": 1788220336.2089403,
+    "ast_hash": "3f60a3094328e910cad695dff4af9ede",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_69.png": {
+    "mtime": 1788220336.2099442,
+    "ast_hash": "7a863eac9a9490367e80c6fadb7f6510",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_70.png": {
+    "mtime": 1788220336.211261,
+    "ast_hash": "40942af40fb932678cdc305be36ea60a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_71.png": {
+    "mtime": 1788220336.211261,
+    "ast_hash": "2708a4a765780e9015c986146cb04b91",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_72.png": {
+    "mtime": 1788220336.212261,
+    "ast_hash": "c779c0fc46374034a016f292d58890a3",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_73.png": {
+    "mtime": 1788220336.212261,
+    "ast_hash": "a940025719f56915d44089be393975be",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_74.png": {
+    "mtime": 1788220336.2132652,
+    "ast_hash": "71aa6236505f5cdb9c01b24f331c13bd",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_75.png": {
+    "mtime": 1788220336.2132652,
+    "ast_hash": "a0e4f9500c1baa1d8ab85a826f96d8cf",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_76.png": {
+    "mtime": 1788220336.2142684,
+    "ast_hash": "9f5c572e633fb4a6a30e4121bee675ad",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_77.png": {
+    "mtime": 1788220336.214712,
+    "ast_hash": "00be40eb1ea84556f28330510db8661f",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_78.png": {
+    "mtime": 1788220336.214712,
+    "ast_hash": "263e4e39f35a36b6819e562189f4afab",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_79.png": {
+    "mtime": 1788220336.2159288,
+    "ast_hash": "23c843e0c22883625170efd3a2359ff3",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_80.png": {
+    "mtime": 1788220336.2159288,
+    "ast_hash": "3b92d2ad8a488e6cc74309c044a2c56a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_81.png": {
+    "mtime": 1788220336.2169466,
+    "ast_hash": "6a8ba16f88c4ba85de3cbcbd0e1a94f8",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_82.png": {
+    "mtime": 1788220336.2169466,
+    "ast_hash": "123aaabeca5ba8f568dc7fee2eb38506",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_83.png": {
+    "mtime": 1788220336.2180903,
+    "ast_hash": "1bc70a669bee9965fa16dd81d1ef4570",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_84.png": {
+    "mtime": 1788220336.2180903,
+    "ast_hash": "f192789c9411e66920ee7d32813845a1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_85.png": {
+    "mtime": 1788220336.2190936,
+    "ast_hash": "37a1bdbd05dfc6fe857e9da89426c622",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_86.png": {
+    "mtime": 1788220336.2190936,
+    "ast_hash": "846ea115a6268a9f7aadb910e8f0a478",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_87.png": {
+    "mtime": 1788220336.220097,
+    "ast_hash": "41729fb943fbbb1091a63b4b765ebbd9",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_88.png": {
+    "mtime": 1788220336.2211013,
+    "ast_hash": "8d98724a79c44a22ad472c609d872578",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_89.png": {
+    "mtime": 1788220336.2211013,
+    "ast_hash": "c7fa2e7a3a1c657656ac9bbde2a4059e",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_90.png": {
+    "mtime": 1788220336.2211013,
+    "ast_hash": "1dba28bd3be400c43fd04d5b84cb18a8",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_91.png": {
+    "mtime": 1788220336.222226,
+    "ast_hash": "d37c8f7c73f5db2fcfae91c574b87049",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_92.png": {
+    "mtime": 1788220336.222226,
+    "ast_hash": "b7b813a085536327e9163b4f72820887",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_93.png": {
+    "mtime": 1788220336.2232294,
+    "ast_hash": "4b3f99e409419917c7d13f723843e7f2",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_94.png": {
+    "mtime": 1788220336.224229,
+    "ast_hash": "321be8c3ca3fcfe80226413944760951",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_95.png": {
+    "mtime": 1788220336.224229,
+    "ast_hash": "799f775ec6052e1e5e60e4997e119d36",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_96.png": {
+    "mtime": 1788220336.2253942,
+    "ast_hash": "0998ba7bc10972e7d7534c0db2cda37a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_97.png": {
+    "mtime": 1788220336.2253942,
+    "ast_hash": "d88e170ae7b4dc6a5a867a25276f130b",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_98.png": {
+    "mtime": 1788220336.226399,
+    "ast_hash": "99e95305069242dde755a3b8da7b4034",
+    "semantic_hash": ""
+  },
+  "assets/objetos/objects_01_99.png": {
+    "mtime": 1788220336.226399,
+    "ast_hash": "8a0fef43ca9c1cb1e2e4f9be35ee9221",
+    "semantic_hash": ""
+  },
+  "assets/objetos/catalogo.json": {
+    "mtime": 1788220192.0325584,
+    "ast_hash": "3b2be6bd6c3b9cda142d88b32e66c375",
+    "semantic_hash": ""
+  },
+  "src/objetos.js": {
+    "mtime": 1788220336.2415042,
+    "ast_hash": "80605b8fb2135b5feeef858e0fa7e579",
+    "semantic_hash": ""
+  },
+  "SESSAO_2026-08-31_rodada5.md": {
+    "mtime": 1788218181.6591551,
+    "ast_hash": "41059fb9d6073cdd645c835be8c1d3b3",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_01_01.png": {
+    "mtime": 1788220334.572287,
+    "ast_hash": "7a5d50e5d261516481315446a8fc389a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_01_02.png": {
+    "mtime": 1788220334.5733688,
+    "ast_hash": "8638cfb5fc903215efc998b769843cbe",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_01_03.png": {
+    "mtime": 1788220334.5733688,
+    "ast_hash": "a9074e49d9a3050be66368e4b0a5b76b",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_01_04.png": {
+    "mtime": 1788220334.574374,
+    "ast_hash": "8f3f00738310c9c0f90f531dbb5587e2",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_01_05.png": {
+    "mtime": 1788220334.574896,
+    "ast_hash": "4b8f750e0a2c97a6f3f208bf6dfdee42",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_01_06.png": {
+    "mtime": 1788220334.5753896,
+    "ast_hash": "0919a3d98a878743a7617a16f7d56336",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_01_07.png": {
+    "mtime": 1788220334.576309,
+    "ast_hash": "255e583bb7e77fb0d48962533130970e",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_01_08.png": {
+    "mtime": 1788220334.576309,
+    "ast_hash": "05250b7a8942867e186d78f5812cf169",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_01_09.png": {
+    "mtime": 1788220334.577309,
+    "ast_hash": "e35717e53b84274e364362460ee3c774",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_01_10.png": {
+    "mtime": 1788220334.577309,
+    "ast_hash": "80b05e677e885641e5116508b6892392",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_02_01.png": {
+    "mtime": 1788220335.318076,
+    "ast_hash": "4f82745e7ce3ac8b50cee55393a60026",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_02_02.png": {
+    "mtime": 1788220335.3190787,
+    "ast_hash": "771d4da6eff5e670cbfed2f1c0b25edc",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_02_03.png": {
+    "mtime": 1788220335.3190787,
+    "ast_hash": "f197d9c5978ab972a8134da9f38ce504",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_02_04.png": {
+    "mtime": 1788220335.3200364,
+    "ast_hash": "b3a2ad76011cbb7424692c45a849bede",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_02_05.png": {
+    "mtime": 1788220335.3200364,
+    "ast_hash": "7837421e8f7ae00773bdfe9ee106d013",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_02_06.png": {
+    "mtime": 1788220335.32107,
+    "ast_hash": "4025cd0a0fa44626690e18f4ba74972a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_02_07.png": {
+    "mtime": 1788220335.32107,
+    "ast_hash": "bdd1d1a9ab5c46377d9375db0953bf97",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_02_08.png": {
+    "mtime": 1788220335.32107,
+    "ast_hash": "ae53735f3f9ec3226b6693a4af2e4630",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_02_09.png": {
+    "mtime": 1788220335.32107,
+    "ast_hash": "e9023293e683ba4cc88ca18de8a97269",
+    "semantic_hash": ""
+  },
+  "assets/objetos/blood_02_10.png": {
+    "mtime": 1788220335.32107,
+    "ast_hash": "449c9f15c04b684354923bac19b29b9a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_01.png": {
+    "mtime": 1788220229.9426506,
+    "ast_hash": "0e45b6ecc12a0b9dccfe26d82bb223b5",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_02.png": {
+    "mtime": 1788220229.9436538,
+    "ast_hash": "eed5b7a8e17c774b6be19c0d6795cf2f",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_03.png": {
+    "mtime": 1788220229.9446585,
+    "ast_hash": "d5d9a45a0db08181e2c9b0f394f67ec7",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_04.png": {
+    "mtime": 1788220229.9466655,
+    "ast_hash": "381a92e34b864862e712452d3137fae0",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_05.png": {
+    "mtime": 1788220229.9479022,
+    "ast_hash": "450c7bcd82fdd024bcbfccffe434c9c9",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_06.png": {
+    "mtime": 1788220229.948904,
+    "ast_hash": "4172423d868241b3308be395ec221430",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_07.png": {
+    "mtime": 1788220229.949913,
+    "ast_hash": "7e5f4212811694aec82a5425b6200784",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_08.png": {
+    "mtime": 1788220229.9511437,
+    "ast_hash": "6e9a9705e73f9b4f343009a6e0816fd2",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_09.png": {
+    "mtime": 1788220229.9511437,
+    "ast_hash": "878acdd6c0023ed348b0289f9fe4b201",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_10.png": {
+    "mtime": 1788220229.9521456,
+    "ast_hash": "e6047406081fd5b47cef794aa65c4c60",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_11.png": {
+    "mtime": 1788220229.953149,
+    "ast_hash": "b1b899d95d1f41d029396aab1a18b597",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_12.png": {
+    "mtime": 1788220229.9541514,
+    "ast_hash": "7a5abcc0123ea478bab12256dda0ff5a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_13.png": {
+    "mtime": 1788220229.9541514,
+    "ast_hash": "e6df8dfb6c2faa58718772f7ce25a4ca",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_14.png": {
+    "mtime": 1788220229.9553971,
+    "ast_hash": "f1cf2a3bc1c78f499de7253e1c4d34eb",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_15.png": {
+    "mtime": 1788220229.9564812,
+    "ast_hash": "e273c253a237919511c7f60adcb86159",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_16.png": {
+    "mtime": 1788220229.957528,
+    "ast_hash": "a21df8573efc976515e2a67fb2168d80",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_17.png": {
+    "mtime": 1788220229.9585922,
+    "ast_hash": "e5c6e7858fc63355e807654d9b045a0e",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_18.png": {
+    "mtime": 1788220229.9595954,
+    "ast_hash": "3f4ce035ad606ef280d1fa742f0d9f91",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_19.png": {
+    "mtime": 1788220229.9605987,
+    "ast_hash": "2af82e46f318a7a72fa477d99613a330",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_20.png": {
+    "mtime": 1788220229.9616015,
+    "ast_hash": "0ad10733ec820a28fbad55583ba397d1",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_21.png": {
+    "mtime": 1788220229.9626033,
+    "ast_hash": "9a8fc24a025a3d6995e4e0167582e19a",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_22.png": {
+    "mtime": 1788220229.9626033,
+    "ast_hash": "59142038b2ce1cad8f2fa7caff3eb490",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_23.png": {
+    "mtime": 1788220229.9638698,
+    "ast_hash": "f78c648c0879b5e437cd64882e7e8138",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_24.png": {
+    "mtime": 1788220229.9648745,
+    "ast_hash": "082325bd6be18df1cbc0807034a96c46",
+    "semantic_hash": ""
+  },
+  "assets/objetos/trees_01_25.png": {
+    "mtime": 1788220229.9648745,
+    "ast_hash": "f052e6e352ae008e8407046df50482a5",
+    "semantic_hash": ""
+  },
+  "proposta_vestir.html": {
+    "mtime": 1788313971.157004,
+    "ast_hash": "93069c45189991c11284d6927244ad81",
+    "semantic_hash": ""
+  },
+  ".style_tmp.html": {
+    "mtime": 1788477155.9032352,
+    "ast_hash": "a4edf8e95f35e46980131ef47ab3376e",
+    "semantic_hash": ""
+  },
+  "proposta_estruturas.html": {
+    "mtime": 1788477413.4598553,
+    "ast_hash": "3f167bf352c937b3f2cf14fe0c5705a4",
+    "semantic_hash": ""
+  },
+  "tools/amostra/paredes.html": {
+    "mtime": 1788495683.5308714,
+    "ast_hash": "999e74fca63b5404c68b5995dec36547",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/agua_clara.png": {
+    "mtime": 1788617752.0987866,
+    "ast_hash": "742679514df8dfb3aa022b4bfd70f27d",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/agua_funda.png": {
+    "mtime": 1788617752.105812,
+    "ast_hash": "e1479f8a0abec1d61b2b45d2d3144833",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/arbusto_frutos.png": {
+    "mtime": 1788617752.1348438,
+    "ast_hash": "e1c86318b3f77d9a3092634f6f0644b7",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/areia_fina.png": {
+    "mtime": 1788617752.14369,
+    "ast_hash": "12c803de62824156af7dab30a41a2a43",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/areia_grossa.png": {
+    "mtime": 1788617752.103802,
+    "ast_hash": "4d2c0d73c1802ff09d3c3693510ff075",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/areia_mato.png": {
+    "mtime": 1788617752.136847,
+    "ast_hash": "8e6ff58b3b1d06c9e5ac1cb433dc6b0d",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/areia_pedra.png": {
+    "mtime": 1788617752.1358466,
+    "ast_hash": "9d30ee176af4a6b5cc6bd6b8b541ad90",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/calcada.png": {
+    "mtime": 1788617752.1793327,
+    "ast_hash": "105dc302de3df18b79b55fad8f16adfe",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/calcada_bloco.png": {
+    "mtime": 1788617752.1451845,
+    "ast_hash": "aaf8e8a61995639d76ee1f280444e295",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/calcada_clara.png": {
+    "mtime": 1788617752.104812,
+    "ast_hash": "2c5e1d1a3eda9f4f3001c83a608b688a",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/calcada_laje.png": {
+    "mtime": 1788617752.110318,
+    "ast_hash": "5be2c5b4f699310096e1ab142559f91c",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/calcada_mosaico.png": {
+    "mtime": 1788617752.1113176,
+    "ast_hash": "96599b3cd30290967d29215eb2a99c85",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/calcada_musgo.png": {
+    "mtime": 1788617752.105812,
+    "ast_hash": "16e5c4b6647bb6b6da0043825b92610a",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/calcada_paralelo.png": {
+    "mtime": 1788617752.1083171,
+    "ast_hash": "ff09d8ecd75492b31240e83597ed5396",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/calcada_seixo.png": {
+    "mtime": 1788617752.1461847,
+    "ast_hash": "a47b125feff174a0e3a97c4a0d9c5a3a",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/cascalho.png": {
+    "mtime": 1788617752.1516032,
+    "ast_hash": "85faf0f805742ce3e4217715d4b80678",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/cascalho_claro.png": {
+    "mtime": 1788617752.107315,
+    "ast_hash": "081aac1b7be3ebee583b22f6a4eeeecc",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/duna.png": {
+    "mtime": 1788617752.1388488,
+    "ast_hash": "66ad1ac7bb0ca2a93291bc4285f3aa75",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/gelo_agua.png": {
+    "mtime": 1788617752.125406,
+    "ast_hash": "09789624b883d6a754b92d5357ab781f",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/gelo_liso.png": {
+    "mtime": 1788617752.128407,
+    "ast_hash": "272825c22daf2ef8b651d6391294b504",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/gelo_trincado.png": {
+    "mtime": 1788617752.1264064,
+    "ast_hash": "bbd94f488204fe9ce7feda7937d729fd",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/grama.png": {
+    "mtime": 1788617752.1485596,
+    "ast_hash": "4c05191ae7d5f4122ee406645f516109",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/grama_alta.png": {
+    "mtime": 1788617752.0997918,
+    "ast_hash": "3acdc8f66f7b5d4f1ca7b0a21d804efc",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/grama_clara.png": {
+    "mtime": 1788617752.1803327,
+    "ast_hash": "ce9c2dcc7b5e79145fe664045ae490a5",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/grama_densa.png": {
+    "mtime": 1788617752.1495702,
+    "ast_hash": "dda1e487cb8c9e9f6f262a9c62b03ce8",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/grama_florida.png": {
+    "mtime": 1788617752.1403077,
+    "ast_hash": "6db2fe90bbbd314b5788253e6fd8b88e",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/grama_mata.png": {
+    "mtime": 1788617752.1495702,
+    "ast_hash": "e3204db6221f6773c236ab649844d230",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/grama_mostarda.png": {
+    "mtime": 1788617752.1007922,
+    "ast_hash": "648cf1e98ac532d034ba4533914233ce",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/grama_papoula.png": {
+    "mtime": 1788617752.1007922,
+    "ast_hash": "5592cf701336736dd1bb23c07b16abc2",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/grama_pedra.png": {
+    "mtime": 1788617752.1413097,
+    "ast_hash": "6073571998f961ba8dd971ed2ea3570b",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/grama_rala.png": {
+    "mtime": 1788617752.1773298,
+    "ast_hash": "cdf7a4185bcb0ce3d478c99d216a4c33",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/grama_seca.png": {
+    "mtime": 1788617752.181333,
+    "ast_hash": "5bc09d20d8fd41bd9f1b49ae81664d0f",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/junco_seco.png": {
+    "mtime": 1788617752.1294072,
+    "ast_hash": "89d9c5a09d8aa0269f87983d68c40651",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/junco_verde.png": {
+    "mtime": 1788617752.1304774,
+    "ast_hash": "d8c9238c77f0a7423e61a949062a38b5",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/lava_viva.png": {
+    "mtime": 1788617752.1224053,
+    "ast_hash": "4a0874e2a77b96151c642480327648a7",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/mato_seco.png": {
+    "mtime": 1788617752.1334925,
+    "ast_hash": "ee8e2cffc38a6aeeb496de5145a8bcc5",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/neve_funda.png": {
+    "mtime": 1788617752.1274066,
+    "ast_hash": "accf7d9c545d21770ccd94afe46323aa",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/neve_mato.png": {
+    "mtime": 1788617752.124406,
+    "ast_hash": "0afa1996f116011d23dadf1039095e41",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/neve_pedra.png": {
+    "mtime": 1788617752.1234055,
+    "ast_hash": "3d0022446662d0c6921eaa5b87d4372d",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/ossada.png": {
+    "mtime": 1788617752.1224053,
+    "ast_hash": "105476c8437b41ad3893e6a33a7f7973",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/ossada_areia.png": {
+    "mtime": 1788617752.1388488,
+    "ast_hash": "af77049db282cb11059d05c786a3e84d",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/pantano_folha.png": {
+    "mtime": 1788617752.131492,
+    "ast_hash": "4019bf89acc708dccb353b5ff9915ceb",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/pantano_vitoria.png": {
+    "mtime": 1788617752.1294072,
+    "ast_hash": "dfaf6a41eb7b33f9c5b279b30653c1b2",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/pedra.png": {
+    "mtime": 1788617752.1763194,
+    "ast_hash": "d698cb180bc16fd1d6d26d09628261d0",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/pedra_irregular.png": {
+    "mtime": 1788617752.109318,
+    "ast_hash": "4843922b17de5ca2dabe174c59bc20a5",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/pedra_musgo.png": {
+    "mtime": 1788617752.1334925,
+    "ast_hash": "761bd6581bdeeb1e5fe7771bad8a8b98",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/pedregulho.png": {
+    "mtime": 1788617752.120126,
+    "ast_hash": "2e3dcd83e5924d0c7afb07e711a20ad7",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/ESCALA.png": {
+    "mtime": 1788617752.1667268,
+    "ast_hash": "003cb0d32993c1a736aea42918fd8750",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/ESCALA48.png": {
+    "mtime": 1788617752.1753082,
+    "ast_hash": "97f9304b7fcc8b0ddc1f6c05d8f8f356",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/FOLHA_3x3.png": {
+    "mtime": 1788617752.168813,
+    "ast_hash": "47787d7f9e8278ac6fb7a0cf4802ce08",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/RESOLUCAO.png": {
+    "mtime": 1788617752.172843,
+    "ast_hash": "2d8d7198143cab39276b63d394bdbc4b",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/calcada_3x3.png": {
+    "mtime": 1788617752.154104,
+    "ast_hash": "aab57079ecea42a1b5dab0f519fa271c",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/cascalho_3x3.png": {
+    "mtime": 1788617752.1698196,
+    "ast_hash": "44bb8e690f13221214c1fc3c537670ea",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/grama_3x3.png": {
+    "mtime": 1788617752.1551063,
+    "ast_hash": "e81c4ff23f62751ca449a4bae82e17c7",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/grama_clara_3x3.png": {
+    "mtime": 1788617752.1582067,
+    "ast_hash": "a06bcfc7bd5806c0d83621bed37d5b37",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/grama_mata_3x3.png": {
+    "mtime": 1788617752.1571283,
+    "ast_hash": "0122d337a4a936442dacc376f09e32f8",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/grama_rala_3x3.png": {
+    "mtime": 1788617752.1647072,
+    "ast_hash": "0b3e1f8f319f8eddd3c95b58f64da490",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/grama_seca_3x3.png": {
+    "mtime": 1788617752.1718395,
+    "ast_hash": "fde483d0c1f970e9de6bb6a22b1ec539",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/pedra_3x3.png": {
+    "mtime": 1788617752.1602094,
+    "ast_hash": "02ff8e627d309b59398980ba1f003ea7",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/terra_3x3.png": {
+    "mtime": 1788617752.159209,
+    "ast_hash": "4c2a99ee2f527fb6e9d05c5b6f21d0f1",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/prova/terra_escura_3x3.png": {
+    "mtime": 1788617752.1626728,
+    "ast_hash": "a930355fc3b32dbcd83f4cf99ec46914",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/rocha_basalto.png": {
+    "mtime": 1788617752.1213968,
+    "ast_hash": "30aa1a84b709016a7ef43d3ec38fb787",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/tabua_clara.png": {
+    "mtime": 1788617752.1171255,
+    "ast_hash": "2d723e8c5b1f7af600832119a59abbd1",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/tabua_deitada.png": {
+    "mtime": 1788617752.1146617,
+    "ast_hash": "5932987d6c8518efaf785c369ceb7224",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/tabua_escura.png": {
+    "mtime": 1788617752.147185,
+    "ast_hash": "0cb82f4e015ca88ce77ad10a7e4905dc",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/tabua_larga.png": {
+    "mtime": 1788617752.1171255,
+    "ast_hash": "7313ce5331fb3c499aa8081fe5b2a123",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/tabua_travessa.png": {
+    "mtime": 1788617752.147185,
+    "ast_hash": "ed745c1bbeb875c2cce4e61a9b82afff",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/tapete.png": {
+    "mtime": 1788617752.118126,
+    "ast_hash": "f871ec9e5edade42703cbac17893027b",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/terra.png": {
+    "mtime": 1788617752.1773298,
+    "ast_hash": "2bc6f9eb04df5c29ca0f1a4485472ad3",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/terra_escura.png": {
+    "mtime": 1788617752.178332,
+    "ast_hash": "6057e09409048f2f6f5f94cd1118d540",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/terra_gretada.png": {
+    "mtime": 1788617752.137847,
+    "ast_hash": "18b5cdbf4ef0bed4a93e357fe61e00f9",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/terra_lisa.png": {
+    "mtime": 1788617752.1423194,
+    "ast_hash": "4d69f005e6e9d9841ecc6c9143baf68b",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/terra_pedregosa.png": {
+    "mtime": 1788617752.119126,
+    "ast_hash": "23ee173f9e2882f247f9e69f5390cb93",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/terra_pedrisco.png": {
+    "mtime": 1788617752.101801,
+    "ast_hash": "1a340098f571e30097a72da0065ecd36",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/terra_rachada.png": {
+    "mtime": 1788617752.1028016,
+    "ast_hash": "a44c4e203f51999cbdd74e179637cb65",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/terra_umida.png": {
+    "mtime": 1788617752.1413097,
+    "ast_hash": "0e1010760e204f036beb03eff4d3e97a",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/tijolo.png": {
+    "mtime": 1788617752.112661,
+    "ast_hash": "8fde9991d7ec9952913415a78c599c99",
+    "semantic_hash": ""
+  },
+  "assets/terreno_backup_2026-09-05/tijolo_musgo.png": {
+    "mtime": 1788617752.1136613,
+    "ast_hash": "8a7892ed776674fed5dd87e8404f081d",
+    "semantic_hash": ""
+  },
+  "tools/amostra/luz.html": {
+    "mtime": 1788642569.7260962,
+    "ast_hash": "908bd4a6af4067a4402830f0e3333e17",
+    "semantic_hash": ""
+  },
+  "tools/amostra/oclusor.html": {
+    "mtime": 1788700783.6306005,
+    "ast_hash": "1f20466ddfe770f0d04bd1334255b4dd",
     "semantic_hash": ""
   }
 }
